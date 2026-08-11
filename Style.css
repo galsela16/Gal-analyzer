@@ -1,1 +1,17 @@
+body {
+  margin: 0;
+  background: #0b0b0b;
+  color: white;
+  font-family: sans-serif;
+}
 
+canvas {
+  display: block;
+  width: 100vw;
+  height: 90vh;
+}
+
+.controls {
+  padding: 10px;
+  text-align: center;
+}
