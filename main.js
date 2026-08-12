@@ -24,6 +24,9 @@ const canvas =
 const startBtn =
   document.getElementById("startBtn");
 
+const freezeBtn =
+  document.getElementById("freezeBtn");
+
 const bpoSelect =
   document.getElementById("bpoSelect");
 
@@ -31,8 +34,8 @@ const bpoSelect =
 let audio;
 let renderer;
 let bandEngine;
-
 let peakTimes;
+let frozen = false;
 
 
 startBtn.onclick = async () => {
@@ -80,6 +83,8 @@ startBtn.onclick = async () => {
 
     startBtn.disabled = true;
 
+    freezeBtn.disabled = false;
+
     loop();
 
   } catch (error) {
@@ -91,6 +96,14 @@ startBtn.onclick = async () => {
     startBtn.textContent =
       "Microphone Error";
   }
+};
+
+
+freezeBtn.onclick = () => {
+  frozen = !frozen;
+
+  freezeBtn.textContent =
+    frozen ? "Resume" : "Freeze";
 };
 
 
@@ -147,48 +160,50 @@ function loop() {
     return;
   }
 
-  const fft =
-    audio.getData();
+  if (!frozen) {
+    const fft =
+      audio.getData();
 
-  state.data.current.set(
-    fft
-  );
-
-  smoothArray(
-    state.data.smooth,
-    state.data.current,
-    state.smoothing
-  );
-
-  const bands =
-    bandEngine.process(
-      state.data.smooth
+    state.data.current.set(
+      fft
     );
 
-  state.rta.current.set(
-    bands
-  );
+    smoothArray(
+      state.data.smooth,
+      state.data.current,
+      state.smoothing
+    );
 
-  smoothArray(
-    state.rta.smooth,
-    state.rta.current,
-    0.65
-  );
+    const bands =
+      bandEngine.process(
+        state.data.smooth
+      );
 
-  updateBandPeaks(
-    state.rta.peak,
-    state.rta.smooth,
-    peakTimes,
-    performance.now(),
-    state.rta.peakHoldMs,
-    state.rta.peakDecayDbPerSecond
-  );
+    state.rta.current.set(
+      bands
+    );
 
-  renderer.render(
-    bandEngine.bands,
-    state.rta.smooth,
-    state.rta.peak
-  );
+    smoothArray(
+      state.rta.smooth,
+      state.rta.current,
+      0.65
+    );
+
+    updateBandPeaks(
+      state.rta.peak,
+      state.rta.smooth,
+      peakTimes,
+      performance.now(),
+      state.rta.peakHoldMs,
+      state.rta.peakDecayDbPerSecond
+    );
+
+    renderer.render(
+      bandEngine.bands,
+      state.rta.smooth,
+      state.rta.peak
+    );
+  }
 
   requestAnimationFrame(
     loop
