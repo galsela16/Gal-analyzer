@@ -1,10 +1,7 @@
 export class Renderer {
-  constructor(canvas, sampleRate = 48000, fftSize = 16384) {
+  constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
-
-    this.sampleRate = sampleRate;
-    this.fftSize = fftSize;
 
     this.minFreq = 20;
     this.maxFreq = 20000;
@@ -15,65 +12,101 @@ export class Renderer {
     this.padding = {
       left: 58,
       right: 18,
-      top: 20,
+      top: 30,
       bottom: 38
     };
 
     this.resize();
 
-    window.addEventListener("resize", () => this.resize());
+    window.addEventListener("resize", () => {
+      this.resize();
+    });
   }
 
   resize() {
     const dpr = window.devicePixelRatio || 1;
 
-    const cssWidth = this.canvas.clientWidth;
-    const cssHeight = this.canvas.clientHeight;
+    const width = this.canvas.clientWidth;
+    const height = this.canvas.clientHeight;
 
-    this.canvas.width = cssWidth * dpr;
-    this.canvas.height = cssHeight * dpr;
+    this.canvas.width = width * dpr;
+    this.canvas.height = height * dpr;
 
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.ctx.setTransform(
+      dpr,
+      0,
+      0,
+      dpr,
+      0,
+      0
+    );
 
-    this.w = cssWidth;
-    this.h = cssHeight;
+    this.w = width;
+    this.h = height;
 
     this.plotLeft = this.padding.left;
     this.plotRight = this.w - this.padding.right;
+
     this.plotTop = this.padding.top;
     this.plotBottom = this.h - this.padding.bottom;
 
-    this.plotWidth = this.plotRight - this.plotLeft;
-    this.plotHeight = this.plotBottom - this.plotTop;
+    this.plotWidth =
+      this.plotRight - this.plotLeft;
+
+    this.plotHeight =
+      this.plotBottom - this.plotTop;
   }
 
   freqToX(freq) {
-    const minLog = Math.log10(this.minFreq);
-    const maxLog = Math.log10(this.maxFreq);
-    const fLog = Math.log10(freq);
+    const minLog =
+      Math.log10(this.minFreq);
 
-    const normalized = (fLog - minLog) / (maxLog - minLog);
+    const maxLog =
+      Math.log10(this.maxFreq);
 
-    return this.plotLeft + normalized * this.plotWidth;
+    const freqLog =
+      Math.log10(freq);
+
+    const position =
+      (freqLog - minLog) /
+      (maxLog - minLog);
+
+    return (
+      this.plotLeft +
+      position * this.plotWidth
+    );
   }
 
   dbToY(db) {
-    const clamped = Math.max(this.minDb, Math.min(this.maxDb, db));
+    const clamped =
+      Math.max(
+        this.minDb,
+        Math.min(this.maxDb, db)
+      );
 
-    const normalized =
-      (clamped - this.minDb) / (this.maxDb - this.minDb);
+    const position =
+      (clamped - this.minDb) /
+      (this.maxDb - this.minDb);
 
-    return this.plotBottom - normalized * this.plotHeight;
+    return (
+      this.plotBottom -
+      position * this.plotHeight
+    );
   }
 
   drawBackground() {
-    const ctx = this.ctx;
+    this.ctx.fillStyle = "#0b0d10";
 
-    ctx.fillStyle = "#0b0d10";
-    ctx.fillRect(0, 0, this.w, this.h);
+    this.ctx.fillRect(
+      0,
+      0,
+      this.w,
+      this.h
+    );
 
-    ctx.fillStyle = "#10141a";
-    ctx.fillRect(
+    this.ctx.fillStyle = "#10141a";
+
+    this.ctx.fillRect(
       this.plotLeft,
       this.plotTop,
       this.plotWidth,
@@ -82,8 +115,6 @@ export class Renderer {
   }
 
   drawFrequencyGrid() {
-    const ctx = this.ctx;
-
     const frequencies = [
       20,
       30,
@@ -109,7 +140,7 @@ export class Renderer {
       20000
     ];
 
-    const labelFreqs = new Set([
+    const labels = new Set([
       20,
       50,
       100,
@@ -122,188 +153,283 @@ export class Renderer {
       20000
     ]);
 
-    ctx.font = "11px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
+    this.ctx.font =
+      "11px Arial";
+
+    this.ctx.textAlign =
+      "center";
+
+    this.ctx.textBaseline =
+      "top";
 
     for (const freq of frequencies) {
-      const x = this.freqToX(freq);
+      const x =
+        this.freqToX(freq);
 
-      const major = labelFreqs.has(freq);
+      const major =
+        labels.has(freq);
 
-      ctx.strokeStyle = major ? "#36404d" : "#222933";
-      ctx.lineWidth = 1;
+      this.ctx.strokeStyle =
+        major
+          ? "#36404d"
+          : "#222933";
 
-      ctx.beginPath();
-      ctx.moveTo(x, this.plotTop);
-      ctx.lineTo(x, this.plotBottom);
-      ctx.stroke();
+      this.ctx.lineWidth = 1;
+
+      this.ctx.beginPath();
+
+      this.ctx.moveTo(
+        x,
+        this.plotTop
+      );
+
+      this.ctx.lineTo(
+        x,
+        this.plotBottom
+      );
+
+      this.ctx.stroke();
 
       if (major) {
-        ctx.fillStyle = "#9aa6b2";
+        this.ctx.fillStyle =
+          "#9aa6b2";
 
-        let label;
+        let text;
 
         if (freq >= 1000) {
-          label = `${freq / 1000}k`;
+          text =
+            `${freq / 1000}k`;
         } else {
-          label = `${freq}`;
+          text = `${freq}`;
         }
 
-        ctx.fillText(label, x, this.plotBottom + 9);
+        this.ctx.fillText(
+          text,
+          x,
+          this.plotBottom + 9
+        );
       }
     }
   }
 
   drawDbGrid() {
-    const ctx = this.ctx;
+    this.ctx.font =
+      "11px Arial";
 
-    ctx.font = "11px Arial";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
+    this.ctx.textAlign =
+      "right";
 
-    for (let db = this.minDb; db <= this.maxDb; db += 10) {
-      const y = this.dbToY(db);
+    this.ctx.textBaseline =
+      "middle";
 
-      ctx.strokeStyle = db % 20 === 0 ? "#36404d" : "#222933";
-      ctx.lineWidth = 1;
+    for (
+      let db = this.minDb;
+      db <= this.maxDb;
+      db += 10
+    ) {
+      const y =
+        this.dbToY(db);
 
-      ctx.beginPath();
-      ctx.moveTo(this.plotLeft, y);
-      ctx.lineTo(this.plotRight, y);
-      ctx.stroke();
+      this.ctx.strokeStyle =
+        db % 20 === 0
+          ? "#36404d"
+          : "#222933";
 
-      ctx.fillStyle = "#9aa6b2";
-      ctx.fillText(`${db}`, this.plotLeft - 8, y);
+      this.ctx.lineWidth = 1;
+
+      this.ctx.beginPath();
+
+      this.ctx.moveTo(
+        this.plotLeft,
+        y
+      );
+
+      this.ctx.lineTo(
+        this.plotRight,
+        y
+      );
+
+      this.ctx.stroke();
+
+      this.ctx.fillStyle =
+        "#9aa6b2";
+
+      this.ctx.fillText(
+        `${db}`,
+        this.plotLeft - 8,
+        y
+      );
     }
   }
 
-  drawSpectrum(data) {
-    const ctx = this.ctx;
+  drawBands(bands, data) {
+    this.ctx.save();
 
-    const binHz = this.sampleRate / this.fftSize;
+    this.ctx.beginPath();
 
-    ctx.save();
-
-    ctx.beginPath();
-    ctx.rect(
+    this.ctx.rect(
       this.plotLeft,
       this.plotTop,
       this.plotWidth,
       this.plotHeight
     );
-    ctx.clip();
 
-    ctx.beginPath();
+    this.ctx.clip();
+
+    this.ctx.beginPath();
 
     let started = false;
 
-    for (let i = 1; i < data.length; i++) {
-      const freq = i * binHz;
+    for (
+      let i = 0;
+      i < bands.length;
+      i++
+    ) {
+      const freq =
+        bands[i].center;
 
-      if (freq < this.minFreq) continue;
-      if (freq > this.maxFreq) break;
+      if (
+        freq < this.minFreq ||
+        freq > this.maxFreq
+      ) {
+        continue;
+      }
 
-      const x = this.freqToX(freq);
-      const y = this.dbToY(data[i]);
+      const x =
+        this.freqToX(freq);
+
+      const y =
+        this.dbToY(data[i]);
 
       if (!started) {
-        ctx.moveTo(x, y);
+        this.ctx.moveTo(x, y);
         started = true;
       } else {
-        ctx.lineTo(x, y);
+        this.ctx.lineTo(x, y);
       }
     }
 
-    ctx.strokeStyle = "#35e0a1";
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    this.ctx.strokeStyle =
+      "#35e0a1";
 
-    ctx.restore();
+    this.ctx.lineWidth = 2;
+
+    this.ctx.lineJoin =
+      "round";
+
+    this.ctx.lineCap =
+      "round";
+
+    this.ctx.stroke();
+
+    this.ctx.restore();
   }
 
-  drawPeaks(peaks) {
-    const ctx = this.ctx;
+  drawBandPeaks(bands, peaks) {
+    this.ctx.save();
 
-    const binHz = this.sampleRate / this.fftSize;
+    this.ctx.beginPath();
 
-    ctx.save();
-
-    ctx.beginPath();
-    ctx.rect(
+    this.ctx.rect(
       this.plotLeft,
       this.plotTop,
       this.plotWidth,
       this.plotHeight
     );
-    ctx.clip();
 
-    ctx.beginPath();
+    this.ctx.clip();
 
-    let started = false;
+    this.ctx.fillStyle =
+      "#f2c14e";
 
-    for (let i = 1; i < peaks.length; i++) {
-      const freq = i * binHz;
+    for (
+      let i = 0;
+      i < bands.length;
+      i++
+    ) {
+      const freq =
+        bands[i].center;
 
-      if (freq < this.minFreq) continue;
-      if (freq > this.maxFreq) break;
-
-      const x = this.freqToX(freq);
-      const y = this.dbToY(peaks[i]);
-
-      if (!started) {
-        ctx.moveTo(x, y);
-        started = true;
-      } else {
-        ctx.lineTo(x, y);
+      if (
+        freq < this.minFreq ||
+        freq > this.maxFreq
+      ) {
+        continue;
       }
+
+      const x =
+        this.freqToX(freq);
+
+      const y =
+        this.dbToY(peaks[i]);
+
+      this.ctx.beginPath();
+
+      this.ctx.arc(
+        x,
+        y,
+        2,
+        0,
+        Math.PI * 2
+      );
+
+      this.ctx.fill();
     }
 
-    ctx.strokeStyle = "#f2c14e";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.restore();
+    this.ctx.restore();
   }
 
   drawLabels() {
-    const ctx = this.ctx;
+    this.ctx.fillStyle =
+      "#e6edf3";
 
-    ctx.fillStyle = "#e6edf3";
-    ctx.font = "600 13px Arial";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
+    this.ctx.font =
+      "600 13px Arial";
 
-    ctx.fillText("GAL ANALYZER", this.plotLeft, 4);
+    this.ctx.textAlign =
+      "left";
 
-    ctx.font = "11px Arial";
-    ctx.fillStyle = "#778391";
+    this.ctx.textBaseline =
+      "top";
 
-    ctx.textAlign = "right";
-    ctx.fillText(
+    this.ctx.fillText(
+      "GAL ANALYZER",
+      this.plotLeft,
+      7
+    );
+
+    this.ctx.font =
+      "11px Arial";
+
+    this.ctx.fillStyle =
+      "#778391";
+
+    this.ctx.textAlign =
+      "right";
+
+    this.ctx.fillText(
       "Frequency (Hz)",
       this.plotRight,
       this.plotBottom + 23
     );
-
-    ctx.save();
-
-    ctx.translate(14, this.plotTop + this.plotHeight / 2);
-    ctx.rotate(-Math.PI / 2);
-
-    ctx.textAlign = "center";
-    ctx.fillText("Level (dBFS)", 0, 0);
-
-    ctx.restore();
   }
 
-  render(data, peaks) {
+  render(bands, data, peaks) {
     this.drawBackground();
+
     this.drawFrequencyGrid();
+
     this.drawDbGrid();
 
-    this.drawSpectrum(data);
-    this.drawPeaks(peaks);
+    this.drawBands(
+      bands,
+      data
+    );
+
+    this.drawBandPeaks(
+      bands,
+      peaks
+    );
 
     this.drawLabels();
   }
