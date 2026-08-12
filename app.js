@@ -11,6 +11,8 @@ let sunMode=false;
 
 // ---- TF Advanced Engine Variables ----
 let tfDelayMs = 0;
+let tfTraces=[];
+const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
 let showTfPhase = false;
 let showTfCoh = true;
@@ -217,6 +219,16 @@ safeOn('qbPhase', 'click', function(){
   const mainBtn = document.getElementById('tfPhaseToggleBtn');
   if(mainBtn) mainBtn.classList.toggle('on', showTfPhase);
 });
+safeOn('tfAutoDelayBtn','click',tfAutoDelay);
+safeOn('tfCohToggleBtn','click',function(){
+  showTfCoh=!showTfCoh; this.classList.toggle('on',showTfCoh);
+  const q=document.getElementById('qbCoh'); if(q) q.classList.toggle('on',showTfCoh);
+});
+safeOn('tfPhaseToggleBtn','click',function(){
+  showTfPhase=!showTfPhase; this.classList.toggle('on',showTfPhase);
+  const q=document.getElementById('qbPhase'); if(q) q.classList.toggle('on',showTfPhase);
+});
+
 
 function tfAutoDelay(){
   if(!running || !analyserRef){ alert('הפעל כרטיס קול סטריאו (מיקרופון + רפרנס).'); return; }
@@ -849,10 +861,43 @@ safeOn('calResetBtn', 'click',()=>{
 });
 
 const modalBg=document.getElementById('modalBg');
-['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel'].forEach(id=>{
-  const p=document.getElementById(id); if(p) modalBg.appendChild(p);
-});
-function showModal(p){ setAlign(false); closeModals(); p.classList.add('open'); modalBg.classList.add('show'); }
+const measureDockIds=['rtPanel','eqPanel','tfPanel','areaPanel','dlyPanel'];
+const stageEl=document.getElementById('stage');
+function dockAdvanced(id, parentLevels=0, block=false){
+  let e=document.getElementById(id); if(!e) return;
+  while(parentLevels-->0 && e.parentElement) e=e.parentElement;
+  e.classList.add('dockAdvanced'); if(block)e.classList.add('block');
+}
+function setupMeasureDocks(){
+  measureDockIds.forEach(id=>{
+    const p=document.getElementById(id); if(!p)return;
+    p.classList.add('measureDock'); stageEl.appendChild(p);
+    const close=p.querySelector('[id$="Close"]'); if(close){close.classList.add('dockClose');close.textContent='✕';close.title='סגור';}
+    const more=document.createElement('button');more.className='dockMoreBtn';more.type='button';more.textContent='עוד ▾';
+    more.addEventListener('click',()=>{p.classList.toggle('expanded');more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾';setTimeout(updateMeasureDockHeight,0);});
+    if(close) p.insertBefore(more,close); else p.appendChild(more);
+  });
+  // heavy/advanced sections stay hidden until "עוד"
+  ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','dlyInfo','dlySpk','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
+  ['tfSmooth','tfCohGate'].forEach(id=>dockAdvanced(id,1));
+  ['eqModeSwitchA','eqModeSeg','cutOnlySeg','areaModeSeg','areaCutSeg','dlyCountSeg','rtLevel','rtRange'].forEach(id=>dockAdvanced(id,1));
+  dockAdvanced('tfModeSeg',0);
+  // area EQ button is advanced
+  dockAdvanced('areaEqBtn');
+}
+function updateMeasureDockHeight(){
+  const open=measureDockIds.map(id=>document.getElementById(id)).find(p=>p&&p.classList.contains('open'));
+  if(open){stageEl.style.setProperty('--measure-h',open.offsetHeight+'px');stageEl.classList.add('measure-open');}
+  else{stageEl.style.setProperty('--measure-h','0px');stageEl.classList.remove('measure-open');}
+  if(typeof resize==='function')resize();
+}
+setupMeasureDocks();
+['calPanel','savePanel'].forEach(id=>{const p=document.getElementById(id);if(p)modalBg.appendChild(p);});
+function showModal(p){
+  setAlign(false); closeModals(); p.classList.add('open');
+  if(p.classList.contains('measureDock')){modalBg.classList.remove('show');setTimeout(updateMeasureDockHeight,0);}
+  else modalBg.classList.add('show');
+}
 function abortRT60(){
   if(rt60State!=='capture' && !rt60Timer) return;
   rt60State='idle';
@@ -863,8 +908,9 @@ function abortRT60(){
 }
 function closeModals(){
   abortRT60();
-  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel'].forEach(id=>{const p=document.getElementById(id);if(p){p.classList.remove('open','expanded');const m=p.querySelector('.dockMoreBtn');if(m)m.textContent='עוד ▾';}});
   modalBg.classList.remove('show');
+  if(typeof updateMeasureDockHeight==='function') updateMeasureDockHeight();
 }
 modalBg.addEventListener('click',e=>{ if(e.target===modalBg) closeModals(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModals(); });
@@ -993,6 +1039,66 @@ function setTfOverlay(on){
 safeOn('tfOverlayBtn', 'click',()=>setTfOverlay(!tfOverlay));
 safeOn('tfMeasBtn', 'click',()=>pickSource(tfMeasure,6000));
 safeOn('tfCsvBtn', 'click',tfExportCsv);
+
+
+function tfCurrentSnapshot(){
+  if(!analyserRef || !audioCtx) return null;
+  computeComplexTf();
+  const n=TF_FFT_N/2, mag=new Float32Array(n), ph=new Float32Array(n), coh=new Float32Array(n);
+  const vals=[];
+  for(let k=1;k<n;k++){
+    const pxx=tfPxx[k], pyy=tfPyy[k], ps=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
+    const c=Math.max(0,Math.min(1,ps/(pxx*pyy+1e-20)));
+    const m=10*Math.log10((pyy+1e-20)/(pxx+1e-20));
+    mag[k]=m; ph[k]=Math.atan2(tfPxyIm[k],tfPxyRe[k]); coh[k]=c;
+    const f=k*audioCtx.sampleRate/TF_FFT_N;
+    if(c>=Math.max(.55,tfCohGate) && f>=200 && f<=5000 && Number.isFinite(m)) vals.push(m);
+  }
+  vals.sort((a,b)=>a-b);
+  const offset=vals.length?vals[Math.floor(vals.length/2)]:0;
+  return {mag,ph,coh,offset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()};
+}
+function renderTfTraceLegend(){
+  const el=document.getElementById('tfTraceLegend'); if(!el) return;
+  el.innerHTML=tfTraces.map((t,i)=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+'</span>').join('');
+}
+function captureTfTrace(){
+  if(!running||!analyserRef){ alert('הפעל כרטיס קול סטריאו (מיק + רפרנס).'); return; }
+  const s=tfCurrentSnapshot(); if(!s) return;
+  const idx=tfTraces.length+1;
+  s.name='Trace '+idx; s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  tfTraces.push(s); if(tfTraces.length>6) tfTraces.shift();
+  renderTfTraceLegend(); v3Toast('נלכד '+s.name);
+}
+safeOn('tfTraceBtn','click',captureTfTrace);
+safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast('Traces נוקו');});
+
+function tfMagY(db,plotH){ const range=18; return plotH/2 - Math.max(-range,Math.min(range,db))/range*(plotH*.46); }
+function tfDrawMagnitudeView(W,plotH,nyquist){
+  const live=tfCurrentSnapshot(); if(!live) return;
+  // TF grid: 0 dB center, ±6/12/18 dB
+  ctx.save();
+  ctx.font='10px monospace'; ctx.textAlign='left';
+  [-18,-12,-6,0,6,12,18].forEach(db=>{
+    const y=tfMagY(db,plotH); ctx.strokeStyle=db===0?'rgba(62,166,255,.50)':'rgba(120,135,155,.18)';
+    ctx.lineWidth=db===0?1.4:1; ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+    ctx.fillStyle=sunMode?'#475569':'#8b97a5'; ctx.fillText((db>0?'+':'')+db+'dB',4,y-3);
+  });
+  const drawSnap=(snap,color,width,alpha)=>{
+    ctx.beginPath(); let pen=false;
+    for(let px=0;px<=W;px+=2){
+      const f=freqForX(px), k=Math.min(snap.mag.length-1,Math.max(1,Math.round(f/snap.sr*TF_FFT_N)));
+      const c=snap.coh[k]; if(c<tfCohGate){pen=false;continue;}
+      const y=tfMagY(snap.mag[k]-snap.offset,plotH);
+      pen?ctx.lineTo(px,y):ctx.moveTo(px,y); pen=true;
+    }
+    ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
+  };
+  tfTraces.forEach(t=>drawSnap(t,t.color,1.4,.72));
+  drawSnap(live,'rgb('+accentRgb.join(',')+')',2.3,1);
+  ctx.fillStyle=sunMode?'#0f172a':'#e6edf3';ctx.font='600 11px monospace';ctx.fillText('TF MAG · relative',8,14);
+  ctx.restore();
+}
 
 function detectComb(){
   if(!floatData || !audioCtx) return null;
@@ -1671,7 +1777,7 @@ function resetSession(){
   areas=[]; renderAreaList();
   document.getElementById('areaEqCanvas').style.display='none';
   document.getElementById('areaEqList').innerHTML='';
-  tfResult=null; document.getElementById('tfGeqList').innerHTML='';
+  tfResult=null; tfTraces=[]; renderTfTraceLegend(); document.getElementById('tfGeqList').innerHTML='';
   document.getElementById('tfCanvas').style.display='none';
   resetDelay();
   fbTrack.clear(); fbPanel.innerHTML='';
@@ -2090,30 +2196,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     { let acc=0; _pfxRef[0]=0; for(let i=0;i<bins;i++){ acc+=db2lin(floatDataRef[i]); _pfxRef[i+1]=acc; } }
     const refBandDb=(fLo,fHi)=>{ let lo=Math.floor(fLo/nyquist*bins),hi=Math.ceil(fHi/nyquist*bins); lo=Math.max(0,lo);hi=Math.min(bins-1,hi);if(hi<lo)hi=lo; return 10*Math.log10((_pfxRef[hi+1]-_pfxRef[lo])+1e-12); };
     
-    const micPts=[];
-    const refPts=[];
-    const stepPx = 1;
-    for(let px = 0; px <= W; px += stepPx){
-      const f = freqForX(px);
-      const fLo = f / R;
-      const fHi = f * R;
-      const mDb = bandPowDb(fLo, fHi);
-      const rDb = refBandDb(fLo, fHi);
-      micPts.push([px, plotH - norm(mDb) * plotH]);
-      refPts.push([px, plotH - norm(rDb) * plotH]);
-    }
-
-    if(!alignView){
-    ctx.beginPath(); micPts.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineTo(micPts[micPts.length-1][0],plotH); ctx.lineTo(micPts[0][0],plotH); ctx.closePath();
-    ctx.fillStyle='rgba('+accentRgb.join(',')+',0.13)'; ctx.fill();
-    ctx.beginPath(); micPts.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y));
-    ctx.strokeStyle='rgb('+accentRgb.join(',')+')'; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
-    
-    ctx.beginPath(); refPts.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y));
-    ctx.strokeStyle='#d97706'; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
-    }
-
     computeComplexTf();
+    if(!alignView){ tfDrawMagnitudeView(W,plotH,nyquist); }
 
     if(showTfCoh && !alignView){
       ctx.beginPath();
@@ -2806,7 +2890,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V3';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V4';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -2847,6 +2931,8 @@ const HELP={
   rtBtn:'RT60: מדידת זמן הדהוד החדר,\nלפי רצועות אוקטבה. דורש חדר אמיתי.',
   wgtBtn:'שקלול המד: dBZ (טכני), dBA (חוק/אוזן),\ndBC (עם בס). לחיצה מחליפה.',
   leqBtn:'אפס Leq: מתחיל מדידת ממוצע עוצמה\nמחדש מהרגע הזה.',
+  tfTraceBtn:'לוכד את עקומת ה-TF הנוכחית ומשאיר אותה על הגרף להשוואה למדידה הבאה.',
+  tfAutoDelayBtn:'מחשב אוטומטית את הפרש הזמן בין הרפרנס למיקרופון ומיישר את ה-TF.',
   resetPeakBtn:'איפוס מיידי של כל סימוני ה-Peak Hold.',
   avgSpeedSeg:'קובע כמה מהר המיצוע מגיב לשינויים. מהיר = תגובה זריזה, איטי = תצוגה יציבה.',
   peakBtn:'Peak Hold: משאיר את השיאים על המסך.',

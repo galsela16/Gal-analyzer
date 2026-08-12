@@ -358,7 +358,51 @@
   .tfItem .g{color:var(--text)}
 
 
-  /* ===== V3 additions ===== */
+
+  /* ===== V4 · Measurement Dock system ===== */
+  #stage.measure-open>canvas{height:calc(100% - var(--measure-h,0px));bottom:auto}
+  .measureDock{
+    position:absolute !important; inset-inline:0 !important; bottom:0 !important; top:auto !important; z-index:14 !important;
+    width:100% !important; max-width:none !important; min-width:0 !important; box-sizing:border-box;
+    display:none !important; flex-direction:row !important; align-items:center !important; justify-content:center;
+    gap:8px !important; flex-wrap:wrap !important; padding:8px 12px !important; margin:0 !important;
+    border:0 !important; border-top:1px solid var(--accent) !important; border-radius:0 !important;
+    background:var(--panel) !important; box-shadow:0 -4px 18px rgba(0,0,0,.38) !important;
+    max-height:44vh !important; overflow:auto !important;
+  }
+  .measureDock.open{display:flex !important}
+  .measureDock h3{font-size:11px !important;letter-spacing:.7px !important;margin:0 5px 0 0 !important;white-space:nowrap;color:var(--accent)!important}
+  .measureDock>.sub{display:none}
+  .measureDock .chBar{min-width:210px;max-width:290px;flex:1 1 220px;margin:0}
+  .measureDock .ctrl{min-width:130px;max-width:220px;flex:0 1 190px}
+  .measureDock .dockAdvanced{display:none !important}
+  .measureDock.expanded .dockAdvanced{display:flex !important}
+  .measureDock.expanded canvas.dockAdvanced{display:block !important}
+  .measureDock.expanded div.dockAdvanced{display:flex !important}
+  .measureDock.expanded .dockAdvanced.block{display:block !important}
+  .measureDock .dockMoreBtn,.measureDock .dockClose{
+    border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:inherit;font-size:11px;
+    font-weight:600;padding:6px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;align-self:center
+  }
+  .measureDock .dockMoreBtn{border-color:rgba(62,166,255,.35);color:var(--accent)}
+  .measureDock .dockClose{color:var(--dim);padding:6px 9px}
+  .measureDock .toggle{padding:6px 10px;white-space:nowrap}
+  .measureDock #tfBtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .measureDock #dlyStatus,.measureDock #rtStatus{min-width:130px;font-variant-numeric:tabular-nums}
+  .measureDock #tfDelayInfo{padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);white-space:nowrap}
+  .measureDock #tfGeqList,.measureDock #eqList,.measureDock #areaEqList{width:min(100%,820px);max-height:28vh;overflow:auto}
+  .measureDock #eqPosList,.measureDock #areaList,.measureDock #dlySpk{width:min(100%,680px);max-height:24vh;overflow:auto}
+  .measureDock.expanded{justify-content:flex-start;padding-inline:14px!important}
+  .tfTraceLegend{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:10px;color:var(--dim)}
+  .tfTraceLegend span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2)}
+  .tfTraceLegend i{width:12px;height:2px;display:inline-block;border-radius:2px}
+  @media(max-width:760px){
+    .measureDock{justify-content:flex-start!important;max-height:50vh!important;padding:7px 8px!important}
+    .measureDock h3{width:100%}
+    .measureDock .chBar{min-width:180px}
+  }
+
+  /* ===== V4 additions ===== */
   .v3Status{
     display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-inline-start:6px;
   }
@@ -607,11 +651,17 @@
         <div style="text-align:center;font-size:12px;margin-top:4px">קורלציה: <b id="tfCorrVal" style="color:var(--accent)">—</b> <span id="tfCorrTip" style="font-size:10px;color:var(--dim)"></span></div>
       </div>
       <div id="tfBtns">
+        <button class="toggle" id="tfAutoDelayBtn">⏱ Auto Delay</button>
+        <button class="toggle" id="tfPhaseToggleBtn">Phase</button>
+        <button class="toggle on" id="tfCohToggleBtn">Coh</button>
+        <button class="toggle" id="tfTraceBtn">לכוד Trace</button>
+        <button class="toggle" id="tfTraceClearBtn">נקה Traces</button>
         <button class="toggle" id="tfSwapBtn">החלף ערוצים</button>
         <button class="toggle" id="tfOverlayBtn">הצג על הגרף</button>
-        <button class="toggle" id="tfMeasBtn">מדוד (6ש')</button>
+        <button class="toggle" id="tfMeasBtn">מדוד EQ (6ש')</button>
         <button class="toggle" id="tfCsvBtn">CSV</button>
       </div>
+      <div id="tfTraceLegend" class="tfTraceLegend"></div>
       <div id="tfDelayInfo" style="text-align:center;font-size:11px;color:var(--accent)">סנכרון דיליי TF: 0.00 ms</div>
       <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:6px 0">
         <div class="ctrl" style="min-width:150px">

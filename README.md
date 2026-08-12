@@ -1,23 +1,16 @@
-# GAL Analyzer V3
+# GAL Analyzer V4 — Measurement Workspace
 
-גרסה מלאה מוכנה להעלאה ל-GitHub Pages.
+V4 focuses on real system measurement, not cosmetic changes.
 
-## חדש ב-V3
-- שורת סטטוס חיה: Audio / Sample Rate / FFT / Calibration / RTA Resolution
-- כפתור Reset Peaks
-- שלוש מהירויות מיצוע: מהיר / בינוני / איטי
-- קיצורי מקלדת:
-  - Space — Freeze / Resume
-  - P — Peak Hold
-  - A — Average
-  - R — Reset Peaks
-  - F — Full Range
-  - G — Generator
-  - S — Saved Measurements
-- שמירת מהירות המיצוע ב-localStorage
-- שיפור חיווי כיול SPL
-- כל הפיצ'רים המתקדמים מ-V2 נשמרו: RTA, Waterfall, TF, Phase, Coherence, Delay Finder, RT60, Sub/Top Alignment, EQ, Captures, Mic Calibration, A/B, Generator ועוד.
+## Main changes
+- All measurement tools (TF, Delay Finder, RT60, SPL/EQ, Spatial Average) now open as bottom measurement docks, matching the Sub/Top alignment workflow. The graph stays visible.
+- Each dock has a compact working view and an `עוד` button for advanced controls/results.
+- TF main graph now shows the actual transfer magnitude (Measurement / Reference), centered relative to the mid-band, rather than simply drawing the two input spectra.
+- TF Auto Delay is directly available in the TF dock.
+- Live Phase and Coherence toggles are directly available in the TF dock.
+- Capture up to 6 TF traces and compare them on the main graph.
+- Saved TF traces remain visible while measuring the next position/system state.
+- Existing TF phase/coherence gating, Delay Finder, RT60, Sub/Top alignment, EQ, generator, captures, mic calibration and session tools remain available.
 
-## העלאה
-העלה את כל הקבצים שבתיקייה לשורש ה-repo והחלף את הקיימים.
-לא להעלות את התיקייה עצמה כתיקיית משנה.
+## Install
+Upload the CONTENTS of this folder to the root of the GitHub repository and replace the existing files. Then hard-refresh the deployed page.
