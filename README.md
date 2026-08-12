@@ -1,4 +1,7 @@
-# GAL Analyzer V5.4.7 — Calibration controls
+# GAL Analyzer V5.4.8 — Compact workspace
+
+- RTA and Waterfall are a clean two-button switch.
+- The left rail is narrower with compact cards and calibration typography.
 
 - Mic CAL is compact: calibration list, selection and file loading only.
 - SPL / dBFS toggle now works in both directions.

@@ -440,7 +440,7 @@
      compact bottom measurement docks.
      ========================================================= */
   :root{
-    --v5-side:210px;
+    --v5-side:182px;
     --v5-tabs:52px;
     --v5-footer:92px;
   }
@@ -513,16 +513,15 @@
     background:#0b1823;box-shadow:inset 0 2px 0 rgba(62,166,255,.18);
   }
   .v53AnalysisGroup{display:flex;align-items:flex-end;height:36px;border:1px solid #253542;border-radius:6px 6px 0 0;overflow:hidden;background:#0c151e}
-  .v53AnalysisGroup>button{border:0!important;border-radius:0!important;min-width:84px!important;padding:0 9px!important;font-size:10px!important}
-  #v53RtaViewSwitch{display:flex;height:100%;border-left:1px solid #253542}
-  #v53RtaViewSwitch button{min-width:34px!important;height:100%!important;padding:0 6px!important;border:0!important;border-left:1px solid #1d2b36!important;border-radius:0!important;font-size:9px!important}
+  .v53AnalysisGroup>button{border:0!important;border-radius:0!important;min-width:62px!important;padding:0 11px!important;font-size:10px!important}
+  .v53AnalysisGroup>button+button{border-left:1px solid #253542!important}
   .v53AnalysisGroup.on{border-color:var(--accent)}
 
   /* persistent left rail */
   #v5SideRail{
     position:absolute;z-index:11;left:0;top:0;bottom:0;width:var(--v5-side);
     direction:ltr;background:#09121a;border-right:1px solid #1c2b38;
-    padding:12px 10px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
+    padding:9px 8px;display:flex;flex-direction:column;gap:7px;overflow:hidden;
   }
   #v54SideToggle{
     position:absolute;z-index:22;left:calc(var(--v5-side) + 8px);top:calc(var(--v5-tabs) + 9px);
@@ -536,20 +535,20 @@
   body.sun-mode #v54SideToggle{background:#fff;color:#334155;border-color:#bfd0dd}
   .v5ReadCard{
     border:1px solid #1d2b38;background:#0b151e;border-radius:7px;
-    padding:10px 12px;direction:ltr;
+    padding:8px 9px;direction:ltr;
   }
-  .v5CardLabel{font-size:10px;letter-spacing:.7px;color:#91a0ae;text-transform:uppercase}
-  .v5PeakValue{font-size:23px;font-weight:700;color:#e8f0f6;margin-top:4px;font-variant-numeric:tabular-nums}
-  .v5Minor{font-size:11px;color:#8fa0af;margin-top:3px;font-variant-numeric:tabular-nums}
-  .v5CalGood{color:#45d47b;font-size:11px;font-weight:700}
-  .v5CalValue{font-size:18px;color:#a9b8c5;margin:4px 0}
+  .v5CardLabel{font-size:9px;letter-spacing:.7px;color:#91a0ae;text-transform:uppercase}
+  .v5PeakValue{font-size:20px;font-weight:700;color:#e8f0f6;margin-top:2px;font-variant-numeric:tabular-nums}
+  .v5Minor{font-size:10px;color:#8fa0af;margin-top:2px;font-variant-numeric:tabular-nums}
+  .v5CalGood{color:#45d47b;font-size:10px;font-weight:700;letter-spacing:.3px}
+  .v5CalValue{font-size:12px;font-weight:600;color:#a9b8c5;margin:3px 0 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .v5RailTitle{
-    padding:5px 4px 3px;font-size:11px;font-weight:700;color:#cbd6df;border-bottom:1px solid #1b2935
+    padding:4px 3px 2px;font-size:10px;font-weight:700;color:#cbd6df;border-bottom:1px solid #1b2935
   }
-  #v5TraceList{display:flex;flex-direction:column;gap:3px;overflow:auto;min-height:0;max-height:260px}
+  #v5TraceList{display:flex;flex-direction:column;gap:2px;overflow:auto;min-height:0;max-height:210px}
   .v5TraceRow{
     display:grid;grid-template-columns:18px 1fr 26px 26px;align-items:center;gap:4px;
-    min-height:32px;padding:4px 5px;border-bottom:1px solid #17242f;font-size:11px;
+    min-height:28px;padding:3px 4px;border-bottom:1px solid #17242f;font-size:10px;
   }
   .v5TraceNum{color:#6f8090}
   .v5TraceName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -558,11 +557,11 @@
   .v5TraceAction.off{opacity:.35}
   #v5AddTrace{
     margin-top:3px;border:1px solid #263745;background:#0d1923;color:#aebbc7;
-    border-radius:5px;padding:8px;font:600 11px inherit;cursor:pointer;
+    border-radius:5px;padding:7px;font:600 10px inherit;cursor:pointer;
   }
   #v5AddTrace:hover{border-color:var(--accent);color:var(--accent)}
   #v5RailHint{
-    margin-top:auto;color:#637484;font-size:9px;line-height:1.45;border-top:1px solid #172632;padding-top:8px
+    margin-top:auto;color:#637484;font-size:8px;line-height:1.35;border-top:1px solid #172632;padding-top:6px
   }
 
   /* graph canvas gets a real workspace, not full-bleed underneath controls */
@@ -1109,9 +1108,9 @@
     <canvas id="cv"></canvas>
 
     <div id="v5ModeTabs" aria-label="Measurement modes">
-      <div class="v53AnalysisGroup on" id="v53AnalysisGroup">
-        <button id="v53AnalysisToggle" data-v5mode="analysis" class="on" type="button" onclick="v53ToggleAnalysis(event)">RTA / Waterfall</button>
-        <span id="v53RtaViewSwitch"><button type="button" data-view="rta" class="on">RTA</button><button type="button" data-view="spec">WF</button></span>
+      <div class="v53AnalysisGroup on" id="v53AnalysisGroup" aria-label="Analysis view">
+        <button id="v53AnalysisToggle" data-v5mode="analysis" type="button" class="on" onclick="v54SetAnalysisView('rta',event)">RTA</button>
+        <button id="v54WaterfallToggle" type="button" onclick="v54SetAnalysisView('spec',event)">Waterfall</button>
       </div>
       <button data-v5mode="tf">TF | Transfer Function</button>
       <button data-v5mode="delay">Delay</button>
@@ -1678,7 +1677,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.7</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.8</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
