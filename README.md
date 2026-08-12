@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.13 — Field-ready preflight
+# GAL Analyzer V5.4.14 — Smooth input meters
+
+- MEAS and REF now read the live input waveforms continuously, with smooth movement, peak hold and clear clip indication.
 
 - Field preflight validates syntax, cached assets, PWA icons and all visible UI hookups before packaging.
 

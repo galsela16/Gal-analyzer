@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.13-field-ready',
+    version: 'v5.4.14-smooth-input-meters',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2152,6 +2152,7 @@ function draw(){
     setGainEl(document.getElementById('rtLvlFill'), document.getElementById('rtLvlGain'), levelDb(timeData,2048));
   }
   updateLevel();
+  v52UpdateLiveMeters();
   const W=cv.clientWidth,H=cv.clientHeight;
   const nyquist=audioCtx.sampleRate/2, bins=floatData.length;
   const logMin=Math.log(ISO[0]), logMax=Math.log(ISO[BANDS-1]);
@@ -3005,7 +3006,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.13';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.14';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3189,6 +3190,8 @@ setTimeout(v5InitWorkspace,0);
 
 /* ===== V5.2 Clean Bottom Bar + I/O Dock ===== */
 let v52IoOpen=false;
+let v52MeasDbfs=-120, v52RefDbfs=-120;
+let v52MeasPeakDbfs=-120, v52RefPeakDbfs=-120, v52PeakAt=0;
 
 function v52SetIo(open){
   v52IoOpen=!!open;
@@ -3235,28 +3238,36 @@ function v52DbToPct(db){
   if(!Number.isFinite(db))return 0;
   return Math.max(0,Math.min(100,(db+72)/72*100));
 }
-function v52UpdateUi(){
-  const measDb=Number.isFinite(smoothedDbfs)?smoothedDbfs:null;
-  let refDb=null;
-  if(analyserRef && floatDataRef){
-    let mx=-120;
-    for(let i=0;i<floatDataRef.length;i++) if(floatDataRef[i]>mx)mx=floatDataRef[i];
-    refDb=mx;
+function v52UpdateLiveMeters(){
+  if(!running) return;
+  const now=performance.now();
+  const meas=Number.isFinite(smoothedDbfs)?smoothedDbfs:-120;
+  let ref=-120;
+  if(analyserRef){
+    if(!timeDataRef || timeDataRef.length!==analyserRef.fftSize) timeDataRef=new Float32Array(analyserRef.fftSize);
+    analyserRef.getFloatTimeDomainData(timeDataRef);
+    ref=levelDb(timeDataRef,timeDataRef.length);
   }
-
-  const mTxt=measDb===null?'—':measDb.toFixed(1)+' dB';
-  const rTxt=refDb===null?'—':refDb.toFixed(1)+' dBFS';
-  const mm=document.getElementById('v52MeasDb'); if(mm)mm.textContent=mTxt;
-  const rm=document.getElementById('v52RefDb'); if(rm)rm.textContent=rTxt;
-  const mq=document.getElementById('v52MeasQuick'); if(mq)mq.textContent=mTxt;
-  const rq=document.getElementById('v52RefQuick'); if(rq)rq.textContent=rTxt;
-  const mf=document.getElementById('v52MeasMeter'); if(mf)mf.style.width=v52DbToPct(measDb)+'%';
-  const rf=document.getElementById('v52RefMeter'); if(rf)rf.style.width=v52DbToPct(refDb)+'%';
-
-  const ml=document.getElementById('v52MeasLed');
-  const rl=document.getElementById('v52RefLed');
-  if(ml){ml.classList.toggle('live',running);ml.classList.toggle('clip',Number.isFinite(measDb)&&measDb>-1);}
-  if(rl){rl.classList.toggle('live',!!analyserRef);rl.classList.toggle('clip',Number.isFinite(refDb)&&refDb>-1);}
+  const smooth=(old,next)=>next>old ? old+(next-old)*.62 : old+(next-old)*.055;
+  v52MeasDbfs=smooth(v52MeasDbfs,meas);
+  v52RefDbfs=smooth(v52RefDbfs,ref);
+  if(v52MeasDbfs>v52MeasPeakDbfs || now-v52PeakAt>1400) v52MeasPeakDbfs=v52MeasDbfs;
+  if(v52RefDbfs>v52RefPeakDbfs || now-v52PeakAt>1400) v52RefPeakDbfs=v52RefDbfs;
+  if(now-v52PeakAt>1400) v52PeakAt=now;
+  const paint=(fill,peak,value,quick,db,peakDb)=>{
+    if(fill){fill.style.width=v52DbToPct(db)+'%';fill.classList.toggle('clip',db>-1);}
+    if(peak)peak.style.left=v52DbToPct(peakDb)+'%';
+    if(value)value.textContent=db.toFixed(1)+' dBFS';
+    if(quick)quick.textContent=db.toFixed(1)+' dB';
+  };
+  paint(document.getElementById('v52MeasMeter'),document.getElementById('v52MeasPeak'),document.getElementById('v52MeasDb'),document.getElementById('v52MeasQuick'),v52MeasDbfs,v52MeasPeakDbfs);
+  paint(document.getElementById('v52RefMeter'),document.getElementById('v52RefPeak'),document.getElementById('v52RefDb'),document.getElementById('v52RefQuick'),v52RefDbfs,v52RefPeakDbfs);
+  const ml=document.getElementById('v52MeasLed'), rl=document.getElementById('v52RefLed');
+  if(ml){ml.classList.toggle('live',true);ml.classList.toggle('clip',v52MeasDbfs>-1);}
+  if(rl){rl.classList.toggle('live',!!analyserRef);rl.classList.toggle('clip',v52RefDbfs>-1);}
+}
+function v52UpdateUi(){
+  if(running) v52UpdateLiveMeters();
 
   const sr=audioCtx?audioCtx.sampleRate:0;
   const srq=document.getElementById('v52SrQuick'); if(srq)srq.textContent=sr?(Math.round(sr/100)/10+' kHz'):'— kHz';

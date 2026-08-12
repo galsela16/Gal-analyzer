@@ -1009,8 +1009,10 @@
     display:grid;grid-template-columns:62px 1fr 52px;align-items:center;gap:7px;margin:9px 0;
     font-size:10px;
   }
-  .v52MeterTrack{height:7px;background:#15232e;border-radius:4px;overflow:hidden}
-  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6,#42d57b);transition:width .08s linear}
+  .v52MeterTrack{position:relative;height:8px;background:#15232e;border-radius:4px;overflow:hidden}
+  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6 0%,#42d57b 72%,#f6b64a 90%,#ff4d5d 100%);transition:width .045s linear}
+  .v52MeterFill.clip{filter:brightness(1.16);box-shadow:inset 0 0 8px rgba(255,77,93,.7)}
+  .v52MeterPeak{position:absolute;top:0;bottom:0;left:0;width:2px;background:#eef7ff;box-shadow:0 0 5px rgba(238,247,255,.9);transition:left .11s linear}
   .v52MeterValue{text-align:right;color:#9fb0bd;font-variant-numeric:tabular-nums}
   .v52CalState{
     display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -1448,10 +1450,10 @@
             <select id="v52RefSelect"><option value="1">Input 2</option><option value="0">Input 1</option></select>
           </div>
           <div class="v52MeterRow">
-            <b>MEAS</b><div class="v52MeterTrack"><div class="v52MeterFill" id="v52MeasMeter"></div></div><span class="v52MeterValue" id="v52MeasDb">—</span>
+            <b>MEAS</b><div class="v52MeterTrack"><div class="v52MeterFill" id="v52MeasMeter"></div><i class="v52MeterPeak" id="v52MeasPeak"></i></div><span class="v52MeterValue" id="v52MeasDb">—</span>
           </div>
           <div class="v52MeterRow">
-            <b>REF</b><div class="v52MeterTrack"><div class="v52MeterFill" id="v52RefMeter"></div></div><span class="v52MeterValue" id="v52RefDb">—</span>
+            <b>REF</b><div class="v52MeterTrack"><div class="v52MeterFill" id="v52RefMeter"></div><i class="v52MeterPeak" id="v52RefPeak"></i></div><span class="v52MeterValue" id="v52RefDb">—</span>
           </div>
         </div>
 
@@ -1691,7 +1693,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.13</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.14</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

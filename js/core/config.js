@@ -1,6 +1,6 @@
 window.GAL=window.GAL||{};
 window.GAL.config=Object.freeze({
-  version:'5.4.13-field-ready',
+  version:'5.4.14-smooth-input-meters',
   appName:'GAL Analyzer',
   maxTraces:6,
   supportedFft:[4096,8192,16384,32768]
