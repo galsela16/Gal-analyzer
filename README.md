@@ -1,4 +1,10 @@
-# GAL Analyzer V5.2 — Clean Bottom Bar + I/O Dock
+# GAL Analyzer V5.3 — Measurement Workflow
+
+## מה חדש
+- RTA ו-Waterfall נמצאים במצב Analysis אחד עם מעבר פנימי.
+- Generator נפתח כ-Dock תחתון שמקטין את הגרף.
+- פעולות Device, Channels, Mic CAL, SPL, Output ו-Export פועלות בתוך I/O החדש.
+- Trace הוא צילום עקומה להשוואה, עם הצגה/הסתרה, שינוי שם ומחיקה.
 
 ## שינוי מרכזי
 הפאנל התחתון הישן הוחלף ב-Quick Bar קומפקטי:

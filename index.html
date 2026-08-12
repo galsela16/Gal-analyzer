@@ -512,6 +512,11 @@
     color:var(--accent);border-color:var(--accent);
     background:#0b1823;box-shadow:inset 0 2px 0 rgba(62,166,255,.18);
   }
+  .v53AnalysisGroup{display:flex;align-items:flex-end;height:36px;border:1px solid #253542;border-radius:6px 6px 0 0;overflow:hidden;background:#0c151e}
+  .v53AnalysisGroup>button{border:0!important;border-radius:0!important;min-width:112px!important}
+  #v53RtaViewSwitch{display:flex;height:100%;border-left:1px solid #253542}
+  #v53RtaViewSwitch button{min-width:44px!important;height:100%!important;padding:0 8px!important;border:0!important;border-left:1px solid #1d2b36!important;border-radius:0!important;font-size:9px!important}
+  .v53AnalysisGroup.on{border-color:var(--accent)}
 
   /* persistent left rail */
   #v5SideRail{
@@ -533,12 +538,14 @@
   }
   #v5TraceList{display:flex;flex-direction:column;gap:3px;overflow:auto;min-height:0;max-height:260px}
   .v5TraceRow{
-    display:grid;grid-template-columns:18px 1fr 24px;align-items:center;gap:5px;
+    display:grid;grid-template-columns:18px 1fr 26px 26px;align-items:center;gap:4px;
     min-height:32px;padding:4px 5px;border-bottom:1px solid #17242f;font-size:11px;
   }
   .v5TraceNum{color:#6f8090}
   .v5TraceName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .v5Eye{color:#90a1af;text-align:center}
+  .v5TraceAction{border:0;background:transparent;color:#90a1af;cursor:pointer;padding:4px;border-radius:4px}
+  .v5TraceAction:hover{color:var(--accent);background:rgba(62,166,255,.1)}
+  .v5TraceAction.off{opacity:.35}
   #v5AddTrace{
     margin-top:3px;border:1px solid #263745;background:#0d1923;color:#aebbc7;
     border-radius:5px;padding:8px;font:600 11px inherit;cursor:pointer;
@@ -634,7 +641,10 @@
   footer .toggle{padding:8px 12px!important;font-size:11px!important}
   footer .ctrl{gap:3px!important}
   footer .ctrl label{font-size:9px!important}
-  #genPanel{position:fixed;left:220px;right:10px;bottom:100px;z-index:80;box-shadow:0 12px 35px rgba(0,0,0,.65)}
+  #genPanel{position:absolute;left:var(--v5-side);right:0;bottom:0;z-index:34;margin:0;border-radius:0;border-width:1px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.48)}
+  #genPanel.open{display:flex}
+  #genCloseBtn{margin-left:auto;border:1px solid #263746;background:#0d1923;color:#aebbc7;border-radius:5px;width:31px;height:29px;cursor:pointer}
+  #stage.v53-gen-open>canvas#cv{height:calc(100% - var(--v5-tabs) - var(--v53-gen-h,190px))!important}
   #stopBtn{margin-inline-start:0!important}
 
   /* status footer */
@@ -977,6 +987,11 @@
     border:1px solid #2b3e4d;background:#0e1a24;color:#b8c4ce;border-radius:4px;
     padding:6px 8px;font:600 9px inherit;cursor:pointer;
   }
+  .v53Advanced{display:none;margin-top:9px;padding-top:9px;border-top:1px solid #213341}
+  .v52IOCard.advanced-open .v53Advanced{display:block}
+  #v53MicCalArea{display:none;grid-column:1/-1;background:#0b151e;border:1px solid #1d2c38;border-radius:6px;padding:10px}
+  #v53MicCalArea.open{display:block}
+  #v53MicCalArea #calPanel{display:flex!important;position:static!important;width:100%!important;max-height:none!important;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}
 
   #stage.v52-io-open>canvas#cv{
     height:calc(100% - var(--v5-tabs) - var(--v52-io-h,210px))!important;
@@ -1043,7 +1058,7 @@
     </div>
 
     <div class="v5HeaderActions">
-      <button class="v5HeaderAction" id="v5GenAction">∿ Generator</button>
+      <button class="v5HeaderAction" id="v5GenAction" onclick="v53SetGeneratorDock(!genPanel.classList.contains('open'))">∿ Generator</button>
       <button class="v5HeaderAction" id="v5CaptureAction"><span class="v5RecDot"></span>Captures</button>
     </div>
     <button id="sunBtn" title="מצב אור שמש / ניגודיות גבוהה" aria-label="מצב אור שמש">☀️</button>
@@ -1060,9 +1075,11 @@
     <canvas id="cv"></canvas>
 
     <div id="v5ModeTabs" aria-label="Measurement modes">
-      <button data-v5mode="rta" class="on">RTA</button>
+      <div class="v53AnalysisGroup on" id="v53AnalysisGroup">
+        <button data-v5mode="analysis" class="on">RTA / Waterfall</button>
+        <span id="v53RtaViewSwitch"><button type="button" data-view="rta" class="on">RTA</button><button type="button" data-view="spec">WF</button></span>
+      </div>
       <button data-v5mode="tf">TF | Transfer Function</button>
-      <button data-v5mode="spec">Waterfall</button>
       <button data-v5mode="delay">Delay</button>
       <button data-v5mode="rt60">RT60</button>
       <button data-v5mode="spleq">SPL / EQ</button>
@@ -1084,7 +1101,7 @@
       <div class="v5RailTitle">Traces</div>
       <div id="v5TraceList"></div>
       <button id="v5AddTrace">＋ Capture Trace</button>
-      <div id="v5RailHint">TF traces נשמרים להשוואה על אותו גרף. עד 6 עקבות.</div>
+      <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
     </aside>
 
     
@@ -1421,13 +1438,21 @@
           <h4>Calibration</h4>
           <div class="v52CalState"><strong>Mic Calibration</strong><span id="v52MicCalState">None</span></div>
           <div class="v52CalState"><strong>SPL Offset</strong><span id="v52SplCalState">0.0 dB</span></div>
+          <div class="v52Field"><label>SPL Offset</label><input id="v53SplOffset" type="range" min="0" max="130" step="1" value="0"></div>
           <div class="v52CalState"><strong>Meter Unit</strong><span id="v52UnitState">dB SPL</span></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
             <button class="v52SmallBtn" id="v52OpenMicCal" type="button">Mic CAL</button>
             <button class="v52SmallBtn" id="v52UnitToggle" type="button">SPL / dBFS</button>
             <button class="v52SmallBtn" id="v52OpenOldIo" type="button">Advanced I/O</button>
           </div>
+          <div class="v53Advanced" id="v53AdvancedIo">
+            <div class="v52Field"><label>Output</label><select id="v53OutputSelect"><option value="">System default</option></select></div>
+            <div class="v52CalState"><strong>Input Channels</strong><span id="v53ChannelState">Measurement 1 · Reference 2</span></div>
+            <div class="v52CalState"><strong>Browser Audio</strong><span id="v53BrowserAudioState">Web Audio</span></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="v52SmallBtn" id="v53ExportPng" type="button">Export PNG</button><button class="v52SmallBtn" id="v53ExportCsv" type="button">Export CSV</button></div>
+          </div>
         </div>
+        <div id="v53MicCalArea"></div>
       </div>
     </section>
 
@@ -1447,8 +1472,8 @@
         <span class="v52QuickInfo hideSmall" id="v52CalQuick">CAL —</span>
       </div>
       <div class="v52QuickGroup">
-        <button class="v52QuickBtn" id="v52IoBtn" type="button">I/O</button>
-        <button class="v52QuickBtn" id="v52GenBtn" type="button">Generator</button>
+        <button class="v52QuickBtn" id="v52IoBtn" type="button" onclick="v52SetIo(!v52IoOpen)">I/O</button>
+        <button class="v52QuickBtn" id="v52GenBtn" type="button" onclick="v53SetGeneratorDock(!genPanel.classList.contains('open'))">Generator</button>
       </div>
       <div id="v52QuickSpacer"></div>
       <div class="v52QuickGroup">
@@ -1466,6 +1491,7 @@
       <g id="pcbTraces" filter="url(#pcbGlow)"></g>
     </svg>
     <div id="genPanel">
+      <button id="genCloseBtn" type="button" title="סגור" onclick="v53SetGeneratorDock(false)">✕</button>
       <div class="seg" id="genType">
         <button data-t="pink" class="on">ורוד</button>
         <button data-t="white">לבן</button>
@@ -1615,7 +1641,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.3</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

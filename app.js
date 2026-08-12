@@ -67,6 +67,7 @@ const meterVal = document.getElementById('meterVal');
 
 let audioCtx, analyser, analyserMeter, source, stream, raf;
 let analyserRef=null, floatDataRef=null, chReceived=1;
+let measChannel=0, refChannel=1;
 let workletReady=false;
 let floatData;
 let timeData, timeDataMeter;
@@ -317,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v179',
+    version: 'v5.3',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -510,10 +511,29 @@ function genApplyLevel(){
 }
 
 const genPanel=document.getElementById('genPanel');
+const v53Stage=document.getElementById('stage');
+if(genPanel&&v53Stage)v53Stage.appendChild(genPanel);
 safeOn('genBtn', 'click',function(){
   const open=genPanel.classList.toggle('open');
   this.classList.toggle('on',open);
+  v53SetGeneratorDock(open);
 });
+function v53SetGeneratorDock(open){
+  const stage=document.getElementById('stage');
+  const quick=document.getElementById('v52GenBtn');
+  const header=document.getElementById('v5GenAction');
+  if(!stage||!genPanel)return;
+  genPanel.classList.toggle('open',!!open);
+  stage.classList.toggle('v53-gen-open',!!open);
+  if(quick)quick.classList.toggle('on',!!open);
+  if(header)header.classList.toggle('on',!!open);
+  const legacy=document.getElementById('genBtn');if(legacy)legacy.classList.toggle('on',!!open);
+  if(open){
+    if(typeof v52SetIo==='function'&&v52IoOpen)v52SetIo(false);
+    requestAnimationFrame(()=>stage.style.setProperty('--v53-gen-h',Math.ceil(genPanel.getBoundingClientRect().height)+'px'));
+  }
+  setTimeout(()=>{resize();},0);
+}
 
 document.querySelectorAll('#genType button').forEach(b=>b.addEventListener('click',function(){
   document.querySelectorAll('#genType button').forEach(x=>x.classList.remove('on'));
@@ -1076,16 +1096,24 @@ function tfCurrentSnapshot(){
 }
 function renderTfTraceLegend(){
   const el=document.getElementById('tfTraceLegend');
-  if(el) el.innerHTML=tfTraces.map((t,i)=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+'</span>').join('');
+  if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map((t,i)=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+'</span>').join('');
   if(typeof v5RenderTraceRail==='function') v5RenderTraceRail();
 }
 function captureTfTrace(){
   if(!running||!analyserRef){ alert('הפעל כרטיס קול סטריאו (מיק + רפרנס).'); return; }
   const s=tfCurrentSnapshot(); if(!s) return;
   const idx=tfTraces.length+1;
-  s.name='Trace '+idx; s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  s.type='tf'; s.visible=true; s.name='TF '+idx; s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
   tfTraces.push(s); if(tfTraces.length>6) tfTraces.shift();
   renderTfTraceLegend(); v3Toast('נלכד '+s.name);
+}
+function captureWorkspaceTrace(){
+  if(!running){v3Toast('הפעל Audio קודם');return;}
+  if(v5WorkspaceMode==='tf'&&analyserRef){captureTfTrace();return;}
+  const idx=tfTraces.length+1;
+  tfTraces.push({type:'rta',visible:true,name:(mode==='spec'?'Waterfall ':'RTA ')+idx,color:TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length],values:lastV.slice(),bands:BANDS,t:Date.now()});
+  if(tfTraces.length>6)tfTraces.shift();
+  renderTfTraceLegend();v3Toast('נלכד Trace להשוואה');
 }
 safeOn('tfTraceBtn','click',captureTfTrace);
 safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast('Traces נוקו');});
@@ -1111,7 +1139,7 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
     }
     ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
   };
-  tfTraces.forEach(t=>drawSnap(t,t.color,1.4,.72));
+  tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>drawSnap(t,t.color,1.4,.72));
   drawSnap(live,'rgb('+accentRgb.join(',')+')',2.3,1);
   ctx.fillStyle=sunMode?'#0f172a':'#e6edf3';ctx.font='600 11px monospace';ctx.fillText('TF MAG · relative',8,14);
   ctx.restore();
@@ -1750,8 +1778,8 @@ document.querySelectorAll('#fftSeg button').forEach(b=>b.addEventListener('click
   document.querySelectorAll('#fftSeg button').forEach(x=>x.classList.remove('on'));
   this.classList.add('on'); setFft(parseInt(this.dataset.n,10)); prefSet('rta_fft', this.dataset.n);
 }));
-safeOn('mRta', 'click',()=>{setMode('rta'); if(typeof v5SetTab==='function')v5SetTab('rta');});
-safeOn('mSpec', 'click',()=>{setMode('spec'); if(typeof v5SetTab==='function')v5SetTab('spec');});
+safeOn('mRta', 'click',()=>{setMode('rta'); if(typeof v5SetTab==='function')v5SetTab('analysis');});
+safeOn('mSpec', 'click',()=>{setMode('spec'); if(typeof v5SetTab==='function')v5SetTab('analysis');});
 safeOn('tfOverlayHdr', 'click',()=>setTfOverlay(!tfOverlay));
 function setAlign(on){
   alignOn=on;
@@ -1809,6 +1837,7 @@ function setMode(m){
   mode=m;
   document.getElementById('mRta').classList.toggle('on',m==='rta');
   document.getElementById('mSpec').classList.toggle('on',m==='spec');
+  document.querySelectorAll('#v53RtaViewSwitch [data-view]').forEach(x=>x.classList.toggle('on',x.dataset.view===m));
   if(specCtx){
     specCtx.fillStyle=sunMode ? '#f8fafc' : '#0d1117';
     specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);
@@ -1829,6 +1858,7 @@ function buildWeighting(nyquist,bins){
 async function start(deviceId){
   errBox.style.display='none';
   try{
+    if(deviceId===undefined)deviceId=activeInId;
     const audio = {
       echoCancellation: false,
       noiseSuppression: false,
@@ -1890,8 +1920,8 @@ async function start(deviceId){
     const splitter = audioCtx.createChannelSplitter(2);
     source.connect(splitter);
 
-    splitter.connect(analyser, 0);
-    splitter.connect(analyserRef, 1);
+    splitter.connect(analyser, measChannel);
+    splitter.connect(analyserRef, refChannel);
     source.connect(analyserMeter);
 
     floatData = new Float32Array(analyser.frequencyBinCount);
@@ -2416,6 +2446,14 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.fillText('- - לפני', 10, tfOpen?(showTfCoh&&showTfPhase?70:showTfCoh||showTfPhase?56:42):14);
   }
 
+  if(!tfOpen){
+    tfTraces.filter(t=>t.type==='rta'&&t.visible!==false&&t.bands===BANDS).forEach(t=>{
+      ctx.strokeStyle=t.color;ctx.lineWidth=1.7;ctx.globalAlpha=.78;ctx.beginPath();
+      t.values.forEach((v,b)=>{const x=b*bw+bw/2,yy=plotH-v*plotH;b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);});
+      ctx.stroke();ctx.globalAlpha=1;
+    });
+  }
+
   // ---- השוואת A/B (לפני/אחרי כיוון) ----
   if(abA || abB){
     const graph=(snap,line,fill,doFill)=>{
@@ -2906,7 +2944,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V4';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.3';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -2949,6 +2987,7 @@ function v5SyncTargetToggle(){
 function v5SetTab(mode){
   v5WorkspaceMode=mode;
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
+  const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis');
 }
 function v5OpenTf(extra){
   setMode('rta');
@@ -3010,11 +3049,15 @@ function v5RenderTraceRail(){
     return;
   }
   box.innerHTML=tfTraces.map((t,i)=>
-    '<div class="v5TraceRow">'+
+    '<div class="v5TraceRow" data-trace="'+i+'">'+
       '<span class="v5TraceNum">'+(i+1)+'</span>'+
-      '<span class="v5TraceName" style="color:'+t.color+'">'+escapeHtml(t.name)+'</span>'+
-      '<span class="v5Eye">◉</span>'+
+      '<span class="v5TraceName" title="לחץ פעמיים לשינוי שם" style="color:'+t.color+'">'+escapeHtml(t.name)+'</span>'+
+      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" title="הצג/הסתר">◉</button>'+
+      '<button class="v5TraceAction" data-trace-del="'+i+'" title="מחק">×</button>'+
     '</div>').join('');
+  box.querySelectorAll('[data-trace-eye]').forEach(b=>b.addEventListener('click',()=>{const t=tfTraces[+b.dataset.traceEye];if(!t)return;t.visible=t.visible===false;renderTfTraceLegend();}));
+  box.querySelectorAll('[data-trace-del]').forEach(b=>b.addEventListener('click',()=>{tfTraces.splice(+b.dataset.traceDel,1);renderTfTraceLegend();v3Toast('Trace נמחק');}));
+  box.querySelectorAll('.v5TraceName').forEach((n,i)=>n.addEventListener('dblclick',()=>{const t=tfTraces[i];if(!t)return;const name=prompt('שם חדש ל-Trace',t.name);if(name&&name.trim()){t.name=name.trim().slice(0,40);renderTfTraceLegend();}}));
 }
 function v5InitWorkspace(){
   const tv=lsGet('rta_target_visible');
@@ -3022,13 +3065,16 @@ function v5InitWorkspace(){
   v5SyncTargetToggle();
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.addEventListener('click',()=>{
     const m=b.dataset.v5mode; v5SetTab(m);
-    if(m==='rta'){ closeModals(); setAlign(false); setTfOverlay(false); setMode('rta'); }
-    else if(m==='spec'){ closeModals(); setAlign(false); setTfOverlay(false); setMode('spec'); }
+    if(m==='analysis'){ closeModals(); setAlign(false); setTfOverlay(false); setMode(mode==='spec'?'spec':'rta'); }
     else if(m==='tf'){ setAlign(false); v5OpenTf(); }
     else if(m==='delay'){ setAlign(false); showModal(dlyPanel); }
     else if(m==='rt60'){ setAlign(false); showModal(rtPanel); }
     else if(m==='spleq'){ setAlign(false); showModal(eqPanel); updateEqUI(); }
     else if(m==='align'){ closeModals(); setTfOverlay(false); setMode('rta'); setAlign(true); }
+  }));
+  document.querySelectorAll('#v53RtaViewSwitch [data-view]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();closeModals();setAlign(false);setTfOverlay(false);setMode(b.dataset.view);v5SetTab('analysis');
+    document.querySelectorAll('#v53RtaViewSwitch [data-view]').forEach(x=>x.classList.toggle('on',x===b));
   }));
 
   safeOn('v5TargetToggle','click',()=>{
@@ -3038,8 +3084,7 @@ function v5InitWorkspace(){
     v3Toast(targetVisible?'עקומת יעד מוצגת':'עקומת יעד מוסתרת');
   });
 
-  safeOn('v5AddTrace','click',()=>{ if(!running){v3Toast('הפעל Audio קודם');return;} captureTfTrace(); });
-  safeOn('v5GenAction','click',()=>{ const b=document.getElementById('genBtn'); if(b)b.click(); });
+  safeOn('v5AddTrace','click',captureWorkspaceTrace);
   safeOn('v5CaptureAction','click',()=>{ const b=document.getElementById('saveBtn'); if(b)b.click(); });
 
   // Header TF button now opens the working TF dock instead of only overlaying lines.
@@ -3081,6 +3126,7 @@ function v52SetIo(open){
   }
   if(btn) btn.classList.toggle('on',v52IoOpen);
   if(v52IoOpen){
+    if(genPanel.classList.contains('open'))v53SetGeneratorDock(false);
     closeModals();
     setAlign(false);
     v52RefreshDevices();
@@ -3111,11 +3157,11 @@ function v52DbToPct(db){
   return Math.max(0,Math.min(100,(db+72)/72*100));
 }
 function v52UpdateUi(){
-  const measDb=Number.isFinite(lastLeq)?lastLeq:null;
+  const measDb=Number.isFinite(smoothedDbfs)?smoothedDbfs:null;
   let refDb=null;
-  if(analyserRef && refFreq){
+  if(analyserRef && floatDataRef){
     let mx=-120;
-    for(let i=0;i<refFreq.length;i++) if(refFreq[i]>mx)mx=refFreq[i];
+    for(let i=0;i<floatDataRef.length;i++) if(floatDataRef[i]>mx)mx=floatDataRef[i];
     refDb=mx;
   }
 
@@ -3147,6 +3193,7 @@ function v52UpdateUi(){
     mc.style.color=micCal?'#6fd994':'';
   }
   const sc=document.getElementById('v52SplCalState'); if(sc)sc.textContent=(calib>=0?'+':'')+calib.toFixed(1)+' dB';
+  const so=document.getElementById('v53SplOffset');if(so&&document.activeElement!==so)so.value=String(calib);
   const us=document.getElementById('v52UnitState'); if(us)us.textContent=meterUnit;
   const as=document.getElementById('v52AudioState'); if(as){as.textContent=running?'Running':'Stopped';as.style.color=running?'#6fd994':'';}
 
@@ -3157,17 +3204,16 @@ function v52UpdateUi(){
 }
 
 function v52Init(){
-  safeOn('v52IoBtn','click',()=>v52SetIo(!v52IoOpen));
+  const micArea=document.getElementById('v53MicCalArea');
+  if(micArea&&calPanel)micArea.appendChild(calPanel);
   safeOn('v52IOClose','click',()=>v52SetIo(false));
-  safeOn('v52GenBtn','click',()=>{const b=document.getElementById('genBtn');if(b)b.click();});
   safeOn('v52FreezeBtn','click',()=>{const b=document.getElementById('freezeBtn');if(b)b.click();setTimeout(v52UpdateUi,0);});
   safeOn('v52CaptureBtn','click',()=>{const b=document.getElementById('saveBtn');if(b)b.click();});
-  safeOn('v52OpenMicCal','click',()=>{v52SetIo(false);const b=document.getElementById('micCalBtn');if(b)b.click();});
+  safeOn('v52OpenMicCal','click',()=>{if(!micArea)return;micArea.classList.toggle('open');renderCalList();requestAnimationFrame(()=>{const d=document.getElementById('v52IODock'),s=document.getElementById('stage');if(d&&s)s.style.setProperty('--v52-io-h',Math.ceil(d.getBoundingClientRect().height)+'px');resize();});});
+  const calClose=document.getElementById('calClose');if(calClose)calClose.addEventListener('click',e=>{e.stopImmediatePropagation();if(micArea)micArea.classList.remove('open');resize();},true);
   safeOn('v52OpenOldIo','click',()=>{
-    v52SetIo(false);
-    const tab=document.querySelector('.tab[data-p="io"]');
-    if(tab)tab.click();
-    v3Toast('Advanced I/O זמין זמנית בתחתית');
+    const card=document.getElementById('v53AdvancedIo')?.closest('.v52IOCard');
+    if(card)card.classList.toggle('advanced-open');
   });
   safeOn('v52UnitToggle','click',()=>{
     const next=meterUnit==='dBFS'?'dB SPL':'dBFS';
@@ -3187,10 +3233,20 @@ function v52Init(){
     if(old){old.value=e.target.value;old.dispatchEvent(new Event('input',{bubbles:true}));}
     v52UpdateUi();
   });
-  safeOn('v52DeviceSelect','change',()=>v3Toast('בחירת Device תיכנס בהפעלת Audio הבאה'));
+  safeOn('v52DeviceSelect','change',async e=>{activeInId=e.target.value||'';userPickedIn=!!activeInId;if(running)await switchInput(activeInId);else v3Toast('המקור יופעל בלחיצה על הפעל מיקרופון');});
+  safeOn('v52MeasSelect','change',async e=>{measChannel=parseInt(e.target.value,10)||0;if(measChannel===refChannel){refChannel=measChannel?0:1;document.getElementById('v52RefSelect').value=String(refChannel);}if(running)await switchInput(activeInId);});
+  safeOn('v52RefSelect','change',async e=>{refChannel=parseInt(e.target.value,10)||0;if(refChannel===measChannel){measChannel=refChannel?0:1;document.getElementById('v52MeasSelect').value=String(measChannel);}if(running)await switchInput(activeInId);});
+  safeOn('v53SplOffset','input',e=>{calib=parseFloat(e.target.value)||0;const old=document.getElementById('cal');if(old){old.value=String(calib);old.dispatchEvent(new Event('input',{bubbles:true}));}prefSet('rta_cal',calib);v52UpdateUi();});
+  safeOn('v53OutputSelect','change',async e=>{const ok=await applyOutput(e.target.value);if(!ok)v3Toast('בחירת פלט אינה נתמכת בדפדפן הזה');});
+  safeOn('v53ExportPng','click',()=>document.getElementById('pngBtn')?.click());
+  safeOn('v53ExportCsv','click',()=>document.getElementById('csvBtn')?.click());
 
   if(navigator.mediaDevices?.addEventListener)navigator.mediaDevices.addEventListener('devicechange',v52RefreshDevices);
   v52RefreshDevices();
+  populateInputs().then(()=>{
+    const old=document.getElementById('outSel'),out=document.getElementById('v53OutputSelect');
+    if(old&&out)out.innerHTML=old.innerHTML;
+  });
   v52UpdateUi();
   setInterval(v52UpdateUi,500);
 }
