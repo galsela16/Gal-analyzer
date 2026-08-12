@@ -357,6 +357,37 @@
   .tfItem .f{color:var(--dim);font-weight:600}
   .tfItem .g{color:var(--text)}
 
+
+  /* ===== V3 additions ===== */
+  .v3Status{
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-inline-start:6px;
+  }
+  .v3Chip{
+    display:inline-flex;align-items:center;gap:5px;min-height:25px;
+    padding:4px 8px;border:1px solid var(--line);border-radius:999px;
+    background:var(--panel-2);color:var(--dim);font-size:10px;letter-spacing:.3px;
+    white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  .v3Chip.ok{border-color:rgba(80,230,140,.45);color:#50e68c;background:rgba(80,230,140,.08)}
+  .v3Chip.warn{border-color:rgba(255,209,102,.5);color:var(--warn);background:rgba(255,209,102,.08)}
+  .v3Chip.live{border-color:rgba(62,166,255,.55);color:var(--accent);background:rgba(62,166,255,.08)}
+  #shortcutToast{
+    position:fixed;z-index:250;left:50%;bottom:84px;transform:translateX(-50%) translateY(10px);
+    background:rgba(13,17,23,.96);color:var(--text);border:1px solid var(--accent);
+    border-radius:7px;padding:8px 12px;font-size:11px;letter-spacing:.4px;
+    opacity:0;pointer-events:none;transition:.18s;box-shadow:0 8px 30px rgba(0,0,0,.45)
+  }
+  body.sun-mode #shortcutToast{background:rgba(255,255,255,.96)}
+  #shortcutToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .miniSeg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .miniSeg button{border:0;border-inline-start:1px solid var(--line);background:var(--panel);color:var(--dim);
+    padding:5px 8px;font:600 10px inherit;cursor:pointer}
+  .miniSeg button:first-child{border-inline-start:0}
+  .miniSeg button.on{background:rgba(62,166,255,.12);color:var(--accent)}
+  @media (max-width:760px){
+    .v3Status{display:none}
+  }
+
   .err{position:absolute;bottom:14px;inset-inline:14px;z-index:5;background:rgba(255,59,107,.12);border:1px solid var(--hot);
     color:var(--hot);padding:10px 14px;border-radius:4px;font-size:12px;line-height:1.6;display:none}
 </style>
@@ -370,6 +401,11 @@
       <button id="mRta" class="on">ספקטרום · RTA</button>
       <button id="mSpec">ווטרפול · Spectrograph</button>
       <button id="tfOverlayHdr" title="הצג מיק' + רפרנס יחד">מיק'/רפרנס · TF</button>
+    </div>
+    <div class="v3Status" aria-label="סטטוס מדידה">
+      <span class="v3Chip" id="v3AudioChip">Audio: כבוי</span>
+      <span class="v3Chip" id="v3CalChip">CAL: לא מכויל</span>
+      <span class="v3Chip" id="v3ResChip">RTA 1/6</span>
     </div>
     <button id="sunBtn" title="מצב אור שמש / ניגודיות גבוהה" aria-label="מצב אור שמש">☀️</button>
     <button id="helpBtn" title="מצב עזרה — רחף על כפתור להסבר" aria-label="מצב עזרה">?</button>
@@ -719,6 +755,15 @@
       </div>
       <div class="trow">
         <button class="toggle" id="avgBtn">מיצוע</button>
+        <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
+          <label>מהירות מיצוע</label>
+          <div class="miniSeg" id="avgSpeedSeg">
+            <button data-a="0.75">מהיר</button>
+            <button data-a="0.90" class="on">בינוני</button>
+            <button data-a="0.97">איטי</button>
+          </div>
+        </div>
+        <button class="toggle" id="resetPeakBtn" title="אפס את קווי ה-Peak Hold">אפס Peaks</button>
         <button class="toggle" id="freezeBtn">הקפא</button>
         <button class="toggle" id="refCurveBtn" title="שומר את התגובה הנוכחית כעקומת ״לפני״ כדי להשוות אחרי שינוי EQ">שמור כ״לפני״</button>
         <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
@@ -800,6 +845,7 @@
       </div>
     </div>
   </footer>
+  <div id="shortcutToast"></div>
 <script src="app.js"></script>
 </body>
 </html>

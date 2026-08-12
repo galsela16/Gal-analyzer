@@ -73,6 +73,8 @@ const GEQ=[20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,
 let tfState='idle', tfSwap=false, tfMic=null, tfRef=null, tfFrames=0, tfResult=null, _tfCorr=0;
 let running=false, mode='rta';
 let peakHold=true, fbOn=true, avgOn=false;
+let avgAlpha=0.90;
+let _v3ToastTimer=null;
 let floorDb=-85, ceilDb=-15;
 let calib=0;
 let fbProm=14;
@@ -165,6 +167,7 @@ safeOn('cal', 'input',e=>{
   calib=parseFloat(e.target.value);
   document.getElementById('calVal').textContent=(calib>=0?'+':'')+calib+'dB';
   prefSet('rta_cal', e.target.value);
+  v3UpdateStatus();
 });
 
 safeOn('autoCalBtn', 'click', autoCal1kHz);
@@ -253,6 +256,18 @@ safeOn('freezeBtn', 'click',function(){
   if(frozen){ snapCurve=lastV.slice(); this.classList.add('on'); this.textContent='הפשר תצוגה'; }
   else { snapCurve=null; this.classList.remove('on'); this.textContent='הקפא'; }
 });
+safeOn('resetPeakBtn','click',()=>{
+  peaks.fill(0);
+  v3Toast('Peaks אופסו');
+});
+document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.addEventListener('click',function(){
+  document.querySelectorAll('#avgSpeedSeg button').forEach(x=>x.classList.remove('on'));
+  this.classList.add('on');
+  avgAlpha=Math.max(0.5,Math.min(0.995,parseFloat(this.dataset.a)||0.90));
+  prefSet('rta_avg_alpha', avgAlpha);
+  if(avgOn) avgBuf.fill(0);
+  v3Toast('מהירות מיצוע עודכנה');
+}));
 safeOn('pngBtn', 'click',exportPNG);
 safeOn('csvBtn', 'click',exportCSV);
 
@@ -355,6 +370,7 @@ safeOn('leqBtn', 'click',()=>{ leqSumP=0; leqN=0; splMax=-120; });
 document.querySelectorAll('#unitSeg button').forEach(b=>b.addEventListener('click',function(){
   document.querySelectorAll('#unitSeg button').forEach(x=>x.classList.remove('on'));
   this.classList.add('on'); meterUnit=this.dataset.u;
+  v3UpdateStatus();
 }));
 safeOn('inSel', 'change',e=>{ userPickedIn = e.target.value!==''; switchInput(e.target.value); });
 
@@ -1593,9 +1609,11 @@ safeOn('res', 'input',e=>{
   document.getElementById('resVal').textContent='1/'+bpo+' אוקטבה';
   buildBands(bpo);
   prefSet('rta_res', bpo);
+  v3UpdateStatus();
 });
 function setFft(n){
   fftSize=n;
+  setTimeout(v3UpdateStatus,0);
   if(analyser){
     analyser.fftSize=n; analyserRef.fftSize=n;
     floatData=new Float32Array(analyser.frequencyBinCount);
@@ -1765,7 +1783,7 @@ async function start(deviceId){
     peaks.fill(0); fbTrack.clear(); fbPanel.innerHTML = ''; lvlPeak = -120;
     leqSumP = 0; leqN = 0; splMax = -120;
     smoothedDbfs = -120;
-    running = true; idle.style.display = 'none'; dot.classList.add('live');
+    running = true; idle.style.display = 'none'; dot.classList.add('live'); v3UpdateStatus();
     meterEl.style.display = 'flex'; document.getElementById('stats').style.display = 'flex';
     document.getElementById('stopBtn').style.display = '';
     populateInputs();
@@ -2048,7 +2066,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     const rawDb=bandPowDb(fc/R,fc*R);
     lastBandDb[b]=rawDb;
     let v=norm(rawDb);
-    if(avgOn){ avgBuf[b]=avgBuf[b]*0.9+v*0.1; v=avgBuf[b]; } else { avgBuf[b]=v; }
+    if(avgOn){ avgBuf[b]=avgBuf[b]*avgAlpha+v*(1-avgAlpha); v=avgBuf[b]; } else { avgBuf[b]=v; }
     lastV[b]=v;
     if(v>peakVal){peakVal=v;peakBand=b;}
     
@@ -2711,6 +2729,62 @@ safeOn('saveNowBtn', 'click',()=>{
 });
 loadSaves();
 
+
+function v3Toast(msg){
+  const el=document.getElementById('shortcutToast'); if(!el) return;
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_v3ToastTimer);
+  _v3ToastTimer=setTimeout(()=>el.classList.remove('show'),1200);
+}
+function v3UpdateStatus(){
+  const a=document.getElementById('v3AudioChip');
+  const c=document.getElementById('v3CalChip');
+  const r=document.getElementById('v3ResChip');
+  if(a){
+    if(running && audioCtx){
+      const sr=Math.round(audioCtx.sampleRate/100)/10;
+      a.textContent='Audio: '+sr+'k · '+fftSize;
+      a.className='v3Chip live';
+    }else{
+      a.textContent='Audio: כבוי';
+      a.className='v3Chip';
+    }
+  }
+  if(c){
+    if(meterUnit==='dBFS'){
+      c.textContent='CAL: dBFS';
+      c.className='v3Chip ok';
+    }else if(calib!==0 || micCal){
+      const micName=micCal ? ((micCalList.find(x=>x.id===activeCalId)||{}).name||'Mic') : null;
+      c.textContent=micName ? 'CAL: '+micName : 'CAL: '+(calib>=0?'+':'')+calib+'dB';
+      c.className='v3Chip ok';
+    }else{
+      c.textContent='CAL: SPL לא מכויל';
+      c.className='v3Chip warn';
+    }
+  }
+  if(r){
+    r.textContent='RTA 1/'+curBpo;
+    r.className='v3Chip';
+  }
+}
+function v3ToggleButton(id){
+  const el=document.getElementById(id); if(el) el.click();
+}
+document.addEventListener('keydown',e=>{
+  const t=e.target;
+  if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)) return;
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const k=e.key.toLowerCase();
+  if(k===' '){ e.preventDefault(); v3ToggleButton('freezeBtn'); v3Toast(frozen?'תצוגה מוקפאת':'תצוגה חיה'); }
+  else if(k==='p'){ v3ToggleButton('peakBtn'); v3Toast(peakHold?'Peak Hold פעיל':'Peak Hold כבוי'); }
+  else if(k==='a'){ v3ToggleButton('avgBtn'); v3Toast(avgOn?'מיצוע פעיל':'מיצוע כבוי'); }
+  else if(k==='r'){ const el=document.getElementById('resetPeakBtn'); if(el) el.click(); }
+  else if(k==='f'){ const z=document.getElementById('zoomBtn'); if(z && z.style.display!=='none') z.click(); }
+  else if(k==='g'){ v3ToggleButton('genBtn'); v3Toast('Generator'); }
+  else if(k==='s'){ v3ToggleButton('saveBtn'); }
+});
+
 (function initPrefs(){
   const applyInput=(id,key)=>{ const v=lsGet(key); if(v==null) return; const el=document.getElementById(id); if(!el) return; el.value=v; el.dispatchEvent(new Event('input')); };
   applyInput('res','rta_res');
@@ -2727,6 +2801,13 @@ loadSaves();
     wb.textContent='dB'+wgt; wb.classList.add('on'); document.getElementById('wLbl').textContent=wgt; }
   const sm = lsGet('rta_sunmode');
   if(sm === '1'){ sunMode = true; document.body.classList.add('sun-mode'); const sb = document.getElementById('sunBtn'); if(sb) sb.classList.add('on'); }
+  const aa=parseFloat(lsGet('rta_avg_alpha'));
+  if(Number.isFinite(aa)){
+    avgAlpha=Math.max(0.5,Math.min(0.995,aa));
+    document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
+  }
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V3';
+  v3UpdateStatus();
 })();
 (function initAccent(){
   const saved=lsGet('rta_accent');
@@ -2766,6 +2847,8 @@ const HELP={
   rtBtn:'RT60: מדידת זמן הדהוד החדר,\nלפי רצועות אוקטבה. דורש חדר אמיתי.',
   wgtBtn:'שקלול המד: dBZ (טכני), dBA (חוק/אוזן),\ndBC (עם בס). לחיצה מחליפה.',
   leqBtn:'אפס Leq: מתחיל מדידת ממוצע עוצמה\nמחדש מהרגע הזה.',
+  resetPeakBtn:'איפוס מיידי של כל סימוני ה-Peak Hold.',
+  avgSpeedSeg:'קובע כמה מהר המיצוע מגיב לשינויים. מהיר = תגובה זריזה, איטי = תצוגה יציבה.',
   peakBtn:'Peak Hold: משאיר את השיאים על המסך.',
   avgBtn:'מיצוע: מייצב את התצוגה לאורך זמן.',
   meterModeSeg:'מדים: RMS (ממוצע חלק) או Peak (שיאים).\nמשפיע על כל המדים.',

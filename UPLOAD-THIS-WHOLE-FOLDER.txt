@@ -1,6 +1,3 @@
-GAL Analyzer v2 ready build
+GAL Analyzer V3
 
-Upload ALL files and the icons folder to the ROOT of your GitHub repository.
-Do not upload the containing Gal-Analyzer-v2-ready folder itself.
-Then commit and wait for GitHub Pages to deploy.
-If an older version is cached, hard refresh the site.
+העלה את כל הקבצים שבתיקייה הזו לשורש ה-repository והחלף את הקבצים הקיימים.
