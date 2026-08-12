@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.23-dual-live-tf',
+    version: 'v5.4.24-clear-correlation-meter',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1250,15 +1250,19 @@ function updateTfLevels(){
     const c=corrAt(ob); if(Math.abs(c)>bestAbs){ bestAbs=Math.abs(c); r=c; bestVa=_cVa; bestVb=_cVb; }
   }
   _tfCorr += ((r||0)-_tfCorr)*0.15;
-  const fill=document.getElementById('tfCorrFill'), val=document.getElementById('tfCorrVal'), tip=document.getElementById('tfCorrTip');
+  const fill=document.getElementById('tfCorrFill'), marker=document.getElementById('tfCorrMarker'), val=document.getElementById('tfCorrVal'), tip=document.getElementById('tfCorrTip');
   if(fill){
     const w=Math.abs(_tfCorr)*50;
     fill.style.width=w+'%';
-    if(_tfCorr>=0){ fill.style.right='50%'; fill.style.left='auto'; } else { fill.style.left='50%'; fill.style.right='auto'; }
+    if(_tfCorr>=0){ fill.style.left='50%'; fill.style.right='auto'; } else { fill.style.right='50%'; fill.style.left='auto'; }
     const col=_tfCorr>0.4?'#39d98a':_tfCorr<-0.2?'var(--hot)':'var(--warn)';
     fill.style.background=col;
-    if(val){ val.textContent=_tfCorr.toFixed(2); val.style.color=col; }
-    if(tip){ tip.textContent = bestVa<1e-6||bestVb<1e-6 ? '(אין אות)' : _tfCorr<-0.2?'⚠ פולריות הפוכה?' : _tfCorr>0.6?'✓':' '; }
+    if(marker) marker.style.left=((_tfCorr+1)*50)+'%';
+    if(val){ val.textContent=(_tfCorr>=0?'+':'')+_tfCorr.toFixed(2); val.style.color=col; }
+    if(tip){
+      tip.style.color=col;
+      tip.textContent = bestVa<1e-6||bestVb<1e-6 ? 'אין מספיק אות בשני הערוצים' : _tfCorr<-0.2?'⚠ חשד לפולריות הפוכה' : _tfCorr>0.75?'מצוין · התאמה חזקה' : _tfCorr>0.4?'טוב · קיימת התאמה' : 'התאמה חלשה';
+    }
   }
 }
 function tfMeasure(){
@@ -3002,7 +3006,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.23';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.24';
   v3UpdateStatus();
 })();
 (function initAccent(){

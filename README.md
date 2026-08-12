@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.23 — Dual live TF workspace
+# GAL Analyzer V5.4.24 — Clear correlation meter
+
+- The TF correlation readout is now a wide, high-contrast meter with a moving marker, a −1 to +1 scale, a large signed value and a plain-language status.
 
 - TF now shows MIC 1 and REF 2 live together across the full graph, even before a Transfer Function measurement is taken.
 

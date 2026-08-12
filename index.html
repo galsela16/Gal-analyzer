@@ -653,6 +653,20 @@
     min-width:145px;color:#56df86!important;background:#0b1817!important;border-color:#214a39!important
   }
   #tfPanel.measureDock #tfTraceLegend{display:none}
+  #tfPanel.measureDock #tfCorrCard{
+    flex:1 1 360px;min-width:310px;max-width:560px;background:#0b151e;
+    border:1px solid #263b4b;border-radius:6px;padding:8px 12px!important;margin:0!important;
+  }
+  #tfCorrHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px}
+  #tfCorrHead strong{font-size:12px;color:#dce6ee}
+  #tfCorrVal{font:800 21px/1 monospace!important;letter-spacing:.4px}
+  #tfCorrScale{display:grid;grid-template-columns:1fr 1fr 1fr;direction:ltr;font:700 10px monospace;color:#718596;margin-bottom:3px}
+  #tfCorrScale span:nth-child(2){text-align:center}#tfCorrScale span:last-child{text-align:right}
+  #tfCorrTrack{height:18px!important;border:1px solid #31485a;background:linear-gradient(90deg,rgba(255,59,107,.18),rgba(255,209,102,.08) 48%,rgba(57,217,138,.18));overflow:visible!important}
+  #tfCorrFill{box-shadow:0 0 9px currentColor;transition:width .12s linear,background .12s linear}
+  #tfCorrMarker{position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;background:#fff;box-shadow:0 0 7px rgba(255,255,255,.8);left:50%;transform:translateX(-50%);transition:left .12s linear}
+  #tfCorrStatus{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px}
+  #tfCorrTip{font-weight:700!important}
   #tfPanel.measureDock #tfCanvas{display:none!important}
   #tfPanel.measureDock #tfGeqList{flex:1 1 100%!important;width:100%!important;max-height:none!important;overflow:visible!important;order:900}
   #tfPanel.measureDock #tfGeqList>.sub{display:block!important;color:#dce6ee!important;font-size:11px!important;margin:0 0 6px!important}
@@ -1367,13 +1381,15 @@
       <div class="sub">ערוץ 1 = מיקרופון מדידה · ערוץ 2 = רפרנס מהמיקסר. שלח תוכן/רעש ורוד דרך המערכת, ומדוד.</div>
       <div class="chBar"><span id="tfL1" style="min-width:96px">כניסה 1 → מיק'</span><div class="track"><div class="fill" id="tfMicFill"></div></div><span id="tfMicDb">—</span></div>
       <div class="chBar"><span id="tfL2" style="min-width:96px">כניסה 2 → רפרנס</span><div class="track"><div class="fill" id="tfRefFill"></div></div><span id="tfRefDb">—</span></div>
-      <div style="border-top:1px solid var(--line);margin-top:4px;padding-top:8px">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>הפוך פאזה</span><span>לא מתואם</span><span>בפאזה</span></div>
-        <div class="track" style="height:14px;position:relative;margin-top:3px">
+      <div id="tfCorrCard">
+        <div id="tfCorrHead"><strong>Correlation · התאמה בין הערוצים</strong><b id="tfCorrVal" style="color:var(--accent)">—</b></div>
+        <div id="tfCorrScale"><span>−1 הפוך</span><span>0 לא מתואם</span><span>+1 בפאזה</span></div>
+        <div class="track" id="tfCorrTrack" style="position:relative">
           <div id="tfCorrFill" style="position:absolute;top:0;bottom:0;background:var(--accent);border-radius:3px;width:0;right:50%"></div>
           <div style="position:absolute;top:0;bottom:0;right:50%;width:1px;background:var(--dim);opacity:.5"></div>
+          <div id="tfCorrMarker"></div>
         </div>
-        <div style="text-align:center;font-size:12px;margin-top:4px">קורלציה: <b id="tfCorrVal" style="color:var(--accent)">—</b> <span id="tfCorrTip" style="font-size:10px;color:var(--dim)"></span></div>
+        <div id="tfCorrStatus"><span id="tfCorrTip" style="color:var(--dim)">ממתין לאות בשני הערוצים</span><span>טווח: ‎−1.00 עד ‎+1.00</span></div>
       </div>
       <div id="tfBtns">
         <button class="toggle" id="tfAutoDelayBtn">⏱ Auto Delay</button>
@@ -1734,7 +1750,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.23</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.24</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
