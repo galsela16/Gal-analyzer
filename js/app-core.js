@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.6-header-cleanup',
+    version: 'v5.4.7-calibration-controls',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3003,7 +3003,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.6';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.7';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3305,7 +3305,7 @@ function v52Init(){
     if(card)card.classList.toggle('advanced-open');
   });
   safeOn('v52UnitToggle','click',()=>{
-    const next=meterUnit==='dBFS'?'dB SPL':'dBFS';
+    const next=meterUnit==='dBFS'?'SPL':'dBFS';
     const b=[...document.querySelectorAll('#unitSeg button')].find(x=>x.dataset.u===next);
     if(b)b.click();
     v52UpdateUi();

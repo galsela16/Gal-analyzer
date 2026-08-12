@@ -1012,10 +1012,19 @@
   }
   .v53Advanced{display:none;margin-top:9px;padding-top:9px;border-top:1px solid #213341}
   .v52IOCard.advanced-open .v53Advanced{display:block}
-  #v53MicCalArea{display:none;grid-column:1/-1;background:#0b151e;border:1px solid #1d2c38;border-radius:6px;padding:10px}
+  #v53MicCalArea{display:none;grid-column:1/-1;background:#0b151e;border:1px solid #1d2c38;border-radius:6px;padding:8px;max-height:210px;overflow:auto}
   #v53MicCalArea.open{display:block}
-  #v53MicCalArea #calPanel{display:flex!important;position:static!important;width:100%!important;max-height:none!important;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}
-  .v53MicCalHeading{display:flex;align-items:baseline;gap:10px;margin:0 0 9px;color:#dce6ee;font-size:11px}
+  #v53MicCalArea #calPanel{display:flex!important;position:static!important;width:100%!important;max-height:none!important;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important;gap:6px!important}
+  #v53MicCalArea #calPanel h3,
+  #v53MicCalArea #calPanel>.sub,
+  #v53MicCalArea #calPaste,
+  #v53MicCalArea #calPasteBtn,
+  #v53MicCalArea #calResetBtn,
+  #v53MicCalArea #calClose{display:none!important}
+  #v53MicCalArea #calList{max-height:96px!important;gap:4px!important}
+  #v53MicCalArea .calRow{padding:6px 9px!important;font-size:11px!important}
+  #v53MicCalArea #calPanel label.toggle{padding:6px 9px!important;font-size:10px!important;align-self:flex-start!important}
+  .v53MicCalHeading{display:flex;align-items:baseline;gap:10px;margin:0 0 6px;color:#dce6ee;font-size:10px}
   .v53MicCalHeading span{color:#8496a5;font-size:10px}
 
   #stage.v52-io-open>canvas#cv{
@@ -1669,7 +1678,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.6</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.7</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

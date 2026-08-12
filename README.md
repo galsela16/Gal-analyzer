@@ -1,4 +1,7 @@
-# GAL Analyzer V5.4.6 — Header cleanup
+# GAL Analyzer V5.4.7 — Calibration controls
+
+- Mic CAL is compact: calibration list, selection and file loading only.
+- SPL / dBFS toggle now works in both directions.
 
 - Calibration status is shown only in the left workspace rail.
 - The header is freed up for day mode and colour controls.
