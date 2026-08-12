@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.11 — TF dock layout
+# GAL Analyzer V5.4.12 — Sub / Top SPL meter
+
+- The shared SPL meter stays visible above the Sub / Top controls.
 
 - The compact TF dock now keeps its live inputs and primary controls visible, with secondary settings behind “עוד”.
 
