@@ -1,9 +1,12 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-3-1-controls-20260812';
+const CACHE = 'gal-analyzer-v5-4-foundation-20260812';
 const ASSETS = [
   './',
   './index.html',
   './app.js',
+  './js/app-core.js',
+  './js/core/config.js',
+  './js/core/diagnostics.js',
   './recorder-worklet.js',
   './manifest.webmanifest',
   './fonts/heebo-hebrew-400-normal.woff2',

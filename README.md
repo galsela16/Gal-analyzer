@@ -1,4 +1,10 @@
-# GAL Analyzer V5.3.1 — Measurement Workflow
+# GAL Analyzer V5.4 — Foundation
+
+זו חבילת GitHub Pages מלאה. לפני העלאה אפשר להריץ:
+
+`node scripts/validate-static-site.mjs`
+
+GitHub Actions מריץ את אותה בדיקה בכל Commit/Push.
 
 ## מה חדש
 - RTA ו-Waterfall נמצאים במצב Analysis אחד עם מעבר פנימי.

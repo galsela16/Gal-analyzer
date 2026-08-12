@@ -2,3 +2,7 @@ GAL Analyzer V4
 
 העלה את כל הקבצים שבתיקייה לשורש הריפו והחלף את הקיימים.
 אחרי הפריסה בצע רענון מלא בדפדפן.
+GAL Analyzer V5.4 Foundation
+
+Upload every file and folder from this package to the root of the GitHub
+repository. Keep the .github folder: it validates each future push.
