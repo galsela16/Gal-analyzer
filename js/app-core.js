@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.0-foundation',
+    version: 'v5.4.1-workspace',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2057,6 +2057,12 @@ function updateLevel(){
   document.getElementById('splNow').textContent=fmt(lvl);
   document.getElementById('splLeq').textContent=fmt(leq);
   document.getElementById('splMax').textContent=fmt(splMax);
+  const hudValue=document.getElementById('v54SplValue');
+  const hudDetail=document.getElementById('v54SplDetail');
+  const hudLabel=document.querySelector('#v54SplHud .label');
+  if(hudValue) hudValue.textContent=fmt(lvl)+' dB SPL';
+  if(hudDetail) hudDetail.textContent='Leq '+fmt(leq)+' · Peak '+fmt(splMax);
+  if(hudLabel) hudLabel.textContent='SPL · dB'+weightMode;
 }
 
 let _lastDraw=0;
@@ -2454,6 +2460,28 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     });
   }
 
+  // Keep a compact, live RTA readout visible while the main graph is in TF.
+  // TF remains the primary plot; this strip confirms that the measurement
+  // microphone is still receiving spectrum data during dual-channel work.
+  if(tfOpen && !alignOn){
+    const stripH=Math.max(44,Math.min(64,plotH*.16));
+    const stripY=plotH-stripH;
+    ctx.save();
+    ctx.fillStyle=sunMode?'rgba(248,250,252,.88)':'rgba(4,12,19,.78)';
+    ctx.fillRect(0,stripY,W,stripH);
+    ctx.strokeStyle=sunMode?'rgba(15,23,42,.22)':'rgba(148,163,184,.25)';
+    ctx.beginPath();ctx.moveTo(0,stripY);ctx.lineTo(W,stripY);ctx.stroke();
+    for(let b=0;b<BANDS;b++){
+      const x=b*bw+gap/2,barW=Math.max(1,bw-gap);
+      const h=Math.max(0,Math.min(stripH-13,lastV[b]*(stripH-13)));
+      ctx.fillStyle='rgba('+accentRgb[0]+','+accentRgb[1]+','+accentRgb[2]+',.72)';
+      ctx.fillRect(x,stripY+stripH-h,barW,h);
+    }
+    ctx.fillStyle=sunMode?'#334155':'#b8c8d4';ctx.font='700 9px monospace';ctx.textAlign='left';
+    ctx.fillText('RTA LIVE · MIC',7,stripY+11);
+    ctx.restore();
+  }
+
   // ---- השוואת A/B (לפני/אחרי כיוון) ----
   if(abA || abB){
     const graph=(snap,line,fill,doFill)=>{
@@ -2530,7 +2558,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.strokeStyle='rgba(47,155,255,.8)'; ctx.lineWidth=1;
     ctx.strokeRect(xa,0,xb-xa,plotH);
   }
-  if(targetVisible && targetMode!=='off' && (!alignOn && (eqPanel.classList.contains('open')||areaPanel.classList.contains('open')||tfPanel.classList.contains('open')))){
+  if(targetVisible && targetMode!=='off' && !alignOn){
     ctx.strokeStyle='rgba(80,230,140,.8)'; ctx.setLineDash([6,5]); ctx.lineWidth=2; ctx.beginPath();
     for(let b=0;b<BANDS;b++){
       const ty=Math.max(0.05, Math.min(0.95, 0.55 + targetDb(ISO[b])*0.03));
@@ -2944,7 +2972,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.1';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -2988,6 +3016,18 @@ function v5SetTab(mode){
   v5WorkspaceMode=mode;
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
   const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis');
+}
+function v54SetSideRail(open){
+  const isOpen=!!open;
+  document.body.classList.toggle('v54-rail-collapsed',!isOpen);
+  prefSet('v54_side_rail_open',isOpen?'1':'0');
+  const button=document.getElementById('v54SideToggle');
+  if(button){
+    button.textContent=isOpen?'‹':'›';
+    button.title=isOpen?'הסתר סרגל צד':'הצג סרגל צד';
+    button.setAttribute('aria-label',button.title);
+  }
+  setTimeout(resize,0);
 }
 function v53ToggleAnalysis(event){
   if(event){event.preventDefault();event.stopImmediatePropagation();}
@@ -3069,6 +3109,8 @@ function v5RenderTraceRail(){
 function v5InitWorkspace(){
   const tv=lsGet('rta_target_visible');
   if(tv!==null) targetVisible=(tv!=='0');
+  const railPref=lsGet('v54_side_rail_open');
+  if(railPref==='0') v54SetSideRail(false);
   v5SyncTargetToggle();
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.addEventListener('click',()=>{
     const m=b.dataset.v5mode; v5SetTab(m);
@@ -3088,8 +3130,9 @@ function v5InitWorkspace(){
     targetVisible=!targetVisible;
     prefSet('rta_target_visible', targetVisible?'1':'0');
     v5SyncTargetToggle();
-    v3Toast(targetVisible?'עקומת יעד מוצגת':'עקומת יעד מוסתרת');
+    v3Toast(targetVisible?'עקומת יעד מוצגת על הגרף':'עקומת יעד מוסתרת');
   });
+  safeOn('v54SideToggle','click',()=>v54SetSideRail(document.body.classList.contains('v54-rail-collapsed')));
 
   safeOn('v5AddTrace','click',captureWorkspaceTrace);
   safeOn('v5CaptureAction','click',()=>{ const b=document.getElementById('saveBtn'); if(b)b.click(); });

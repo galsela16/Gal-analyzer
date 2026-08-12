@@ -513,9 +513,9 @@
     background:#0b1823;box-shadow:inset 0 2px 0 rgba(62,166,255,.18);
   }
   .v53AnalysisGroup{display:flex;align-items:flex-end;height:36px;border:1px solid #253542;border-radius:6px 6px 0 0;overflow:hidden;background:#0c151e}
-  .v53AnalysisGroup>button{border:0!important;border-radius:0!important;min-width:112px!important}
+  .v53AnalysisGroup>button{border:0!important;border-radius:0!important;min-width:84px!important;padding:0 9px!important;font-size:10px!important}
   #v53RtaViewSwitch{display:flex;height:100%;border-left:1px solid #253542}
-  #v53RtaViewSwitch button{min-width:44px!important;height:100%!important;padding:0 8px!important;border:0!important;border-left:1px solid #1d2b36!important;border-radius:0!important;font-size:9px!important}
+  #v53RtaViewSwitch button{min-width:34px!important;height:100%!important;padding:0 6px!important;border:0!important;border-left:1px solid #1d2b36!important;border-radius:0!important;font-size:9px!important}
   .v53AnalysisGroup.on{border-color:var(--accent)}
 
   /* persistent left rail */
@@ -524,6 +524,26 @@
     direction:ltr;background:#09121a;border-right:1px solid #1c2b38;
     padding:12px 10px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
   }
+  #v54SideToggle{
+    position:absolute;z-index:22;left:calc(var(--v5-side) + 8px);top:calc(var(--v5-tabs) + 9px);
+    width:29px;height:29px;border:1px solid #314554;border-radius:5px;background:#0c1822;color:#adc0ce;
+    font:700 14px inherit;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.28);
+  }
+  #v54SideToggle:hover{border-color:var(--accent);color:var(--accent)}
+  body.v54-rail-collapsed{--v5-side:0px}
+  body.v54-rail-collapsed #v5SideRail{display:none}
+  body.v54-rail-collapsed #v54SideToggle{left:8px}
+  #v54SplHud{
+    position:absolute;z-index:20;right:12px;top:calc(var(--v5-tabs) + 9px);direction:ltr;
+    min-width:150px;padding:8px 10px;border:1px solid #294052;border-radius:6px;
+    background:rgba(8,18,27,.88);backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.28);
+  }
+  #v54SplHud .label{font-size:9px;font-weight:700;letter-spacing:.8px;color:#8fa4b4}
+  #v54SplHud .value{font-size:20px;font-weight:700;color:#e5eef4;font-variant-numeric:tabular-nums;line-height:1.15}
+  #v54SplHud .detail{font-size:9px;color:#8fa4b4;margin-top:2px}
+  body.sun-mode #v54SplHud{background:rgba(255,255,255,.91);border-color:#bfd0dd}
+  body.sun-mode #v54SplHud .value{color:#0f172a}
+  body.sun-mode #v54SideToggle{background:#fff;color:#334155;border-color:#bfd0dd}
   .v5ReadCard{
     border:1px solid #1d2b38;background:#0b151e;border-radius:7px;
     padding:10px 12px;direction:ltr;
@@ -667,6 +687,7 @@
     #stage>canvas#cv{left:0!important;width:100%!important}
     .measureDock{left:0!important}
     .meter{left:10px!important}
+    #v54SideToggle{display:none}
     .v5HeaderActions{display:none}
   }
   @media(max-width:680px){
@@ -674,6 +695,8 @@
     .measureDock{max-height:48vh!important}
     header h1{font-size:12px}
     #swatches{display:none}
+    #v54SplHud{right:8px;min-width:128px;padding:6px 8px}
+    #v54SplHud .value{font-size:17px}
   }
 
 
@@ -1105,6 +1128,8 @@
       <button id="v5AddTrace">＋ Capture Trace</button>
       <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
     </aside>
+    <button id="v54SideToggle" type="button" title="הסתר/הצג סרגל צד" aria-label="הסתר או הצג סרגל צד">‹</button>
+    <div id="v54SplHud" aria-label="SPL Meter"><div class="label">SPL · Z</div><div class="value" id="v54SplValue">— dB</div><div class="detail" id="v54SplDetail">Leq — · Peak —</div></div>
 
     
     <!-- Quick Floating Bar for Live TF Mode -->
@@ -1645,7 +1670,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4 Foundation</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.1</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

@@ -1,4 +1,9 @@
-# GAL Analyzer V5.4 — Foundation
+# GAL Analyzer V5.4.1 — Workspace controls
+
+- The left workspace rail can be collapsed and restored.
+- Target is available in every non-alignment graph view.
+- TF retains a compact live RTA spectrum strip.
+- SPL is visible as a persistent graph HUD.
 
 זו חבילת GitHub Pages מלאה. לפני העלאה אפשר להריץ:
 
