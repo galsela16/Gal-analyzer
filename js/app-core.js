@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.21-eq-numeric-values',
+    version: 'v5.4.22-tf-correction-values',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -677,12 +677,16 @@ function relByLevel(resp){
 
 function corrGridHtml(corr, rel){
   let html='<div class="tfGrid">';
+  let shown=0;
   for(let k=0;k<GEQ.length;k++){
     const f=GEQ[k], fStr=f>=1000?(f/1000)+'k':f+'Hz', v=corr[k];
     const hide = v==null || (rel && !rel[k]) || Math.abs(v)<0.5;
-    if(hide) html+=`<div class="tfItem off"><span class="f">${fStr}</span><span class="g">—</span></div>`;
-    else { const cls=v<0?'cut':(v>0?'boost':''), sign=v>0?'+':''; html+=`<div class="tfItem ${cls}"><span class="f">${fStr}</span><span class="g">${sign}${v.toFixed(1)}dB</span></div>`; }
+    if(hide) continue;
+    shown++;
+    const cls=v<0?'cut':(v>0?'boost':''), sign=v>0?'+':'';
+    html+=`<div class="tfItem ${cls}"><span class="f">${fStr}</span><span class="g">${sign}${v.toFixed(1)} dB</span></div>`;
   }
+  if(!shown)html+='<div class="tfItem off"><span class="f">אין תיקון משמעותי</span><span class="g">מאוזן</span></div>';
   return html+'</div>';
 }
 function corrParamHtml(corr){
@@ -1279,8 +1283,7 @@ function renderTFList(){
   
   showGeqDock('תיקון EQ · דו־ערוצי');
   drawGEQ(document.getElementById('eqCurveCanvas'), GEQ, tfResult.corr);
-  drawGEQ(cv2, GEQ, tfResult.corr);
-  cv2.style.display='block';
+  cv2.style.display='none';
   eqCurveData = { freqs: GEQ.slice(), corr: tfResult.corr.slice() };
 
   if(tfMode==='param'){
@@ -3000,7 +3003,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.21';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.22';
   v3UpdateStatus();
 })();
 (function initAccent(){

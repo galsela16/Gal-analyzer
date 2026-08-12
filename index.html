@@ -653,6 +653,11 @@
     min-width:145px;color:#56df86!important;background:#0b1817!important;border-color:#214a39!important
   }
   #tfPanel.measureDock #tfTraceLegend{display:none}
+  #tfPanel.measureDock #tfCanvas{display:none!important}
+  #tfPanel.measureDock #tfGeqList{flex:1 1 100%!important;width:100%!important;max-height:none!important;overflow:visible!important;order:900}
+  #tfPanel.measureDock #tfGeqList>.sub{display:block!important;color:#dce6ee!important;font-size:11px!important;margin:0 0 6px!important}
+  #tfPanel.measureDock #tfGeqList .tfGrid{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));width:100%;max-height:180px;overflow:auto;background:#08131b;border-color:#223746;padding:8px;box-sizing:border-box}
+  #tfPanel.measureDock #tfGeqList .tfItem{min-height:30px;padding:6px 9px}
   #tfPanel.measureDock>.sub{display:none!important}
   #tfPanel.measureDock:not(.expanded){
     /* Keep the live TF controls complete; use an internal scroll only when
@@ -1729,7 +1734,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.21</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.22</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

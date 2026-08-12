@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.21 — Numeric EQ corrections
+# GAL Analyzer V5.4.22 — TF correction workspace
+
+- The empty legacy TF canvas is removed from the advanced view and replaced by clear frequency + dB correction cards.
 
 - Exact frequency and dB correction values are shown below the result curve for every actionable EQ band.
 
