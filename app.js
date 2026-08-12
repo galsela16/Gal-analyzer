@@ -579,6 +579,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function
 
 const eqPanel=document.getElementById('eqPanel');
 const savePanel=document.getElementById('savePanel');
+let tfPanel=document.getElementById('tfPanel');
 safeOn('eqClose', 'click',closeModals);
 safeOn('eqBtn', 'click',()=>{ showModal(eqPanel); updateEqUI(); });
 safeOn('tfBtn', 'click',()=>{ showModal(tfPanel); if(typeof tfResult!=='undefined' && tfResult) renderTFList(); });
@@ -860,6 +861,7 @@ safeOn('calResetBtn', 'click',()=>{
   micCalList=[]; activeCalId=null; deriveActiveCal(); saveCalStore(); renderCalList();
 });
 
+var alignOn=false;
 const modalBg=document.getElementById('modalBg');
 const measureDockIds=['rtPanel','eqPanel','tfPanel','areaPanel','dlyPanel'];
 const stageEl=document.getElementById('stage');
@@ -871,11 +873,15 @@ function dockAdvanced(id, parentLevels=0, block=false){
 function setupMeasureDocks(){
   measureDockIds.forEach(id=>{
     const p=document.getElementById(id); if(!p)return;
-    p.classList.add('measureDock'); stageEl.appendChild(p);
+    p.classList.add('measureDock'); if(stageEl) stageEl.appendChild(p);
     const close=p.querySelector('[id$="Close"]'); if(close){close.classList.add('dockClose');close.textContent='✕';close.title='סגור';}
     const more=document.createElement('button');more.className='dockMoreBtn';more.type='button';more.textContent='עוד ▾';
     more.addEventListener('click',()=>{p.classList.toggle('expanded');more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾';setTimeout(updateMeasureDockHeight,0);});
-    if(close) p.insertBefore(more,close); else p.appendChild(more);
+    if(close && close.parentElement){
+      close.parentElement.insertBefore(more,close);
+    } else {
+      p.appendChild(more);
+    }
   });
   // heavy/advanced sections stay hidden until "עוד"
   ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','dlyInfo','dlySpk','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
@@ -894,6 +900,7 @@ function updateMeasureDockHeight(){
 setupMeasureDocks();
 ['calPanel','savePanel'].forEach(id=>{const p=document.getElementById(id);if(p)modalBg.appendChild(p);});
 function showModal(p){
+  if(!p) return;
   setAlign(false); closeModals(); p.classList.add('open');
   if(p.classList.contains('measureDock')){modalBg.classList.remove('show');setTimeout(updateMeasureDockHeight,0);}
   else modalBg.classList.add('show');
@@ -1027,7 +1034,7 @@ function renderAreaList(){
   }));
 }
 
-const tfPanel=document.getElementById('tfPanel');
+tfPanel=document.getElementById('tfPanel');
 safeOn('tfClose', 'click',closeModals);
 safeOn('tfSwapBtn', 'click',function(){ tfSwap=!tfSwap; this.classList.toggle('on',tfSwap); });
 function setTfOverlay(on){
@@ -1736,7 +1743,6 @@ document.querySelectorAll('#fftSeg button').forEach(b=>b.addEventListener('click
 safeOn('mRta', 'click',()=>setMode('rta'));
 safeOn('mSpec', 'click',()=>setMode('spec'));
 safeOn('tfOverlayHdr', 'click',()=>setTfOverlay(!tfOverlay));
-let alignOn=false;
 function setAlign(on){
   alignOn=on;
   const bar=document.getElementById('alignBar'); if(bar) bar.classList.toggle('show',on);

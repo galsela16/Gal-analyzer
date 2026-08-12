@@ -14,3 +14,10 @@ V4 focuses on real system measurement, not cosmetic changes.
 
 ## Install
 Upload the CONTENTS of this folder to the root of the GitHub repository and replace the existing files. Then hard-refresh the deployed page.
+
+
+## V4.1 hotfix
+- Fixed measurement dock initialization crash (`insertBefore`).
+- Fixed TF panel initialization safety.
+- Fixed alignment state initialization safety.
+- Added guards so one missing panel cannot stop microphone startup.
