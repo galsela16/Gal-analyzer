@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.14 — Smooth input meters
+# GAL Analyzer V5.4.15 — Open TF workspace
+
+- “עוד” in TF is always available; before a result exists it shows clear next-step guidance instead of a blank results area.
 
 - MEAS and REF now read the live input waveforms continuously, with smooth movement, peak hold and clear clip indication.
 
