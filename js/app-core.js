@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.16-delay-layout-dual-input-tf',
+    version: 'v5.4.17-workspace-panel-switching',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3013,7 +3013,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.16';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.17';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3152,6 +3152,16 @@ function v5InitWorkspace(){
   const railPref=lsGet('v54_side_rail_open');
   if(railPref==='0') v54SetSideRail(false);
   v5SyncTargetToggle();
+  // A tab is a complete workspace switch. Close the previous dock during the
+  // capture phase so no earlier panel can remain visible behind the new mode.
+  const workspaceTabs=document.getElementById('v5ModeTabs');
+  if(workspaceTabs) workspaceTabs.addEventListener('click',event=>{
+    if(!event.target.closest('[data-v5mode]')) return;
+    closeModals();
+    setAlign(false);
+    if(typeof v52SetIo==='function' && v52IoOpen) v52SetIo(false);
+    if(typeof v53SetGeneratorDock==='function' && genPanel?.classList.contains('open')) v53SetGeneratorDock(false);
+  },true);
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.addEventListener('click',()=>{
     const m=b.dataset.v5mode; v5SetTab(m);
     if(m==='analysis'){ closeModals(); setAlign(false); setTfOverlay(false); setMode(mode==='spec'?'spec':'rta'); }

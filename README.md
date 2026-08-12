@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.16 — Clear Delay + dual-input TF
+# GAL Analyzer V5.4.17 — Clean workspace switching
+
+- Changing measurement modes always closes the previous dock before the next workspace opens.
 
 - Delay is arranged as inputs → measure → speaker alignment.
 - TF keeps Mic 1 and Reference 2 live spectra visible together under the TF response.
