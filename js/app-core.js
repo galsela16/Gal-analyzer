@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.10-full-width-spl-meter',
+    version: 'v5.4.11-tf-dock-layout',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -930,6 +930,7 @@ function setupMeasureDocks(){
   ['tfDelayInfo','tfTraceClearBtn','tfSwapBtn','tfOverlayBtn','tfMeasBtn','tfCsvBtn'].forEach(id=>dockAdvanced(id));
   ['eqModeSwitchA','eqModeSeg','cutOnlySeg','areaModeSeg','areaCutSeg','dlyCountSeg','rtLevel','rtRange'].forEach(id=>dockAdvanced(id,1));
   dockAdvanced('tfModeSeg',0);
+  dockAdvanced('tfTargetCtrl',0);
   // area EQ button is advanced
   dockAdvanced('areaEqBtn');
 }
@@ -3004,7 +3005,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.10';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.11';
   v3UpdateStatus();
 })();
 (function initAccent(){

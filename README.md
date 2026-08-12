@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.10 — Full-width SPL meter
+# GAL Analyzer V5.4.11 — TF dock layout
+
+- The compact TF dock now keeps its live inputs and primary controls visible, with secondary settings behind “עוד”.
 
 - The SPL meter now spans the usable width of the graph and stays directly above any open bottom dock.
 

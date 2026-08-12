@@ -643,7 +643,9 @@
   #tfPanel.measureDock #tfTraceLegend{display:none}
   #tfPanel.measureDock>.sub{display:none!important}
   #tfPanel.measureDock:not(.expanded){
-    min-height:116px!important;max-height:132px!important;overflow:hidden!important;
+    /* Keep the live TF controls complete; use an internal scroll only when
+       the viewport is genuinely too short. */
+    min-height:172px!important;max-height:220px!important;overflow-y:auto!important;
   }
   #tfPanel.measureDock:not(.expanded) .chBar{
     min-width:210px!important;max-width:280px!important;padding:6px!important;
@@ -651,6 +653,12 @@
   #tfPanel.measureDock:not(.expanded) #tfBtns{
     flex:1 1 auto!important;padding-top:0!important;border-top:0!important;align-self:center;
   }
+  #tfPanel.measureDock:not(.expanded) #tfTargetCtrl{display:none!important}
+  #tfPanel.measureDock>.dockMoreBtn,#tfPanel.measureDock>.dockClose{
+    position:absolute!important;top:9px!important;z-index:2;order:initial!important;
+  }
+  #tfPanel.measureDock>.dockMoreBtn{right:43px!important}
+  #tfPanel.measureDock>.dockClose{right:12px!important}
 
   /* Footer becomes a compact tool shelf */
   footer{
@@ -1279,7 +1287,7 @@
         <button id="areaCombBtn" class="toggle">בדוק פאזה</button>
       </div>
       <div id="areaCombResult" style="display:none;text-align:center;font-size:12px"></div>
-      <div class="ctrl" style="flex:0 0 auto;align-items:center;min-width:auto">
+      <div class="ctrl" id="tfTargetCtrl" style="flex:0 0 auto;align-items:center;min-width:auto">
         <label style="justify-content:center">עקומת יעד</label>
         <div class="seg tgtSeg" style="align-self:center">
           <button data-t="flat" class="on">שטוח</button>
@@ -1680,7 +1688,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.10</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.11</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
