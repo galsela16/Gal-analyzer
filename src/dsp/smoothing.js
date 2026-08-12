@@ -11,6 +11,7 @@ export function smoothArray(prev, next, alpha) {
   }
 }
 
+
 export function updateBandPeaks(
   peak,
   current,
@@ -20,22 +21,24 @@ export function updateBandPeaks(
   decayDbPerSecond = 12
 ) {
   for (let i = 0; i < peak.length; i++) {
+
     if (current[i] >= peak[i]) {
       peak[i] = current[i];
       peakTimes[i] = now;
       continue;
     }
 
-    const holdElapsed = now - peakTimes[i];
+    const timeSincePeak =
+      now - peakTimes[i];
 
-    if (holdElapsed <= holdMs) {
+    if (timeSincePeak <= holdMs) {
       continue;
     }
 
-    const decay =
+    const decayPerFrame =
       decayDbPerSecond / 60;
 
-    peak[i] -= decay;
+    peak[i] -= decayPerFrame;
 
     if (peak[i] < current[i]) {
       peak[i] = current[i];
