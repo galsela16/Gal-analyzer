@@ -1,26 +1,805 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GAL Analyzer</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="גל אנלייזר">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>גל אנלייזר</title>
+<style>
+
+
+
+
+
+:root{
+    --panel:#0d1117; --panel-2:#161b22; --line:#21262d; --grid:#1c2530;
+    --text:#e6ecf3; --dim:#9aa7b6; --accent:#3ea6ff; --warn:#ffd166; --hot:#ff3b6b;
+    --amber:#3ea6ff; --amber-dim:#2f7fc9;
+  }
+  body.sun-mode {
+    --panel:#ffffff; --panel-2:#f0f4f8; --line:#cbd5e1; --grid:#e2e8f0;
+    --text:#0f172a; --dim:#475569; --accent:#0284c7; --warn:#d97706; --hot:#dc2626;
+    background:#f8fafc;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(130% 90% at 50% -10%, #16202b 0%, #0f141b 50%, #0a0d12 100%);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    display:flex;flex-direction:column;height:100dvh;overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  body.sun-mode{ background: #f8fafc; }
+  header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#141a21,#0f141b)}
+  body.sun-mode header{ background:linear-gradient(180deg,#ffffff,#f1f5f9); }
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--dim);transition:.3s;flex:none}
+  .dot.live{background:var(--accent);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(62,166,255,.5)}70%{box-shadow:0 0 0 7px rgba(62,166,255,0)}100%{box-shadow:0 0 0 0 rgba(62,166,255,0)}}
+  h1{font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase}
+  h1 span{color:var(--accent)}
+  .modes{margin-inline-start:auto;display:flex;gap:4px}
+  .modes button{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);
+    font-family:inherit;font-size:11px;letter-spacing:.5px;padding:7px 12px;border-radius:4px;cursor:pointer;transition:.15s}
+  .modes button.on{border-color:var(--accent);color:var(--accent);background:rgba(47,155,255,.08)}
+  #stage{flex:1;position:relative;min-height:0}
+  #stage>canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  
+  .tfQuickBar{
+    position:absolute; top:10px; inset-inline-start:10px; z-index:8;
+    display:none; gap:6px; background:rgba(13,17,23,.85); backdrop-filter:blur(6px);
+    padding:5px 8px; border:1px solid var(--line); border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.4);
+  }
+  body.sun-mode .tfQuickBar{ background:rgba(255,255,255,.9); }
+  .tfQuickBar.show{ display:flex; align-items:center; }
+  .tfQuickBar button{
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    font-family:inherit; font-size:11px; font-weight:600; padding:5px 10px;
+    border-radius:4px; cursor:pointer; transition:.12s; white-space:nowrap;
+  }
+  .tfQuickBar button.on{
+    border-color:var(--accent); color:var(--accent); background:rgba(62,166,255,.16);
+  }
+  #alignBar{
+    position:absolute; inset-inline:0; bottom:0; z-index:9;
+    display:none; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;
+    background:var(--panel); border-top:1px solid var(--accent);
+    padding:8px 12px; box-shadow:0 -4px 16px rgba(0,0,0,.35);
+  }
+  body.sun-mode #alignBar{ background:#ffffff; }
+  #alignBar.show{ display:flex; }
+  #stage.bar-open>canvas{ height:calc(100% - var(--bar-h,0)); bottom:auto; }
+  #alignBar button{
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    font-family:inherit; font-size:11px; font-weight:600; padding:6px 11px;
+    border-radius:4px; cursor:pointer; transition:.12s; white-space:nowrap;
+  }
+  #alignBar button.on{ border-color:var(--accent); color:var(--accent); background:rgba(62,166,255,.16); }
+  #alignBar button:disabled{ opacity:.5; cursor:default; }
+  #alignBar #alignClose{ border-color:transparent; color:var(--dim); font-size:14px; padding:6px 8px; }
+
+  .abWidget{
+    position:absolute; top:10px; inset-inline-start:10px; z-index:8;
+    display:none; gap:5px; background:rgba(13,17,23,.88); backdrop-filter:blur(6px);
+    padding:5px 8px; border:1px solid var(--line); border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.4);
+  }
+  body.sun-mode .abWidget{ background:rgba(255,255,255,.92); }
+  .abWidget.show{ display:flex; align-items:center; }
+  .abWidget button{
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    font-family:inherit; font-size:11px; font-weight:600; padding:4px 9px; border-radius:4px; cursor:pointer;
+  }
+  .abWidget button.on{ border-color:var(--accent); color:var(--accent); background:rgba(62,166,255,.16); }
+  .saveRow .abBtn{ border:1px solid var(--line); background:var(--panel); color:var(--dim); font-size:11px; padding:3px 7px; border-radius:3px; cursor:pointer; }
+  .saveRow .abBtn.on-a{ border-color:#2f9bff; color:#2f9bff; background:rgba(47,155,255,.15); font-weight:bold; }
+  .saveRow .abBtn.on-b{ border-color:#ffa53b; color:#ffa53b; background:rgba(255,165,59,.15); font-weight:bold; }
+
+  .idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;text-align:center;padding:24px;z-index:4}
+  .idle p{color:var(--dim);font-size:13px;line-height:1.7;max-width:300px}
+  .btn{appearance:none;border:1px solid var(--accent);cursor:pointer;background:rgba(47,155,255,.08);
+    color:var(--accent);font-family:inherit;font-size:14px;font-weight:600;letter-spacing:2px;
+    padding:14px 30px;border-radius:5px;text-transform:uppercase;transition:.15s}
+  .btn:active{transform:scale(.97)}
+  #fbPanel{display:none !important;}
+  .readout{position:absolute;top:10px;inset-inline-end:10px;z-index:3;text-align:end;font-size:11px;color:var(--dim);letter-spacing:1px;pointer-events:none}
+  .readout b{display:block;color:var(--text);font-size:15px;font-variant-numeric:tabular-nums}
+  .stats{position:absolute;top:52px;inset-inline-end:10px;z-index:3;pointer-events:none;
+    display:flex;flex-direction:column;gap:2px;text-align:end;font-size:10px;color:var(--dim);letter-spacing:1px}
+  .stats div{font-variant-numeric:tabular-nums}
+  .stats b{color:var(--text);font-size:13px}
+  .stats .big{color:var(--accent);font-size:16px}
+  .zoomBtn{position:absolute;top:10px;inset-inline-start:10px;z-index:4;display:none;
+    border:1px solid var(--accent);background:rgba(47,155,255,.12);color:var(--accent);
+    font-family:inherit;font-size:11px;letter-spacing:1px;padding:7px 12px;border-radius:4px;cursor:pointer}
+  
+  #modalBg{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.22);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);display:none;align-items:center;justify-content:center;padding:16px}
+  #modalBg.show{display:flex}
+  
+  #helpBtn, #sunBtn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--dim);font-weight:700;font-size:14px;cursor:pointer;transition:.14s;flex:none;display:flex;align-items:center;justify-content:center}
+  #sunBtn{margin-inline-start:auto}
+  #helpBtn.on, #sunBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.14);box-shadow:0 0 12px rgba(62,166,255,.3)}
+  #helpBtn:hover, #sunBtn:hover{color:var(--text);border-color:#3a4656}
+  #swatches{display:flex;gap:6px;align-items:center;flex:none}
+  .sw{width:18px;height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;transition:.12s}
+  .sw:hover{transform:scale(1.15)}
+  .sw.on{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.4)}
+  #sigTint{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .35s ease}
+  #sigTint.on{opacity:1}
+  #helpTip{position:fixed;z-index:120;display:none;max-width:250px;padding:9px 12px;border:1px solid var(--accent);
+    border-radius:6px;background:rgba(13,17,23,.98);color:var(--text);font-size:12px;line-height:1.55;pointer-events:none;
+    box-shadow:0 8px 24px rgba(0,0,0,.6)}
+  #srcOverlay{position:fixed;inset:0;z-index:110;display:none;background:rgba(0,0,0,.25);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);align-items:center;justify-content:center}
+  #dlyPanel{position:relative;display:none;flex-direction:column;gap:10px;width:min(94%,380px);max-height:calc(100dvh - 32px);overflow:auto;
+    padding:16px 18px;border:1px solid var(--accent);border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8)}
+  #dlyPanel.open{display:flex}
+  #dlyPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
+  #dlyPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
+  #dlyStatus b{color:var(--accent);font-size:24px}
+  #dlyClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  #alignClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  #srcOverlay.show{display:flex}
+  #srcBox{display:flex;flex-direction:column;gap:9px;width:min(90%,280px);padding:18px;border:1px solid var(--accent);
+    border-radius:6px;background:var(--panel);box-shadow:0 10px 40px rgba(0,0,0,.6)}
+  #srcBox .srcTitle{font-size:13px;color:var(--text);text-align:center;margin-bottom:4px;letter-spacing:.5px}
+  #srcBox .toggle{width:100%;text-align:center}
+  body.help-on .toggle,body.help-on .tab,body.help-on .seg button,body.help-on input[type=range]{cursor:help}
+  
+  #areaPanel{position:relative;display:none;
+    flex-direction:column;gap:10px;width:min(94%,520px);max-height:calc(100dvh - 32px);overflow:auto;padding:16px 18px;
+    border:1px solid var(--accent);border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8)}
+  #areaPanel.open{display:flex}
+  #areaPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
+  #areaPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
+  #areaList{display:flex;flex-direction:column;gap:6px}
+  #areaEqList{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto}
+  .areaRow{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:4px;border:1px solid var(--line);font-size:13px;color:var(--text)}
+  .areaRow .dot{width:12px;height:12px;border-radius:50%;flex:none}
+  .areaRow .nm{flex:1}
+  .areaRow button{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:11px;padding:5px 9px;border-radius:3px;cursor:pointer}
+  .areaRow button.on{border-color:var(--accent);color:var(--accent)}
+  #areaClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  
+  .meter{position:absolute;bottom:8px;inset-inline:10px;z-index:3;height:26px;border:1px solid var(--line);
+    border-radius:4px;background:rgba(13,17,23,.55);backdrop-filter:blur(4px);overflow:hidden;display:flex;align-items:center;pointer-events:none}
+  body.sun-mode .meter{ background:rgba(255,255,255,.85); }
+  .meterFill{position:absolute;inset-inline-start:0;top:0;bottom:0;width:0%;
+    background:linear-gradient(90deg,var(--accent) 0%,#5ab6ff 60%,#9fd4ff 80%,var(--hot) 100%);
+    opacity:.8;transition:width 0.08s ease-out}
+  .meterPeak{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.9}
+  body.sun-mode .meterPeak{ background:#0f172a; }
+  .meterVal{position:relative;margin-inline-start:auto;padding-inline-end:10px;font-size:13px;font-weight:600;
+    color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.5px;z-index:1}
+  .meterLbl{position:relative;padding-inline-start:10px;font-size:10px;color:var(--dim);letter-spacing:1.5px;z-index:1}
+  
+  footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 18px 20px;border-top:1px solid var(--line);position:relative;overflow:hidden;
+    background:radial-gradient(120% 140% at 50% 0%, #14202c 0%, #0e161e 55%, #0a0e13 100%)}
+  body.sun-mode footer{ background:radial-gradient(120% 140% at 50% 0%, #ffffff 0%, #f1f5f9 55%, #e2e8f0 100%); }
+  #pcb{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.2;z-index:0}
+  footer::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(70% 130% at 50% -10%, rgba(62,166,255,.12), transparent 70%)}
+  footer>*{position:relative;z-index:1}
+  .ctrl{display:flex;flex-direction:column;gap:6px;flex:1;min-width:110px}
+  .trow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%}
+  .ctrl label{font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;display:flex;justify-content:space-between}
+  .ctrl label b{color:var(--accent);font-variant-numeric:tabular-nums;text-shadow:0 0 8px rgba(62,166,255,.5)}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:5px;outline:none;
+    background:#48545f;border:1px solid #5a6874;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+  body.sun-mode input[type=range]{ background:#cbd5e1; border-color:#94a3b8; }
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;cursor:pointer;
+    background:radial-gradient(circle at 35% 30%,#8fd0ff,var(--accent) 60%);border:1px solid #0b0f16;box-shadow:0 0 8px rgba(62,166,255,.6),0 1px 2px rgba(0,0,0,.5)}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;cursor:pointer;
+    background:var(--accent);border:1px solid #0b0f16;box-shadow:0 0 8px rgba(62,166,255,.6)}
+  .toggle{border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:inherit;font-size:12px;letter-spacing:.3px;
+    padding:11px 17px;border-radius:4px;cursor:pointer;transition:.14s ease;white-space:nowrap;font-weight:600}
+  .toggle:hover{border-color:var(--accent);background:var(--panel);color:var(--text)}
+  .toggle:active{transform:translateY(1px)}
+  .toggle.on{color:#eaf4ff;border-color:var(--accent);background:rgba(62,166,255,.14);box-shadow:0 0 14px rgba(62,166,255,.28)}
+  body.sun-mode .toggle.on{ color:var(--accent); }
+  .tabbar{flex-basis:100%;display:flex;gap:7px;align-items:center;margin-bottom:12px}
+  .tab{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;
+    font-weight:600;letter-spacing:.3px;padding:10px 20px;border-radius:4px;cursor:pointer;transition:.14s ease}
+  .tab:hover{border-color:var(--accent);color:var(--text)}
+  .tab.on{color:var(--text);border-color:var(--accent);background:rgba(62,166,255,.16);box-shadow:0 0 16px rgba(62,166,255,.3)}
+  body.sun-mode .tab.on{ color:var(--accent); }
+  .tabpage{flex-basis:100%;display:none;gap:10px;align-items:center;flex-wrap:wrap}
+  .tabpage.active{display:flex;flex-direction:column;align-items:stretch}
+  .seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .seg button{border:none;background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;
+    letter-spacing:.3px;padding:10px 15px;cursor:pointer;transition:.14s;border-inline-start:1px solid var(--line);font-weight:600}
+  .seg button:first-child{border-inline-start:none}
+  .seg button:hover{color:var(--text);background:var(--panel)}
+  .seg button.on{color:var(--accent);background:rgba(62,166,255,.2);box-shadow:inset 0 0 0 1px rgba(62,166,255,.35)}
+  select.inp{border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:inherit;
+    font-size:11px;padding:8px 10px;border-radius:4px;max-width:150px;outline:none}
+  
+  #genPanel{flex-basis:100%;display:none;gap:14px;align-items:center;flex-wrap:wrap;
+    padding:12px 14px;margin-bottom:6px;border:1px solid var(--line);border-radius:5px;
+    background:var(--panel-2);box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+  #genPanel.open{display:flex}
+  #genPanel .warn{flex-basis:100%;font-size:10px;color:var(--warn);letter-spacing:.5px}
+  #genOnBtn{border:1px solid var(--hot);background:rgba(255,59,107,.1);color:var(--hot);
+    font-family:inherit;font-size:12px;font-weight:600;letter-spacing:1px;padding:9px 16px;border-radius:4px;cursor:pointer}
+  #genOnBtn.on{border-color:var(--accent);background:rgba(47,155,255,.12);color:var(--accent)}
+  
+  #rtPanel{position:relative;display:none;
+    flex-direction:column;gap:10px;align-items:stretch;width:min(92%,360px);max-height:calc(100dvh - 32px);overflow:auto;padding:16px 18px;border:1px solid var(--accent);
+    border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8)}
+  #rtStatus{font-size:15px;color:var(--text);letter-spacing:.5px;text-align:center;min-height:24px;line-height:1.5}
+  #rtStatus b{color:var(--accent);font-size:26px}
+  #rtCanvas{width:100%;height:120px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px}
+  #rtPanel.open{display:flex}
+  #rtClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+    font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  
+  #gainPanel{position:relative;display:none;
+    flex-direction:column;gap:12px;width:min(94%,420px);max-height:calc(100dvh - 32px);overflow:auto;padding:16px 18px;border:1px solid var(--accent);
+    border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8)}
+  #gainPanel.open{display:flex}
+  #gainPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
+  #gainPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
+  #gainClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+    font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+
+  #savePanel{position:relative;display:none;
+    flex-direction:column;gap:12px;width:min(94%,420px);max-height:calc(100dvh - 32px);overflow:auto;padding:16px 18px;border:1px solid var(--accent);
+    border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8)}
+  #savePanel.open{display:flex}
+  #savePanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
+  #savePanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
+  #saveClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+    font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  .saveRow{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);font-size:12px}
+  .saveRow .nm{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .saveRow .meta{font-size:10px;color:var(--dim)}
+  .saveRow button{border:1px solid var(--line);background:var(--panel);color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;border-radius:3px;cursor:pointer}
+  .saveRow button:hover{border-color:var(--accent);color:var(--accent)}
+
+  #geqDock{
+    position:absolute; bottom:42px; inset-inline:10px; z-index:9;
+    border:1px solid var(--line); border-radius:6px; background:var(--panel-2);
+    box-shadow:0 8px 24px rgba(0,0,0,.4); overflow:hidden;
+  }
+  body.sun-mode #geqDock{
+    background:#ffffff; border-color:var(--line); box-shadow:0 8px 24px rgba(0,0,0,.15);
+  }
+  #geqDockHead{
+    display:flex; align-items:center; justify-content:space-between; padding:6px 12px;
+    background:var(--panel-2); border-bottom:1px solid var(--accent);
+  }
+  body.sun-mode #geqDockHead{ background:#f1f5f9; }
+  #geqDockTitle{font-size:12px; font-weight:600; letter-spacing:.5px; color:var(--accent)}
+  #geqDockToggle{
+    border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:12px;
+    cursor:pointer; padding:2px 12px; border-radius:4px; line-height:1.5;
+  }
+  body.sun-mode #geqDockToggle{ background:#ffffff; color:#0f172a; }
+  #geqDockToggle:hover{color:var(--accent); background:rgba(62,166,255,.1)}
+  #eqCurveCanvas{display:block; width:100%; height:234px; background:var(--panel-2)}
+  body.sun-mode #eqCurveCanvas{ background:#ffffff; }
+  #geqDock.collapsed #eqCurveCanvas{display:none}
+
+  #eqPanel{position:relative;display:none;
+    flex-direction:column;gap:9px;width:min(94%,520px);max-height:calc(100dvh - 32px);overflow:auto;padding:16px 18px;border:1px solid var(--accent);
+    border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8)}
+  #eqPanel.open{display:flex}
+  #eqPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
+  #eqPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
+  #eqList{display:flex;flex-direction:column;gap:6px;overflow:auto}
+  .eqRow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;border:1px solid var(--line);
+    font-variant-numeric:tabular-nums;font-size:13px}
+  .eqRow.cut{background:rgba(255,59,107,.08);border-color:rgba(255,59,107,.4)}
+  .eqRow.boost{background:rgba(47,155,255,.08);border-color:rgba(47,155,255,.4)}
+  .eqRow .f{font-weight:600;min-width:64px}
+  .eqRow .g{min-width:52px;color:var(--text)}
+  .eqRow.cut .g{color:var(--hot)} .eqRow.boost .g{color:var(--accent)}
+  .eqRow .q{color:var(--dim);font-size:11px}
+  #eqClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+    font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  
+  #calPanel{position:relative;display:none;
+    flex-direction:column;gap:12px;width:min(94%,440px);max-height:calc(100dvh - 32px);overflow:auto;padding:16px 18px;border:1px solid var(--accent);
+    border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8)}
+  #calPanel.open{display:flex}
+  #calPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
+  #calList{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding-inline-end:2px}
+  .calRow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-radius:5px;border:1px solid var(--line);
+    font-size:12px;cursor:pointer;color:var(--text);background:var(--panel-2);transition:.15s}
+  .calRow:hover{border-color:var(--accent)}
+  .calRow.on{border-color:var(--accent);background:rgba(62,166,255,.14);color:var(--text);box-shadow:0 0 10px rgba(62,166,255,.2)}
+  .calRow .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .calRow .sub{color:var(--dim);font-size:11px;flex-shrink:0}
+  .calRow .del{color:var(--hot);font-size:14px;padding:2px 6px;line-height:1;border-radius:3px;flex-shrink:0}
+  .calRow .del:hover{background:rgba(255,59,107,.2)}
+  .posName{flex:1;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:12px;font-weight:600;outline:none;min-width:0}
+  .posName:focus{border-bottom:1px solid var(--accent)}
+  #calClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+    font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  
+  #tfPanel{position:relative;display:none;
+    flex-direction:column;gap:12px;width:min(94%,520px);max-height:calc(100dvh - 32px);padding:16px 18px;border:1px solid var(--accent);
+    border-radius:6px;background:var(--panel);box-shadow:0 12px 48px rgba(0,0,0,.8);overflow:auto}
+  #tfPanel.open{display:flex}
+  #tfPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
+  #tfPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
+  .chBar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text)}
+  .chBar .track{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+  .chBar .fill{height:100%;width:0%;background:var(--accent);transition:width .1s linear}
+  .chBar .fill.lo{background:var(--hot)}
+  .chBar .fill.ok{background:#39d98a}
+  .chBar .fill.hi{background:var(--warn)}
+  .chBar .fill.clip{background:var(--hot)}
+  .gainLbl{min-width:70px;font-size:10px;letter-spacing:.3px;text-align:start}
+  .gainLbl.lo{color:var(--hot)}.gainLbl.ok{color:#39d98a}.gainLbl.hi{color:var(--warn)}.gainLbl.clip{color:var(--hot);font-weight:700}
+  #tfCanvas{width:100%;height:150px;position:relative;flex-shrink:0;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none}
+  #tfGeqList{display:flex;flex-direction:column;gap:6px;z-index:2;width:100%}
+  #tfBtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  #tfClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+    font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  
+  .tfGrid{display:grid;grid-template-columns:repeat(auto-fill, minmax(92px, 1fr));gap:6px;max-height:220px;overflow-y:auto;padding:6px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2)}
+  .tfItem{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:4px;border:1px solid var(--line);font-size:11px;background:var(--panel);font-variant-numeric:tabular-nums}
+  .tfItem.boost{background:rgba(80,230,140,0.12);border-color:rgba(80,230,140,0.4)}
+  .tfItem.boost .g{color:#50e68c;font-weight:700}
+  .tfItem.cut{background:rgba(255,59,107,0.12);border-color:rgba(255,59,107,0.4)}
+  .tfItem.cut .g{color:var(--hot);font-weight:700}
+  .tfItem.off{opacity:0.35;background:rgba(255,255,255,0.02)}
+  .tfItem .f{color:var(--dim);font-weight:600}
+  .tfItem .g{color:var(--text)}
+
+  .err{position:absolute;bottom:14px;inset-inline:14px;z-index:5;background:rgba(255,59,107,.12);border:1px solid var(--hot);
+    color:var(--hot);padding:10px 14px;border-radius:4px;font-size:12px;line-height:1.6;display:none}
+</style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="controls">
-    <button id="startBtn">Start Audio</button>
-    <button id="freezeBtn" disabled>Freeze</button>
-    <label class="control-group">
-      Resolution
-      <select id="bpoSelect">
-        <option value="3">1/3 Oct</option>
-        <option value="6">1/6 Oct</option>
-        <option value="12">1/12 Oct</option>
-        <option value="24">1/24 Oct</option>
-      </select>
-    </label>
+  <div id="sigTint"></div>
+  <header>
+    <div class="dot" id="dot"></div>
+    <h1><span>גל</span> אנלייזר <small id="ver" style="font-size:10px;color:var(--dim);letter-spacing:1px"></small></h1>
+    <div class="modes">
+      <button id="mRta" class="on">ספקטרום · RTA</button>
+      <button id="mSpec">ווטרפול · Spectrograph</button>
+      <button id="tfOverlayHdr" title="הצג מיק' + רפרנס יחד">מיק'/רפרנס · TF</button>
+    </div>
+    <button id="sunBtn" title="מצב אור שמש / ניגודיות גבוהה" aria-label="מצב אור שמש">☀️</button>
+    <button id="helpBtn" title="מצב עזרה — רחף על כפתור להסבר" aria-label="מצב עזרה">?</button>
+    <div id="swatches" title="צבע האפליקציה" role="group" aria-label="צבע האפליקציה">
+      <button class="sw on" data-c="#3ea6ff" style="background:#3ea6ff" aria-label="כחול" title="כחול"></button>
+      <button class="sw" data-c="#40d17a" style="background:#40d17a" aria-label="ירוק" title="ירוק"></button>
+      <button class="sw" data-c="#b57bff" style="background:#b57bff" aria-label="סגול" title="סגול"></button>
+      <button class="sw" data-c="#ff9d3c" style="background:#ff9d3c" aria-label="כתום" title="כתום"></button>
+    </div>
+  </header>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    
+    <!-- Quick Floating Bar for Live TF Mode -->
+    <div id="tfQuickBar" class="tfQuickBar">
+      <button id="qbAutoDelay" title="סנכרון דיליי אוטומטי">⏱️ Auto-Delay</button>
+      <button id="qbCoh" class="on" title="הצג/הסתר קוהרנטיות">📊 Coh</button>
+      <button id="qbPhase" title="הצג/הסתר פאזה">📐 Phase</button>
+    </div>
+
+    <div id="alignBar">
+      <button id="phPinkBtn" title="מנגן פינק נויז ישירות מהאפליקציה. לחלופין נגן ממקור חיצוני.">▶ פינק</button>
+      <button id="phSubBtn" title="מודד 3 שניות ולוכד את פאזת הסאב">מדוד סאב</button>
+      <button id="phTopBtn" title="מודד 3 שניות ולוכד את פאזת הטופ">מדוד טופ</button>
+      <button id="phClearBtn">נקה</button>
+      <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);white-space:nowrap">חיתוך <b id="xoverFVal" style="color:var(--accent)">90Hz</b>
+        <input type="range" id="xoverF" min="30" max="300" step="1" value="90" style="width:120px">
+      </span>
+      <span id="phStatus" style="font-size:11px;color:var(--dim);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis"></span>
+      <button id="alignClose" title="סגור יישור">✕</button>
+    </div>
+
+    <!-- A/B Comparison Floating Widget -->
+    <div id="abWidget" class="abWidget">
+      <button id="abBtnA">A</button>
+      <button id="abBtnB">B</button>
+      <button id="abBtnDelta">Δ (הפרש)</button>
+      <button id="abBtnOff" title="סגור תצוגת A/B">✕</button>
+    </div>
+
+    <div id="fbPanel"></div>
+    <div class="readout"><span>PEAK</span><b id="peakHz">—</b></div>
+    <div class="stats" id="stats" style="display:none">
+      <div><span id="wLbl">Z</span> <b class="big" id="splNow">—</b></div>
+      <div>Leq <b id="splLeq">—</b></div>
+      <div>Max <b id="splMax">—</b></div>
+    </div>
+    <button class="zoomBtn" id="zoomBtn">⤢ טווח מלא</button>
+    
+    <div id="modalBg"></div>
+    
+    <div id="srcOverlay">
+      <div id="srcBox">
+        <div class="srcTitle">איזה אות להשמיע למדידה?</div>
+        <button class="toggle" data-src="pink">רעש ורוד</button>
+        <button class="toggle" data-src="sweep">סוויפ</button>
+        <button class="toggle" data-src="external">מקור חיצוני (אני מנגן)</button>
+        <button class="toggle" data-src="cancel" style="opacity:.7">ביטול</button>
+      </div>
+    </div>
+    
+    <div id="rtPanel">
+      <h3 style="font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600">מדידת הדהוד · RT60</h3>
+      <div id="rtStatus">לחץ RT60 כדי למדוד</div>
+      <div class="chBar"><span style="min-width:64px">עוצמה</span><div class="track"><div class="fill" id="rtLvlFill"></div></div><span class="gainLbl" id="rtLvlGain">—</span></div>
+      <div class="ctrl" style="width:100%">
+        <label>עוצמת מדידה <b id="rtLevelVal">-6dB</b></label>
+        <input type="range" id="rtLevel" min="-20" max="-2" step="1" value="-6">
+      </div>
+      <div class="sub" style="text-align:center">כוונן את "עוצמת מדידה", ואז לחץ "התחל מדידה". RT60 צריך אות חזק ויציב.</div>
+      <div class="ctrl" style="width:100%">
+        <label>טווח דעיכה נדרש <b id="rtRangeVal">10dB</b></label>
+        <input type="range" id="rtRange" min="6" max="30" step="1" value="10">
+      </div>
+      <canvas id="rtCanvas" width="360" height="90" style="display:none;width:100%;max-width:340px;height:90px;align-self:center;border:1px solid var(--line);border-radius:4px;background:#0b0f16"></canvas>
+      <button id="rtRunBtn" class="toggle" style="align-self:center">▶ התחל מדידה</button>
+      <button id="rtClose">סגור</button>
+    </div>
+    
+    <div id="savePanel">
+      <h3>מדידות שמורות וסשנים</h3>
+      <div class="sub">שומר את המיקומים, האזורים, הדיליי והיעד — כדי לחזור למקום ולהשוות.</div>
+      <div style="display:flex;gap:6px">
+        <input id="saveName" placeholder="שם (למשל: אולם הכפר · 15/8)" style="flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:inherit;font-size:12px;padding:8px">
+        <button id="saveNowBtn" class="toggle">שמור</button>
+      </div>
+      <div id="saveList" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto"></div>
+      
+      <div style="border-top:1px solid var(--line);padding-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button id="exportJsonBtn" class="toggle" title="יצוא כל הסשן והמדידות לקובץ JSON">📤 יצוא סשן (JSON)</button>
+        <button id="importJsonBtn" class="toggle" title="טען קובץ סשן JSON">📥 יבוא סשן (JSON)</button>
+        <input type="file" id="jsonFileInput" accept=".json" style="display:none">
+      </div>
+      <button id="saveClose">סגור</button>
+    </div>
+    <div id="eqPanel">
+      <h3>מדידת תגובה · חד־ערוצי (SPL)</h3>
+      <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
+        <div class="seg" id="eqModeSwitchA">
+          <button class="on">ממוצע</button>
+          <button data-go="area">אזורים</button>
+        </div>
+      </div>
+      <div class="sub" id="eqSub">מיקומים שנמדדו: 0</div>
+      <div id="eqPosList" style="display:flex;flex-direction:column;gap:5px;max-height:112px;overflow-y:auto"></div>
+      <div class="chBar"><span style="min-width:64px">גיין מיק'</span><div class="track"><div class="fill" id="eqMicFill"></div></div><span class="gainLbl" id="eqMicGain">—</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+        <button id="eqMeasBtn" class="toggle">מדוד מיקום (5ש')</button>
+        <button id="eqGenToggleBtn" class="toggle">▶ רעש ורוד</button>
+        <button id="eqResetBtn" class="toggle">אפס</button>
+        <button id="combBtn" class="toggle">בדוק פאזה</button>
+      </div>
+      <div id="combResult" style="display:none;text-align:center;font-size:12px"></div>
+      <div style="display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
+        <div class="seg" id="eqModeSeg">
+          <button data-m="graphic" class="on">גרפיק</button>
+          <button data-m="param">פרמטרי</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="sub">יעד</span>
+          <div class="seg tgtSeg">
+            <button data-t="flat" class="on">שטוח</button>
+            <button data-t="house">House</button>
+          </div>
+        </div>
+        <div class="seg" id="cutOnlySeg">
+          <button data-co="0" class="on">מלא</button>
+          <button data-co="1">חיתוך בלבד</button>
+        </div>
+      </div>
+      <div class="sub" id="eqCalName"></div>
+      <div id="eqList" style="max-height:34vh;overflow-y:auto"></div>
+      <button id="eqClose">סגור</button>
+    </div>
+    
+    <div id="areaPanel">
+      <h3>מדידת המרחב · Spatial Average</h3>
+      <div class="seg" id="eqModeSwitchB" style="align-self:center">
+        <button data-go="avg">ממוצע</button>
+        <button class="on">אזורים</button>
+      </div>
+      <div class="sub">מדוד בכל צד של המעגל (צפון/דרום/מזרח/מערב) והשווה. עד 4 אזורים על הגרף.</div>
+      <div class="chBar"><span style="min-width:64px">גיין מיק'</span><div class="track"><div class="fill" id="areaMicFill"></div></div><span class="gainLbl" id="areaMicGain">—</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;">
+        <button id="areaMeasBtn" class="toggle">מדוד אזור חדש (5ש')</button>
+        <button id="areaGenToggleBtn" class="toggle">▶ רעש ורוד</button>
+        <button id="areaResetBtn" class="toggle">אפס</button>
+        <button id="areaCombBtn" class="toggle">בדוק פאזה</button>
+      </div>
+      <div id="areaCombResult" style="display:none;text-align:center;font-size:12px"></div>
+      <div class="ctrl" style="flex:0 0 auto;align-items:center;min-width:auto">
+        <label style="justify-content:center">עקומת יעד</label>
+        <div class="seg tgtSeg" style="align-self:center">
+          <button data-t="flat" class="on">שטוח</button>
+          <button data-t="house">House</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
+        <div class="seg" id="areaModeSeg">
+          <button data-m="graphic" class="on">גרפיק</button>
+          <button data-m="param">פרמטרי</button>
+        </div>
+        <div class="seg" id="areaCutSeg">
+          <button data-co="0" class="on">מלא</button>
+          <button data-co="1">חיתוך בלבד</button>
+        </div>
+      </div>
+      <div id="areaList" style="max-height:132px;overflow-y:auto"></div>
+      <button id="areaEqBtn" class="toggle" style="align-self:center">חשב EQ ממוצע לכל האזורים</button>
+      <canvas id="areaEqCanvas" style="width:100%;height:150px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none"></canvas>
+      <div id="areaEqList"></div>
+      <button id="areaClose">סגור</button>
+    </div>
+    
+    <div id="calPanel">
+      <h3>כיולי מיקרופון</h3>
+      <div class="sub">בחר כיול פעיל, או הוסף קובץ (תדר+dB, פורמט REW/miniDSP). נשמר לפעם הבאה.</div>
+      <div id="calList"></div>
+      <label class="toggle" style="cursor:pointer;align-self:center">➕ הוסף קובץ כיול<input id="calAdd" type="file" accept=".txt,.cal,.frd,.csv,.dat,.mdat,.gain,.zma,text/*" style="display:none"></label>
+      <div class="sub" style="text-align:center">או הדבק את תוכן הקובץ כאן (תדר [רווח] dB):</div>
+      <textarea id="calPaste" placeholder="20&#9;0.39&#10;20.5&#9;0.39&#10;…" style="width:100%;height:70px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:monospace;font-size:11px;padding:6px;resize:vertical"></textarea>
+      <button class="toggle" id="calPasteBtn" style="align-self:center">טען מהטקסט</button>
+      <button id="calResetBtn" class="toggle" style="align-self:center">אפס את כל הכיולים</button>
+      <button id="calClose">סגור</button>
+    </div>
+    
+    <div id="tfPanel">
+      <h3>מדידת תגובה · דו־ערוצי (TF)</h3>
+      <div class="sub">ערוץ 1 = מיקרופון מדידה · ערוץ 2 = רפרנס מהמיקסר. שלח תוכן/רעש ורוד דרך המערכת, ומדוד.</div>
+      <div class="chBar"><span id="tfL1" style="min-width:96px">כניסה 1 → מיק'</span><div class="track"><div class="fill" id="tfMicFill"></div></div><span id="tfMicDb">—</span></div>
+      <div class="chBar"><span id="tfL2" style="min-width:96px">כניסה 2 → רפרנס</span><div class="track"><div class="fill" id="tfRefFill"></div></div><span id="tfRefDb">—</span></div>
+      <div style="border-top:1px solid var(--line);margin-top:4px;padding-top:8px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>הפוך פאזה</span><span>לא מתואם</span><span>בפאזה</span></div>
+        <div class="track" style="height:14px;position:relative;margin-top:3px">
+          <div id="tfCorrFill" style="position:absolute;top:0;bottom:0;background:var(--accent);border-radius:3px;width:0;right:50%"></div>
+          <div style="position:absolute;top:0;bottom:0;right:50%;width:1px;background:var(--dim);opacity:.5"></div>
+        </div>
+        <div style="text-align:center;font-size:12px;margin-top:4px">קורלציה: <b id="tfCorrVal" style="color:var(--accent)">—</b> <span id="tfCorrTip" style="font-size:10px;color:var(--dim)"></span></div>
+      </div>
+      <div id="tfBtns">
+        <button class="toggle" id="tfSwapBtn">החלף ערוצים</button>
+        <button class="toggle" id="tfOverlayBtn">הצג על הגרף</button>
+        <button class="toggle" id="tfMeasBtn">מדוד (6ש')</button>
+        <button class="toggle" id="tfCsvBtn">CSV</button>
+      </div>
+      <div id="tfDelayInfo" style="text-align:center;font-size:11px;color:var(--accent)">סנכרון דיליי TF: 0.00 ms</div>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:6px 0">
+        <div class="ctrl" style="min-width:150px">
+          <label>יציבות TF <b id="tfSmoothVal">בינונית</b></label>
+          <input type="range" id="tfSmooth" min="70" max="98" step="1" value="93">
+        </div>
+        <div class="ctrl" style="min-width:150px">
+          <label>סף קוהרנטיות לפאזה <b id="tfCohGateVal">0.40</b></label>
+          <input type="range" id="tfCohGate" min="0" max="90" step="5" value="40">
+        </div>
+      </div>
+      <canvas id="tfCanvas" style="width:100%;height:234px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none"></canvas>
+      <div class="seg" id="tfModeSeg" style="align-self:center">
+        <button data-m="graphic" class="on">גרפיק</button>
+        <button data-m="param">פרמטרי</button>
+      </div>
+      <div class="ctrl" style="flex:0 0 auto;align-items:center;min-width:auto">
+        <label style="justify-content:center">עקומת יעד</label>
+        <div class="seg tgtSeg" style="align-self:center">
+          <button data-t="flat" class="on">שטוח</button>
+          <button data-t="house">House</button>
+        </div>
+      </div>
+      <div id="tfGeqList"></div>
+      <div class="sub" id="tfInfo">התוצאה: כמה dB להזיז בכל פס בגרפיק־EQ (31 פסים). ירוק=הזז, אפור=לא אמין (רפרנס חלש).</div>
+      <button id="tfClose">סגור</button>
+    </div>
+    
+    <div id="dlyPanel">
+      <h3>מדידת דיליי · Delay Finder</h3>
+      <div class="sub">כניסה 1 = מיקרופון · כניסה 2 = רפרנס מהמיקסר. נגן רעש ורוד/מוזיקה דרך המערכת (עם שליחת רפרנס לכניסה 2), ולחץ מדוד.</div>
+      <div class="chBar"><span id="dlyL1" style="min-width:90px">כניסה 1 (מיק')</span><div class="track"><div class="fill" id="dlyMicFill"></div></div><span class="gainLbl" id="dlyMicGain">—</span></div>
+      <div class="chBar"><span id="dlyL2" style="min-width:90px">כניסה 2 (רפרנס)</span><div class="track"><div class="fill" id="dlyRefFill"></div></div><span class="gainLbl" id="dlyRefGain">—</span></div>
+      <button id="dlyMeasBtn" class="toggle" style="align-self:center">מדוד דיליי (2ש')</button>
+      <div id="dlyStatus" style="text-align:center;font-size:14px;color:var(--text);min-height:22px">—</div>
+      <div class="sub" id="dlyInfo">התוצאה: כמה זמן המיק' מאחר אחרי הרפרנס = הדיליי של הרמקול.</div>
+
+      <div style="border-top:1px solid var(--line);margin-top:6px;padding-top:10px">
+        <div class="sub" style="text-align:center;color:var(--text);font-weight:600;margin-bottom:8px">יישור רמקולים</div>
+        <div class="ctrl" style="flex:0 0 auto;align-items:center;min-width:auto;margin-bottom:8px">
+          <label style="justify-content:center">מספר רמקולים</label>
+          <div class="seg" id="dlyCountSeg">
+            <button data-n="2" class="on">2</button>
+            <button data-n="4">4</button>
+            <button data-n="6">6</button>
+          </div>
+        </div>
+        <div class="sub" style="margin-bottom:8px">מדוד כל רמקול בתורו <b>מאותו מיקום מיקרופון</b>. בחר רמקול עוגן (◎), והאפליקציה תחשב כמה דיליי להוסיף לכל אחד.</div>
+        <div id="dlySpk" style="display:flex;flex-direction:column;gap:6px;max-height:230px;overflow-y:auto"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button id="dlyReset" class="toggle">אפס דיליי</button>
+        <button id="dlyClose">סגור</button>
+      </div>
+    </div>
+    
+    <div id="geqDock" style="display:none">
+      <div id="geqDockHead">
+        <span id="geqDockTitle">תיקון EQ</span>
+        <button id="geqDockToggle" title="הסתר/הצג">▼</button>
+      </div>
+      <canvas id="eqCurveCanvas"></canvas>
+    </div>
+
+    <div class="meter" id="meter" style="display:none">
+      <div class="meterFill" id="meterFill"></div>
+      <div class="meterPeak" id="meterPeak" style="inset-inline-start:0"></div>
+      <span class="meterLbl">LEVEL</span>
+      <span class="meterVal" id="meterVal">—</span>
+    </div>
+    
+    <div class="idle" id="idle">
+      <button class="btn" id="startBtn">הפעל מיקרופון</button>
+      <p>ניתוח 1/3 אוקטבה בתקן ISO, ווטרפול לאורך זמן, וגלאי פידבק בזמן אמת.</p>
+    </div>
+    <div class="err" id="err"></div>
   </div>
-  <script type="module" src="main.js"></script>
+
+  <footer>
+    <svg id="pcb" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="pcbGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="0.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g id="pcbTraces" filter="url(#pcbGlow)"></g>
+    </svg>
+    <div id="genPanel">
+      <div class="seg" id="genType">
+        <button data-t="pink" class="on">ורוד</button>
+        <button data-t="white">לבן</button>
+        <button data-t="sine">סינוס</button>
+        <button data-t="sweep">סוויפ</button>
+      </div>
+      <div class="ctrl" style="min-width:130px">
+        <label>עוצמה <b id="genLvlVal">-34dB</b></label>
+        <input type="range" id="genLvl" min="-46" max="-8" step="1" value="-34">
+      </div>
+      <div class="ctrl" id="genFreqWrap" style="min-width:130px;display:none">
+        <label>תדר סינוס <b id="genFreqVal">1000Hz</b></label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="range" id="genFreq" min="20" max="20000" step="1" value="1000" style="flex:1">
+          <input type="number" id="genFreqNum" min="20" max="20000" step="1" value="1000" style="width:72px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:inherit;font-size:12px;padding:5px 6px;text-align:center">
+        </div>
+      </div>
+      <div class="ctrl" id="genSweepWrap" style="min-width:130px;display:none">
+        <label>משך סוויפ <b id="genSweepVal">4.0ש'</b></label>
+        <input type="range" id="genSweep" min="1" max="10" step="0.5" value="4">
+      </div>
+      <button id="genOnBtn">▶ הפעל אות</button>
+      <div style="border-top:1px solid var(--line);margin-top:2px;padding-top:8px">
+        <div class="sub" style="text-align:center;margin-bottom:6px">בדיקת רמות — ודא שהמיקרופון ב"טוב" (ירוק) לפני מדידה</div>
+        <div class="chBar"><span style="min-width:64px">מיקרופון</span><div class="track"><div class="fill" id="gainMicFill"></div></div><span class="gainLbl" id="gainMicGain">—</span></div>
+        <div class="sub" id="gainTip" style="text-align:center;min-height:16px;margin-top:4px">—</div>
+      </div>
+      <div class="warn">⚠ עוצמה גבוהה עלולה להזיק לרמקולים (בעיקר טוויטרים) ולאוזניים. התחל נמוך ועלה בהדרגה.</div>
+    </div>
+    <div class="tabbar">
+      <button class="tab on" data-p="view">תצוגה</button>
+      <button class="tab" data-p="tune">מדידה</button>
+      <button class="tab" data-p="io">I/O</button>
+      <button class="toggle" id="stopBtn" style="display:none;margin-inline-start:auto">אפס סשן</button>
+    </div>
+
+    <div class="tabpage active" data-page="view">
+      <div class="trow">
+        <div class="ctrl">
+          <label>רזולוציה <b id="resVal">1/6 אוקטבה</b></label>
+          <input type="range" id="res" min="3" max="24" step="1" value="6">
+        </div>
+        <div class="ctrl">
+          <label>החלקה <b id="smoothVal">0.7</b></label>
+          <input type="range" id="smooth" min="0" max="0.92" step="0.02" value="0.7">
+        </div>
+        <div class="ctrl">
+          <label>רגישות פידבק <b id="fbSensVal">בינונית</b></label>
+          <input type="range" id="fbSens" min="6" max="20" step="1" value="12">
+        </div>
+        <button class="toggle on" id="peakBtn">Peak Hold</button>
+        <button class="toggle on" id="fbBtn">גלאי פידבק</button>
+      </div>
+      <div class="trow">
+        <button class="toggle" id="avgBtn">מיצוע</button>
+        <button class="toggle" id="freezeBtn">הקפא</button>
+        <button class="toggle" id="refCurveBtn" title="שומר את התגובה הנוכחית כעקומת ״לפני״ כדי להשוות אחרי שינוי EQ">שמור כ״לפני״</button>
+        <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
+          <label>מדים</label>
+          <div class="seg" id="meterModeSeg">
+            <button data-m="rms" class="on">RMS (חלק)</button>
+            <button data-m="peak">Peak</button>
+          </div>
+        </div>
+        <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
+          <label>FFT (דיוק ↔ מהירות)</label>
+          <div class="seg" id="fftSeg">
+            <button data-n="8192">מהיר</button>
+            <button data-n="16384" class="on">מאוזן</button>
+            <button data-n="32768">מדויק</button>
+          </div>
+        </div>
+      </div>
+      <div class="trow">
+        <button class="toggle" id="abCapA" title="לכוד את התגובה הנוכחית כמצב ״לפני״ (A)">לכוד לפני (A)</button>
+        <button class="toggle" id="abCapB" title="לכוד את התגובה הנוכחית כמצב ״אחרי״ (B)">לכוד אחרי (B)</button>
+        <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
+          <label>השוואת A/B</label>
+          <div class="seg" id="abViewSeg">
+            <button data-v="off" class="on">—</button>
+            <button data-v="A">A</button>
+            <button data-v="B">B</button>
+            <button data-v="both">A+B</button>
+            <button data-v="delta">Δ</button>
+          </div>
+        </div>
+        <button class="toggle" id="abClear" title="נקה את A ו-B">נקה A/B</button>
+      </div>
+    </div>
+
+    <div class="tabpage" data-page="tune">
+      <div class="trow">
+        <button class="toggle" id="genBtn">גנרטור · Generator</button>
+        <button class="toggle" id="measBtn">מדידה</button>
+        <button class="toggle" id="saveBtn">מדידות שמורות · Captures</button>
+      </div>
+      <div class="trow" id="measRow" style="display:none">
+        <button class="toggle" id="eqBtn">חד־ערוצי · SPL</button>
+        <button class="toggle" id="tfBtn">דו־ערוצי · TF</button>
+        <button class="toggle" id="dlyBtn">דיליי · Delay Finder</button>
+        <button class="toggle" id="alignBtn">יישור סאב/טופ</button>
+        <button class="toggle" id="rtBtn">הדהוד · RT60</button>
+        <button class="toggle" id="geqShowBtn" title="הצג/הסתר את תצוגת תיקון ה-EQ">תצוגת EQ</button>
+      </div>
+      <div class="trow">
+        <div class="ctrl" style="flex:0 0 auto">
+          <label>יחידת מד</label>
+          <div class="seg" id="unitSeg">
+            <button data-u="SPL" class="on">dB SPL</button>
+            <button data-u="dBFS">dBFS</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>רצפת רעש <b id="floorVal">-85dB</b></label>
+          <input type="range" id="floor" min="-100" max="-50" step="1" value="-85">
+        </div>
+        <div class="ctrl">
+          <label>כיול SPL <b id="calVal">+0dB</b></label>
+          <input type="range" id="cal" min="0" max="130" step="1" value="0">
+        </div>
+        <button class="toggle" id="wgtBtn">dBZ</button>
+        <button class="toggle" id="leqBtn">אפס Leq</button>
+      </div>
+    </div>
+
+    <div class="tabpage" data-page="io">
+      <div class="trow">
+        <select class="inp" id="inSel" title="מקור קלט"><option value="">ברירת מחדל של המערכת</option></select>
+        <select class="inp" id="outSel" title="יציאת פלט (אות הגנרטור)"><option value="">ברירת מחדל של המערכת</option></select>
+        <button class="toggle" id="calBtn">כיול מיק'</button>
+        <span id="chCount" class="sub" style="align-self:center;font-size:11px">—</span>
+        <button class="toggle" id="pngBtn">PNG</button>
+        <button class="toggle" id="csvBtn">CSV</button>
+      </div>
+    </div>
+  </footer>
+<script src="app.js"></script>
 </body>
 </html>
