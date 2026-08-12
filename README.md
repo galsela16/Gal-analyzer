@@ -1,4 +1,4 @@
-# GAL Analyzer V5.3 — Measurement Workflow
+# GAL Analyzer V5.3.1 — Measurement Workflow
 
 ## מה חדש
 - RTA ו-Waterfall נמצאים במצב Analysis אחד עם מעבר פנימי.

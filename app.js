@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.3',
+    version: 'v5.3.1',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2944,7 +2944,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.3';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.3.1';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -2988,6 +2988,13 @@ function v5SetTab(mode){
   v5WorkspaceMode=mode;
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
   const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis');
+}
+function v53ToggleAnalysis(event){
+  if(event){event.preventDefault();event.stopImmediatePropagation();}
+  const next=mode==='spec'?'rta':'spec';
+  closeModals();setAlign(false);setTfOverlay(false);setMode(next);v5SetTab('analysis');
+  const toast=next==='spec'?'Waterfall':'RTA';
+  v3Toast('Analysis · '+toast);
 }
 function v5OpenTf(extra){
   setMode('rta');
@@ -3209,7 +3216,14 @@ function v52Init(){
   safeOn('v52IOClose','click',()=>v52SetIo(false));
   safeOn('v52FreezeBtn','click',()=>{const b=document.getElementById('freezeBtn');if(b)b.click();setTimeout(v52UpdateUi,0);});
   safeOn('v52CaptureBtn','click',()=>{const b=document.getElementById('saveBtn');if(b)b.click();});
-  safeOn('v52OpenMicCal','click',()=>{if(!micArea)return;micArea.classList.toggle('open');renderCalList();requestAnimationFrame(()=>{const d=document.getElementById('v52IODock'),s=document.getElementById('stage');if(d&&s)s.style.setProperty('--v52-io-h',Math.ceil(d.getBoundingClientRect().height)+'px');resize();});});
+  window.v53ToggleMicCal=function(){
+    if(!micArea)return;
+    const open=!micArea.classList.contains('open');
+    micArea.classList.toggle('open',open);
+    const button=document.getElementById('v52OpenMicCal');if(button)button.classList.toggle('on',open);
+    if(open){renderCalList();requestAnimationFrame(()=>{micArea.scrollIntoView({block:'nearest',behavior:'smooth'});const d=document.getElementById('v52IODock'),s=document.getElementById('stage');if(d&&s)s.style.setProperty('--v52-io-h',Math.ceil(d.getBoundingClientRect().height)+'px');resize();});}
+    else {requestAnimationFrame(()=>resize());}
+  };
   const calClose=document.getElementById('calClose');if(calClose)calClose.addEventListener('click',e=>{e.stopImmediatePropagation();if(micArea)micArea.classList.remove('open');resize();},true);
   safeOn('v52OpenOldIo','click',()=>{
     const card=document.getElementById('v53AdvancedIo')?.closest('.v52IOCard');

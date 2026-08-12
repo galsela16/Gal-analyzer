@@ -937,7 +937,7 @@
   #v52IODock{
     display:none;position:absolute;z-index:35;
     left:var(--v5-side);right:0;bottom:0;
-    min-height:190px;max-height:300px;overflow:auto;
+    min-height:190px;max-height:min(66vh,620px);overflow:auto;
     background:linear-gradient(180deg,#0c1720,#09131b);
     border-top:1px solid #2a4052;box-shadow:0 -8px 28px rgba(0,0,0,.48);
     padding:10px 12px 12px;direction:ltr;color:#dce6ee;
@@ -992,6 +992,8 @@
   #v53MicCalArea{display:none;grid-column:1/-1;background:#0b151e;border:1px solid #1d2c38;border-radius:6px;padding:10px}
   #v53MicCalArea.open{display:block}
   #v53MicCalArea #calPanel{display:flex!important;position:static!important;width:100%!important;max-height:none!important;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}
+  .v53MicCalHeading{display:flex;align-items:baseline;gap:10px;margin:0 0 9px;color:#dce6ee;font-size:11px}
+  .v53MicCalHeading span{color:#8496a5;font-size:10px}
 
   #stage.v52-io-open>canvas#cv{
     height:calc(100% - var(--v5-tabs) - var(--v52-io-h,210px))!important;
@@ -1076,7 +1078,7 @@
 
     <div id="v5ModeTabs" aria-label="Measurement modes">
       <div class="v53AnalysisGroup on" id="v53AnalysisGroup">
-        <button data-v5mode="analysis" class="on">RTA / Waterfall</button>
+        <button id="v53AnalysisToggle" data-v5mode="analysis" class="on" type="button" onclick="v53ToggleAnalysis(event)">RTA / Waterfall</button>
         <span id="v53RtaViewSwitch"><button type="button" data-view="rta" class="on">RTA</button><button type="button" data-view="spec">WF</button></span>
       </div>
       <button data-v5mode="tf">TF | Transfer Function</button>
@@ -1441,7 +1443,7 @@
           <div class="v52Field"><label>SPL Offset</label><input id="v53SplOffset" type="range" min="0" max="130" step="1" value="0"></div>
           <div class="v52CalState"><strong>Meter Unit</strong><span id="v52UnitState">dB SPL</span></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
-            <button class="v52SmallBtn" id="v52OpenMicCal" type="button">Mic CAL</button>
+            <button class="v52SmallBtn" id="v52OpenMicCal" type="button" onclick="v53ToggleMicCal()">Mic CAL</button>
             <button class="v52SmallBtn" id="v52UnitToggle" type="button">SPL / dBFS</button>
             <button class="v52SmallBtn" id="v52OpenOldIo" type="button">Advanced I/O</button>
           </div>
@@ -1452,7 +1454,9 @@
             <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="v52SmallBtn" id="v53ExportPng" type="button">Export PNG</button><button class="v52SmallBtn" id="v53ExportCsv" type="button">Export CSV</button></div>
           </div>
         </div>
-        <div id="v53MicCalArea"></div>
+        <div id="v53MicCalArea">
+          <div class="v53MicCalHeading"><strong>MIC CALIBRATION FILE</strong><span>Load a response file, then select it as active.</span></div>
+        </div>
       </div>
     </section>
 
@@ -1641,7 +1645,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.3</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.3.1</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
