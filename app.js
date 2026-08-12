@@ -90,6 +90,7 @@ let leqSumP=0, leqN=0, splMax=-120;
 let dragging=false, dragX0=0, dragX1=0, cursorX=null;
 let genType='pink', genOn=false, genGain=null, genSrc=null, genOsc=null;
 let genDb=-34, genHz=1000, targetMode='flat';
+let targetVisible=true;
 let fftSize=16384;
 let _pfx=null;
 
@@ -152,6 +153,12 @@ safeOn('sunBtn', 'click', function(){
     specCtx.fillStyle = sunMode ? '#f8fafc' : '#0d1117';
     specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);
   }
+  if(eqCurveData){
+    const ec=document.getElementById('eqCurveCanvas');
+    if(ec) drawGEQ(ec,eqCurveData.freqs,eqCurveData.corr);
+  }
+  if(typeof drawTfPlot==='function') drawTfPlot();
+  if(typeof v5SyncRail==='function') v5SyncRail();
 });
 
 safeOn('floor', 'input',e=>{
@@ -320,7 +327,7 @@ function exportSessionJson(){
     micCalList: micCalList,
     activeCalId: activeCalId,
     settings: {
-      calib, floorDb, curBpo, fftSize, targetMode, weightMode, sunMode, tfDelayMs
+      calib, floorDb, curBpo, fftSize, targetMode, targetVisible, weightMode, sunMode, tfDelayMs
     }
   };
   const jsonStr = JSON.stringify(data, null, 2);
@@ -350,6 +357,7 @@ function importSessionJson(e){
         if(s.calib!==undefined){ calib = s.calib; document.getElementById('cal').value = calib; document.getElementById('calVal').textContent=(calib>=0?'+':'')+calib+'dB'; }
         if(s.floorDb!==undefined){ floorDb = s.floorDb; document.getElementById('floor').value = floorDb; document.getElementById('floorVal').textContent=floorDb+'dB'; }
         if(s.targetMode) setTarget(s.targetMode);
+        if(s.targetVisible!==undefined){ targetVisible=!!s.targetVisible; prefSet('rta_target_visible',targetVisible?'1':'0'); if(typeof v5SyncTargetToggle==='function')v5SyncTargetToggle(); }
         if(s.sunMode!==undefined){ sunMode = s.sunMode; document.body.classList.toggle('sun-mode', sunMode); document.getElementById('sunBtn').classList.toggle('on', sunMode); }
         if(s.tfDelayMs!==undefined){ tfDelayMs = s.tfDelayMs; document.getElementById('tfDelayInfo').textContent = `סנכרון דיליי TF: ${tfDelayMs.toFixed(2)} ms`; }
       }
@@ -2484,7 +2492,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.strokeStyle='rgba(47,155,255,.8)'; ctx.lineWidth=1;
     ctx.strokeRect(xa,0,xb-xa,plotH);
   }
-  if(targetMode!=='off' && (!alignOn && (eqPanel.classList.contains('open')||areaPanel.classList.contains('open')||tfPanel.classList.contains('open')))){
+  if(targetVisible && targetMode!=='off' && (!alignOn && (eqPanel.classList.contains('open')||areaPanel.classList.contains('open')||tfPanel.classList.contains('open')))){
     ctx.strokeStyle='rgba(80,230,140,.8)'; ctx.setLineDash([6,5]); ctx.lineWidth=2; ctx.beginPath();
     for(let b=0;b<BANDS;b++){
       const ty=Math.max(0.05, Math.min(0.95, 0.55 + targetDb(ISO[b])*0.03));
@@ -2930,6 +2938,14 @@ function updateSignalTint(){
 /* ===== V5 Pro Workspace ===== */
 let v5WorkspaceMode='rta';
 
+
+function v5SyncTargetToggle(){
+  const b=document.getElementById('v5TargetToggle'); if(!b)return;
+  b.classList.toggle('on',targetVisible);
+  b.textContent=targetVisible?'Target ✓':'Target';
+  b.title=targetVisible?'הסתר את עקומת היעד':'הצג את עקומת היעד';
+}
+
 function v5SetTab(mode){
   v5WorkspaceMode=mode;
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
@@ -3001,21 +3017,28 @@ function v5RenderTraceRail(){
     '</div>').join('');
 }
 function v5InitWorkspace(){
+  const tv=lsGet('rta_target_visible');
+  if(tv!==null) targetVisible=(tv!=='0');
+  v5SyncTargetToggle();
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.addEventListener('click',()=>{
     const m=b.dataset.v5mode; v5SetTab(m);
-    if(m==='rta'){ closeModals(); setTfOverlay(false); setMode('rta'); }
-    else if(m==='spec'){ closeModals(); setTfOverlay(false); setMode('spec'); }
-    else if(m==='tf'){ v5OpenTf(); }
-    else if(m==='phase'){ v5OpenTf('phase'); }
-    else if(m==='coh'){ v5OpenTf('coh'); }
-    else if(m==='impulse'){ showModal(dlyPanel); }
-    else if(m==='rt60'){ showModal(rtPanel); }
-    else if(m==='spl'){ showModal(eqPanel); updateEqUI(); }
-    else if(m==='eq'){ showModal(eqPanel); updateEqUI(); }
+    if(m==='rta'){ closeModals(); setAlign(false); setTfOverlay(false); setMode('rta'); }
+    else if(m==='spec'){ closeModals(); setAlign(false); setTfOverlay(false); setMode('spec'); }
+    else if(m==='tf'){ setAlign(false); v5OpenTf(); }
+    else if(m==='delay'){ setAlign(false); showModal(dlyPanel); }
+    else if(m==='rt60'){ setAlign(false); showModal(rtPanel); }
+    else if(m==='spleq'){ setAlign(false); showModal(eqPanel); updateEqUI(); }
+    else if(m==='align'){ closeModals(); setTfOverlay(false); setMode('rta'); setAlign(true); }
   }));
 
+  safeOn('v5TargetToggle','click',()=>{
+    targetVisible=!targetVisible;
+    prefSet('rta_target_visible', targetVisible?'1':'0');
+    v5SyncTargetToggle();
+    v3Toast(targetVisible?'עקומת יעד מוצגת':'עקומת יעד מוסתרת');
+  });
+
   safeOn('v5AddTrace','click',()=>{ if(!running){v3Toast('הפעל Audio קודם');return;} captureTfTrace(); });
-  safeOn('v5SplAction','click',()=>{ v5SetTab('spl'); showModal(eqPanel); updateEqUI(); });
   safeOn('v5GenAction','click',()=>{ const b=document.getElementById('genBtn'); if(b)b.click(); });
   safeOn('v5CaptureAction','click',()=>{ const b=document.getElementById('saveBtn'); if(b)b.click(); });
 

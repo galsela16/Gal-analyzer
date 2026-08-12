@@ -666,6 +666,216 @@
     #swatches{display:none}
   }
 
+
+  /* =========================================================
+     V5.1 CLEANUP
+     - One primary navigation path per measurement
+     - Full light/day theme coverage for V5 workspace
+     - Target curve visibility toggle
+     ========================================================= */
+
+  .v5LegacyShortcutRow{display:none!important}
+  .tfQuickBar{display:none!important}
+  #tfOverlayBtn{display:none!important}
+
+  #v5ModeTabs .v5GraphToggle{
+    margin-left:auto;
+    min-width:92px;
+    border-radius:5px;
+    border-bottom-color:#253542;
+    color:#7e8d9a;
+  }
+  #v5ModeTabs .v5GraphToggle.on{
+    color:#55df87;
+    border-color:rgba(85,223,135,.55);
+    background:rgba(85,223,135,.08);
+    box-shadow:none;
+  }
+
+  /* DAY MODE — V5 workspace */
+  body.sun-mode{
+    background:#eef3f7!important;
+    color:#0f172a;
+  }
+  body.sun-mode header{
+    background:#ffffff!important;
+    border-bottom-color:#cbd5e1!important;
+  }
+  body.sun-mode .v5HeaderAction,
+  body.sun-mode #helpBtn,
+  body.sun-mode #sunBtn{
+    background:#f8fafc!important;
+    border-color:#cbd5e1!important;
+    color:#334155!important;
+  }
+  body.sun-mode .v5HeaderAction:hover{
+    color:#087cc1!important;
+    border-color:#38a9e8!important;
+  }
+  body.sun-mode .v3Chip{
+    background:#f8fafc!important;
+    border-color:#cbd5e1!important;
+    color:#475569!important;
+  }
+  body.sun-mode .v3Chip.live{
+    color:#087cc1!important;
+    background:#eff8ff!important;
+    border-color:#7cc7ee!important;
+  }
+  body.sun-mode .v3Chip.ok{
+    color:#18864b!important;
+    background:#effbf4!important;
+    border-color:#8bd2aa!important;
+  }
+  body.sun-mode .v3Chip.warn{
+    color:#a16207!important;
+    background:#fffbeb!important;
+    border-color:#e9c86c!important;
+  }
+
+  body.sun-mode #stage{
+    background:#f7f9fc!important;
+    border-bottom-color:#cbd5e1!important;
+  }
+  body.sun-mode #v5ModeTabs{
+    background:linear-gradient(180deg,#ffffff 0%,#f3f6f9 100%)!important;
+    border-bottom-color:#cbd5e1!important;
+  }
+  body.sun-mode #v5ModeTabs button{
+    background:#f8fafc!important;
+    color:#64748b!important;
+    border-color:#cbd5e1!important;
+  }
+  body.sun-mode #v5ModeTabs button:hover{
+    color:#0f172a!important;
+    border-color:#94a3b8!important;
+  }
+  body.sun-mode #v5ModeTabs button.on{
+    color:#087cc1!important;
+    background:#ffffff!important;
+    border-color:#38a9e8!important;
+  }
+  body.sun-mode #v5ModeTabs .v5GraphToggle.on{
+    color:#18864b!important;
+    background:#effbf4!important;
+    border-color:#78c99a!important;
+  }
+
+  body.sun-mode #v5SideRail{
+    background:#ffffff!important;
+    border-right-color:#cbd5e1!important;
+  }
+  body.sun-mode .v5ReadCard{
+    background:#f8fafc!important;
+    border-color:#d7e0e8!important;
+  }
+  body.sun-mode .v5CardLabel,
+  body.sun-mode .v5Minor,
+  body.sun-mode #v5RailHint,
+  body.sun-mode .v5TraceNum,
+  body.sun-mode .v5Eye{
+    color:#64748b!important;
+  }
+  body.sun-mode .v5PeakValue,
+  body.sun-mode .v5CalValue,
+  body.sun-mode .v5RailTitle{
+    color:#0f172a!important;
+  }
+  body.sun-mode .v5RailTitle,
+  body.sun-mode .v5TraceRow,
+  body.sun-mode #v5RailHint{
+    border-color:#e2e8f0!important;
+  }
+  body.sun-mode #v5AddTrace{
+    background:#f8fafc!important;
+    color:#334155!important;
+    border-color:#cbd5e1!important;
+  }
+
+  body.sun-mode .measureDock{
+    background:linear-gradient(180deg,#ffffff,#f3f6f9)!important;
+    border-top-color:#b9c9d6!important;
+    box-shadow:0 -8px 28px rgba(15,23,42,.13)!important;
+    color:#0f172a!important;
+  }
+  body.sun-mode .measureDock h3{
+    color:#0f172a!important;
+    border-bottom-color:#dbe4eb!important;
+  }
+  body.sun-mode .measureDock .chBar,
+  body.sun-mode .measureDock .ctrl{
+    background:#f8fafc!important;
+    border-color:#d4dee6!important;
+    color:#0f172a!important;
+  }
+  body.sun-mode .measureDock .toggle{
+    background:#ffffff!important;
+    border-color:#cbd5e1!important;
+    color:#334155!important;
+  }
+  body.sun-mode .measureDock .toggle:hover{
+    border-color:#38a9e8!important;
+    color:#087cc1!important;
+  }
+  body.sun-mode .measureDock .toggle.on{
+    background:#eff8ff!important;
+    border-color:#38a9e8!important;
+    color:#087cc1!important;
+  }
+  body.sun-mode .measureDock #tfBtns{
+    border-top-color:#dbe4eb!important;
+  }
+  body.sun-mode #tfPanel.measureDock #tfDelayInfo{
+    background:#effbf4!important;
+    border-color:#92d1ad!important;
+    color:#18864b!important;
+  }
+
+  body.sun-mode footer{
+    background:#ffffff!important;
+    border-top-color:#cbd5e1!important;
+    color:#0f172a!important;
+  }
+  body.sun-mode footer .tab,
+  body.sun-mode footer .toggle{
+    background:#f8fafc!important;
+    border-color:#cbd5e1!important;
+    color:#334155!important;
+  }
+  body.sun-mode footer .tab.on,
+  body.sun-mode footer .toggle.on{
+    background:#eff8ff!important;
+    border-color:#38a9e8!important;
+    color:#087cc1!important;
+  }
+  body.sun-mode footer .ctrl{
+    color:#0f172a!important;
+  }
+  body.sun-mode footer .ctrl label,
+  body.sun-mode footer .sub{
+    color:#64748b!important;
+  }
+  body.sun-mode footer select,
+  body.sun-mode footer input[type=number],
+  body.sun-mode footer textarea{
+    background:#ffffff!important;
+    color:#0f172a!important;
+    border-color:#cbd5e1!important;
+  }
+
+  body.sun-mode #v5StatusBar{
+    background:#ffffff!important;
+    border-top-color:#cbd5e1!important;
+    color:#64748b!important;
+  }
+  body.sun-mode #v5StatusBrand{color:#087cc1!important}
+  body.sun-mode #v5StatusBar .live{color:#18864b!important}
+  body.sun-mode #genPanel{
+    background:#ffffff!important;
+    border-color:#cbd5e1!important;
+    color:#0f172a!important;
+  }
+
   .err{position:absolute;bottom:14px;inset-inline:14px;z-index:5;background:rgba(255,59,107,.12);border:1px solid var(--hot);
     color:var(--hot);padding:10px 14px;border-radius:4px;font-size:12px;line-height:1.6;display:none}
 </style>
@@ -687,9 +897,8 @@
     </div>
 
     <div class="v5HeaderActions">
-      <button class="v5HeaderAction" id="v5SplAction">SPL Meter ▥</button>
       <button class="v5HeaderAction" id="v5GenAction">∿ Generator</button>
-      <button class="v5HeaderAction" id="v5CaptureAction"><span class="v5RecDot"></span>Capture</button>
+      <button class="v5HeaderAction" id="v5CaptureAction"><span class="v5RecDot"></span>Captures</button>
     </div>
     <button id="sunBtn" title="מצב אור שמש / ניגודיות גבוהה" aria-label="מצב אור שמש">☀️</button>
     <button id="helpBtn" title="מצב עזרה — רחף על כפתור להסבר" aria-label="מצב עזרה">?</button>
@@ -707,13 +916,12 @@
     <div id="v5ModeTabs" aria-label="Measurement modes">
       <button data-v5mode="rta" class="on">RTA</button>
       <button data-v5mode="tf">TF | Transfer Function</button>
-      <button data-v5mode="phase">Phase</button>
-      <button data-v5mode="coh">Coherence</button>
       <button data-v5mode="spec">Waterfall</button>
-      <button data-v5mode="impulse">Impulse / Delay</button>
+      <button data-v5mode="delay">Delay</button>
       <button data-v5mode="rt60">RT60</button>
-      <button data-v5mode="spl">SPL</button>
-      <button data-v5mode="eq">EQ</button>
+      <button data-v5mode="spleq">SPL / EQ</button>
+      <button data-v5mode="align">Sub / Top</button>
+      <button id="v5TargetToggle" class="v5GraphToggle on" type="button" title="הצג או הסתר את עקומת היעד">Target ✓</button>
     </div>
 
     <aside id="v5SideRail">
@@ -1051,7 +1259,7 @@
     </div>
     <div class="tabbar">
       <button class="tab on" data-p="view">תצוגה</button>
-      <button class="tab" data-p="tune">מדידה</button>
+      <button class="tab" data-p="tune">רמות / כיול</button>
       <button class="tab" data-p="io">I/O</button>
       <button class="toggle" id="stopBtn" style="display:none;margin-inline-start:auto">אפס סשן</button>
     </div>
@@ -1120,12 +1328,12 @@
     </div>
 
     <div class="tabpage" data-page="tune">
-      <div class="trow">
+      <div class="trow v5LegacyShortcutRow">
         <button class="toggle" id="genBtn">גנרטור · Generator</button>
         <button class="toggle" id="measBtn">מדידה</button>
         <button class="toggle" id="saveBtn">מדידות שמורות · Captures</button>
       </div>
-      <div class="trow" id="measRow" style="display:none">
+      <div class="trow v5LegacyShortcutRow" id="measRow" style="display:none">
         <button class="toggle" id="eqBtn">חד־ערוצי · SPL</button>
         <button class="toggle" id="tfBtn">דו־ערוצי · TF</button>
         <button class="toggle" id="dlyBtn">דיליי · Delay Finder</button>
