@@ -1,4 +1,7 @@
-# GAL Analyzer V5.4.1 — Workspace controls
+# GAL Analyzer V5.4.2 — Layout fix
+
+- Fixed canvas resizing when the I/O dock opens.
+- Target uses the correct dB scale in TF.
 
 - The left workspace rail can be collapsed and restored.
 - Target is available in every non-alignment graph view.

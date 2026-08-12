@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.1-workspace',
+    version: 'v5.4.2-layout-fix',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2558,16 +2558,20 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.strokeStyle='rgba(47,155,255,.8)'; ctx.lineWidth=1;
     ctx.strokeRect(xa,0,xb-xa,plotH);
   }
+  // Target uses each graph's own vertical scale: normalized level in RTA and
+  // relative dB (0 dB centre) in TF.
   if(targetVisible && targetMode!=='off' && !alignOn){
     ctx.strokeStyle='rgba(80,230,140,.8)'; ctx.setLineDash([6,5]); ctx.lineWidth=2; ctx.beginPath();
     for(let b=0;b<BANDS;b++){
-      const ty=Math.max(0.05, Math.min(0.95, 0.55 + targetDb(ISO[b])*0.03));
-      const x=b*bw+bw/2, yy=plotH-ty*plotH;
+      const x=b*bw+bw/2;
+      const yy=tfOpen
+        ? tfMagY(targetDb(ISO[b]),plotH)
+        : plotH-Math.max(0.05, Math.min(0.95, 0.55 + targetDb(ISO[b])*0.03))*plotH;
       b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);
     }
     ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle='rgba(80,230,140,.9)'; ctx.font='10px monospace'; ctx.textAlign='end';
-    ctx.fillText(targetMode==='house'?'יעד House':'יעד שטוח', W-8, 12);
+    ctx.fillText(tfOpen?(targetMode==='house'?'Target House · TF':'Target 0dB · TF'):(targetMode==='house'?'יעד House':'יעד שטוח'), W-8, 12);
   }
   if(cursorX!=null && cursorX>=0 && cursorX<=W){
     const cf=freqForX(cursorX);
@@ -2972,7 +2976,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.1';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.2';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3170,9 +3174,11 @@ function v52SetIo(open){
   if(dock) dock.classList.toggle('open',v52IoOpen);
   if(stage){
     stage.classList.toggle('v52-io-open',v52IoOpen);
-    if(v52IoOpen && dock){
-      requestAnimationFrame(()=>stage.style.setProperty('--v52-io-h',Math.ceil(dock.getBoundingClientRect().height)+'px'));
-    }
+    requestAnimationFrame(()=>{
+      if(v52IoOpen && dock) stage.style.setProperty('--v52-io-h',Math.ceil(dock.getBoundingClientRect().height)+'px');
+      else stage.style.removeProperty('--v52-io-h');
+      if(typeof resize==='function')resize();
+    });
   }
   if(btn) btn.classList.toggle('on',v52IoOpen);
   if(v52IoOpen){
@@ -3181,7 +3187,6 @@ function v52SetIo(open){
     setAlign(false);
     v52RefreshDevices();
   }
-  setTimeout(()=>{ if(typeof resize==='function')resize(); },0);
 }
 
 async function v52RefreshDevices(){
