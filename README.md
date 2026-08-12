@@ -1,4 +1,8 @@
-# GAL Analyzer V5.4.18 — Delay hard-close
+# GAL Analyzer V5.4.20 — Elegant EQ result curve
+
+- EQ correction results now appear as a compact response curve above the measurement dock, with a clear 0 dB line, frequency scale and cut/boost colours.
+
+- The redesigned Delay panel is hidden by default and opens only when Delay is selected, using the original dock behavior.
 
 - Delay is forcibly closed and hidden as soon as any non-Delay workspace is selected.
 

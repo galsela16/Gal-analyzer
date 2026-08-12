@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.18-delay-panel-hard-close',
+    version: 'v5.4.20-eq-result-curve',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -696,7 +696,9 @@ function corrParamHtml(corr){
 }
 function showGeqDock(title){
   const dock=document.getElementById('geqDock'); if(!dock) return;
-  dock.style.display='block'; syncGeqBtn();
+  dock.style.display='block';dock.classList.remove('collapsed');
+  const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent='▼';
+  syncGeqBtn();
   const t=document.getElementById('geqDockTitle'); if(t&&title) t.textContent=title;
 }
 function hideGeqDock(){ const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
@@ -724,66 +726,39 @@ function drawGEQ(c, freqs, corr){
   if(c && c.parentElement && c.parentElement.classList.contains('collapsed')) return;
   const x=c.getContext('2d');
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  const CW=c.clientWidth||360, H=234;
+  const CW=c.clientWidth||360, H=156;
   c.width=Math.round(CW*dpr); c.height=Math.round(H*dpr);
   x.setTransform(dpr,0,0,dpr,0,0);
   const W=CW;
   x.clearRect(0,0,W,H);
-  const top=34, bot=H-46, mid=(top+bot)/2, scale=(bot-top)/2/9;
-  const n=freqs.length, slot=W/n, kw=Math.max(9,Math.min(18,slot*0.80)), kh=11;
+  const left=36,right=14,top=17,bot=H-25,mid=(top+bot)/2,range=9;
+  const plotW=Math.max(1,W-left-right),plotH=bot-top;
+  const fMin=Math.max(20,freqs[0]),fMax=freqs[freqs.length-1];
+  const fx=f=>left+(Math.log(f/fMin)/Math.log(fMax/fMin))*plotW;
+  const fy=db=>mid-Math.max(-range,Math.min(range,db))*(plotH/2/range);
 
-  x.fillStyle=sunMode ? '#f0f4f8' : '#12171f'; 
+  x.fillStyle=sunMode ? '#ffffff' : '#09131b';
   x.fillRect(0,0,W,H);
 
-  x.font='9px monospace'; x.textAlign='left';
-  [6,0,-6].forEach(d=>{ const yy=mid-d*scale;
-    x.strokeStyle = d===0 ? (sunMode?'rgba(0,0,0,.3)':'rgba(255,255,255,.30)') : (sunMode?'rgba(0,0,0,.1)':'rgba(255,255,255,.10)');
-    x.setLineDash(d===0?[]:[2,3]); x.beginPath(); x.moveTo(0,yy); x.lineTo(W,yy); x.stroke();
-    x.fillStyle=sunMode?'#475569':'rgba(160,175,190,.75)'; x.fillText((d>0?'+':'')+d, 2, yy-2); });
+  x.font='9px monospace';x.textAlign='right';
+  [-6,0,6].forEach(db=>{const yy=fy(db);x.strokeStyle=db===0?(sunMode?'rgba(15,23,42,.38)':'rgba(132,172,205,.55)'):(sunMode?'rgba(15,23,42,.10)':'rgba(132,172,205,.14)');x.setLineDash(db===0?[]:[3,4]);x.beginPath();x.moveTo(left,yy);x.lineTo(W-right,yy);x.stroke();x.fillStyle=sunMode?'#64748b':'#8093a3';x.fillText((db>0?'+':'')+db+' dB',left-5,yy+3);});
   x.setLineDash([]);
+  [31.5,63,125,250,500,1000,2000,4000,8000,16000].filter(f=>f>=fMin&&f<=fMax).forEach(f=>{const xx=fx(f);x.strokeStyle=sunMode?'rgba(15,23,42,.08)':'rgba(132,172,205,.10)';x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bot);x.stroke();x.textAlign='center';x.fillStyle=sunMode?'#64748b':'#8093a3';x.fillText(f>=1000?(f/1000)+'k':String(f),xx,H-8);});
 
-  for(let k=0;k<n;k++){
-    const cx=slot*k+slot/2, v=corr[k];
-    x.strokeStyle=sunMode?'rgba(0,0,0,.2)':'rgba(255,255,255,.20)'; x.lineWidth=Math.max(3,kw*0.34);
-    x.lineCap='round'; x.beginPath(); x.moveTo(cx,top); x.lineTo(cx,bot); x.stroke();
-    if(v==null) continue;
-    const yy=mid-Math.max(-9,Math.min(9,v))*scale;
-    x.strokeStyle = v>0.4?'rgba(80,230,140,.75)' : v<-0.4?'rgba(255,90,120,.75)' : (sunMode?'rgba(0,0,0,.22)':'rgba(255,255,255,.22)');
-    x.beginPath(); x.moveTo(cx,mid); x.lineTo(cx,yy); x.stroke();
-    const col = v>0.4?'#5ce89a' : v<-0.4?'#ff6b8b' : (sunMode?'#64748b':'#9fb0c2');
-    x.save(); x.shadowColor='rgba(0,0,0,.4)'; x.shadowBlur=3; x.shadowOffsetY=1;
-    x.fillStyle=col; x.strokeStyle='rgba(0,0,0,.7)'; x.lineWidth=1;
-    x.beginPath();
-    if(x.roundRect) x.roundRect(cx-kw/2, yy-kh/2, kw, kh, 2);
-    else x.rect(cx-kw/2, yy-kh/2, kw, kh);
-    x.fill(); x.stroke(); x.restore();
-    x.fillStyle='rgba(0,0,0,.55)'; x.fillRect(cx-kw/2+2, yy-0.5, kw-4, 1);
-    if(Math.abs(v)>=0.4){
-      const txt=(v>0?'+':'')+ (Math.abs(v)>=10 ? v.toFixed(0) : v.toFixed(1));
-      x.save(); x.translate(cx, v>0 ? yy-kh/2-3 : yy+kh/2+3); x.rotate(-Math.PI/2);
-      x.textAlign = v>0 ? 'left' : 'right';
-      x.font='9px monospace'; x.fillStyle = v>0?'#15803d':'#b91c1c';
-      x.fillText(txt, 0, 3); x.restore();
-    }
-  }
-
-  x.font='9px monospace';
-  for(let k=0;k<n;k++){
-    const f=freqs[k], cx=slot*k+slot/2;
-    const lbl = f>=1000 ? (f/1000)+'k' : String(f);
-    x.save(); x.translate(cx, bot+6); x.rotate(-Math.PI/2);
-    x.textAlign='right'; x.fillStyle= corr[k]==null ? (sunMode?'rgba(0,0,0,.4)':'rgba(120,132,146,.6)') : (sunMode?'#0f172a':'rgba(170,185,200,.95)');
-    x.fillText(lbl, 0, 3); x.restore();
+  const points=[];for(let k=0;k<freqs.length;k++){const v=corr[k];if(v!=null&&Number.isFinite(v))points.push({x:fx(freqs[k]),y:fy(v),v,k});}
+  if(points.length){
+    const grad=x.createLinearGradient(0,top,0,bot);grad.addColorStop(0,'rgba(80,230,140,.18)');grad.addColorStop(.5,'rgba(62,166,255,.04)');grad.addColorStop(1,'rgba(255,90,120,.20)');
+    x.beginPath();x.moveTo(points[0].x,mid);points.forEach(p=>x.lineTo(p.x,p.y));x.lineTo(points[points.length-1].x,mid);x.closePath();x.fillStyle=grad;x.fill();
+    x.beginPath();points.forEach((p,i)=>i?x.lineTo(p.x,p.y):x.moveTo(p.x,p.y));x.strokeStyle=sunMode?'#087cc1':'#55b9f3';x.lineWidth=2.2;x.lineJoin='round';x.lineCap='round';x.stroke();
+    points.forEach(p=>{x.beginPath();x.arc(p.x,p.y,2.5,0,Math.PI*2);x.fillStyle=p.v>.4?'#50e68c':p.v<-.4?'#ff5a78':'#9fb0c2';x.fill();});
   }
   let worst=null;
   for(let k=0;k<n;k++){ const v=corr[k]; if(v==null) continue; if(!worst||Math.abs(v)>Math.abs(worst.v)) worst={v,k}; }
   if(worst && Math.abs(worst.v)>=0.5){
     const f=freqs[worst.k];
-    x.textAlign='right'; x.fillStyle=worst.v>0?'#16a34a':'#dc2626';
-    x.fillText('הכי חריג: '+(f>=1000?(f/1000).toFixed(1)+'k':Math.round(f))+'Hz '+(worst.v>0?'+':'')+worst.v.toFixed(1)+'dB', W-4, 12);
+    x.textAlign='right';x.font='600 9px monospace';x.fillStyle=worst.v>0?'#50c878':'#ff6b83';
+    x.fillText('תיקון מרבי: '+(f>=1000?(f/1000).toFixed(1)+'k':Math.round(f))+'Hz  '+(worst.v>0?'+':'')+worst.v.toFixed(1)+'dB',W-right,11);
   }
-  x.textAlign='left'; x.fillStyle=sunMode?'#475569':'rgba(150,165,180,.75)';
-  x.fillText('הזז כל פס לפי הידית', 4, 12);
 }
 function micCalAt(f){
   if(!micCal||!micCal.f.length) return 0;
@@ -3013,7 +2988,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.18';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.20';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3055,14 +3030,6 @@ function v5SyncTargetToggle(){
 
 function v5SetTab(mode){
   v5WorkspaceMode=mode;
-  document.body.dataset.v5Workspace=mode;
-  if(mode!=='delay'){
-    const delayDock=document.getElementById('dlyPanel');
-    if(delayDock) delayDock.classList.remove('open','expanded');
-    // The graph must reclaim the dock height immediately, even if a previous
-    // click left Delay's state behind.
-    if(typeof updateMeasureDockHeight==='function') requestAnimationFrame(updateMeasureDockHeight);
-  }
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
   const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis');
 }
@@ -3160,16 +3127,6 @@ function v5InitWorkspace(){
   const railPref=lsGet('v54_side_rail_open');
   if(railPref==='0') v54SetSideRail(false);
   v5SyncTargetToggle();
-  // A tab is a complete workspace switch. Close the previous dock during the
-  // capture phase so no earlier panel can remain visible behind the new mode.
-  const workspaceTabs=document.getElementById('v5ModeTabs');
-  if(workspaceTabs) workspaceTabs.addEventListener('click',event=>{
-    if(!event.target.closest('[data-v5mode]')) return;
-    closeModals();
-    setAlign(false);
-    if(typeof v52SetIo==='function' && v52IoOpen) v52SetIo(false);
-    if(typeof v53SetGeneratorDock==='function' && genPanel?.classList.contains('open')) v53SetGeneratorDock(false);
-  },true);
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.addEventListener('click',()=>{
     const m=b.dataset.v5mode; v5SetTab(m);
     if(m==='analysis'){ closeModals(); setAlign(false); setTfOverlay(false); setMode(mode==='spec'?'spec':'rta'); }
