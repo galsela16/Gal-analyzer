@@ -1,4 +1,4 @@
-# GAL Analyzer V5.4.9 — Wide SPL meter
+# GAL Analyzer V5.4.10 — Full-width SPL meter
 
 - The SPL meter now spans the usable width of the graph and stays directly above any open bottom dock.
 

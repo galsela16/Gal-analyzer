@@ -588,9 +588,11 @@
   .tfQuickBar{top:calc(var(--v5-tabs) + 8px)!important;right:10px!important;left:auto!important}
   .zoomBtn{top:calc(var(--v5-tabs) + 8px)!important}
   .meter{
-    /* Use logical edges so RTL cannot collapse this to the label's width. */
-    inset-inline-start:calc(var(--v5-side) + 10px)!important;
-    inset-inline-end:10px!important;
+    /* The graph itself is laid out left-to-right, even in the Hebrew UI. */
+    inset-inline-start:auto!important;
+    inset-inline-end:auto!important;
+    left:calc(var(--v5-side) + 10px)!important;
+    right:10px!important;
     width:auto!important;
   }
   #stage.measure-open .meter{bottom:calc(var(--measure-h,0px) + 8px)!important}
@@ -688,7 +690,7 @@
     #v5ModeTabs{left:0;overflow-x:auto}
     #stage>canvas#cv{left:0!important;width:100%!important}
     .measureDock{left:0!important}
-    .meter{inset-inline-start:10px!important}
+    .meter{left:10px!important;right:10px!important}
     #v54SideToggle{display:none}
     .v5HeaderActions{display:none}
   }
@@ -1678,7 +1680,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.9</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.10</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
