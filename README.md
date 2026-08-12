@@ -1,4 +1,10 @@
-# GAL Analyzer V5.4.22 — TF correction workspace
+# GAL Analyzer V5.4.23 — Dual live TF workspace
+
+- TF now shows MIC 1 and REF 2 live together across the full graph, even before a Transfer Function measurement is taken.
+
+- MIC 1 uses a clear blue curve and REF 2 uses orange, with a shared dBFS scale, live level readouts and an uncluttered legend.
+
+- Low Reference level no longer removes the live dual-input view; it only pauses the calculated TF measurement.
 
 - The empty legacy TF canvas is removed from the advanced view and replaced by clear frequency + dB correction cards.
 

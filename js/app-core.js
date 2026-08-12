@@ -15,7 +15,7 @@ let tfTraces=[];
 const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
 let showTfPhase = false;
-let showTfCoh = true;
+let showTfCoh = false;
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
 let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
 let phaseSub=null, phaseTop=null;  // צילומי פאזה: {ph:Float32Array, coh:Float32Array}
@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.22-tf-correction-values',
+    version: 'v5.4.23-dual-live-tf',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1154,6 +1154,30 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>drawSnap(t,t.color,1.4,.72));
   drawSnap(live,'rgb('+accentRgb.join(',')+')',2.3,1);
   ctx.fillStyle=sunMode?'#0f172a':'#e6edf3';ctx.font='600 11px monospace';ctx.fillText('TF MAG · relative',8,14);
+  ctx.restore();
+}
+
+function tfDrawDualLiveView(W,plotH){
+  if(!lastV.length || !lastRefV.length) return;
+  const bw=W/BANDS;
+  const drawCurve=(values,color,fill)=>{
+    const points=values.map((v,b)=>({x:b*bw+bw/2,y:plotH-Math.max(0,Math.min(1,v))*plotH}));
+    if(!points.length)return;
+    ctx.beginPath();ctx.moveTo(points[0].x,plotH);points.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(points[points.length-1].x,plotH);ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+    ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=2.4;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
+  };
+  ctx.save();
+  drawCurve(lastRefV,'#f59e0b','rgba(245,158,11,.075)');
+  drawCurve(lastV,'#38bdf8','rgba(56,189,248,.11)');
+  ctx.font='700 11px monospace';ctx.textAlign='left';
+  const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
+  const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
+  ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(7,16,24,.86)';ctx.fillRect(8,8,258,40);
+  ctx.strokeStyle=sunMode?'#cbd5e1':'#294052';ctx.strokeRect(8,8,258,40);
+  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',17,24);
+  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',17,41);
+  ctx.textAlign='right';ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8193a2';
+  ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
 }
 
@@ -2228,7 +2252,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   const tfOpen = tfRequested && tfHasReferenceSignal();
   
   const qBar = document.getElementById('tfQuickBar');
-  if(qBar) qBar.classList.toggle('show', tfOpen);
+  if(qBar) qBar.classList.toggle('show', tfRequested && !alignOn);
 
   let peakBand=-1,peakVal=0;
   const abCompare = (abView==='both' || abView==='delta') && (abA || abB);
@@ -2242,7 +2266,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     lastV[b]=v;
     if(v>peakVal){peakVal=v;peakBand=b;}
     
-    if(!tfOpen && !abCompare){
+    if(!tfRequested && !abCompare){
       const x=b*bw+gap/2, barW=bw-gap;
       const barH=v*plotH, y=plotH-barH;
       let col= v<0.85?'rgba('+accentRgb[0]+','+accentRgb[1]+','+accentRgb[2]+','+(0.4+v).toFixed(2)+')' : 'var(--hot)';
@@ -2255,18 +2279,21 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     }
   }
   
-  if(tfOpen){
+  if(tfRequested){
     const alignView = alignOn;
     if(!frozen) analyserRef.getFloatFrequencyData(floatDataRef);
     if(!_pfxRef || _pfxRef.length!==bins+1) _pfxRef=new Float64Array(bins+1);
     { let acc=0; _pfxRef[0]=0; for(let i=0;i<bins;i++){ acc+=db2lin(floatDataRef[i]); _pfxRef[i+1]=acc; } }
     const refBandDb=(fLo,fHi)=>{ let lo=Math.floor(fLo/nyquist*bins),hi=Math.ceil(fHi/nyquist*bins); lo=Math.max(0,lo);hi=Math.min(bins-1,hi);if(hi<lo)hi=lo; return 10*Math.log10((_pfxRef[hi+1]-_pfxRef[lo])+1e-12); };
-    for(let b=0;b<BANDS;b++) lastRefV[b]=norm(refBandDb(ISO[b]/R,ISO[b]*R));
+    for(let b=0;b<BANDS;b++){
+      const rv=norm(refBandDb(ISO[b]/R,ISO[b]*R));
+      lastRefV[b]=lastRefV[b]*.68+rv*.32;
+    }
     
-    computeComplexTf();
-    if(!alignView){ tfDrawMagnitudeView(W,plotH,nyquist); }
+    if(tfOpen)computeComplexTf();
+    if(!alignView)tfDrawDualLiveView(W,plotH);
 
-    if(showTfCoh && !alignView){
+    if(tfOpen && showTfCoh && !alignView){
       ctx.beginPath();
       for(let px = 0; px <= W; px += 2){
         const f = freqForX(px);
@@ -2284,7 +2311,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.setLineDash([]);
     }
 
-    if(showTfPhase && !alignView){
+    if(tfOpen && showTfPhase && !alignView){
       ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -2453,10 +2480,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     }
     
     ctx.font='11px monospace'; ctx.textAlign='start';
-    ctx.fillStyle='rgb('+accentRgb.join(',')+')'; ctx.fillText('— '+(tfSwap?'רפרנס':"מיקרופון"), 10, 14);
-    ctx.fillStyle='#d97706'; ctx.fillText('— '+(tfSwap?"מיקרופון":'רפרנס'), 10, 28);
-    if(showTfCoh){ ctx.fillStyle='rgba(239, 68, 68, 0.9)'; ctx.fillText('- - קוהרנטיות', 10, 42); }
-    if(showTfPhase){ ctx.fillStyle='rgba(34, 197, 94, 0.9)'; ctx.fillText('— פאזה', 10, showTfCoh?56:42); }
+    if(showTfCoh){ ctx.fillStyle='rgba(239, 68, 68, 0.9)'; ctx.fillText('- - COHERENCE', 10, 64); }
+    if(showTfPhase){ ctx.fillStyle='rgba(34, 197, 94, 0.9)'; ctx.fillText('— PHASE', 10, showTfCoh?78:64); }
   }
   
   if(refCurve && refCurve.v && refCurve.bands===BANDS){
@@ -2475,38 +2500,12 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     });
     if(tfRequested && !alignOn){
       ctx.save();ctx.font='600 10px monospace';ctx.textAlign='right';
-      const message='TF waiting for Reference · showing RTA live';
+      const message='Reference low · MIC 1 + REF 2 remain live';
       const w=ctx.measureText(message).width+16;
       ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(10,20,28,.88)';ctx.fillRect(W-w-8,8,w,24);
       ctx.strokeStyle=sunMode?'#cbd5e1':'#385064';ctx.strokeRect(W-w-8,8,w,24);
       ctx.fillStyle=sunMode?'#475569':'#b9c7d3';ctx.fillText(message,W-16,24);ctx.restore();
     }
-  }
-
-  // Live two-channel input view: the TF response remains the main plot, while
-  // this strip keeps Mic 1 and Reference 2 visible on the same frequency axis.
-  if(tfOpen && !alignOn){
-    const stripH=Math.max(58,Math.min(82,plotH*.22));
-    const stripY=plotH-stripH;
-    ctx.save();
-    ctx.fillStyle=sunMode?'rgba(248,250,252,.88)':'rgba(4,12,19,.78)';
-    ctx.fillRect(0,stripY,W,stripH);
-    ctx.strokeStyle=sunMode?'rgba(15,23,42,.22)':'rgba(148,163,184,.25)';
-    ctx.beginPath();ctx.moveTo(0,stripY);ctx.lineTo(W,stripY);ctx.stroke();
-    for(let b=0;b<BANDS;b++){
-      const x=b*bw+gap/2,barW=Math.max(2,bw-gap), innerGap=Math.min(2,barW*.14), half=Math.max(1,(barW-innerGap)/2);
-      const micH=Math.max(0,Math.min(stripH-16,lastV[b]*(stripH-16)));
-      const refH=Math.max(0,Math.min(stripH-16,lastRefV[b]*(stripH-16)));
-      ctx.fillStyle='rgba(56,189,248,.78)';
-      ctx.fillRect(x,stripY+stripH-micH,half,micH);
-      ctx.fillStyle='rgba(245,158,11,.78)';
-      ctx.fillRect(x+half+innerGap,stripY+stripH-refH,half,refH);
-    }
-    ctx.fillStyle=sunMode?'#334155':'#b8c8d4';ctx.font='700 9px monospace';ctx.textAlign='left';
-    ctx.fillStyle='#38bdf8';ctx.fillText('■ MIC 1',7,stripY+11);
-    ctx.fillStyle='#f59e0b';ctx.fillText('■ REF 2',62,stripY+11);
-    ctx.fillStyle=sunMode?'#64748b':'#8fa1af';ctx.fillText('LIVE INPUTS',116,stripY+11);
-    ctx.restore();
   }
 
   // ---- השוואת A/B (לפני/אחרי כיוון) ----
@@ -2587,7 +2586,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   }
   // Target uses each graph's own vertical scale: normalized level in RTA and
   // relative dB (0 dB centre) in TF.
-  if(targetVisible && targetMode!=='off' && !alignOn){
+  if(targetVisible && targetMode!=='off' && !alignOn && !tfRequested){
     ctx.strokeStyle='rgba(80,230,140,.8)'; ctx.setLineDash([6,5]); ctx.lineWidth=2; ctx.beginPath();
     for(let b=0;b<BANDS;b++){
       const x=b*bw+bw/2;
@@ -3003,7 +3002,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.22';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.23';
   v3UpdateStatus();
 })();
 (function initAccent(){
