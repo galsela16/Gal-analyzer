@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.8 — Compact workspace
+# GAL Analyzer V5.4.9 — Wide SPL meter
+
+- The SPL meter now spans the usable width of the graph and stays directly above any open bottom dock.
 
 - RTA and Waterfall are a clean two-button switch.
 - The left rail is narrower with compact cards and calibration typography.
