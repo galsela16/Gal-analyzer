@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.12 — Sub / Top SPL meter
+# GAL Analyzer V5.4.13 — Field-ready preflight
+
+- Field preflight validates syntax, cached assets, PWA icons and all visible UI hookups before packaging.
 
 - The shared SPL meter stays visible above the Sub / Top controls.
 

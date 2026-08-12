@@ -20,4 +20,27 @@ for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','v5TraceLi
 for(const asset of ['app.js','js/app-core.js','js/core/config.js','js/core/diagnostics.js']){
   if(!worker.includes(asset)) throw new Error(`Service worker does not cache ${asset}`);
 }
+
+// Every asset named in the offline cache must exist in the release folder.
+const cachedAssets=[...worker.matchAll(/'\.\/([^']+)'/g)].map(match=>match[1]);
+for(const asset of cachedAssets) await access(asset,constants.R_OK);
+
+// Keep all literal UI hookups honest. The two entries below are optional
+// legacy fallbacks and are intentionally guarded in app-core.js.
+const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
+const core=await readFile('js/app-core.js','utf8');
+const optionalLegacyIds=new Set(['autoCalBtn','fft','v3CalChip']);
+const wiredIds=[...core.matchAll(/safeOn\(['"]([^'"]+)['"]/g)].map(match=>match[1]);
+for(const id of wiredIds){
+  if(!ids.has(id) && !optionalLegacyIds.has(id)) throw new Error(`Handler has no matching UI element: ${id}`);
+}
+const inlineHandlers=[...html.matchAll(/on(?:click|change|input)="([A-Za-z_$][\w$]*)\(/g)].map(match=>match[1]);
+for(const name of inlineHandlers){
+  const exists=new RegExp(`(?:function\\s+${name}\\s*\\(|window\\.${name}\\s*=)`).test(core);
+  if(!exists) throw new Error(`Inline UI handler is not implemented: ${name}`);
+}
+
+// PWA icon references must resolve in a clean GitHub Pages upload.
+const manifest=JSON.parse(await readFile('manifest.webmanifest','utf8'));
+for(const icon of manifest.icons||[]) await access(icon.src,constants.R_OK);
 console.log('GAL Foundation validation passed.');

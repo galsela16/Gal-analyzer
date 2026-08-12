@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-12-sub-top-spl-meter-20260812';
+const CACHE = 'gal-analyzer-v5-4-13-field-ready-20260812';
 const ASSETS = [
   './',
   './index.html',
@@ -9,12 +9,6 @@ const ASSETS = [
   './js/core/diagnostics.js',
   './recorder-worklet.js',
   './manifest.webmanifest',
-  './fonts/heebo-hebrew-400-normal.woff2',
-  './fonts/heebo-hebrew-600-normal.woff2',
-  './fonts/heebo-hebrew-700-normal.woff2',
-  './fonts/heebo-latin-400-normal.woff2',
-  './fonts/heebo-latin-600-normal.woff2',
-  './fonts/heebo-latin-700-normal.woff2',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
