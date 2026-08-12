@@ -288,7 +288,14 @@
   #geqDockToggle:hover{color:var(--accent); background:rgba(62,166,255,.1)}
   #eqCurveCanvas{display:block;width:100%;height:156px;background:#09131b}
   body.sun-mode #eqCurveCanvas{ background:#ffffff; }
-  #geqDock.collapsed #eqCurveCanvas{display:none}
+  #geqValues{display:flex;align-items:center;gap:5px;padding:7px 9px;overflow-x:auto;border-top:1px solid #1c2d39;background:#081119;direction:ltr;scrollbar-width:thin}
+  .geqValue{display:inline-flex;align-items:center;gap:5px;flex:none;padding:5px 7px;border:1px solid #293b49;border-radius:4px;background:#0d1922;font:600 9px monospace;color:#aebdca;white-space:nowrap}
+  .geqValue b{font-size:10px;font-variant-numeric:tabular-nums}
+  .geqValue.cut{border-color:rgba(255,90,120,.35)}.geqValue.cut b{color:#ff6b83}
+  .geqValue.boost{border-color:rgba(80,230,140,.35)}.geqValue.boost b{color:#50e68c}
+  .geqValue.neutral{opacity:.6}
+  #geqDock.collapsed #eqCurveCanvas,#geqDock.collapsed #geqValues{display:none}
+  body.sun-mode #geqValues{background:#f8fafc;border-color:#dbe4eb}.sun-mode .geqValue{background:#fff;border-color:#cbd5e1;color:#475569}
   @media(max-width:900px){#geqDock{left:10px}}
 
   #eqPanel{position:relative;display:none;
@@ -1443,6 +1450,7 @@
         <button id="geqDockToggle" title="הסתר/הצג">▼</button>
       </div>
       <canvas id="eqCurveCanvas"></canvas>
+      <div id="geqValues" aria-label="ערכי תיקון EQ"></div>
     </div>
 
     <div class="meter" id="meter" style="display:none">
@@ -1721,7 +1729,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.20</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.21</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

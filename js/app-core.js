@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.20-eq-result-curve',
+    version: 'v5.4.21-eq-numeric-values',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -724,6 +724,18 @@ safeOn('geqDockToggle', 'click',function(){
 });
 function drawGEQ(c, freqs, corr){
   if(c && c.parentElement && c.parentElement.classList.contains('collapsed')) return;
+  if(c && c.id==='eqCurveCanvas'){
+    const values=document.getElementById('geqValues');
+    if(values){
+      const actionable=[];
+      for(let k=0;k<freqs.length;k++){
+        const v=corr[k];if(v==null||!Number.isFinite(v)||Math.abs(v)<0.35)continue;
+        const f=freqs[k]>=1000?((freqs[k]/1000)%1?(freqs[k]/1000).toFixed(2):(freqs[k]/1000).toFixed(0))+'kHz':(freqs[k]%1?freqs[k].toFixed(1):Math.round(freqs[k]))+'Hz';
+        actionable.push('<span class="geqValue '+(v<0?'cut':'boost')+'"><span>'+f+'</span><b>'+(v>0?'+':'')+v.toFixed(1)+' dB</b></span>');
+      }
+      values.innerHTML=actionable.length?actionable.join(''):'<span class="geqValue neutral">אין תיקון משמעותי — מאוזן</span>';
+    }
+  }
   const x=c.getContext('2d');
   const dpr=Math.min(window.devicePixelRatio||1,2);
   const CW=c.clientWidth||360, H=156;
@@ -2988,7 +3000,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.20';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.21';
   v3UpdateStatus();
 })();
 (function initAccent(){
