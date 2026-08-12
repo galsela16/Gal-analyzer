@@ -432,6 +432,240 @@
     .v3Status{display:none}
   }
 
+
+  /* =========================================================
+     V5 PRO WORKSPACE
+     Layout inspired by real-world measurement software:
+     persistent graph, left trace rail, top mode tabs,
+     compact bottom measurement docks.
+     ========================================================= */
+  :root{
+    --v5-side:210px;
+    --v5-tabs:52px;
+    --v5-footer:92px;
+  }
+
+  body{background:#081018}
+  header{
+    direction:ltr;
+    min-height:58px;
+    padding:9px 14px;
+    gap:12px;
+    background:#09111a;
+    border-bottom:1px solid #1b2a38;
+  }
+  header h1{
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:1.4px;
+    white-space:nowrap;
+  }
+  header h1 span{color:var(--text)}
+  header .dot{order:-2}
+  header .modes{display:none!important}
+  .v3Status{
+    margin:0 auto!important;
+    justify-content:center;
+    flex-wrap:nowrap!important;
+  }
+  .v3Chip{
+    background:#0b1620!important;
+    border-color:#243443!important;
+    min-height:28px!important;
+    font-size:11px!important;
+    padding:5px 10px!important;
+  }
+  #swatches{margin-left:auto}
+  #sunBtn{margin-inline-start:0!important}
+  #helpBtn,#sunBtn{background:#0c1620}
+  .v5HeaderActions{
+    display:flex;align-items:center;gap:7px;direction:rtl;
+  }
+  .v5HeaderAction{
+    border:1px solid #263746;background:#0c1620;color:#cbd5df;
+    font:600 11px inherit;padding:7px 11px;border-radius:5px;cursor:pointer;
+    white-space:nowrap;
+  }
+  .v5HeaderAction:hover{border-color:var(--accent);color:var(--accent)}
+  .v5RecDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff4545;margin-inline-end:5px}
+
+  #stage{
+    background:#081018;
+    border-bottom:1px solid #182633;
+  }
+
+  /* top workspace tabs */
+  #v5ModeTabs{
+    position:absolute;z-index:12;left:var(--v5-side);right:0;top:0;height:var(--v5-tabs);
+    display:flex;align-items:flex-end;gap:2px;padding:9px 12px 0;
+    direction:ltr;background:linear-gradient(180deg,#09131d 0%,#081018 100%);
+    border-bottom:1px solid #1a2a37;
+  }
+  #v5ModeTabs button{
+    height:36px;min-width:78px;padding:0 14px;
+    border:1px solid #253542;border-bottom-color:#1a2a37;
+    border-radius:6px 6px 0 0;background:#0c151e;color:#9aa9b7;
+    font:600 11px inherit;cursor:pointer;
+  }
+  #v5ModeTabs button:hover{color:#e5eef5;border-color:#334b5e}
+  #v5ModeTabs button.on{
+    color:var(--accent);border-color:var(--accent);
+    background:#0b1823;box-shadow:inset 0 2px 0 rgba(62,166,255,.18);
+  }
+
+  /* persistent left rail */
+  #v5SideRail{
+    position:absolute;z-index:11;left:0;top:0;bottom:0;width:var(--v5-side);
+    direction:ltr;background:#09121a;border-right:1px solid #1c2b38;
+    padding:12px 10px;display:flex;flex-direction:column;gap:10px;overflow:hidden;
+  }
+  .v5ReadCard{
+    border:1px solid #1d2b38;background:#0b151e;border-radius:7px;
+    padding:10px 12px;direction:ltr;
+  }
+  .v5CardLabel{font-size:10px;letter-spacing:.7px;color:#91a0ae;text-transform:uppercase}
+  .v5PeakValue{font-size:23px;font-weight:700;color:#e8f0f6;margin-top:4px;font-variant-numeric:tabular-nums}
+  .v5Minor{font-size:11px;color:#8fa0af;margin-top:3px;font-variant-numeric:tabular-nums}
+  .v5CalGood{color:#45d47b;font-size:11px;font-weight:700}
+  .v5CalValue{font-size:18px;color:#a9b8c5;margin:4px 0}
+  .v5RailTitle{
+    padding:5px 4px 3px;font-size:11px;font-weight:700;color:#cbd6df;border-bottom:1px solid #1b2935
+  }
+  #v5TraceList{display:flex;flex-direction:column;gap:3px;overflow:auto;min-height:0;max-height:260px}
+  .v5TraceRow{
+    display:grid;grid-template-columns:18px 1fr 24px;align-items:center;gap:5px;
+    min-height:32px;padding:4px 5px;border-bottom:1px solid #17242f;font-size:11px;
+  }
+  .v5TraceNum{color:#6f8090}
+  .v5TraceName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .v5Eye{color:#90a1af;text-align:center}
+  #v5AddTrace{
+    margin-top:3px;border:1px solid #263745;background:#0d1923;color:#aebbc7;
+    border-radius:5px;padding:8px;font:600 11px inherit;cursor:pointer;
+  }
+  #v5AddTrace:hover{border-color:var(--accent);color:var(--accent)}
+  #v5RailHint{
+    margin-top:auto;color:#637484;font-size:9px;line-height:1.45;border-top:1px solid #172632;padding-top:8px
+  }
+
+  /* graph canvas gets a real workspace, not full-bleed underneath controls */
+  #stage>canvas#cv{
+    top:var(--v5-tabs)!important;
+    left:var(--v5-side)!important;
+    right:0!important;
+    bottom:0!important;
+    width:calc(100% - var(--v5-side))!important;
+    height:calc(100% - var(--v5-tabs))!important;
+    background:#081018;
+  }
+  #stage.measure-open>canvas#cv{
+    top:var(--v5-tabs)!important;
+    height:calc(100% - var(--v5-tabs) - var(--measure-h,0px))!important;
+  }
+  #stage.bar-open>canvas#cv{
+    top:var(--v5-tabs)!important;
+    height:calc(100% - var(--v5-tabs) - var(--bar-h,0px))!important;
+  }
+
+  /* remove old floating clutter; information lives in the rail/header now */
+  #stage>.readout,#stage>.stats{display:none!important}
+  .tfQuickBar{top:calc(var(--v5-tabs) + 8px)!important;right:10px!important;left:auto!important}
+  .zoomBtn{top:calc(var(--v5-tabs) + 8px)!important}
+  .meter{
+    left:calc(var(--v5-side) + 10px)!important;
+    right:10px!important;
+    inset-inline:auto!important;
+  }
+
+  /* measurement docks */
+  .measureDock{
+    left:var(--v5-side)!important;right:0!important;width:auto!important;
+    direction:ltr!important;
+    min-height:154px!important;
+    max-height:210px!important;
+    padding:10px 12px!important;
+    gap:8px!important;
+    justify-content:flex-start!important;
+    align-content:flex-start!important;
+    border-top:1px solid #2a4052!important;
+    background:linear-gradient(180deg,#0c1720,#09131b)!important;
+    box-shadow:0 -8px 28px rgba(0,0,0,.48)!important;
+  }
+  .measureDock.expanded{max-height:43vh!important}
+  .measureDock h3{
+    width:100%!important;direction:ltr!important;text-align:left!important;
+    color:#dce6ee!important;font-size:12px!important;padding:2px 5px 7px!important;
+    border-bottom:1px solid #1f303e;margin-bottom:2px!important;
+  }
+  .measureDock .dockClose,.measureDock .dockMoreBtn{order:1000}
+  .measureDock .chBar{
+    min-width:250px!important;max-width:310px!important;flex:0 1 290px!important;
+    background:#0b151e;border:1px solid #1d2c38;border-radius:5px;padding:8px!important;
+  }
+  .measureDock .ctrl{
+    background:#0b151e;border:1px solid #1d2c38;border-radius:5px;
+    padding:8px!important;min-height:64px;
+  }
+  .measureDock .toggle{
+    background:#0d1923!important;border-color:#253746!important;
+    min-height:34px!important;padding:7px 11px!important;
+  }
+  .measureDock .toggle.on{background:rgba(62,166,255,.14)!important;border-color:var(--accent)!important}
+  .measureDock #tfBtns{
+    flex:1 1 100%!important;justify-content:flex-start!important;direction:ltr;
+    border-top:1px solid #172632;padding-top:8px;
+  }
+  #tfPanel.measureDock #tfDelayInfo{
+    min-width:145px;color:#56df86!important;background:#0b1817!important;border-color:#214a39!important
+  }
+  #tfPanel.measureDock #tfTraceLegend{display:none}
+  #tfPanel.measureDock>.sub{display:none!important}
+
+  /* Footer becomes a compact tool shelf */
+  footer{
+    min-height:var(--v5-footer);max-height:var(--v5-footer);overflow:auto;
+    padding:9px 14px 10px!important;background:#081119!important;border-top:1px solid #1a2a37!important;
+    gap:7px!important;
+  }
+  #pcb{display:none}
+  footer .tabbar{margin:0!important;gap:6px!important;flex-basis:auto!important}
+  footer .tab{padding:8px 14px!important;font-size:11px!important}
+  footer .tabpage{gap:7px!important}
+  footer .toggle{padding:8px 12px!important;font-size:11px!important}
+  footer .ctrl{gap:3px!important}
+  footer .ctrl label{font-size:9px!important}
+  #genPanel{position:fixed;left:220px;right:10px;bottom:100px;z-index:80;box-shadow:0 12px 35px rgba(0,0,0,.65)}
+  #stopBtn{margin-inline-start:0!important}
+
+  /* status footer */
+  #v5StatusBar{
+    position:fixed;z-index:90;left:0;right:0;bottom:0;height:26px;
+    pointer-events:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;background:#071018;border-top:1px solid #14222e;color:#6f8090;
+    font-size:9px;letter-spacing:.15px;
+  }
+  #v5StatusBar .live{color:#43d67a}
+  #v5StatusBrand{color:var(--accent);font-weight:700}
+  body{padding-bottom:26px}
+  footer{margin-bottom:0}
+
+  /* desktop-first; on small screens return to full-width graph */
+  @media(max-width:900px){
+    :root{--v5-side:0px}
+    #v5SideRail{display:none}
+    #v5ModeTabs{left:0;overflow-x:auto}
+    #stage>canvas#cv{left:0!important;width:100%!important}
+    .measureDock{left:0!important}
+    .meter{left:10px!important}
+    .v5HeaderActions{display:none}
+  }
+  @media(max-width:680px){
+    #v5ModeTabs button{min-width:68px;padding:0 10px}
+    .measureDock{max-height:48vh!important}
+    header h1{font-size:12px}
+    #swatches{display:none}
+  }
+
   .err{position:absolute;bottom:14px;inset-inline:14px;z-index:5;background:rgba(255,59,107,.12);border:1px solid var(--hot);
     color:var(--hot);padding:10px 14px;border-radius:4px;font-size:12px;line-height:1.6;display:none}
 </style>
@@ -451,6 +685,12 @@
       <span class="v3Chip" id="v3CalChip">CAL: לא מכויל</span>
       <span class="v3Chip" id="v3ResChip">RTA 1/6</span>
     </div>
+
+    <div class="v5HeaderActions">
+      <button class="v5HeaderAction" id="v5SplAction">SPL Meter ▥</button>
+      <button class="v5HeaderAction" id="v5GenAction">∿ Generator</button>
+      <button class="v5HeaderAction" id="v5CaptureAction"><span class="v5RecDot"></span>Capture</button>
+    </div>
     <button id="sunBtn" title="מצב אור שמש / ניגודיות גבוהה" aria-label="מצב אור שמש">☀️</button>
     <button id="helpBtn" title="מצב עזרה — רחף על כפתור להסבר" aria-label="מצב עזרה">?</button>
     <div id="swatches" title="צבע האפליקציה" role="group" aria-label="צבע האפליקציה">
@@ -463,6 +703,36 @@
 
   <div id="stage">
     <canvas id="cv"></canvas>
+
+    <div id="v5ModeTabs" aria-label="Measurement modes">
+      <button data-v5mode="rta" class="on">RTA</button>
+      <button data-v5mode="tf">TF | Transfer Function</button>
+      <button data-v5mode="phase">Phase</button>
+      <button data-v5mode="coh">Coherence</button>
+      <button data-v5mode="spec">Waterfall</button>
+      <button data-v5mode="impulse">Impulse / Delay</button>
+      <button data-v5mode="rt60">RT60</button>
+      <button data-v5mode="spl">SPL</button>
+      <button data-v5mode="eq">EQ</button>
+    </div>
+
+    <aside id="v5SideRail">
+      <div class="v5ReadCard">
+        <div class="v5CardLabel">PEAK</div>
+        <div class="v5PeakValue" id="v5PeakValue">—</div>
+        <div class="v5Minor" id="v5PeakMinor">Live spectrum</div>
+      </div>
+      <div class="v5ReadCard">
+        <div class="v5CalGood" id="v5CalState">CALIBRATION</div>
+        <div class="v5CalValue" id="v5CalValue">—</div>
+        <div class="v5Minor" id="v5SplSide">SPL —</div>
+      </div>
+      <div class="v5RailTitle">Traces</div>
+      <div id="v5TraceList"></div>
+      <button id="v5AddTrace">＋ Capture Trace</button>
+      <div id="v5RailHint">TF traces נשמרים להשוואה על אותו גרף. עד 6 עקבות.</div>
+    </aside>
+
     
     <!-- Quick Floating Bar for Live TF Mode -->
     <div id="tfQuickBar" class="tfQuickBar">
@@ -896,6 +1166,13 @@
     </div>
   </footer>
   <div id="shortcutToast"></div>
+
+  <div id="v5StatusBar">
+    <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
+    <div id="v5StatusBrand">GAL Analyzer V5</div>
+    <div>Real-World Measurement Workspace</div>
+  </div>
+
 <script src="app.js"></script>
 </body>
 </html>

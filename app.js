@@ -896,6 +896,7 @@ function updateMeasureDockHeight(){
   if(open){stageEl.style.setProperty('--measure-h',open.offsetHeight+'px');stageEl.classList.add('measure-open');}
   else{stageEl.style.setProperty('--measure-h','0px');stageEl.classList.remove('measure-open');}
   if(typeof resize==='function')resize();
+  if(typeof v5SyncRail==='function')v5SyncRail();
 }
 setupMeasureDocks();
 ['calPanel','savePanel'].forEach(id=>{const p=document.getElementById(id);if(p)modalBg.appendChild(p);});
@@ -1066,8 +1067,9 @@ function tfCurrentSnapshot(){
   return {mag,ph,coh,offset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()};
 }
 function renderTfTraceLegend(){
-  const el=document.getElementById('tfTraceLegend'); if(!el) return;
-  el.innerHTML=tfTraces.map((t,i)=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+'</span>').join('');
+  const el=document.getElementById('tfTraceLegend');
+  if(el) el.innerHTML=tfTraces.map((t,i)=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+'</span>').join('');
+  if(typeof v5RenderTraceRail==='function') v5RenderTraceRail();
 }
 function captureTfTrace(){
   if(!running||!analyserRef){ alert('הפעל כרטיס קול סטריאו (מיק + רפרנס).'); return; }
@@ -1740,8 +1742,8 @@ document.querySelectorAll('#fftSeg button').forEach(b=>b.addEventListener('click
   document.querySelectorAll('#fftSeg button').forEach(x=>x.classList.remove('on'));
   this.classList.add('on'); setFft(parseInt(this.dataset.n,10)); prefSet('rta_fft', this.dataset.n);
 }));
-safeOn('mRta', 'click',()=>setMode('rta'));
-safeOn('mSpec', 'click',()=>setMode('spec'));
+safeOn('mRta', 'click',()=>{setMode('rta'); if(typeof v5SetTab==='function')v5SetTab('rta');});
+safeOn('mSpec', 'click',()=>{setMode('spec'); if(typeof v5SetTab==='function')v5SetTab('spec');});
 safeOn('tfOverlayHdr', 'click',()=>setTfOverlay(!tfOverlay));
 function setAlign(on){
   alignOn=on;
@@ -2924,6 +2926,120 @@ function updateSignalTint(){
   if(rgb){ if(rgb!==_lastTint){ sigTint.style.boxShadow='inset 0 0 140px 30px '+rgb; _lastTint=rgb; } sigTint.classList.add('on'); }
   else if(_lastTint!==''){ sigTint.classList.remove('on'); _lastTint=''; }
 }
+
+/* ===== V5 Pro Workspace ===== */
+let v5WorkspaceMode='rta';
+
+function v5SetTab(mode){
+  v5WorkspaceMode=mode;
+  document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
+}
+function v5OpenTf(extra){
+  setMode('rta');
+  setTfOverlay(true);
+  showModal(tfPanel);
+  if(extra==='phase'){
+    tfShowPhase=true;
+    const p=document.getElementById('tfPhaseToggleBtn'); if(p)p.classList.add('on');
+    const q=document.getElementById('qbPhase'); if(q)q.classList.add('on');
+  }
+  if(extra==='coh'){
+    tfShowCoh=true;
+    const p=document.getElementById('tfCohToggleBtn'); if(p)p.classList.add('on');
+    const q=document.getElementById('qbCoh'); if(q)q.classList.add('on');
+  }
+}
+function v5SyncRail(){
+  const pk=document.getElementById('peakHz');
+  const out=document.getElementById('v5PeakValue');
+  if(pk&&out) out.textContent=pk.textContent||'—';
+
+  const spl=document.getElementById('splNow');
+  const splSide=document.getElementById('v5SplSide');
+  if(spl&&splSide) splSide.textContent='SPL '+(spl.textContent||'—');
+
+  const calState=document.getElementById('v5CalState');
+  const calVal=document.getElementById('v5CalValue');
+  if(calState&&calVal){
+    if(micCal){
+      const active=(micCalList.find(x=>x.id===activeCalId)||{}).name||'Mic CAL';
+      calState.textContent='CALIBRATED';
+      calState.style.color='#45d47b';
+      calVal.textContent=active.length>18?active.slice(0,18)+'…':active;
+    }else if(meterUnit==='dBFS'){
+      calState.textContent='DIGITAL LEVEL';
+      calState.style.color='var(--accent)';
+      calVal.textContent='dBFS';
+    }else{
+      calState.textContent='SPL NOT CALIBRATED';
+      calState.style.color='var(--warn)';
+      calVal.textContent=(calib>=0?'+':'')+calib.toFixed(1)+' dB';
+    }
+  }
+
+  const mic=document.getElementById('v5MicStatus');
+  const inp=document.getElementById('v5InputStatus');
+  const lat=document.getElementById('v5LatencyStatus');
+  if(mic){
+    mic.textContent=running?'● Mic: On':'● Mic: Off';
+    mic.classList.toggle('live',running);
+  }
+  if(inp) inp.textContent=analyserRef?'Input: 2ch':'Input: 1ch';
+  if(lat) lat.textContent=audioCtx?('Audio: '+Math.round(audioCtx.sampleRate/1000)+'k / '+fftSize):'Audio: —';
+}
+function v5RenderTraceRail(){
+  const box=document.getElementById('v5TraceList'); if(!box)return;
+  if(!tfTraces.length){
+    box.innerHTML='<div class="v5Minor" style="padding:8px 4px">No captured traces</div>';
+    return;
+  }
+  box.innerHTML=tfTraces.map((t,i)=>
+    '<div class="v5TraceRow">'+
+      '<span class="v5TraceNum">'+(i+1)+'</span>'+
+      '<span class="v5TraceName" style="color:'+t.color+'">'+escapeHtml(t.name)+'</span>'+
+      '<span class="v5Eye">◉</span>'+
+    '</div>').join('');
+}
+function v5InitWorkspace(){
+  document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.addEventListener('click',()=>{
+    const m=b.dataset.v5mode; v5SetTab(m);
+    if(m==='rta'){ closeModals(); setTfOverlay(false); setMode('rta'); }
+    else if(m==='spec'){ closeModals(); setTfOverlay(false); setMode('spec'); }
+    else if(m==='tf'){ v5OpenTf(); }
+    else if(m==='phase'){ v5OpenTf('phase'); }
+    else if(m==='coh'){ v5OpenTf('coh'); }
+    else if(m==='impulse'){ showModal(dlyPanel); }
+    else if(m==='rt60'){ showModal(rtPanel); }
+    else if(m==='spl'){ showModal(eqPanel); updateEqUI(); }
+    else if(m==='eq'){ showModal(eqPanel); updateEqUI(); }
+  }));
+
+  safeOn('v5AddTrace','click',()=>{ if(!running){v3Toast('הפעל Audio קודם');return;} captureTfTrace(); });
+  safeOn('v5SplAction','click',()=>{ v5SetTab('spl'); showModal(eqPanel); updateEqUI(); });
+  safeOn('v5GenAction','click',()=>{ const b=document.getElementById('genBtn'); if(b)b.click(); });
+  safeOn('v5CaptureAction','click',()=>{ const b=document.getElementById('saveBtn'); if(b)b.click(); });
+
+  // Header TF button now opens the working TF dock instead of only overlaying lines.
+  const oldTf=document.getElementById('tfOverlayHdr');
+  if(oldTf){
+    oldTf.addEventListener('click',e=>{
+      e.stopImmediatePropagation(); e.preventDefault();
+      v5SetTab('tf'); v5OpenTf();
+    },true);
+  }
+
+  // Mirror the important live values into the persistent rail.
+  const watchIds=['peakHz','splNow','calVal'];
+  watchIds.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) new MutationObserver(v5SyncRail).observe(el,{subtree:true,characterData:true,childList:true});
+  });
+  v5RenderTraceRail();
+  v5SyncRail();
+  setInterval(v5SyncRail,900);
+}
+setTimeout(v5InitWorkspace,0);
+
 const HELP={
   mRta:'תצוגת ספקטרום — עוצמה לפי תדר, בזמן אמת.',
   mSpec:'ווטרפול — הספקטרום לאורך זמן.',

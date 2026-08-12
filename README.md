@@ -1,23 +1,17 @@
-# GAL Analyzer V4 — Measurement Workspace
+# GAL Analyzer V5 — Pro Workspace
 
-V4 focuses on real system measurement, not cosmetic changes.
+גרסה שמארגנת מחדש את ממשק העבודה סביב הגרף, בדומה לכלי מדידה מקצועיים.
 
-## Main changes
-- All measurement tools (TF, Delay Finder, RT60, SPL/EQ, Spatial Average) now open as bottom measurement docks, matching the Sub/Top alignment workflow. The graph stays visible.
-- Each dock has a compact working view and an `עוד` button for advanced controls/results.
-- TF main graph now shows the actual transfer magnitude (Measurement / Reference), centered relative to the mid-band, rather than simply drawing the two input spectra.
-- TF Auto Delay is directly available in the TF dock.
-- Live Phase and Coherence toggles are directly available in the TF dock.
-- Capture up to 6 TF traces and compare them on the main graph.
-- Saved TF traces remain visible while measuring the next position/system state.
-- Existing TF phase/coherence gating, Delay Finder, RT60, Sub/Top alignment, EQ, generator, captures, mic calibration and session tools remain available.
+## עיקרי V5
+- Sidebar קבוע משמאל: Peak, Calibration/SPL ו-Traces.
+- שורת מצבים מעל הגרף: RTA, TF, Phase, Coherence, Waterfall, Delay/Impulse, RT60, SPL, EQ.
+- לחיצה על TF פותחת את פאנל המדידה התחתון ומשאירה את הגרף במרכז.
+- כל פאנלי המדידה נשארים Dock תחתון ולא מכסים את הגרף.
+- TF Traces מוצגים גם בסרגל השמאלי, עד 6 עקבות.
+- Header קומפקטי עם Audio/CAL/Resolution ופעולות Generator/Capture.
+- Status bar תחתון למצב Mic/Input/Audio.
+- UI מותאם לדסקטופ, עם fallback למסכים צרים.
 
-## Install
-Upload the CONTENTS of this folder to the root of the GitHub repository and replace the existing files. Then hard-refresh the deployed page.
-
-
-## V4.1 hotfix
-- Fixed measurement dock initialization crash (`insertBefore`).
-- Fixed TF panel initialization safety.
-- Fixed alignment state initialization safety.
-- Added guards so one missing panel cannot stop microphone startup.
+## התקנה
+העלה את כל תוכן התיקייה לשורש ה-repository והחלף את הקבצים הקיימים.
+לא להעלות את התיקייה עצמה כתיקיית משנה.
