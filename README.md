@@ -1,4 +1,7 @@
-# GAL Analyzer V5.4.2 — Layout fix
+# GAL Analyzer V5.4.3 — TF fallback
+
+- TF now falls back to a full-size live RTA graph whenever Input 2 has no reference signal.
+- TF controls use a compact dock by default; deeper options remain under “עוד”.
 
 - Fixed canvas resizing when the I/O dock opens.
 - Target uses the correct dB scale in TF.

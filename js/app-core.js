@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.2-layout-fix',
+    version: 'v5.4.3-tf-fallback',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -914,6 +914,10 @@ function setupMeasureDocks(){
   // heavy/advanced sections stay hidden until "עוד"
   ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','dlyInfo','dlySpk','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
   ['tfSmooth','tfCohGate'].forEach(id=>dockAdvanced(id,1));
+  // TF starts as a compact live workspace. Deep diagnostics and less-frequent
+  // actions move behind "עוד", leaving most of the screen to the graph.
+  dockAdvanced('tfCorrFill',2);
+  ['tfDelayInfo','tfTraceClearBtn','tfSwapBtn','tfOverlayBtn','tfMeasBtn','tfCsvBtn'].forEach(id=>dockAdvanced(id));
   ['eqModeSwitchA','eqModeSeg','cutOnlySeg','areaModeSeg','areaCutSeg','dlyCountSeg','rtLevel','rtRange'].forEach(id=>dockAdvanced(id,1));
   dockAdvanced('tfModeSeg',0);
   // area EQ button is advanced
@@ -1119,6 +1123,14 @@ safeOn('tfTraceBtn','click',captureTfTrace);
 safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast('Traces נוקו');});
 
 function tfMagY(db,plotH){ const range=18; return plotH/2 - Math.max(-range,Math.min(range,db))/range*(plotH*.46); }
+function tfHasReferenceSignal(){
+  if(!floatDataRef || !floatDataRef.length) return false;
+  let peak=-120;
+  // A sparse scan is enough to distinguish an actual reference feed from the
+  // browser's silent floor, without adding work to every audio frame.
+  for(let i=0;i<floatDataRef.length;i+=8) if(floatDataRef[i]>peak) peak=floatDataRef[i];
+  return peak>-85;
+}
 function tfDrawMagnitudeView(W,plotH,nyquist){
   const live=tfCurrentSnapshot(); if(!live) return;
   // TF grid: 0 dB center, ±6/12/18 dB
@@ -2211,7 +2223,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   [0.25,0.5,0.75].forEach(p=>{ctx.globalAlpha=.3;ctx.strokeStyle=sunMode?'#cbd5e1':'#2b3646';ctx.beginPath();ctx.moveTo(0,plotH*p);ctx.lineTo(W,plotH*p);ctx.stroke();ctx.globalAlpha=1;});
 
   const bw=W/BANDS, gap=Math.max(0.5,bw*0.12);
-  const tfOpen = ((tfOverlay || (typeof tfPanel!=='undefined' && tfPanel.classList.contains('open')) || alignOn) && floatDataRef && analyserRef);
+  const tfRequested = (tfOverlay || (typeof tfPanel!=='undefined' && tfPanel.classList.contains('open')) || alignOn) && floatDataRef && analyserRef;
+  const tfOpen = tfRequested && tfHasReferenceSignal();
   
   const qBar = document.getElementById('tfQuickBar');
   if(qBar) qBar.classList.toggle('show', tfOpen);
@@ -2458,6 +2471,14 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       t.values.forEach((v,b)=>{const x=b*bw+bw/2,yy=plotH-v*plotH;b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);});
       ctx.stroke();ctx.globalAlpha=1;
     });
+    if(tfRequested && !alignOn){
+      ctx.save();ctx.font='600 10px monospace';ctx.textAlign='right';
+      const message='TF waiting for Reference · showing RTA live';
+      const w=ctx.measureText(message).width+16;
+      ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(10,20,28,.88)';ctx.fillRect(W-w-8,8,w,24);
+      ctx.strokeStyle=sunMode?'#cbd5e1':'#385064';ctx.strokeRect(W-w-8,8,w,24);
+      ctx.fillStyle=sunMode?'#475569':'#b9c7d3';ctx.fillText(message,W-16,24);ctx.restore();
+    }
   }
 
   // Keep a compact, live RTA readout visible while the main graph is in TF.
@@ -2976,7 +2997,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.2';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.3';
   v3UpdateStatus();
 })();
 (function initAccent(){
