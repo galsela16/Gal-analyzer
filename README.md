@@ -1,4 +1,10 @@
-# GAL Analyzer V5.4.3 — TF fallback
+# GAL Analyzer V5.4.5 — SPL meter layout
+
+- SPL uses the original horizontal meter bar in every measurement mode.
+- The floating graph SPL card has been removed.
+
+- “עוד” in TF stays closed until a real TF measurement is available.
+- After measurement it reveals a rendered EQ correction result, never a blank canvas.
 
 - TF now falls back to a full-size live RTA graph whenever Input 2 has no reference signal.
 - TF controls use a compact dock by default; deeper options remain under “עוד”.

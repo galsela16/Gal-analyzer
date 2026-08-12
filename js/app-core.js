@@ -318,7 +318,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.3-tf-fallback',
+    version: 'v5.4.5-meter-layout',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -904,7 +904,17 @@ function setupMeasureDocks(){
     p.classList.add('measureDock'); if(stageEl) stageEl.appendChild(p);
     const close=p.querySelector('[id$="Close"]'); if(close){close.classList.add('dockClose');close.textContent='✕';close.title='סגור';}
     const more=document.createElement('button');more.className='dockMoreBtn';more.type='button';more.textContent='עוד ▾';
-    more.addEventListener('click',()=>{p.classList.toggle('expanded');more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾';setTimeout(updateMeasureDockHeight,0);});
+    more.addEventListener('click',()=>{
+      // The TF results area has meaning only after an actual two-channel
+      // measurement. Do not expand into a large empty diagnostic canvas.
+      if(p.id==='tfPanel' && !tfResult){
+        v3Toast('כדי לפתוח תוצאות מתקדמות: חבר Reference לערוץ 2 ולחץ “מדוד EQ”.');
+        return;
+      }
+      p.classList.toggle('expanded');
+      more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾';
+      setTimeout(updateMeasureDockHeight,0);
+    });
     if(close && close.parentElement){
       close.parentElement.insertBefore(more,close);
     } else {
@@ -1279,6 +1289,8 @@ function renderTFList(){
   
   showGeqDock('תיקון EQ · דו־ערוצי');
   drawGEQ(document.getElementById('eqCurveCanvas'), GEQ, tfResult.corr);
+  drawGEQ(cv2, GEQ, tfResult.corr);
+  cv2.style.display='block';
   eqCurveData = { freqs: GEQ.slice(), corr: tfResult.corr.slice() };
 
   if(tfMode==='param'){
@@ -2069,12 +2081,6 @@ function updateLevel(){
   document.getElementById('splNow').textContent=fmt(lvl);
   document.getElementById('splLeq').textContent=fmt(leq);
   document.getElementById('splMax').textContent=fmt(splMax);
-  const hudValue=document.getElementById('v54SplValue');
-  const hudDetail=document.getElementById('v54SplDetail');
-  const hudLabel=document.querySelector('#v54SplHud .label');
-  if(hudValue) hudValue.textContent=fmt(lvl)+' dB SPL';
-  if(hudDetail) hudDetail.textContent='Leq '+fmt(leq)+' · Peak '+fmt(splMax);
-  if(hudLabel) hudLabel.textContent='SPL · dB'+weightMode;
 }
 
 let _lastDraw=0;
@@ -2997,7 +3003,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.3';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.5';
   v3UpdateStatus();
 })();
 (function initAccent(){

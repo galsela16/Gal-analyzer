@@ -533,16 +533,6 @@
   body.v54-rail-collapsed{--v5-side:0px}
   body.v54-rail-collapsed #v5SideRail{display:none}
   body.v54-rail-collapsed #v54SideToggle{left:8px}
-  #v54SplHud{
-    position:absolute;z-index:20;right:12px;top:calc(var(--v5-tabs) + 9px);direction:ltr;
-    min-width:150px;padding:8px 10px;border:1px solid #294052;border-radius:6px;
-    background:rgba(8,18,27,.88);backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.28);
-  }
-  #v54SplHud .label{font-size:9px;font-weight:700;letter-spacing:.8px;color:#8fa4b4}
-  #v54SplHud .value{font-size:20px;font-weight:700;color:#e5eef4;font-variant-numeric:tabular-nums;line-height:1.15}
-  #v54SplHud .detail{font-size:9px;color:#8fa4b4;margin-top:2px}
-  body.sun-mode #v54SplHud{background:rgba(255,255,255,.91);border-color:#bfd0dd}
-  body.sun-mode #v54SplHud .value{color:#0f172a}
   body.sun-mode #v54SideToggle{background:#fff;color:#334155;border-color:#bfd0dd}
   .v5ReadCard{
     border:1px solid #1d2b38;background:#0b151e;border-radius:7px;
@@ -603,6 +593,9 @@
     right:10px!important;
     inset-inline:auto!important;
   }
+  #stage.measure-open .meter{bottom:calc(var(--measure-h,0px) + 8px)!important}
+  #stage.v52-io-open .meter{bottom:calc(var(--v52-io-h,0px) + 8px)!important}
+  #stage.v53-gen-open .meter{bottom:calc(var(--v53-gen-h,0px) + 8px)!important}
 
   /* measurement docks */
   .measureDock{
@@ -704,8 +697,6 @@
     .measureDock{max-height:48vh!important}
     header h1{font-size:12px}
     #swatches{display:none}
-    #v54SplHud{right:8px;min-width:128px;padding:6px 8px}
-    #v54SplHud .value{font-size:17px}
   }
 
 
@@ -1139,7 +1130,6 @@
       <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
     </aside>
     <button id="v54SideToggle" type="button" title="הסתר/הצג סרגל צד" aria-label="הסתר או הצג סרגל צד">‹</button>
-    <div id="v54SplHud" aria-label="SPL Meter"><div class="label">SPL · Z</div><div class="value" id="v54SplValue">— dB</div><div class="detail" id="v54SplDetail">Leq — · Peak —</div></div>
 
     
     <!-- Quick Floating Bar for Live TF Mode -->
@@ -1680,7 +1670,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.3</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.5</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
