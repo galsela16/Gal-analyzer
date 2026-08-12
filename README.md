@@ -1,4 +1,7 @@
-# GAL Analyzer V5.4.15 — Open TF workspace
+# GAL Analyzer V5.4.16 — Clear Delay + dual-input TF
+
+- Delay is arranged as inputs → measure → speaker alignment.
+- TF keeps Mic 1 and Reference 2 live spectra visible together under the TF response.
 
 - “עוד” in TF is always available; before a result exists it shows clear next-step guidance instead of a blank results area.
 

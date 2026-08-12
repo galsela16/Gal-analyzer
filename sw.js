@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-15-tf-advanced-always-open-20260812';
+const CACHE = 'gal-analyzer-v5-4-16-delay-layout-dual-input-tf-20260812';
 const ASSETS = [
   './',
   './index.html',

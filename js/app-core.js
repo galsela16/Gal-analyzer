@@ -4,7 +4,7 @@ let viewMin=20, viewMax=20000;
 let curBpo=6;
 let ISO=[], BANDS=0, R=1;
 let peaks=[];
-let avgBuf=[], snapCurve=null, lastV=[], lastBandDb=[], frozen=false;
+let avgBuf=[], snapCurve=null, lastV=[], lastRefV=[], lastBandDb=[], frozen=false;
 let refCurve=null;
 let abA=null, abB=null, abView='off';
 let sunMode=false;
@@ -43,6 +43,7 @@ function buildBands(bpo){
   peaks=new Array(BANDS).fill(0);
   avgBuf=new Array(BANDS).fill(0);
   lastV=new Array(BANDS).fill(0);
+  lastRefV=new Array(BANDS).fill(0);
   lastBandDb=new Array(BANDS).fill(-120);
   snapCurve=null; frozen=false;
   refCurve=null;
@@ -318,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.15-tf-advanced-always-open',
+    version: 'v5.4.16-delay-layout-dual-input-tf',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2270,6 +2271,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     if(!_pfxRef || _pfxRef.length!==bins+1) _pfxRef=new Float64Array(bins+1);
     { let acc=0; _pfxRef[0]=0; for(let i=0;i<bins;i++){ acc+=db2lin(floatDataRef[i]); _pfxRef[i+1]=acc; } }
     const refBandDb=(fLo,fHi)=>{ let lo=Math.floor(fLo/nyquist*bins),hi=Math.ceil(fHi/nyquist*bins); lo=Math.max(0,lo);hi=Math.min(bins-1,hi);if(hi<lo)hi=lo; return 10*Math.log10((_pfxRef[hi+1]-_pfxRef[lo])+1e-12); };
+    for(let b=0;b<BANDS;b++) lastRefV[b]=norm(refBandDb(ISO[b]/R,ISO[b]*R));
     
     computeComplexTf();
     if(!alignView){ tfDrawMagnitudeView(W,plotH,nyquist); }
@@ -2491,11 +2493,10 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     }
   }
 
-  // Keep a compact, live RTA readout visible while the main graph is in TF.
-  // TF remains the primary plot; this strip confirms that the measurement
-  // microphone is still receiving spectrum data during dual-channel work.
+  // Live two-channel input view: the TF response remains the main plot, while
+  // this strip keeps Mic 1 and Reference 2 visible on the same frequency axis.
   if(tfOpen && !alignOn){
-    const stripH=Math.max(44,Math.min(64,plotH*.16));
+    const stripH=Math.max(58,Math.min(82,plotH*.22));
     const stripY=plotH-stripH;
     ctx.save();
     ctx.fillStyle=sunMode?'rgba(248,250,252,.88)':'rgba(4,12,19,.78)';
@@ -2503,13 +2504,18 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.strokeStyle=sunMode?'rgba(15,23,42,.22)':'rgba(148,163,184,.25)';
     ctx.beginPath();ctx.moveTo(0,stripY);ctx.lineTo(W,stripY);ctx.stroke();
     for(let b=0;b<BANDS;b++){
-      const x=b*bw+gap/2,barW=Math.max(1,bw-gap);
-      const h=Math.max(0,Math.min(stripH-13,lastV[b]*(stripH-13)));
-      ctx.fillStyle='rgba('+accentRgb[0]+','+accentRgb[1]+','+accentRgb[2]+',.72)';
-      ctx.fillRect(x,stripY+stripH-h,barW,h);
+      const x=b*bw+gap/2,barW=Math.max(2,bw-gap), innerGap=Math.min(2,barW*.14), half=Math.max(1,(barW-innerGap)/2);
+      const micH=Math.max(0,Math.min(stripH-16,lastV[b]*(stripH-16)));
+      const refH=Math.max(0,Math.min(stripH-16,lastRefV[b]*(stripH-16)));
+      ctx.fillStyle='rgba(56,189,248,.78)';
+      ctx.fillRect(x,stripY+stripH-micH,half,micH);
+      ctx.fillStyle='rgba(245,158,11,.78)';
+      ctx.fillRect(x+half+innerGap,stripY+stripH-refH,half,refH);
     }
     ctx.fillStyle=sunMode?'#334155':'#b8c8d4';ctx.font='700 9px monospace';ctx.textAlign='left';
-    ctx.fillText('RTA LIVE · MIC',7,stripY+11);
+    ctx.fillStyle='#38bdf8';ctx.fillText('■ MIC 1',7,stripY+11);
+    ctx.fillStyle='#f59e0b';ctx.fillText('■ REF 2',62,stripY+11);
+    ctx.fillStyle=sunMode?'#64748b':'#8fa1af';ctx.fillText('LIVE INPUTS',116,stripY+11);
     ctx.restore();
   }
 
@@ -3007,7 +3013,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.15';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.16';
   v3UpdateStatus();
 })();
 (function initAccent(){
