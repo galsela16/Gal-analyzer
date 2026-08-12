@@ -1,19 +1,28 @@
-# GAL Analyzer V5.1 — Clean UI
+# GAL Analyzer V5.2 — Clean Bottom Bar + I/O Dock
 
-## מה השתנה
-- ניקוי כפילויות:
-  - Phase ו-Coherence נשארו בתוך TF ולא מופיעים גם כמצבי ניווט נפרדים.
-  - SPL ו-EQ אוחדו ל-SPL / EQ.
-  - קיצורי המדידה הישנים בתחתית מוסתרים; הניווט הראשי הוא השורה מעל הגרף.
-  - TF Quick Bar הישן מוסתר כי אותן פעולות קיימות בפאנל TF.
-  - כפתור 'הצג על הגרף' ב-TF הוסר מהממשק כי מצב TF כבר מציג את המדידה.
-  - Sub / Top עבר לניווט הראשי.
-- מצב יום מכסה עכשיו גם את Sidebar, שורת המצבים, פאנלי המדידה, Footer, Status Bar והכפתורים החדשים.
-- Target Curve:
-  - כפתור Target קבוע מעל הגרף.
-  - אפשר להציג/להסתיר בלי לשנות את סוג היעד Flat / House.
-  - הבחירה נשמרת בין פתיחות.
-- שמרנו את כל פונקציות המדידה הקיימות.
+## שינוי מרכזי
+הפאנל התחתון הישן הוחלף ב-Quick Bar קומפקטי:
+- MIC 1 + level
+- REF 2 + level
+- Sample Rate
+- FFT
+- Calibration status
+- I/O
+- Generator
+- Freeze
+- Capture
 
-## התקנה
-העלה את כל הקבצים שבתוך ה-ZIP לשורש הריפו והחלף את הקיימים.
+## I/O Dock
+לחיצה על I/O פותחת Dock מסודר עם:
+- Audio Device
+- Measurement / Reference channels
+- meters לשני הערוצים
+- Sample Rate
+- FFT Size
+- RTA Resolution
+- Mic Calibration
+- SPL Offset
+- Meter Unit
+- Advanced I/O כגשר זמני להגדרות הישנות
+
+ה-controls הישנים נשארו ב-DOM כדי לא לשבור פונקציות קיימות, אבל אינם מוצגים בממשק הראשי.

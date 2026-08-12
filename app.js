@@ -3063,6 +3063,139 @@ function v5InitWorkspace(){
 }
 setTimeout(v5InitWorkspace,0);
 
+
+/* ===== V5.2 Clean Bottom Bar + I/O Dock ===== */
+let v52IoOpen=false;
+
+function v52SetIo(open){
+  v52IoOpen=!!open;
+  const dock=document.getElementById('v52IODock');
+  const stage=document.getElementById('stage');
+  const btn=document.getElementById('v52IoBtn');
+  if(dock) dock.classList.toggle('open',v52IoOpen);
+  if(stage){
+    stage.classList.toggle('v52-io-open',v52IoOpen);
+    if(v52IoOpen && dock){
+      requestAnimationFrame(()=>stage.style.setProperty('--v52-io-h',Math.ceil(dock.getBoundingClientRect().height)+'px'));
+    }
+  }
+  if(btn) btn.classList.toggle('on',v52IoOpen);
+  if(v52IoOpen){
+    closeModals();
+    setAlign(false);
+    v52RefreshDevices();
+  }
+  setTimeout(()=>{ if(typeof resize==='function')resize(); },0);
+}
+
+async function v52RefreshDevices(){
+  const sel=document.getElementById('v52DeviceSelect'); if(!sel || !navigator.mediaDevices?.enumerateDevices)return;
+  try{
+    const devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
+    const cur=sel.value;
+    sel.innerHTML='';
+    if(!devs.length){
+      const o=document.createElement('option');o.textContent='Default browser input';o.value='';sel.appendChild(o);
+    }else{
+      devs.forEach((d,i)=>{
+        const o=document.createElement('option');
+        o.value=d.deviceId;o.textContent=d.label||('Audio Input '+(i+1));sel.appendChild(o);
+      });
+      if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+    }
+  }catch(e){}
+}
+
+function v52DbToPct(db){
+  if(!Number.isFinite(db))return 0;
+  return Math.max(0,Math.min(100,(db+72)/72*100));
+}
+function v52UpdateUi(){
+  const measDb=Number.isFinite(lastLeq)?lastLeq:null;
+  let refDb=null;
+  if(analyserRef && refFreq){
+    let mx=-120;
+    for(let i=0;i<refFreq.length;i++) if(refFreq[i]>mx)mx=refFreq[i];
+    refDb=mx;
+  }
+
+  const mTxt=measDb===null?'—':measDb.toFixed(1)+' dB';
+  const rTxt=refDb===null?'—':refDb.toFixed(1)+' dBFS';
+  const mm=document.getElementById('v52MeasDb'); if(mm)mm.textContent=mTxt;
+  const rm=document.getElementById('v52RefDb'); if(rm)rm.textContent=rTxt;
+  const mq=document.getElementById('v52MeasQuick'); if(mq)mq.textContent=mTxt;
+  const rq=document.getElementById('v52RefQuick'); if(rq)rq.textContent=rTxt;
+  const mf=document.getElementById('v52MeasMeter'); if(mf)mf.style.width=v52DbToPct(measDb)+'%';
+  const rf=document.getElementById('v52RefMeter'); if(rf)rf.style.width=v52DbToPct(refDb)+'%';
+
+  const ml=document.getElementById('v52MeasLed');
+  const rl=document.getElementById('v52RefLed');
+  if(ml){ml.classList.toggle('live',running);ml.classList.toggle('clip',Number.isFinite(measDb)&&measDb>-1);}
+  if(rl){rl.classList.toggle('live',!!analyserRef);rl.classList.toggle('clip',Number.isFinite(refDb)&&refDb>-1);}
+
+  const sr=audioCtx?audioCtx.sampleRate:0;
+  const srq=document.getElementById('v52SrQuick'); if(srq)srq.textContent=sr?(Math.round(sr/100)/10+' kHz'):'— kHz';
+  const srf=document.getElementById('v52SampleRate'); if(srf)srf.value=sr?(sr+' Hz'):'—';
+  const fq=document.getElementById('v52FftQuick'); if(fq)fq.textContent='FFT '+fftSize;
+
+  const calq=document.getElementById('v52CalQuick');
+  if(calq)calq.textContent=micCal?'CAL ✓':(meterUnit==='dBFS'?'dBFS':'CAL '+(calib>=0?'+':'')+calib.toFixed(1));
+  const mc=document.getElementById('v52MicCalState');
+  if(mc){
+    const active=(micCalList.find(x=>x.id===activeCalId)||{}).name;
+    mc.textContent=micCal?(active||'Loaded'):'None';
+    mc.style.color=micCal?'#6fd994':'';
+  }
+  const sc=document.getElementById('v52SplCalState'); if(sc)sc.textContent=(calib>=0?'+':'')+calib.toFixed(1)+' dB';
+  const us=document.getElementById('v52UnitState'); if(us)us.textContent=meterUnit;
+  const as=document.getElementById('v52AudioState'); if(as){as.textContent=running?'Running':'Stopped';as.style.color=running?'#6fd994':'';}
+
+  const fs=document.getElementById('v52FftSelect'); if(fs && document.activeElement!==fs)fs.value=String(fftSize);
+  const rs=document.getElementById('v52ResSelect'); if(rs && document.activeElement!==rs)rs.value=String(curBpo);
+
+  const fr=document.getElementById('v52FreezeBtn'); if(fr)fr.classList.toggle('on',frozen);
+}
+
+function v52Init(){
+  safeOn('v52IoBtn','click',()=>v52SetIo(!v52IoOpen));
+  safeOn('v52IOClose','click',()=>v52SetIo(false));
+  safeOn('v52GenBtn','click',()=>{const b=document.getElementById('genBtn');if(b)b.click();});
+  safeOn('v52FreezeBtn','click',()=>{const b=document.getElementById('freezeBtn');if(b)b.click();setTimeout(v52UpdateUi,0);});
+  safeOn('v52CaptureBtn','click',()=>{const b=document.getElementById('saveBtn');if(b)b.click();});
+  safeOn('v52OpenMicCal','click',()=>{v52SetIo(false);const b=document.getElementById('micCalBtn');if(b)b.click();});
+  safeOn('v52OpenOldIo','click',()=>{
+    v52SetIo(false);
+    const tab=document.querySelector('.tab[data-p="io"]');
+    if(tab)tab.click();
+    v3Toast('Advanced I/O זמין זמנית בתחתית');
+  });
+  safeOn('v52UnitToggle','click',()=>{
+    const next=meterUnit==='dBFS'?'dB SPL':'dBFS';
+    const b=[...document.querySelectorAll('#unitSeg button')].find(x=>x.dataset.u===next);
+    if(b)b.click();
+    v52UpdateUi();
+  });
+  safeOn('v52FftSelect','change',e=>{
+    const n=parseInt(e.target.value,10);
+    const old=document.getElementById('fft');
+    if(old){old.value=String(n);old.dispatchEvent(new Event('change',{bubbles:true}));}
+    else setFft(n);
+    v52UpdateUi();
+  });
+  safeOn('v52ResSelect','change',e=>{
+    const old=document.getElementById('res');
+    if(old){old.value=e.target.value;old.dispatchEvent(new Event('input',{bubbles:true}));}
+    v52UpdateUi();
+  });
+  safeOn('v52DeviceSelect','change',()=>v3Toast('בחירת Device תיכנס בהפעלת Audio הבאה'));
+
+  if(navigator.mediaDevices?.addEventListener)navigator.mediaDevices.addEventListener('devicechange',v52RefreshDevices);
+  v52RefreshDevices();
+  v52UpdateUi();
+  setInterval(v52UpdateUi,500);
+}
+setTimeout(v52Init,0);
+
 const HELP={
   mRta:'תצוגת ספקטרום — עוצמה לפי תדר, בזמן אמת.',
   mSpec:'ווטרפול — הספקטרום לאורך זמן.',
