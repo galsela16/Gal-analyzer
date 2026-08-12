@@ -5,9 +5,19 @@ export const state = {
 
   smoothing: 0.85,
 
-  data: {
+  rta: {
+    bandsPerOctave: 3,
+
     current: null,
     smooth: null,
-    peak: null
+    peak: null,
+
+    peakHoldMs: 1500,
+    peakDecayDbPerSecond: 12
+  },
+
+  data: {
+    current: null,
+    smooth: null
   }
 };
