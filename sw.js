@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-17-workspace-panel-switching-20260812';
+const CACHE = 'gal-analyzer-v5-4-18-delay-panel-hard-close-20260812';
 const ASSETS = [
   './',
   './index.html',

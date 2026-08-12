@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.17 — Clean workspace switching
+# GAL Analyzer V5.4.18 — Delay hard-close
+
+- Delay is forcibly closed and hidden as soon as any non-Delay workspace is selected.
 
 - Changing measurement modes always closes the previous dock before the next workspace opens.
 

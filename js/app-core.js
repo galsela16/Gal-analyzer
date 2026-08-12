@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.17-workspace-panel-switching',
+    version: 'v5.4.18-delay-panel-hard-close',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3013,7 +3013,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.17';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.18';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3055,6 +3055,14 @@ function v5SyncTargetToggle(){
 
 function v5SetTab(mode){
   v5WorkspaceMode=mode;
+  document.body.dataset.v5Workspace=mode;
+  if(mode!=='delay'){
+    const delayDock=document.getElementById('dlyPanel');
+    if(delayDock) delayDock.classList.remove('open','expanded');
+    // The graph must reclaim the dock height immediately, even if a previous
+    // click left Delay's state behind.
+    if(typeof updateMeasureDockHeight==='function') requestAnimationFrame(updateMeasureDockHeight);
+  }
   document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
   const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis');
 }
