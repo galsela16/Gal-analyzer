@@ -229,6 +229,7 @@ safeOn('qbPhase', 'click', function(){
   if(mainBtn) mainBtn.classList.toggle('on', showTfPhase);
 });
 safeOn('tfAutoDelayBtn','click',tfAutoDelay);
+safeOn('v52AutoDelayBtn','click',tfAutoDelay);
 safeOn('tfCohToggleBtn','click',function(){
   showTfCoh=!showTfCoh; this.classList.toggle('on',showTfCoh);
   const q=document.getElementById('qbCoh'); if(q) q.classList.toggle('on',showTfCoh);
@@ -240,7 +241,9 @@ safeOn('tfPhaseToggleBtn','click',function(){
 
 
 function tfAutoDelay(){
-  if(!running || !analyserRef){ alert('הפעל כרטיס קול סטריאו (מיקרופון + רפרנס).'); return; }
+  const globalBtn=document.getElementById('v52AutoDelayBtn');
+  if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
+  if(globalBtn){globalBtn.classList.add('on');globalBtn.textContent='⏱ מודד…';}
   
   const m = tfSwap ? timeDataRef : timeData;
   const r = tfSwap ? timeData : timeDataRef;
@@ -248,14 +251,17 @@ function tfAutoDelay(){
   
   const res = computeDelay(r, m, sr);
   if(!res || res.ms < 0){
-    alert('לא זוהה דיליי ברור. ודא ששני הערוצים מקבלים אות יציב.');
+    if(globalBtn){globalBtn.classList.remove('on');globalBtn.textContent='⏱ Auto Delay';}
+    v3Toast('לא זוהה דיליי ברור — ודא ששני הערוצים מקבלים אות יציב');
     return;
   }
   
   tfDelayMs = res.ms;
   tfDelaySamples = res.samples;
   const dist = (tfDelayMs / 1000) * 343;
-  document.getElementById('tfDelayInfo').textContent = `סנכרון דיליי TF: ${tfDelayMs.toFixed(2)} ms (~${dist.toFixed(2)}m)`;
+  const info=document.getElementById('tfDelayInfo');if(info)info.textContent = `דיליי פעיל: ${tfDelayMs.toFixed(2)} ms (~${dist.toFixed(2)}m)`;
+  if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`Delay ${tfDelayMs.toFixed(2)} ms`;}
+  prefSet('rta_tf_delay',tfDelayMs);v3Toast(`Auto Delay: ${tfDelayMs.toFixed(2)} ms`);
 }
 
 safeOn('fbSens', 'input',e=>{
@@ -319,7 +325,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.34-eq-workspace-open',
+    version: 'v5.4.36-global-auto-delay',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -723,6 +729,13 @@ function openLatestEqWorkspace(){
   }));
   return true;
 }
+window.openLatestEqWorkspaceFromRail=function(event){
+  if(event){event.preventDefault();event.stopPropagation();}
+  const button=document.getElementById('v5EqWorkspace');if(button)button.classList.add('on');
+  const opened=openLatestEqWorkspace();
+  if(button)setTimeout(()=>button.classList.remove('on'),350);
+  return false;
+};
 function hideGeqDock(){ const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
 function syncGeqBtn(){
   const b=document.getElementById('geqShowBtn'), d=document.getElementById('geqDock');
@@ -3085,7 +3098,8 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.34';
+  const savedDelay=parseFloat(lsGet('rta_tf_delay'));if(Number.isFinite(savedDelay)&&savedDelay>=0){tfDelayMs=savedDelay;const gb=document.getElementById('v52AutoDelayBtn');if(gb&&tfDelayMs){gb.textContent=`Delay ${tfDelayMs.toFixed(2)} ms`;gb.classList.add('has-result');}const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`דיליי פעיל: ${tfDelayMs.toFixed(2)} ms`;}
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.36';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3243,7 +3257,6 @@ function v5InitWorkspace(){
   safeOn('v54SideToggle','click',()=>v54SetSideRail(document.body.classList.contains('v54-rail-collapsed')));
 
   safeOn('v5AddTrace','click',captureWorkspaceTrace);
-  safeOn('v5EqWorkspace','click',openLatestEqWorkspace);
   safeOn('v5ResetSession','click',()=>{
     if(confirm('לאפס את הסשן? הפעולה תנקה מדידות, Traces ותוצאות EQ.')){resetSession();v3Toast('הסשן אופס');}
   });
@@ -3503,6 +3516,7 @@ const HELP={
   v5ResetSession:'מאפס מדידות, Traces ותוצאות EQ לאחר בקשת אישור.',
   v54SideToggle:'פותח או סוגר את סרגל המדידות בצד שמאל.',
   v52IoBtn:'I/O: בחירת כרטיס קול, ערוצים, רזולוציה וכיול.',
+  v52AutoDelayBtn:'Auto Delay כללי: מודד את הפרש הזמן בין MIC 1 ל-REF 2 מכל מצב ומחיל אותו על מנוע ה-TF.',
   v52GenBtn:'פותח את הגנרטור בתחתית בלי לכסות את הגרף.',
   v52FreezeBtn:'מקפיא או מחזיר לפעולה את התצוגה החיה.',
   v52CaptureBtn:'פותח את אזור השמירה והלכידות.',

@@ -1,4 +1,8 @@
-# GAL Analyzer V5.4.34 — Reliable EQ workspace button
+# GAL Analyzer V5.4.36 — Global Auto Delay
+
+- Auto Delay now lives in the persistent bottom bar next to I/O, works from every measurement view, shows the measured result on its button and leaves only a read-only active-delay status inside TF.
+
+- The rail EQ button now uses a direct, explicit action in the HTML rather than depending on the later workspace initialization sequence. It also shows immediate press feedback.
 
 - The left-rail EQ button now resolves the latest result from TF, SPL or spatial measurements, raises the workspace above measurement docks and redraws only after its canvas is visible.
 

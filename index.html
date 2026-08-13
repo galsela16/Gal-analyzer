@@ -1046,6 +1046,7 @@
   .v52QuickBtn:hover{border-color:var(--accent);color:var(--accent)}
   .v52QuickBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.11)}
   .v52QuickBtn.danger.on{border-color:#ff5968;color:#ff7180;background:rgba(255,89,104,.08)}
+  #v52AutoDelayBtn.has-result{border-color:#42d57b;color:#42d57b;background:rgba(66,213,123,.08);font-variant-numeric:tabular-nums}
   #v52QuickSpacer{flex:1;min-width:4px}
 
   #v52IODock{
@@ -1254,7 +1255,7 @@
       <div class="v5RailTitle">Traces</div>
       <div id="v5TraceList"></div>
       <button id="v5AddTrace">＋ Capture Trace</button>
-      <button id="v5EqWorkspace" class="v5RailTool">EQ · תצוגת תיקונים</button>
+      <button id="v5EqWorkspace" class="v5RailTool" type="button" onclick="return window.openLatestEqWorkspaceFromRail(event)">EQ · תצוגת תיקונים</button>
       <button id="v5ResetSession" class="v5RailTool">↺ איפוס סשן</button>
       <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
     </aside>
@@ -1450,7 +1451,7 @@
         <div id="tfCorrStatus"><span id="tfCorrTip" style="color:var(--dim)">ממתין לאות בשני הערוצים</span><span>טווח: ‎−1.00 עד ‎+1.00</span></div>
       </div>
       <div id="tfBtns">
-        <button class="toggle" id="tfAutoDelayBtn">⏱ Auto Delay</button>
+        <button class="toggle" id="tfAutoDelayBtn" style="display:none">⏱ Auto Delay</button>
         <button class="toggle" id="tfPhaseToggleBtn">Phase</button>
         <button class="toggle" id="tfCohToggleBtn">Coh</button>
         <button class="toggle" id="tfTraceBtn">לכוד Trace</button>
@@ -1647,6 +1648,7 @@
       </div>
       <div class="v52QuickGroup">
         <button class="v52QuickBtn" id="v52IoBtn" type="button" onclick="v52SetIo(!v52IoOpen)">I/O</button>
+        <button class="v52QuickBtn" id="v52AutoDelayBtn" type="button">⏱ Auto Delay</button>
         <button class="v52QuickBtn" id="v52GenBtn" type="button" onclick="v53SetGeneratorDock(!genPanel.classList.contains('open'))">Generator</button>
       </div>
       <div id="v52QuickSpacer"></div>
@@ -1815,7 +1817,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.34</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.36</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
