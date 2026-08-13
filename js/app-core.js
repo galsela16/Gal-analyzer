@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.33-day-help-coverage',
+    version: 'v5.4.34-eq-workspace-open',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -704,6 +704,24 @@ function showGeqDock(title){
   const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent='▼';
   syncGeqBtn();
   const t=document.getElementById('geqDockTitle'); if(t&&title) t.textContent=title;
+}
+function latestEqWorkspace(){
+  if(eqCurveData&&eqCurveData.freqs&&eqCurveData.corr)return {data:eqCurveData,title:document.getElementById('geqDockTitle')?.textContent||'תיקון EQ'};
+  if(tfResult&&tfResult.corr)return {data:{freqs:GEQ.slice(),corr:tfResult.corr.slice()},title:'תיקון EQ · דו־ערוצי'};
+  if(lastEqCorr)return {data:{freqs:GEQ.slice(),corr:lastEqCorr.slice()},title:'תיקון EQ · חד־ערוצי'};
+  return null;
+}
+function openLatestEqWorkspace(){
+  const latest=latestEqWorkspace();
+  if(!latest){v3Toast('עדיין אין תוצאת EQ — בצע מדידה קודם');return false;}
+  eqCurveData={freqs:latest.data.freqs.slice(),corr:latest.data.corr.slice()};
+  showGeqDock(latest.title);
+  const dock=document.getElementById('geqDock');if(dock){dock.style.display='block';dock.classList.remove('collapsed');}
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const canvas=document.getElementById('eqCurveCanvas');if(canvas)drawGEQ(canvas,eqCurveData.freqs,eqCurveData.corr);
+    syncGeqBtn();
+  }));
+  return true;
 }
 function hideGeqDock(){ const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
 function syncGeqBtn(){
@@ -3067,7 +3085,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.33';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.34';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3225,11 +3243,7 @@ function v5InitWorkspace(){
   safeOn('v54SideToggle','click',()=>v54SetSideRail(document.body.classList.contains('v54-rail-collapsed')));
 
   safeOn('v5AddTrace','click',captureWorkspaceTrace);
-  safeOn('v5EqWorkspace','click',()=>{
-    if(!eqCurveData){v3Toast('עדיין אין תוצאת EQ — בצע מדידה קודם');return;}
-    const dock=document.getElementById('geqDock');
-    if(dock){dock.style.display='block';dock.classList.remove('collapsed');document.getElementById('geqDockToggle').textContent='▼';drawGEQ(document.getElementById('eqCurveCanvas'),eqCurveData.freqs,eqCurveData.corr);syncGeqBtn();}
-  });
+  safeOn('v5EqWorkspace','click',openLatestEqWorkspace);
   safeOn('v5ResetSession','click',()=>{
     if(confirm('לאפס את הסשן? הפעולה תנקה מדידות, Traces ותוצאות EQ.')){resetSession();v3Toast('הסשן אופס');}
   });

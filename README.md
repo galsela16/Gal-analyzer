@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.33 — Complete day and help modes
+# GAL Analyzer V5.4.34 — Reliable EQ workspace button
+
+- The left-rail EQ button now resolves the latest result from TF, SPL or spatial measurements, raises the workspace above measurement docks and redraws only after its canvas is visible.
 
 - Day mode now covers correlation, measurement cards, advanced TF/Delay content, global EQ controls, rail tools, generator controls and help tooltips.
 - Help mode includes the newer workspace, I/O, EQ, Trace and TF controls and provides an automatic explanation fallback for controls without custom help text.
