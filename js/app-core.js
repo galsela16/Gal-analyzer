@@ -330,7 +330,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.39-delay-engine-fix',
+    version: 'v5.4.40-eq-engine-fix',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -667,23 +667,42 @@ function targetDb(f){
 }
 
 function clampCorrBand(f, raw){
-  const maxBoost = cutOnly ? 0 : (f>500?1.5:4);
-  const maxCut   = f>500?-4:-9;
+  const maxBoost = cutOnly ? 0 : (f>500?1.5:3);
+  const maxCut   = f<160?-6:-4;
   return Math.max(maxCut, Math.min(maxBoost, raw));
 }
 function eqOffset(resp, rel){
-  let os=0,on=0;
-  for(let k=0;k<GEQ.length;k++){ if(rel[k] && GEQ[k]>=200 && GEQ[k]<=4000){ os+=resp[k]-targetDb(GEQ[k]); on++; } }
-  return on?os/on:0;
+  const values=[];
+  for(let k=0;k<GEQ.length;k++) if(rel[k]&&GEQ[k]>=200&&GEQ[k]<=4000) values.push(resp[k]-targetDb(GEQ[k]));
+  if(!values.length)return 0;
+  values.sort((a,b)=>a-b);
+  const mid=values.length>>1;
+  return values.length%2?values[mid]:(values[mid-1]+values[mid])/2;
+}
+function smoothEqResponse(resp){
+  let out=resp.slice();
+  for(let pass=0;pass<2;pass++) out=out.map((v,k)=>{
+    if(k===0||k===out.length-1)return v;
+    return out[k-1]*.25+v*.5+out[k+1]*.25;
+  });
+  return out;
 }
 function buildCorr(resp, rel){
-  const off=eqOffset(resp, rel);
-  return GEQ.map((f,k)=> rel[k] ? clampCorrBand(f, -(resp[k]-targetDb(f)-off)) : null);
+  const shaped=smoothEqResponse(resp);
+  const off=eqOffset(shaped, rel);
+  return GEQ.map((f,k)=>{
+    if(!rel[k])return null;
+    let raw=-(shaped[k]-targetDb(f)-off)*.75;
+    if(Math.abs(raw)<.75)raw=0;
+    return clampCorrBand(f,raw);
+  });
 }
 
 function relByLevel(resp){
-  const maxR=Math.max(...resp);
-  return GEQ.map((f,k)=> resp[k]>maxR-30 && f>=40 && f<=16000);
+  const mid=resp.filter((v,k)=>GEQ[k]>=125&&GEQ[k]<=8000&&Number.isFinite(v));
+  const sorted=mid.slice().sort((a,b)=>a-b);
+  const reference=sorted.length?sorted[Math.floor(sorted.length/2)]:Math.max(...resp);
+  return GEQ.map((f,k)=> Number.isFinite(resp[k])&&resp[k]>reference-35&&f>=40&&f<=16000);
 }
 
 function corrGridHtml(corr, rel){
@@ -1113,12 +1132,7 @@ function measureArea(){
   updateAreaMeasBtn();
   setTimeout(()=>{
     const bins=areaAccum.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
-    const db=GEQ.map(fc=>{
-      let lo=Math.floor((fc/R6)/nyq*bins), hi=Math.ceil((fc*R6)/nyq*bins);
-      lo=Math.max(0,lo);hi=Math.min(bins-1,hi);if(hi<lo)hi=lo;
-      let p=0; for(let i=lo;i<=hi;i++) p+=areaAccum[i]/Math.max(1,areaFrames);
-      return 10*Math.log10(p+1e-12);
-    });
+    const db=GEQ.map(fc=>10*Math.log10(binOverlapLinearPower(areaAccum,fc/R6,fc*R6,nyq,areaFrames)+1e-12));
     const idx=areas.length;
     areas.push({name:AREA_NAMES[idx], color:AREA_COLORS[idx], db, show:true});
     areaState='idle'; updateAreaMeasBtn(); renderAreaList();
@@ -1358,11 +1372,11 @@ function tfCompute(){
   const bins=tfMic.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
   const H=[], refB=[]; let refMax=-999;
   for(let k=0;k<GEQ.length;k++){
-    const fc=GEQ[k]; let lo=Math.floor((fc/R6)/nyq*bins), hi=Math.ceil((fc*R6)/nyq*bins);
-    lo=Math.max(0,lo);hi=Math.min(bins-1,hi);if(hi<lo)hi=lo;
-    let pm=0,pr=0; for(let i=lo;i<=hi;i++){ pm+=tfMic[i]; pr+=tfRef[i]; }
-    const micDb=10*Math.log10(pm/tfFrames+1e-12);
-    refB[k]=10*Math.log10(pr/tfFrames+1e-12);
+    const fc=GEQ[k];
+    const pm=binOverlapLinearPower(tfMic,fc/R6,fc*R6,nyq,tfFrames);
+    const pr=binOverlapLinearPower(tfRef,fc/R6,fc*R6,nyq,tfFrames);
+    const micDb=10*Math.log10(pm+1e-12);
+    refB[k]=10*Math.log10(pr+1e-12);
     H[k]=micDb-refB[k];
     refMax=Math.max(refMax,refB[k]);
   }
@@ -1714,12 +1728,7 @@ function measurePosition(){
   updateEqUI();
   setTimeout(()=>{
     const bins=measAccum.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
-    const db=GEQ.map(fc=>{
-      let lo=Math.floor((fc/R6)/nyq*bins), hi=Math.ceil((fc*R6)/nyq*bins);
-      lo=Math.max(0,lo);hi=Math.min(bins-1,hi);if(hi<lo)hi=lo;
-      let p=0; for(let i=lo;i<=hi;i++) p+=measAccum[i]/Math.max(1,measFrames);
-      return 10*Math.log10(p+1e-12);
-    });
+    const db=GEQ.map(fc=>10*Math.log10(binOverlapLinearPower(measAccum,fc/R6,fc*R6,nyq,measFrames)+1e-12));
     eqPositions.push({name:'מיקום '+(eqPositions.length+1), db}); measState='idle';
     computeAndShow(); updateEqUI(); renderEqList();
   },5000);
@@ -2238,6 +2247,20 @@ function binOverlapPowerDb(data,fLo,fHi,nyquist){
     if(overlap>0 && Number.isFinite(data[i])) power+=db2lin(data[i])*(overlap/binHz);
   }
   return 10*Math.log10(power+1e-12);
+}
+function binOverlapLinearPower(linearData,fLo,fHi,nyquist,divisor){
+  const bins=linearData.length,binHz=nyquist/bins;
+  const lo=Math.max(0,fLo),hi=Math.min(nyquist,fHi);
+  if(!(hi>lo))return 0;
+  const first=Math.max(0,Math.floor(lo/binHz-.5));
+  const last=Math.min(bins-1,Math.ceil(hi/binHz-.5));
+  let power=0;divisor=Math.max(1,divisor||1);
+  for(let i=first;i<=last;i++){
+    const binLo=Math.max(0,(i-.5)*binHz),binHi=Math.min(nyquist,(i+.5)*binHz);
+    const overlap=Math.max(0,Math.min(hi,binHi)-Math.max(lo,binLo));
+    if(overlap>0&&Number.isFinite(linearData[i]))power+=(linearData[i]/divisor)*(overlap/binHz);
+  }
+  return power;
 }
 function calibratedResponseDb(db,f){ return db-(micCal?micCalAt(f):0); }
 function rtaTimeConstant(){
@@ -3199,8 +3222,13 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const savedDelay=parseFloat(lsGet('rta_tf_delay'));if(Number.isFinite(savedDelay)&&savedDelay>=0){tfDelayMs=savedDelay;const gb=document.getElementById('v52AutoDelayBtn');if(gb&&tfDelayMs){gb.textContent=`Delay ${tfDelayMs.toFixed(2)} ms`;gb.classList.add('has-result');}const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`דיליי פעיל: ${tfDelayMs.toFixed(2)} ms`;}
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.39';
+  // Delay values from previous sessions are diagnostic history, not a live
+  // alignment. Never arm TF compensation until both channels are measured now.
+  const savedDelay=parseFloat(lsGet('rta_tf_delay'));if(Number.isFinite(savedDelay)&&savedDelay!==0){
+    const gb=document.getElementById('v52AutoDelayBtn');if(gb){gb.textContent=`Saved ${savedDelay.toFixed(2)} ms`;gb.classList.remove('has-result');}
+    const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`תוצאה קודמת: ${savedDelay.toFixed(2)} ms · נדרשת מדידה חדשה`;
+  }
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.40';
   v3UpdateStatus();
 })();
 (function initAccent(){
