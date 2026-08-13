@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-36-global-auto-delay-20260813';
+const CACHE = 'gal-analyzer-v5-4-37-eq-display-toggle-20260813';
 const ASSETS = [
   './',
   './index.html',

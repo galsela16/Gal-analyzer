@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.36 — Global Auto Delay
+# GAL Analyzer V5.4.37 — EQ display toggle
+
+- The left-rail EQ button now toggles the entire correction workspace on/off. The arrow inside the workspace remains dedicated only to collapsing or expanding its contents.
 
 - Auto Delay now lives in the persistent bottom bar next to I/O, works from every measurement view, shows the measured result on its button and leaves only a read-only active-delay status inside TF.
 

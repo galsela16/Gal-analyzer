@@ -325,7 +325,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.36-global-auto-delay',
+    version: 'v5.4.37-eq-display-toggle',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -731,15 +731,19 @@ function openLatestEqWorkspace(){
 }
 window.openLatestEqWorkspaceFromRail=function(event){
   if(event){event.preventDefault();event.stopPropagation();}
-  const button=document.getElementById('v5EqWorkspace');if(button)button.classList.add('on');
-  const opened=openLatestEqWorkspace();
-  if(button)setTimeout(()=>button.classList.remove('on'),350);
+  const dock=document.getElementById('geqDock');
+  if(dock&&getComputedStyle(dock).display!=='none'){
+    hideGeqDock();v3Toast('תצוגת ה-EQ הוסתרה');return false;
+  }
+  openLatestEqWorkspace();
   return false;
 };
 function hideGeqDock(){ const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
 function syncGeqBtn(){
-  const b=document.getElementById('geqShowBtn'), d=document.getElementById('geqDock');
-  if(b&&d) b.classList.toggle('on', d.style.display!=='none');
+  const legacy=document.getElementById('geqShowBtn'),rail=document.getElementById('v5EqWorkspace'),d=document.getElementById('geqDock');
+  const visible=!!(d&&getComputedStyle(d).display!=='none');
+  if(legacy)legacy.classList.toggle('on',visible);
+  if(rail){rail.classList.toggle('on',visible);rail.textContent=visible?'EQ · הסתר תיקונים':'EQ · תצוגת תיקונים';rail.setAttribute('aria-pressed',visible?'true':'false');}
 }
 safeOn('geqShowBtn', 'click',function(){
   const d=document.getElementById('geqDock');
@@ -3099,7 +3103,7 @@ document.addEventListener('keydown',e=>{
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
   const savedDelay=parseFloat(lsGet('rta_tf_delay'));if(Number.isFinite(savedDelay)&&savedDelay>=0){tfDelayMs=savedDelay;const gb=document.getElementById('v52AutoDelayBtn');if(gb&&tfDelayMs){gb.textContent=`Delay ${tfDelayMs.toFixed(2)} ms`;gb.classList.add('has-result');}const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`דיליי פעיל: ${tfDelayMs.toFixed(2)} ms`;}
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.36';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.37';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3512,7 +3516,7 @@ const HELP={
   v3ResChip:'רזולוציית RTA: בחר 1/3, 1/6, 1/12 או 1/24 אוקטבה.',
   v5TargetToggle:'Target: מציג או מסתיר את עקומת היעד על הגרף.',
   v5AddTrace:'Capture Trace: שומר צילום של העקומה הנוכחית להשוואה.',
-  v5EqWorkspace:'פותח את תוצאת ה-EQ האחרונה מכל מצב מדידה.',
+  v5EqWorkspace:'מציג או מסתיר לחלוטין את תצוגת ה-EQ. החץ שבתוך הפאנל מיועד רק לקיפול התוכן.',
   v5ResetSession:'מאפס מדידות, Traces ותוצאות EQ לאחר בקשת אישור.',
   v54SideToggle:'פותח או סוגר את סרגל המדידות בצד שמאל.',
   v52IoBtn:'I/O: בחירת כרטיס קול, ערוצים, רזולוציה וכיול.',
