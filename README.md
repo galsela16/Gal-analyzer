@@ -1,4 +1,13 @@
-# GAL Analyzer V5.4.29 — Compact EQ actions
+# GAL Analyzer V5.4.33 — Complete day and help modes
+
+- Day mode now covers correlation, measurement cards, advanced TF/Delay content, global EQ controls, rail tools, generator controls and help tooltips.
+- Help mode includes the newer workspace, I/O, EQ, Trace and TF controls and provides an automatic explanation fallback for controls without custom help text.
+
+- The floating MIC 1 / REF 2 panel now starts to the right of the side-rail toggle, keeping the arrow and both level readouts fully visible.
+
+- The TF More/Less and Close controls now have fixed, non-overlapping positions with reserved title space, including on narrow screens.
+
+- Hovering near any point on the EQ correction curve now highlights it and shows frequency, exact dB value and the required action (cut/boost).
 
 - The EQ workspace now uses a middle-density layout: a slightly shorter graph and six compact priority rows containing frequency, action and dB on one line; remaining bands stay under “show more”.
 

@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.29-compact-eq-actions',
+    version: 'v5.4.33-day-help-coverage',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -728,6 +728,22 @@ safeOn('geqDockToggle', 'click',function(){
 });
 function drawGEQ(c, freqs, corr){
   if(c && c.parentElement && c.parentElement.classList.contains('collapsed')) return;
+  c._geqData={freqs,corr};
+  if(c.id==='eqCurveCanvas'&&!c._geqHoverReady){
+    c._geqHoverReady=true;c._geqHover=-1;
+    c.addEventListener('pointermove',e=>{
+      const data=c._geqData;if(!data)return;
+      const rect=c.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+      const W=rect.width,H=132,left=36,right=14,top=17,bot=H-25,mid=(top+bot)/2,range=9;
+      const fMin=Math.max(20,data.freqs[0]),fMax=data.freqs[data.freqs.length-1],plotW=Math.max(1,W-left-right),plotH=bot-top;
+      const fx=f=>left+(Math.log(f/fMin)/Math.log(fMax/fMin))*plotW;
+      const fy=db=>mid-Math.max(-range,Math.min(range,db))*(plotH/2/range);
+      let nearest=-1,best=Infinity;
+      data.freqs.forEach((f,k)=>{const v=data.corr[k];if(v==null||!Number.isFinite(v))return;const d=Math.hypot(mx-fx(f),my-fy(v));if(d<best){best=d;nearest=k;}});
+      const next=best<=18?nearest:-1;if(next!==c._geqHover){c._geqHover=next;drawGEQ(c,data.freqs,data.corr);}
+    });
+    c.addEventListener('pointerleave',()=>{const data=c._geqData;if(c._geqHover!==-1&&data){c._geqHover=-1;drawGEQ(c,data.freqs,data.corr);}});
+  }
   if(c && c.id==='eqCurveCanvas'){
     const values=document.getElementById('geqValues');
     if(values){
@@ -773,6 +789,19 @@ function drawGEQ(c, freqs, corr){
     x.beginPath();x.moveTo(points[0].x,mid);points.forEach(p=>x.lineTo(p.x,p.y));x.lineTo(points[points.length-1].x,mid);x.closePath();x.fillStyle=grad;x.fill();
     x.beginPath();points.forEach((p,i)=>i?x.lineTo(p.x,p.y):x.moveTo(p.x,p.y));x.strokeStyle=sunMode?'#087cc1':'#55b9f3';x.lineWidth=2.2;x.lineJoin='round';x.lineCap='round';x.stroke();
     points.forEach(p=>{x.beginPath();x.arc(p.x,p.y,2.5,0,Math.PI*2);x.fillStyle=p.v>.4?'#50e68c':p.v<-.4?'#ff5a78':'#9fb0c2';x.fill();});
+    if(c.id==='eqCurveCanvas'&&c._geqHover>=0){
+      const p=points.find(point=>point.k===c._geqHover);
+      if(p){
+        const f=freqs[p.k],fLabel=f>=1000?((f/1000)%1?(f/1000).toFixed(2):(f/1000).toFixed(0))+' kHz':(f%1?f.toFixed(1):Math.round(f))+' Hz';
+        const value=(p.v>0?'+':'')+p.v.toFixed(1)+' dB',action=p.v<-.05?'להנמיך':p.v>.05?'להגביר':'ללא שינוי';
+        x.beginPath();x.arc(p.x,p.y,5,0,Math.PI*2);x.fillStyle=p.v<-.05?'#ff5a78':p.v>.05?'#50e68c':'#d5dee6';x.fill();x.strokeStyle='#fff';x.lineWidth=1.5;x.stroke();
+        x.font='700 10px monospace';const label=fLabel+'  ·  '+value+'  ·  '+action,tw=x.measureText(label).width+18,th=25;
+        let tx=Math.max(4,Math.min(W-tw-4,p.x-tw/2)),ty=p.y-th-10;if(ty<3)ty=p.y+10;
+        x.fillStyle=sunMode?'rgba(255,255,255,.97)':'rgba(5,14,21,.96)';x.fillRect(tx,ty,tw,th);
+        x.strokeStyle=p.v<-.05?'#ff5a78':p.v>.05?'#50e68c':'#8292a0';x.lineWidth=1;x.strokeRect(tx+.5,ty+.5,tw-1,th-1);
+        x.fillStyle=sunMode?'#0f172a':'#eef5fa';x.textAlign='center';x.fillText(label,tx+tw/2,ty+16);
+      }
+    }
   }
   let worst=null;
   for(let k=0;k<freqs.length;k++){ const v=corr[k]; if(v==null) continue; if(!worst||Math.abs(v)>Math.abs(worst.v)) worst={v,k}; }
@@ -1178,10 +1207,11 @@ function tfDrawDualLiveView(W,plotH){
   ctx.font='700 11px monospace';ctx.textAlign='left';
   const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
   const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
-  ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(7,16,24,.86)';ctx.fillRect(8,8,258,40);
-  ctx.strokeStyle=sunMode?'#cbd5e1':'#294052';ctx.strokeRect(8,8,258,40);
-  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',17,24);
-  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',17,41);
+  const legendX=50;
+  ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(7,16,24,.86)';ctx.fillRect(legendX,8,258,40);
+  ctx.strokeStyle=sunMode?'#cbd5e1':'#294052';ctx.strokeRect(legendX,8,258,40);
+  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX+9,24);
+  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',legendX+9,41);
   ctx.textAlign='right';ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8193a2';
   ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
@@ -3037,7 +3067,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.29';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.33';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3451,7 +3481,26 @@ const HELP={
   refCurveBtn:'שומר את התגובה הנוכחית כעקומת ״לפני״\nכדי להשוות אחרי שינוי EQ.',
   cutOnlySeg:'חיתוך בלבד: EQ מוריד תדרים בלבד,\nבלי הגברות — חוסך הדרוּם ומגן על הדרייברים.',
   geqShowBtn:'הצג/הסתר את תצוגת תיקון ה-EQ\n(בנק הפיידרים מתחת לגרף).',
-  combBtn:'בדיקת ביטולי פאזה (comb): מזהה אדוות\nתקופתיות בגרף ומעריך את הפרש הזמן שגורם להן.'
+  combBtn:'בדיקת ביטולי פאזה (comb): מזהה אדוות\nתקופתיות בגרף ומעריך את הפרש הזמן שגורם להן.',
+  v3ResChip:'רזולוציית RTA: בחר 1/3, 1/6, 1/12 או 1/24 אוקטבה.',
+  v5TargetToggle:'Target: מציג או מסתיר את עקומת היעד על הגרף.',
+  v5AddTrace:'Capture Trace: שומר צילום של העקומה הנוכחית להשוואה.',
+  v5EqWorkspace:'פותח את תוצאת ה-EQ האחרונה מכל מצב מדידה.',
+  v5ResetSession:'מאפס מדידות, Traces ותוצאות EQ לאחר בקשת אישור.',
+  v54SideToggle:'פותח או סוגר את סרגל המדידות בצד שמאל.',
+  v52IoBtn:'I/O: בחירת כרטיס קול, ערוצים, רזולוציה וכיול.',
+  v52GenBtn:'פותח את הגנרטור בתחתית בלי לכסות את הגרף.',
+  v52FreezeBtn:'מקפיא או מחזיר לפעולה את התצוגה החיה.',
+  v52CaptureBtn:'פותח את אזור השמירה והלכידות.',
+  geqDockToggle:'מכווץ או מרחיב את תצוגת תיקוני ה-EQ.',
+  geqCutMode:'בחר תיקון מלא או חיתוך בלבד. הבחירה חלה על SPL, אזורים ו-TF.',
+  tfSwapBtn:'מחליף בין ערוץ המיקרופון לערוץ הרפרנס.',
+  tfMeasBtn:'מודד את התגובה במשך 6 שניות ומחשב תיקוני EQ.',
+  tfCsvBtn:'מוריד את תוצאת מדידת TF כקובץ CSV.',
+  tfTraceClearBtn:'מוחק את כל ה-Traces שנלכדו.',
+  v52OpenMicCal:'פותח את רשימת קובצי כיול המיקרופון.',
+  v52UnitToggle:'מחליף את המד בין dB SPL לבין dBFS.',
+  v52OpenOldIo:'פותח הגדרות I/O מתקדמות ופעולות ייצוא.'
 };
 let helpMode=false;
 const helpTip=document.createElement('div'); helpTip.id='helpTip'; document.body.appendChild(helpTip);
@@ -3462,7 +3511,13 @@ safeOn('helpBtn', 'click',function(){
 function helpTextFor(target){
   let txt=null;
   const idEl=target.closest && target.closest('[id]'); if(idEl) txt=HELP[idEl.id];
-  if(!txt && target.closest){ const cEl=target.closest('.tgtSeg'); if(cEl) txt=HELP.tgtSeg; }
+  if(!txt && target.closest){
+    const cEl=target.closest('.tgtSeg'); if(cEl) txt=HELP.tgtSeg;
+    const cut=target.closest('#geqCutMode');if(cut)txt=HELP.geqCutMode;
+    const mode=target.closest('[data-v5mode]');if(!txt&&mode){const names={analysis:'RTA ו-Waterfall: ניתוח ספקטרום חי.',tf:'TF: השוואה חיה בין המיקרופון לרפרנס ומדידת תגובה.',delay:'Delay Finder: מדידת הפרש זמן בין ערוצים ורמקולים.',rt60:'RT60: מדידת זמן הדהוד החדר.',spleq:'SPL / EQ: מדידת תגובה חד-ערוצית והמלצות EQ.',align:'Sub / Top: יישור פאזה ודיליי באזור החיתוך.'};txt=names[mode.dataset.v5mode];}
+  }
+  if(!txt && idEl){const labelled=idEl.getAttribute('aria-label')||idEl.getAttribute('title');if(labelled)txt=labelled;}
+  if(!txt && target.closest){const control=target.closest('button,select,input,[role="button"]');if(control){const name=(control.getAttribute('aria-label')||control.getAttribute('title')||control.textContent||'').trim().replace(/\s+/g,' ');if(name)txt=name+' — שליטה זמינה במצב זה.';}}
   return txt;
 }
 function showHelpTip(txt,cx,cy){

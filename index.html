@@ -290,7 +290,7 @@
   }
   body.sun-mode #geqDockToggle{ background:#ffffff; color:#0f172a; }
   #geqDockToggle:hover{color:var(--accent); background:rgba(62,166,255,.1)}
-  #eqCurveCanvas{display:block;width:100%;height:132px;background:#09131b}
+  #eqCurveCanvas{display:block;width:100%;height:132px;background:#09131b;cursor:crosshair}
   body.sun-mode #eqCurveCanvas{ background:#ffffff; }
   #geqValues{display:block;padding:7px 10px 8px;border-top:1px solid #1c2d39;background:#081119;direction:rtl;max-height:130px;overflow:auto}
   .eqActionHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;color:#8395a5;font-size:9px}
@@ -714,10 +714,12 @@
   }
   #tfPanel.measureDock:not(.expanded) #tfTargetCtrl{display:none!important}
   #tfPanel.measureDock>.dockMoreBtn,#tfPanel.measureDock>.dockClose{
-    position:absolute!important;top:9px!important;z-index:2;order:initial!important;
+    position:absolute!important;top:9px!important;z-index:3;order:initial!important;height:36px!important;
   }
-  #tfPanel.measureDock>.dockMoreBtn{right:43px!important}
-  #tfPanel.measureDock>.dockClose{right:12px!important}
+  #tfPanel.measureDock>.dockMoreBtn{right:62px!important;min-width:74px!important;padding:6px 12px!important}
+  #tfPanel.measureDock>.dockClose{right:12px!important;width:38px!important;min-width:38px!important;padding:6px!important}
+  #tfPanel.measureDock h3{padding-right:142px!important}
+  @media(max-width:680px){#tfPanel.measureDock>.dockMoreBtn{right:57px!important;min-width:68px!important}#tfPanel.measureDock>.dockClose{right:9px!important}#tfPanel.measureDock h3{padding-right:132px!important}}
 
   /* Delay: one clear sequence — inputs, measure, then speaker alignment. */
   #dlyPanel.measureDock{direction:rtl!important;grid-template-columns:minmax(230px,1fr) minmax(250px,1.2fr)!important;grid-template-areas:"title title" "inputs measure" "align align" "actions actions"!important;gap:10px!important;min-height:238px!important;max-height:43vh!important;padding:12px 16px!important;overflow:auto!important}
@@ -1149,6 +1151,24 @@
   }
   body.sun-mode .v52CalState strong{color:#0f172a}
   body.sun-mode .v52MeterTrack{background:#e2e8f0}
+  body.sun-mode #tfCorrCard,body.sun-mode #tfCorrTrack,body.sun-mode #dlyPanel .dlyMeasureCard,
+  body.sun-mode #dlyPanel #dlyStatus,body.sun-mode #tfPanel #tfGeqList .tfGrid,
+  body.sun-mode #v53MicCalArea,body.sun-mode #v53MicCalArea #calPanel,
+  body.sun-mode .dockAdvanced,body.sun-mode .tfGrid{
+    background:#f8fafc!important;color:#0f172a!important;border-color:#cbd5e1!important;
+  }
+  body.sun-mode #tfCorrCard strong,body.sun-mode #tfCorrCard span,body.sun-mode #dlyPanel .sub,
+  body.sun-mode .v53MicCalHeading,body.sun-mode .v53MicCalHeading span{color:#475569!important}
+  body.sun-mode #tfCorrVal{color:#b45309!important}
+  body.sun-mode #geqCutMode{background:#fff;border-color:#cbd5e1}
+  body.sun-mode #geqCutMode button{color:#475569;border-color:#cbd5e1}
+  body.sun-mode #geqCutMode button.on{color:#087cc1;background:#eaf6fd}
+  body.sun-mode .v5RailTool{background:#f8fafc;color:#334155;border-color:#cbd5e1}
+  body.sun-mode #v5ResetSession{color:#b4233d;border-color:#e5a4b1;background:#fff7f8}
+  body.sun-mode #genPanel .ctrl,body.sun-mode #genPanel .chBar{background:#f8fafc!important;border-color:#cbd5e1!important;color:#0f172a!important}
+  body.sun-mode #genCloseBtn{background:#fff;color:#475569;border-color:#cbd5e1}
+  body.sun-mode #helpTip{background:rgba(255,255,255,.98);color:#0f172a;border-color:#38a9e8;box-shadow:0 8px 24px rgba(15,23,42,.18)}
+  body.help-on button,body.help-on select,body.help-on input,body.help-on [role="button"]{cursor:help!important}
 
   @media(max-width:900px){
     #v52IODock{left:0}
@@ -1795,7 +1815,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.29</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.33</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
