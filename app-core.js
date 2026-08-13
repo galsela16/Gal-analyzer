@@ -254,10 +254,10 @@ function tfAutoDelay(){
   const r = tfSwap ? timeData : timeDataRef;
   const sr = audioCtx.sampleRate;
   
-  const res = computeDelay(r, m, sr);
-  if(!res || res.ms < 0){
+  const res = computeDelay(r, m, sr, {maxDelayMs:20});
+  if(!res || res.ms < 0 || !res.reliable){
     if(globalBtn){globalBtn.classList.remove('on');globalBtn.textContent='⏱ Auto Delay';}
-    v3Toast('לא זוהה דיליי ברור — ודא ששני הערוצים מקבלים אות יציב');
+    v3Toast(res?'הדיליי לא יציב — נסה sweep או אות רחב־פס':'לא זוהה דיליי ברור — ודא ששני הערוצים מקבלים אות יציב');
     return;
   }
   
@@ -330,7 +330,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.38-low-frequency-fix',
+    version: 'v5.4.39-delay-engine-fix',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1481,7 +1481,11 @@ function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), 
                    : 'לא הצלחתי — ודא שמנגן אות רחב־פס ושכניסה 2 מקבלת רפרנס.';
     return; }
   const ms=res.ms, dist=Math.abs(ms)/1000*343;
-  st.innerHTML='דיליי ≈ <b>'+ms.toFixed(2)+' ms</b><br><span style="font-size:11px;color:var(--dim)">≈ '+dist.toFixed(2)+' מ\' · '+(ms>=0?'המיק\' מאחר אחרי הרפרנס':'המיק\' מקדים את הרפרנס')+'</span>';
+  const quality=res.reliable?'אמינות '+Math.round(res.confidence*100)+'%':'⚠ תוצאה לא יציבה — מדוד שוב עם sweep/רעש רחב־פס';
+  const alternatives=res.alternatives&&res.alternatives.length
+    ? '<br>פסגות חלופיות: '+res.alternatives.map(v=>(v>=0?'+':'')+v.toFixed(1)+'ms').join(', ')
+    : '';
+  st.innerHTML=(res.reliable?'':'⚠ ')+'דיליי ≈ <b>'+ms.toFixed(2)+' ms</b><br><span style="font-size:11px;color:'+(res.reliable?'var(--dim)':'var(--warn)')+'">≈ '+dist.toFixed(2)+' מ\' · '+(ms>=0?'המיק\' מאחר אחרי הרפרנס':'המיק\' מקדים את הרפרנס')+' · '+quality+alternatives+'</span>';
 }); }
 function runDelayCapture(btn, cb){
   if(!running||!analyserRef||!source){ alert('צריך כרטיס קול עם input סטריאו (מיק\'+רפרנס).'); return; }
@@ -1521,7 +1525,7 @@ function runDelayCapture(btn, cb){
     const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
     const micRms=rmsOf(m), refRms=rmsOf(r);
     if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
-    cb(computeDelay(r, m, sr));
+    cb(computeDelay(r, m, sr, {maxDelayMs:20}));
   }, captureSec*1000+100);
 }
 
@@ -1559,6 +1563,7 @@ function renderDlySpk(){
     const i=+this.dataset.i, btn=this;
     pickSource(()=>runDelayCapture(btn,(res)=>{
       if(res==null){ btn.textContent='נכשל'; setTimeout(()=>btn.textContent='מדוד',1500); return; }
+      if(!res.reliable){ btn.textContent='לא יציב'; setTimeout(()=>btn.textContent='מדוד',1800); return; }
       dlySpeakers[i].ms=res.ms; renderDlySpk();
     }),2100);
   }));
@@ -1569,17 +1574,19 @@ document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('
 }));
 renderDlySpk();
 
-function computeDelay(ref, mic, sr){
+function computeDelay(ref, mic, sr, options){
+  options=options||{};
   const L = Math.min(ref.length, mic.length);
   const chunkSize = 8192;
   const hopSize = 4096;
+  const maxDelayMs=Math.max(2,Math.min(80,Number(options.maxDelayMs)||20));
+  const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),chunkSize/2-2);
   if(L < chunkSize) return null;
 
   const numChunks = Math.floor((L - chunkSize) / hopSize) + 1;
   if(numChunks < 1) return null;
 
-  const avgRr = new Float64Array(chunkSize);
-  const avgRi = new Float64Array(chunkSize);
+  const avgCorr = new Float64Array(chunkSize);
   const xr = new Float64Array(chunkSize);
   const xi = new Float64Array(chunkSize);
   const yr = new Float64Array(chunkSize);
@@ -1590,6 +1597,8 @@ function computeDelay(ref, mic, sr){
     win[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (chunkSize - 1)));
   }
 
+  const chunkLags=[];
+  let activeBinSum=0;
   let validChunks = 0;
   for(let c = 0; c < numChunks; c++){
     const offset = c * hopSize;
@@ -1609,37 +1618,82 @@ function computeDelay(ref, mic, sr){
     fft(xr, xi, false);
     fft(yr, yi, false);
 
+    let crossMax=0;
+    for(let k=1;k<chunkSize/2;k++){
+      const f=k*sr/chunkSize;if(f<25||f>8000)continue;
+      const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
+      crossMax=Math.max(crossMax,Math.hypot(cr,ci));
+    }
+    let activeBins=0;
+    // GCC-PHAT with a useful acoustic band. Reject DC/subsonic content and
+    // down-weight the noisy top octave; both otherwise create false cycle locks.
     for(let k = 0; k < chunkSize; k++){
+      const signedK=k<=chunkSize/2?k:k-chunkSize;
+      const f=Math.abs(signedK)*sr/chunkSize;
       const cr = yr[k] * xr[k] + yi[k] * xi[k];
       const ci = yi[k] * xr[k] - yr[k] * xi[k];
       const mag = Math.hypot(cr, ci) + 1e-9;
-      avgRr[k] += cr / mag;
-      avgRi[k] += ci / mag;
+      if(k>0&&k<chunkSize/2&&f>=25&&f<=8000&&mag>=crossMax*.08)activeBins++;
+      let w=0;
+      if(f>=25&&f<=8000){
+        const low=Math.min(1,(f-25)/35);
+        const high=Math.min(1,(8000-f)/2000);
+        w=Math.max(0,Math.min(low,high));
+      }
+      xr[k]=w*cr/mag;
+      xi[k]=w*ci/mag;
     }
+    fft(xr,xi,true);
+    let localBest=-Infinity,localLag=0;
+    for(let lag=-maxLag;lag<=maxLag;lag++){
+      const idx=lag<0?chunkSize+lag:lag;
+      const v=xr[idx];
+      avgCorr[idx]+=v;
+      if(v>localBest){localBest=v;localLag=lag;}
+    }
+    chunkLags.push(localLag);
+    activeBinSum+=activeBins;
     validChunks++;
   }
 
   if(validChunks === 0) return null;
 
-  for(let k = 0; k < chunkSize; k++){
-    avgRr[k] /= validChunks;
-    avgRi[k] /= validChunks;
+  for(let lag=-maxLag;lag<=maxLag;lag++){
+    const idx=lag<0?chunkSize+lag:lag;
+    avgCorr[idx]/=validChunks;
   }
-
-  fft(avgRr, avgRi, true);
-
-  let best = -1e9, bi = 0;
-  for(let k = 0; k < chunkSize; k++){
-    if(avgRr[k] > best){
-      best = avgRr[k];
-      bi = k;
-    }
+  const peaks=[];
+  for(let lag=-maxLag+1;lag<maxLag;lag++){
+    const idx=lag<0?chunkSize+lag:lag;
+    const prev=(lag-1)<0?chunkSize+lag-1:lag-1;
+    const next=(lag+1)<0?chunkSize+lag+1:lag+1;
+    const v=avgCorr[idx];
+    if(v>=avgCorr[prev]&&v>avgCorr[next]) peaks.push({lag,v});
   }
-
-  let lag = bi;
-  if(lag > chunkSize / 2) lag -= chunkSize;
-
-  return { ms: (lag / sr) * 1000, samples: lag };
+  if(!peaks.length)return null;
+  peaks.sort((a,b)=>b.v-a.v);
+  const strongest=peaks[0];
+  // Prefer the earliest plausible arrival among near-equal correlation peaks.
+  // A late room reflection or one extra bass cycle must not beat the direct sound.
+  const near=peaks.filter(p=>p.v>=strongest.v*.82).sort((a,b)=>Math.abs(a.lag)-Math.abs(b.lag));
+  const chosen=near[0]||strongest;
+  const idx=chosen.lag<0?chunkSize+chosen.lag:chosen.lag;
+  const left=(chosen.lag-1)<0?chunkSize+chosen.lag-1:chosen.lag-1;
+  const right=(chosen.lag+1)<0?chunkSize+chosen.lag+1:chosen.lag+1;
+  const denom=avgCorr[left]-2*avgCorr[idx]+avgCorr[right];
+  const frac=Math.abs(denom)>1e-12?.5*(avgCorr[left]-avgCorr[right])/denom:0;
+  const lag=chosen.lag+Math.max(-.5,Math.min(.5,frac));
+  const sorted=chunkLags.slice().sort((a,b)=>a-b);
+  const median=sorted[Math.floor(sorted.length/2)];
+  const consistent=chunkLags.filter(v=>Math.abs(v-median)<=Math.max(3,sr*.0005)).length/validChunks;
+  const rival=peaks.find(p=>Math.abs(p.lag-chosen.lag)>Math.max(4,sr*.001));
+  const separation=rival?Math.max(0,Math.min(1,(chosen.v-rival.v)/(Math.abs(chosen.v)+1e-12))):1;
+  const confidence=Math.max(0,Math.min(1,.65*consistent+.35*separation));
+  const activeBins=activeBinSum/validChunks;
+  const broadbandScore=Math.max(0,Math.min(1,(activeBins-6)/30));
+  const finalConfidence=confidence*broadbandScore;
+  const alternatives=peaks.filter(p=>p!==chosen&&p.v>=strongest.v*.65).slice(0,3).map(p=>p.lag/sr*1000);
+  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins};
 }
 
 function measureBusy(){
@@ -3146,7 +3200,7 @@ document.addEventListener('keydown',e=>{
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
   const savedDelay=parseFloat(lsGet('rta_tf_delay'));if(Number.isFinite(savedDelay)&&savedDelay>=0){tfDelayMs=savedDelay;const gb=document.getElementById('v52AutoDelayBtn');if(gb&&tfDelayMs){gb.textContent=`Delay ${tfDelayMs.toFixed(2)} ms`;gb.classList.add('has-result');}const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`דיליי פעיל: ${tfDelayMs.toFixed(2)} ms`;}
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.38';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.39';
   v3UpdateStatus();
 })();
 (function initAccent(){
