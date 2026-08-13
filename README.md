@@ -1,4 +1,11 @@
-# GAL Analyzer V5.4.25 — Full-width correlation meter
+# GAL Analyzer V5.4.28 — Global EQ workspace
+
+- Full correction / cut-only is now a global control in the EQ result header and applies equally to SPL, spatial and TF calculations.
+- The left rail now opens the latest EQ result from any measurement mode and includes a protected session reset button.
+
+- EQ corrections are now presented as a prioritized action list: the eight most important bands appear first as clear Cut/Boost cards, while smaller corrections stay behind an optional “show more” row.
+
+- The RTA resolution chip in the header is now interactive and offers direct 1/3, 1/6, 1/12 and 1/24 octave selection, synchronized with I/O and saved for the next session.
 
 - Correlation now has a dedicated full-width meter row; its scale, coloured bar and moving marker can no longer collapse into the surrounding controls.
 

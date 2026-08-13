@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.25-full-width-correlation-meter',
+    version: 'v5.4.28-global-eq-workspace',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -592,12 +592,12 @@ function setTarget(mode){
 document.querySelectorAll('.tgtSeg button').forEach(b=>b.addEventListener('click',function(){ setTarget(this.dataset.t); }));
 function setCutOnly(v){
   cutOnly=v;
-  document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button').forEach(b=>b.classList.toggle('on', (b.dataset.co==='1')===v));
+  document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.classList.toggle('on', (b.dataset.co==='1')===v));
   if(eqPositions.length) computeAndShow(true);
   if(areas.length) suggestAreaEQ();
   if(typeof tfFrames!=='undefined' && tfFrames) tfCompute();
 }
-document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button').forEach(b=>b.addEventListener('click',function(){ setCutOnly(this.dataset.co==='1'); }));
+document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.addEventListener('click',function(){ setCutOnly(this.dataset.co==='1'); }));
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -733,11 +733,17 @@ function drawGEQ(c, freqs, corr){
     if(values){
       const actionable=[];
       for(let k=0;k<freqs.length;k++){
-        const v=corr[k];if(v==null||!Number.isFinite(v)||Math.abs(v)<0.35)continue;
+        const v=corr[k];if(v==null||!Number.isFinite(v)||Math.abs(v)<0.5)continue;
         const f=freqs[k]>=1000?((freqs[k]/1000)%1?(freqs[k]/1000).toFixed(2):(freqs[k]/1000).toFixed(0))+'kHz':(freqs[k]%1?freqs[k].toFixed(1):Math.round(freqs[k]))+'Hz';
-        actionable.push('<span class="geqValue '+(v<0?'cut':'boost')+'"><span>'+f+'</span><b>'+(v>0?'+':'')+v.toFixed(1)+' dB</b></span>');
+        actionable.push({f,v,cls:v<0?'cut':'boost'});
       }
-      values.innerHTML=actionable.length?actionable.join(''):'<span class="geqValue neutral">אין תיקון משמעותי — מאוזן</span>';
+      actionable.sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
+      const card=a=>'<div class="eqAction '+a.cls+'"><div><span class="freq">'+a.f+'</span><span class="hint">'+(a.v<0?'להנמיך':'להגביר')+'</span></div><b class="gain">'+(a.v>0?'+':'')+a.v.toFixed(1)+' dB</b></div>';
+      if(!actionable.length) values.innerHTML='<span class="geqValue neutral">אין תיקון משמעותי — התגובה מאוזנת</span>';
+      else{
+        const primary=actionable.slice(0,8), extra=actionable.slice(8);
+        values.innerHTML='<div class="eqActionHead"><strong>מה לתקן עכשיו</strong><span>'+actionable.length+' פסים משמעותיים · לפי סדר עדיפות</span></div><div class="eqActionGrid">'+primary.map(card).join('')+'</div>'+(extra.length?'<details class="eqActionMore"><summary>הצג עוד '+extra.length+' תיקונים קטנים</summary><div class="eqActionGrid">'+extra.map(card).join('')+'</div></details>':'');
+      }
     }
   }
   const x=c.getContext('2d');
@@ -769,7 +775,7 @@ function drawGEQ(c, freqs, corr){
     points.forEach(p=>{x.beginPath();x.arc(p.x,p.y,2.5,0,Math.PI*2);x.fillStyle=p.v>.4?'#50e68c':p.v<-.4?'#ff5a78':'#9fb0c2';x.fill();});
   }
   let worst=null;
-  for(let k=0;k<n;k++){ const v=corr[k]; if(v==null) continue; if(!worst||Math.abs(v)>Math.abs(worst.v)) worst={v,k}; }
+  for(let k=0;k<freqs.length;k++){ const v=corr[k]; if(v==null) continue; if(!worst||Math.abs(v)>Math.abs(worst.v)) worst={v,k}; }
   if(worst && Math.abs(worst.v)>=0.5){
     const f=freqs[worst.k];
     x.textAlign='right';x.font='600 9px monospace';x.fillStyle=worst.v>0?'#50c878':'#ff6b83';
@@ -1800,12 +1806,37 @@ function drawRTPlot(post, steady, slope, intercept){
     x.moveTo(X(0),Y(intercept)); x.lineTo(X(tMax),Y(intercept+slope*tMax)); x.stroke(); x.setLineDash([]);
   }
 }
-safeOn('res', 'input',e=>{
-  const bpo=Math.max(3,Math.min(24,parseInt(e.target.value,10)));
+function setRtaResolution(value){
+  const allowed=[3,6,12,24];
+  const requested=parseInt(value,10);
+  const bpo=allowed.reduce((best,n)=>Math.abs(n-requested)<Math.abs(best-requested)?n:best,6);
+  const slider=document.getElementById('res');if(slider)slider.value=String(bpo);
   document.getElementById('resVal').textContent='1/'+bpo+' אוקטבה';
   buildBands(bpo);
   prefSet('rta_res', bpo);
   v3UpdateStatus();
+  const ioSelect=document.getElementById('v52ResSelect');if(ioSelect)ioSelect.value=String(bpo);
+  document.querySelectorAll('#v3ResMenu button').forEach(btn=>btn.classList.toggle('on',parseInt(btn.dataset.bpo,10)===bpo));
+  return bpo;
+}
+safeOn('res', 'input',e=>{
+  setRtaResolution(e.target.value);
+});
+safeOn('v3ResChip','click',e=>{
+  e.stopPropagation();
+  const menu=document.getElementById('v3ResMenu');if(!menu)return;
+  const open=!menu.classList.contains('open');menu.classList.toggle('open',open);e.currentTarget.setAttribute('aria-expanded',open?'true':'false');
+  menu.querySelectorAll('button').forEach(btn=>btn.classList.toggle('on',parseInt(btn.dataset.bpo,10)===curBpo));
+});
+document.querySelectorAll('#v3ResMenu button').forEach(btn=>btn.addEventListener('click',e=>{
+  e.stopPropagation();setRtaResolution(btn.dataset.bpo);
+  const menu=document.getElementById('v3ResMenu');if(menu)menu.classList.remove('open');
+  const chip=document.getElementById('v3ResChip');if(chip)chip.setAttribute('aria-expanded','false');
+  v3Toast('רזולוציית RTA: 1/'+curBpo+' אוקטבה');
+}));
+document.addEventListener('click',()=>{
+  const menu=document.getElementById('v3ResMenu');if(menu)menu.classList.remove('open');
+  const chip=document.getElementById('v3ResChip');if(chip)chip.setAttribute('aria-expanded','false');
 });
 function setFft(n){
   fftSize=n;
@@ -2964,7 +2995,7 @@ function v3UpdateStatus(){
     }
   }
   if(r){
-    r.textContent='RTA 1/'+curBpo;
+    r.textContent='RTA 1/'+curBpo+' ▾';
     r.className='v3Chip';
   }
 }
@@ -3006,7 +3037,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.25';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.28';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3164,6 +3195,14 @@ function v5InitWorkspace(){
   safeOn('v54SideToggle','click',()=>v54SetSideRail(document.body.classList.contains('v54-rail-collapsed')));
 
   safeOn('v5AddTrace','click',captureWorkspaceTrace);
+  safeOn('v5EqWorkspace','click',()=>{
+    if(!eqCurveData){v3Toast('עדיין אין תוצאת EQ — בצע מדידה קודם');return;}
+    const dock=document.getElementById('geqDock');
+    if(dock){dock.style.display='block';dock.classList.remove('collapsed');document.getElementById('geqDockToggle').textContent='▼';drawGEQ(document.getElementById('eqCurveCanvas'),eqCurveData.freqs,eqCurveData.corr);syncGeqBtn();}
+  });
+  safeOn('v5ResetSession','click',()=>{
+    if(confirm('לאפס את הסשן? הפעולה תנקה מדידות, Traces ותוצאות EQ.')){resetSession();v3Toast('הסשן אופס');}
+  });
   safeOn('v5CaptureAction','click',()=>{ const b=document.getElementById('saveBtn'); if(b)b.click(); });
 
   // Header TF button now opens the working TF dock instead of only overlaying lines.

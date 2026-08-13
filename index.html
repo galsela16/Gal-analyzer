@@ -280,6 +280,10 @@
   }
   body.sun-mode #geqDockHead{ background:#f1f5f9; }
   #geqDockTitle{font-size:12px; font-weight:600; letter-spacing:.5px; color:var(--accent)}
+  #geqDockTools{display:flex;align-items:center;gap:8px;margin-inline-start:auto;margin-inline-end:10px}
+  #geqCutMode{display:flex;direction:rtl;border:1px solid #2a4052;border-radius:5px;overflow:hidden;background:#08131b}
+  #geqCutMode button{border:0;border-left:1px solid #2a4052;background:transparent;color:#8294a3;padding:5px 10px;font:700 10px inherit;cursor:pointer;white-space:nowrap}
+  #geqCutMode button:last-child{border-left:0}#geqCutMode button.on{color:var(--accent);background:rgba(62,166,255,.14)}
   #geqDockToggle{
     border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:12px;
     cursor:pointer; padding:2px 12px; border-radius:4px; line-height:1.5;
@@ -288,14 +292,20 @@
   #geqDockToggle:hover{color:var(--accent); background:rgba(62,166,255,.1)}
   #eqCurveCanvas{display:block;width:100%;height:156px;background:#09131b}
   body.sun-mode #eqCurveCanvas{ background:#ffffff; }
-  #geqValues{display:flex;align-items:center;gap:5px;padding:7px 9px;overflow-x:auto;border-top:1px solid #1c2d39;background:#081119;direction:ltr;scrollbar-width:thin}
-  .geqValue{display:inline-flex;align-items:center;gap:5px;flex:none;padding:5px 7px;border:1px solid #293b49;border-radius:4px;background:#0d1922;font:600 9px monospace;color:#aebdca;white-space:nowrap}
-  .geqValue b{font-size:10px;font-variant-numeric:tabular-nums}
-  .geqValue.cut{border-color:rgba(255,90,120,.35)}.geqValue.cut b{color:#ff6b83}
-  .geqValue.boost{border-color:rgba(80,230,140,.35)}.geqValue.boost b{color:#50e68c}
-  .geqValue.neutral{opacity:.6}
+  #geqValues{display:block;padding:9px 12px 11px;border-top:1px solid #1c2d39;background:#081119;direction:rtl;max-height:190px;overflow:auto}
+  .eqActionHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#8395a5;font-size:10px}
+  .eqActionHead strong{color:#dce7ef;font-size:11px}.eqActionHead span{font-variant-numeric:tabular-nums}
+  .eqActionGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:7px;direction:ltr}
+  .eqAction{position:relative;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;min-height:43px;padding:7px 9px 7px 13px;border:1px solid #293b49;border-radius:6px;background:#0d1922;font-family:monospace;overflow:hidden}
+  .eqAction:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#8292a0}
+  .eqAction .freq{color:#dce7ef;font-size:11px;font-weight:700}.eqAction .hint{display:block;margin-top:2px;color:#718393;font:9px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+  .eqAction .gain{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .eqAction.cut{border-color:rgba(255,90,120,.28)}.eqAction.cut:before{background:#ff5a78}.eqAction.cut .gain{color:#ff6b83}
+  .eqAction.boost{border-color:rgba(80,230,140,.28)}.eqAction.boost:before{background:#50e68c}.eqAction.boost .gain{color:#50e68c}
+  .eqActionMore{margin-top:8px;border-top:1px solid #1b2c38;padding-top:7px}.eqActionMore summary{cursor:pointer;color:#8ea1b1;font-size:10px}.eqActionMore .eqActionGrid{margin-top:7px}
+  .geqValue.neutral{display:block;text-align:center;padding:12px;color:#7d8e9c;font-size:11px}
   #geqDock.collapsed #eqCurveCanvas,#geqDock.collapsed #geqValues{display:none}
-  body.sun-mode #geqValues{background:#f8fafc;border-color:#dbe4eb}.sun-mode .geqValue{background:#fff;border-color:#cbd5e1;color:#475569}
+  body.sun-mode #geqValues{background:#f8fafc;border-color:#dbe4eb}.sun-mode .eqAction{background:#fff;border-color:#cbd5e1}.sun-mode .eqAction .freq,.sun-mode .eqActionHead strong{color:#0f172a}
   @media(max-width:900px){#geqDock{left:10px}}
 
   #eqPanel{position:relative;display:none;
@@ -424,6 +434,18 @@
   .v3Chip.ok{border-color:rgba(80,230,140,.45);color:#50e68c;background:rgba(80,230,140,.08)}
   .v3Chip.warn{border-color:rgba(255,209,102,.5);color:var(--warn);background:rgba(255,209,102,.08)}
   .v3Chip.live{border-color:rgba(62,166,255,.55);color:var(--accent);background:rgba(62,166,255,.08)}
+  #v3ResControl{position:relative}
+  #v3ResChip{cursor:pointer;font:inherit}
+  #v3ResChip:hover,#v3ResChip[aria-expanded="true"]{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.10)}
+  #v3ResMenu{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:80;display:none;
+    min-width:180px;padding:7px;background:rgba(8,18,26,.98);border:1px solid #294052;border-radius:7px;
+    box-shadow:0 12px 32px rgba(0,0,0,.55);direction:ltr}
+  #v3ResMenu.open{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #v3ResMenu button{border:1px solid #263b4b;border-radius:5px;background:#0d1923;color:#aab8c5;
+    padding:8px 10px;font:700 11px monospace;cursor:pointer;white-space:nowrap}
+  #v3ResMenu button:hover,#v3ResMenu button.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.13)}
+  body.sun-mode #v3ResMenu{background:#fff;border-color:#cbd5e1;box-shadow:0 12px 28px rgba(15,23,42,.18)}
+  body.sun-mode #v3ResMenu button{background:#f8fafc;border-color:#cbd5e1;color:#475569}
   #shortcutToast{
     position:fixed;z-index:250;left:50%;bottom:84px;transform:translateX(-50%) translateY(10px);
     background:rgba(13,17,23,.96);color:var(--text);border:1px solid var(--accent);
@@ -569,6 +591,10 @@
     border-radius:5px;padding:7px;font:600 10px inherit;cursor:pointer;
   }
   #v5AddTrace:hover{border-color:var(--accent);color:var(--accent)}
+  .v5RailTool{border:1px solid #263745;background:#0d1923;color:#aebbc7;border-radius:5px;padding:7px;font:600 10px inherit;cursor:pointer}
+  .v5RailTool:hover{border-color:var(--accent);color:var(--accent)}
+  #v5ResetSession{margin-top:2px;border-color:rgba(255,90,120,.28);color:#d99aaa;background:rgba(255,90,120,.05)}
+  #v5ResetSession:hover{border-color:#ff5a78;color:#ff7c92}
   #v5RailHint{
     margin-top:auto;color:#637484;font-size:8px;line-height:1.35;border-top:1px solid #172632;padding-top:6px
   }
@@ -1152,7 +1178,15 @@
     </div>
     <div class="v3Status" aria-label="סטטוס מדידה">
       <span class="v3Chip" id="v3AudioChip">Audio: כבוי</span>
-      <span class="v3Chip" id="v3ResChip">RTA 1/6</span>
+      <div id="v3ResControl">
+        <button class="v3Chip" id="v3ResChip" type="button" aria-expanded="false" title="שינוי רזולוציית RTA">RTA 1/6 ▾</button>
+        <div id="v3ResMenu" role="menu" aria-label="רזולוציית RTA">
+          <button type="button" data-bpo="3">1/3 octave</button>
+          <button type="button" data-bpo="6">1/6 octave</button>
+          <button type="button" data-bpo="12">1/12 octave</button>
+          <button type="button" data-bpo="24">1/24 octave</button>
+        </div>
+      </div>
     </div>
 
     <div class="v5HeaderActions">
@@ -1199,6 +1233,8 @@
       <div class="v5RailTitle">Traces</div>
       <div id="v5TraceList"></div>
       <button id="v5AddTrace">＋ Capture Trace</button>
+      <button id="v5EqWorkspace" class="v5RailTool">EQ · תצוגת תיקונים</button>
+      <button id="v5ResetSession" class="v5RailTool">↺ איפוס סשן</button>
       <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
     </aside>
     <button id="v54SideToggle" type="button" title="הסתר/הצג סרגל צד" aria-label="הסתר או הצג סרגל צד">‹</button>
@@ -1469,6 +1505,13 @@
     <div id="geqDock" style="display:none">
       <div id="geqDockHead">
         <span id="geqDockTitle">תיקון EQ</span>
+        <div id="geqDockTools">
+          <span style="font-size:9px;color:var(--dim)">סוג תיקון</span>
+          <div id="geqCutMode">
+            <button type="button" data-co="0" class="on">גרף מלא</button>
+            <button type="button" data-co="1">חיתוך בלבד</button>
+          </div>
+        </div>
         <button id="geqDockToggle" title="הסתר/הצג">▼</button>
       </div>
       <canvas id="eqCurveCanvas"></canvas>
@@ -1751,7 +1794,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.25</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.28</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
