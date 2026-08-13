@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.24 — Clear correlation meter
+# GAL Analyzer V5.4.25 — Full-width correlation meter
+
+- Correlation now has a dedicated full-width meter row; its scale, coloured bar and moving marker can no longer collapse into the surrounding controls.
 
 - The TF correlation readout is now a wide, high-contrast meter with a moving marker, a −1 to +1 scale, a large signed value and a plain-language status.
 

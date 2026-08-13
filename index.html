@@ -654,15 +654,16 @@
   }
   #tfPanel.measureDock #tfTraceLegend{display:none}
   #tfPanel.measureDock #tfCorrCard{
-    flex:1 1 360px;min-width:310px;max-width:560px;background:#0b151e;
-    border:1px solid #263b4b;border-radius:6px;padding:8px 12px!important;margin:0!important;
+    display:block!important;flex:1 0 100%!important;width:100%!important;min-width:0;max-width:none;
+    min-height:92px;background:#0b151e;border:1px solid #263b4b;border-radius:6px;
+    padding:9px 14px!important;margin:0!important;order:20;box-sizing:border-box;
   }
   #tfCorrHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px}
   #tfCorrHead strong{font-size:12px;color:#dce6ee}
   #tfCorrVal{font:800 21px/1 monospace!important;letter-spacing:.4px}
   #tfCorrScale{display:grid;grid-template-columns:1fr 1fr 1fr;direction:ltr;font:700 10px monospace;color:#718596;margin-bottom:3px}
   #tfCorrScale span:nth-child(2){text-align:center}#tfCorrScale span:last-child{text-align:right}
-  #tfCorrTrack{height:18px!important;border:1px solid #31485a;background:linear-gradient(90deg,rgba(255,59,107,.18),rgba(255,209,102,.08) 48%,rgba(57,217,138,.18));overflow:visible!important}
+  #tfCorrTrack{display:block!important;position:relative!important;width:100%!important;height:20px!important;border:1px solid #31485a;border-radius:5px;background:linear-gradient(90deg,rgba(255,59,107,.28),rgba(255,209,102,.10) 48%,rgba(57,217,138,.28));overflow:visible!important}
   #tfCorrFill{box-shadow:0 0 9px currentColor;transition:width .12s linear,background .12s linear}
   #tfCorrMarker{position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;background:#fff;box-shadow:0 0 7px rgba(255,255,255,.8);left:50%;transform:translateX(-50%);transition:left .12s linear}
   #tfCorrStatus{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px}
@@ -676,7 +677,7 @@
   #tfPanel.measureDock:not(.expanded){
     /* Keep the live TF controls complete; use an internal scroll only when
        the viewport is genuinely too short. */
-    min-height:172px!important;max-height:220px!important;overflow-y:auto!important;
+    min-height:250px!important;max-height:290px!important;overflow-y:auto!important;
   }
   #tfPanel.measureDock:not(.expanded) .chBar{
     min-width:210px!important;max-width:280px!important;padding:6px!important;
@@ -1750,7 +1751,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.24</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.25</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
