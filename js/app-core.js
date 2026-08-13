@@ -319,7 +319,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.28-global-eq-workspace',
+    version: 'v5.4.29-compact-eq-actions',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -738,17 +738,17 @@ function drawGEQ(c, freqs, corr){
         actionable.push({f,v,cls:v<0?'cut':'boost'});
       }
       actionable.sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
-      const card=a=>'<div class="eqAction '+a.cls+'"><div><span class="freq">'+a.f+'</span><span class="hint">'+(a.v<0?'להנמיך':'להגביר')+'</span></div><b class="gain">'+(a.v>0?'+':'')+a.v.toFixed(1)+' dB</b></div>';
+      const card=a=>'<div class="eqAction '+a.cls+'"><span class="freq">'+a.f+'</span><span class="hint">'+(a.v<0?'להנמיך':'להגביר')+'</span><b class="gain">'+(a.v>0?'+':'')+a.v.toFixed(1)+' dB</b></div>';
       if(!actionable.length) values.innerHTML='<span class="geqValue neutral">אין תיקון משמעותי — התגובה מאוזנת</span>';
       else{
-        const primary=actionable.slice(0,8), extra=actionable.slice(8);
+        const primary=actionable.slice(0,6), extra=actionable.slice(6);
         values.innerHTML='<div class="eqActionHead"><strong>מה לתקן עכשיו</strong><span>'+actionable.length+' פסים משמעותיים · לפי סדר עדיפות</span></div><div class="eqActionGrid">'+primary.map(card).join('')+'</div>'+(extra.length?'<details class="eqActionMore"><summary>הצג עוד '+extra.length+' תיקונים קטנים</summary><div class="eqActionGrid">'+extra.map(card).join('')+'</div></details>':'');
       }
     }
   }
   const x=c.getContext('2d');
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  const CW=c.clientWidth||360, H=156;
+  const CW=c.clientWidth||360, H=132;
   c.width=Math.round(CW*dpr); c.height=Math.round(H*dpr);
   x.setTransform(dpr,0,0,dpr,0,0);
   const W=CW;
@@ -3037,7 +3037,7 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.28';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.29';
   v3UpdateStatus();
 })();
 (function initAccent(){

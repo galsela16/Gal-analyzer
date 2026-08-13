@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.28 — Global EQ workspace
+# GAL Analyzer V5.4.29 — Compact EQ actions
+
+- The EQ workspace now uses a middle-density layout: a slightly shorter graph and six compact priority rows containing frequency, action and dB on one line; remaining bands stay under “show more”.
 
 - Full correction / cut-only is now a global control in the EQ result header and applies equally to SPL, spatial and TF calculations.
 - The left rail now opens the latest EQ result from any measurement mode and includes a protected session reset button.

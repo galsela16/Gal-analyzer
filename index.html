@@ -290,19 +290,20 @@
   }
   body.sun-mode #geqDockToggle{ background:#ffffff; color:#0f172a; }
   #geqDockToggle:hover{color:var(--accent); background:rgba(62,166,255,.1)}
-  #eqCurveCanvas{display:block;width:100%;height:156px;background:#09131b}
+  #eqCurveCanvas{display:block;width:100%;height:132px;background:#09131b}
   body.sun-mode #eqCurveCanvas{ background:#ffffff; }
-  #geqValues{display:block;padding:9px 12px 11px;border-top:1px solid #1c2d39;background:#081119;direction:rtl;max-height:190px;overflow:auto}
-  .eqActionHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#8395a5;font-size:10px}
+  #geqValues{display:block;padding:7px 10px 8px;border-top:1px solid #1c2d39;background:#081119;direction:rtl;max-height:130px;overflow:auto}
+  .eqActionHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;color:#8395a5;font-size:9px}
   .eqActionHead strong{color:#dce7ef;font-size:11px}.eqActionHead span{font-variant-numeric:tabular-nums}
-  .eqActionGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:7px;direction:ltr}
-  .eqAction{position:relative;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;min-height:43px;padding:7px 9px 7px 13px;border:1px solid #293b49;border-radius:6px;background:#0d1922;font-family:monospace;overflow:hidden}
-  .eqAction:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#8292a0}
-  .eqAction .freq{color:#dce7ef;font-size:11px;font-weight:700}.eqAction .hint{display:block;margin-top:2px;color:#718393;font:9px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
-  .eqAction .gain{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .eqActionGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;direction:ltr}
+  .eqAction{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;min-height:31px;padding:5px 8px 5px 11px;border:1px solid #293b49;border-radius:5px;background:#0d1922;font-family:monospace;overflow:hidden}
+  .eqAction:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#8292a0}
+  .eqAction .freq{color:#dce7ef;font-size:10px;font-weight:700}.eqAction .hint{display:inline;color:#718393;font:9px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center}
+  .eqAction .gain{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
   .eqAction.cut{border-color:rgba(255,90,120,.28)}.eqAction.cut:before{background:#ff5a78}.eqAction.cut .gain{color:#ff6b83}
   .eqAction.boost{border-color:rgba(80,230,140,.28)}.eqAction.boost:before{background:#50e68c}.eqAction.boost .gain{color:#50e68c}
-  .eqActionMore{margin-top:8px;border-top:1px solid #1b2c38;padding-top:7px}.eqActionMore summary{cursor:pointer;color:#8ea1b1;font-size:10px}.eqActionMore .eqActionGrid{margin-top:7px}
+  .eqActionMore{margin-top:6px;border-top:1px solid #1b2c38;padding-top:5px}.eqActionMore summary{cursor:pointer;color:#8ea1b1;font-size:9px}.eqActionMore .eqActionGrid{margin-top:5px}
+  @media(max-width:1050px){.eqActionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   .geqValue.neutral{display:block;text-align:center;padding:12px;color:#7d8e9c;font-size:11px}
   #geqDock.collapsed #eqCurveCanvas,#geqDock.collapsed #geqValues{display:none}
   body.sun-mode #geqValues{background:#f8fafc;border-color:#dbe4eb}.sun-mode .eqAction{background:#fff;border-color:#cbd5e1}.sun-mode .eqAction .freq,.sun-mode .eqActionHead strong{color:#0f172a}
@@ -1794,7 +1795,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.28</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.29</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
