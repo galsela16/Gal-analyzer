@@ -1,7 +1,7 @@
 function safeOn(id,ev,fn,opt){var el=document.getElementById(id); if(el){el.addEventListener(ev,fn,opt);} return el;}
 const FMIN=20, FMAX=20000;
 let viewMin=20, viewMax=20000;
-let curBpo=3;
+let curBpo=6;
 let ISO=[], BANDS=0, R=1;
 let peaks=[];
 let avgBuf=[], snapCurve=null, lastV=[], lastRefV=[], lastBandDb=[], frozen=false;
@@ -53,7 +53,7 @@ function buildBands(bpo){
   { const rb=document.getElementById("refCurveBtn"); if(rb){ rb.classList.remove("on"); rb.textContent="שמור כ״לפני״"; } }
   const clr=document.getElementById('freezeBtn'); if(clr){clr.classList.remove('on');clr.textContent='הקפא';}
 }
-buildBands(3);
+buildBands(6);
 
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -96,6 +96,7 @@ let dragging=false, dragX0=0, dragX1=0, cursorX=null;
 let genType='pink', genOn=false, genGain=null, genSrc=null, genOsc=null;
 let genDb=-34, genHz=1000, targetMode='flat';
 let targetVisible=true;
+let eqMinFreq=40, eqMaxFreq=16000;
 let fftSize=16384;
 let _pfx=null;
 
@@ -330,7 +331,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.40-eq-engine-fix',
+    version: 'v5.4.42-eq-correction-range',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -340,7 +341,7 @@ function exportSessionJson(){
     micCalList: micCalList,
     activeCalId: activeCalId,
     settings: {
-      calib, floorDb, curBpo, fftSize, targetMode, targetVisible, weightMode, sunMode, tfDelayMs
+      calib, floorDb, curBpo, fftSize, targetMode, targetVisible, weightMode, sunMode, tfDelayMs, eqMinFreq, eqMaxFreq
     }
   };
   const jsonStr = JSON.stringify(data, null, 2);
@@ -371,6 +372,7 @@ function importSessionJson(e){
         if(s.floorDb!==undefined){ floorDb = s.floorDb; document.getElementById('floor').value = floorDb; document.getElementById('floorVal').textContent=floorDb+'dB'; }
         if(s.targetMode) setTarget(s.targetMode);
         if(s.targetVisible!==undefined){ targetVisible=!!s.targetVisible; prefSet('rta_target_visible',targetVisible?'1':'0'); if(typeof v5SyncTargetToggle==='function')v5SyncTargetToggle(); }
+        if(s.eqMinFreq!==undefined||s.eqMaxFreq!==undefined) setEqCorrectionRange(s.eqMinFreq, s.eqMaxFreq, false);
         if(s.sunMode!==undefined){ sunMode = s.sunMode; document.body.classList.toggle('sun-mode', sunMode); document.getElementById('sunBtn').classList.toggle('on', sunMode); }
         if(s.tfDelayMs!==undefined){ tfDelayMs = s.tfDelayMs; document.getElementById('tfDelayInfo').textContent = `סנכרון דיליי TF: ${tfDelayMs.toFixed(2)} ms`; }
       }
@@ -608,6 +610,30 @@ function setCutOnly(v){
   if(areas.length) suggestAreaEQ();
   if(typeof tfFrames!=='undefined' && tfFrames) tfCompute();
 }
+function setEqCorrectionRange(minFreq,maxFreq,recompute=true){
+  const values=GEQ.slice();
+  let lo=Number(minFreq),hi=Number(maxFreq);
+  if(!Number.isFinite(lo))lo=eqMinFreq;
+  if(!Number.isFinite(hi))hi=eqMaxFreq;
+  lo=values.reduce((best,f)=>Math.abs(f-lo)<Math.abs(best-lo)?f:best,values[0]);
+  hi=values.reduce((best,f)=>Math.abs(f-hi)<Math.abs(best-hi)?f:best,values[values.length-1]);
+  if(lo>=hi){
+    const li=values.indexOf(lo);hi=values[Math.min(values.length-1,li+1)];
+    if(lo>=hi)lo=values[Math.max(0,values.indexOf(hi)-1)];
+  }
+  eqMinFreq=lo;eqMaxFreq=hi;
+  const minEl=document.getElementById('eqRangeMin'),maxEl=document.getElementById('eqRangeMax');
+  if(minEl)minEl.value=String(lo);if(maxEl)maxEl.value=String(hi);
+  const label=document.getElementById('eqRangeLabel');if(label)label.textContent=fLabel(lo)+'Hz – '+fLabel(hi)+'Hz';
+  prefSet('rta_eq_min',lo);prefSet('rta_eq_max',hi);
+  if(recompute){
+    if(eqPositions.length)computeAndShow(true);
+    if(areas.length)suggestAreaEQ();
+    if(tfFrames)tfCompute();
+  }
+}
+safeOn('eqRangeMin','change',e=>setEqCorrectionRange(e.target.value,eqMaxFreq));
+safeOn('eqRangeMax','change',e=>setEqCorrectionRange(eqMinFreq,e.target.value));
 document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.addEventListener('click',function(){ setCutOnly(this.dataset.co==='1'); }));
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
@@ -702,7 +728,7 @@ function relByLevel(resp){
   const mid=resp.filter((v,k)=>GEQ[k]>=125&&GEQ[k]<=8000&&Number.isFinite(v));
   const sorted=mid.slice().sort((a,b)=>a-b);
   const reference=sorted.length?sorted[Math.floor(sorted.length/2)]:Math.max(...resp);
-  return GEQ.map((f,k)=> Number.isFinite(resp[k])&&resp[k]>reference-35&&f>=40&&f<=16000);
+  return GEQ.map((f,k)=> Number.isFinite(resp[k])&&resp[k]>reference-35&&f>=eqMinFreq&&f<=eqMaxFreq);
 }
 
 function corrGridHtml(corr, rel){
@@ -836,6 +862,10 @@ function drawGEQ(c, freqs, corr){
 
   x.fillStyle=sunMode ? '#ffffff' : '#09131b';
   x.fillRect(0,0,W,H);
+  const rangeLo=fx(Math.max(fMin,eqMinFreq)),rangeHi=fx(Math.min(fMax,eqMaxFreq));
+  x.fillStyle=sunMode?'rgba(100,116,139,.13)':'rgba(2,8,14,.52)';
+  if(rangeLo>left)x.fillRect(left,top,rangeLo-left,plotH);
+  if(rangeHi<W-right)x.fillRect(rangeHi,top,W-right-rangeHi,plotH);
 
   x.font='9px monospace';x.textAlign='right';
   [-6,0,6].forEach(db=>{const yy=fy(db);x.strokeStyle=db===0?(sunMode?'rgba(15,23,42,.38)':'rgba(132,172,205,.55)'):(sunMode?'rgba(15,23,42,.10)':'rgba(132,172,205,.14)');x.setLineDash(db===0?[]:[3,4]);x.beginPath();x.moveTo(left,yy);x.lineTo(W-right,yy);x.stroke();x.fillStyle=sunMode?'#64748b':'#8093a3';x.fillText((db>0?'+':'')+db+' dB',left-5,yy+3);});
@@ -1381,7 +1411,7 @@ function tfCompute(){
     refMax=Math.max(refMax,refB[k]);
   }
   if(micCal){ for(let k=0;k<GEQ.length;k++) H[k]-=micCalAt(GEQ[k]); }
-  const rel=GEQ.map((f,k)=> refB[k]>refMax-25 && f>=40 && f<=16000);
+  const rel=GEQ.map((f,k)=> refB[k]>refMax-25 && f>=eqMinFreq && f<=eqMaxFreq);
   const on=rel.filter(Boolean).length;
   const corr=buildCorr(H, rel);
   tfResult={corr,H,rel};
@@ -1939,15 +1969,7 @@ function drawRTPlot(post, steady, slope, intercept){
 function setRtaResolution(value){
   const allowed=[3,6,12,24];
   const requested=parseInt(value,10);
-  const sampleRate=audioCtx?audioCtx.sampleRate:48000;
-  const binHz=sampleRate/fftSize;
-  const reliable=allowed.filter(n=>{
-    const half=Math.pow(2,1/(2*n));
-    return viewMin*(half-1/half)>=binHz;
-  });
-  const maxBpo=reliable.length?Math.max(...reliable):3;
-  const wanted=allowed.reduce((best,n)=>Math.abs(n-requested)<Math.abs(best-requested)?n:best,6);
-  const bpo=Math.min(wanted,maxBpo);
+  const bpo=allowed.reduce((best,n)=>Math.abs(n-requested)<Math.abs(best-requested)?n:best,6);
   const slider=document.getElementById('res');if(slider)slider.value=String(bpo);
   document.getElementById('resVal').textContent='1/'+bpo+' אוקטבה';
   buildBands(bpo);
@@ -1955,7 +1977,6 @@ function setRtaResolution(value){
   v3UpdateStatus();
   const ioSelect=document.getElementById('v52ResSelect');if(ioSelect)ioSelect.value=String(bpo);
   document.querySelectorAll('#v3ResMenu button').forEach(btn=>btn.classList.toggle('on',parseInt(btn.dataset.bpo,10)===bpo));
-  if(bpo!==wanted) v3Toast('ברזולוציית ה-FFT הנוכחית, ה-low end מוגבל ל-1/'+bpo+' אוקטבה');
   return bpo;
 }
 safeOn('res', 'input',e=>{
@@ -3222,13 +3243,14 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
+  setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   // Delay values from previous sessions are diagnostic history, not a live
   // alignment. Never arm TF compensation until both channels are measured now.
   const savedDelay=parseFloat(lsGet('rta_tf_delay'));if(Number.isFinite(savedDelay)&&savedDelay!==0){
     const gb=document.getElementById('v52AutoDelayBtn');if(gb){gb.textContent=`Saved ${savedDelay.toFixed(2)} ms`;gb.classList.remove('has-result');}
     const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`תוצאה קודמת: ${savedDelay.toFixed(2)} ms · נדרשת מדידה חדשה`;
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.40';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.42';
   v3UpdateStatus();
 })();
 (function initAccent(){

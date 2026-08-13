@@ -1201,7 +1201,7 @@
     <div class="v3Status" aria-label="סטטוס מדידה">
       <span class="v3Chip" id="v3AudioChip">Audio: כבוי</span>
       <div id="v3ResControl">
-        <button class="v3Chip" id="v3ResChip" type="button" aria-expanded="false" title="שינוי רזולוציית RTA">RTA 1/3 ▾</button>
+        <button class="v3Chip" id="v3ResChip" type="button" aria-expanded="false" title="שינוי רזולוציית RTA">RTA 1/6 ▾</button>
         <div id="v3ResMenu" role="menu" aria-label="רזולוציית RTA">
           <button type="button" data-bpo="3">1/3 octave</button>
           <button type="button" data-bpo="6">1/6 octave</button>
@@ -1362,6 +1362,21 @@
         <button id="combBtn" class="toggle">בדוק פאזה</button>
       </div>
       <div id="combResult" style="display:none;text-align:center;font-size:12px"></div>
+      <div style="display:flex;gap:10px;align-items:end;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
+        <div class="ctrl" style="min-width:130px;flex:0 1 170px">
+          <label>תיקון החל מ־ (HPF)</label>
+          <select id="eqRangeMin">
+            <option value="20">20 Hz</option><option value="25">25 Hz</option><option value="31.5">31.5 Hz</option><option value="40" selected>40 Hz</option><option value="50">50 Hz</option><option value="63">63 Hz</option><option value="80">80 Hz</option><option value="100">100 Hz</option><option value="125">125 Hz</option><option value="160">160 Hz</option><option value="200">200 Hz</option><option value="250">250 Hz</option>
+          </select>
+        </div>
+        <div class="ctrl" style="min-width:130px;flex:0 1 170px">
+          <label>תיקון עד־ (LPF)</label>
+          <select id="eqRangeMax">
+            <option value="500">500 Hz</option><option value="630">630 Hz</option><option value="800">800 Hz</option><option value="1000">1 kHz</option><option value="2000">2 kHz</option><option value="4000">4 kHz</option><option value="8000">8 kHz</option><option value="10000">10 kHz</option><option value="12500">12.5 kHz</option><option value="16000" selected>16 kHz</option><option value="20000">20 kHz</option>
+          </select>
+        </div>
+        <div class="sub">טווח תיקון EQ: <b id="eqRangeLabel">40Hz – 16kHz</b><br>ה־RTA ממשיך להציג את כל הספקטרום</div>
+      </div>
       <div style="display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
         <div class="seg" id="eqModeSeg">
           <button data-m="graphic" class="on">גרפיק</button>
@@ -1706,8 +1721,8 @@
     <div class="tabpage active" data-page="view">
       <div class="trow">
         <div class="ctrl">
-          <label>רזולוציה <b id="resVal">1/3 אוקטבה</b></label>
-          <input type="range" id="res" min="3" max="24" step="1" value="3">
+          <label>רזולוציה <b id="resVal">1/6 אוקטבה</b></label>
+          <input type="range" id="res" min="3" max="24" step="1" value="6">
         </div>
         <div class="ctrl">
           <label>החלקה <b id="smoothVal">0.7</b></label>
@@ -1816,7 +1831,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.40</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.42</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

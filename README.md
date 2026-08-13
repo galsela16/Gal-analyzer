@@ -1,4 +1,4 @@
-# GAL Analyzer V5.4.40 — Low-frequency, delay and EQ accuracy
+# GAL Analyzer V5.4.42 — Adjustable EQ correction range
 
 - The left-rail EQ button now toggles the entire correction workspace on/off. The arrow inside the workspace remains dedicated only to collapsing or expanding its contents.
 
