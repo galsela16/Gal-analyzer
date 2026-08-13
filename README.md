@@ -1,4 +1,4 @@
-# GAL Analyzer V5.4.37 — EQ display toggle
+# GAL Analyzer V5.4.38 — Low-frequency accuracy
 
 - The left-rail EQ button now toggles the entire correction workspace on/off. The arrow inside the workspace remains dedicated only to collapsing or expanding its contents.
 

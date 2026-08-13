@@ -1201,7 +1201,7 @@
     <div class="v3Status" aria-label="סטטוס מדידה">
       <span class="v3Chip" id="v3AudioChip">Audio: כבוי</span>
       <div id="v3ResControl">
-        <button class="v3Chip" id="v3ResChip" type="button" aria-expanded="false" title="שינוי רזולוציית RTA">RTA 1/6 ▾</button>
+        <button class="v3Chip" id="v3ResChip" type="button" aria-expanded="false" title="שינוי רזולוציית RTA">RTA 1/3 ▾</button>
         <div id="v3ResMenu" role="menu" aria-label="רזולוציית RTA">
           <button type="button" data-bpo="3">1/3 octave</button>
           <button type="button" data-bpo="6">1/6 octave</button>
@@ -1589,7 +1589,6 @@
           <div class="v52Field">
             <label>FFT Size</label>
             <select id="v52FftSelect">
-              <option value="4096">4096</option>
               <option value="8192">8192</option>
               <option value="16384">16384</option>
               <option value="32768">32768</option>
@@ -1707,8 +1706,8 @@
     <div class="tabpage active" data-page="view">
       <div class="trow">
         <div class="ctrl">
-          <label>רזולוציה <b id="resVal">1/6 אוקטבה</b></label>
-          <input type="range" id="res" min="3" max="24" step="1" value="6">
+          <label>רזולוציה <b id="resVal">1/3 אוקטבה</b></label>
+          <input type="range" id="res" min="3" max="24" step="1" value="3">
         </div>
         <div class="ctrl">
           <label>החלקה <b id="smoothVal">0.7</b></label>
@@ -1817,7 +1816,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.37</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.38</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
