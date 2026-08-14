@@ -331,7 +331,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.46-visible-range-cache-recovery',
+    version: 'v5.4.47-stable-visible-eq-range',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3299,7 +3299,7 @@ document.addEventListener('keydown',e=>{
     const gb=document.getElementById('v52AutoDelayBtn');if(gb){gb.textContent=`Saved ${savedDelay.toFixed(2)} ms`;gb.classList.remove('has-result');}
     const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`תוצאה קודמת: ${savedDelay.toFixed(2)} ms · נדרשת מדידה חדשה`;
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.46';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.47';
   v3UpdateStatus();
 })();
 (function initAccent(){

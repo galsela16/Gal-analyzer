@@ -1,12 +1,12 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-46-visible-range-cache-recovery-20260814';
+const CACHE = 'gal-analyzer-v5-4-47-stable-visible-eq-range-20260814';
 const ASSETS = [
   './',
   './index.html',
-  './app.js?v=5.4.46',
-  './js/app-core.js?v=5.4.46',
-  './js/core/config.js?v=5.4.46',
-  './js/core/diagnostics.js?v=5.4.46',
+  './app.js',
+  './js/app-core.js',
+  './js/core/config.js',
+  './js/core/diagnostics.js',
   './recorder-worklet.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -26,11 +26,6 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
           .then(() => self.clients.claim())
-          .then(() => self.clients.matchAll({type:'window'}))
-          .then(clients => Promise.all(clients.map(client => {
-            const url=new URL(client.url);url.searchParams.set('gal_update','5.4.46');
-            return client.navigate(url.href).catch(()=>null);
-          })))
   );
 });
 

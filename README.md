@@ -1,6 +1,6 @@
-# GAL Analyzer V5.4.46 — Visible HPF / LPF and cache recovery
+# GAL Analyzer V5.4.47 — Stable visible HPF / LPF controls
 
-The SPL/EQ measurement dock now contains a prominent, always-visible HPF/LPF correction-range bar. Versioned script URLs and automatic service-worker activation navigation recover installations that were stuck displaying an older cached release.
+The SPL/EQ measurement dock contains a prominent, always-visible HPF/LPF correction-range bar. The experimental forced cache-navigation behavior from V5.4.46 was removed to restore stable startup and audio initialization.
 
 Parametric mode now fits up to six Bell filters (frequency, gain and Q) together against the measured correction target. It no longer selects peaks from the graphic-EQ result. The optimizer respects HPF/LPF, cut-only mode and safe gain limits.
 
