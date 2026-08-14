@@ -1,4 +1,12 @@
-# GAL Analyzer V5.4.54 — Compact TF correlation meter
+# GAL Analyzer V5.4.55 — Field preflight measurement audit
+
+Measurement-engine preflight coverage now tests delay at 44.1/48/96 kHz with noise and reflections, rejects silence and single-tone ambiguity, verifies TF phase compensation, band coherence, low-frequency band integration, mic-cal interpolation, RT60 regression, EQ safety limits and the six-band parametric optimizer.
+
+Important fixes from the audit:
+- TF Auto Delay is now applied as an exact frequency-domain phase correction; the previous time-window shift could not move when FFT and capture lengths were equal.
+- TF EQ recommendations now require per-band coherence as well as adequate Reference level, and TF accumulators reset for every new measurement.
+- Auto Delay resets on MIC/REF swap and session reset.
+- RT60 now owns and cancels all arming/cut/finish timers, preventing an old or closed measurement from continuing and blocking overlapping measurements correctly.
 
 The TF correlation meter is now a slim single-row status control with a small value, short rounded scale and concise state text. The large scale labels and oversized card spacing were removed while preserving polarity and signal-quality feedback.
 
