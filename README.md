@@ -1,4 +1,10 @@
-# GAL Analyzer V5.4.47 — Stable visible HPF / LPF controls
+# GAL Analyzer V5.4.50 — Elegant EQ correction overlay
+
+After measurement, the proposed EQ curve appears as a compact ±6 dB ribbon inside the lower part of the live RTA graph. The large correction dock now opens collapsed by default; its detailed curve and priority cards are available only through “הצג פירוט”, so the spectrum remains visible.
+
+In SPL/EQ mode, the correction limits are now large draggable handles directly on the live RTA graph (cyan HPF, orange LPF). The lower selector row is hidden to preserve graph space; all range values remain synchronized internally.
+
+Auto Delay is no longer stored in preferences or session exports. It resets whenever audio starts, stops or switches input, so every physical setup requires a fresh measurement. The opening description now reflects the current 1/6-octave RTA, TF, Delay, SPL/EQ and Sub/Top workflow.
 
 The SPL/EQ measurement dock contains a prominent, always-visible HPF/LPF correction-range bar. The experimental forced cache-navigation behavior from V5.4.46 was removed to restore stable startup and audio initialization.
 
