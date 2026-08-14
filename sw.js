@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-44-visible-eq-range-20260814';
+const CACHE = 'gal-analyzer-v5-4-45-six-band-parametric-optimizer-20260814';
 const ASSETS = [
   './',
   './index.html',

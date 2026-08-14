@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.44 — Always-visible HPF / LPF EQ range
+# GAL Analyzer V5.4.45 — Independent six-band parametric optimizer
+
+Parametric mode now fits up to six Bell filters (frequency, gain and Q) together against the measured correction target. It no longer selects peaks from the graphic-EQ result. The optimizer respects HPF/LPF, cut-only mode and safe gain limits.
 
 The HPF and LPF correction limits are now permanently visible in the EQ graph header, synchronized with the SPL/EQ panel controls. Larger cyan/orange handles are drawn above the curve and can be dragged directly.
 

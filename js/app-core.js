@@ -331,7 +331,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.44-visible-eq-range',
+    version: 'v5.4.45-six-band-parametric-optimizer',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -750,7 +750,7 @@ function corrGridHtml(corr, rel){
 function corrParamHtml(corr){
   const list=paramFromCorr(corr);
   if(!list.length) return '<div class="sub">מאוזן 👌</div>';
-  return list.map(s=>{
+  return '<div class="sub" style="margin-bottom:6px">פתרון מיטבי · '+list.length+'/6 מסנני Bell</div>'+list.map(s=>{
     const f=s.f>=1000?(s.f/1000).toFixed(2)+'kHz':Math.round(s.f)+'Hz';
     const g=(s.gain>0?'+':'')+s.gain.toFixed(1)+'dB';
     return '<div class="eqRow '+s.type+'"><span class="f">'+f+'</span><span class="g">'+g+'</span><span class="q">Q '+s.q.toFixed(1)+'</span></div>';
@@ -1464,7 +1464,7 @@ function renderTFList(){
   eqCurveData = { freqs: GEQ.slice(), corr: tfResult.corr.slice() };
 
   if(tfMode==='param'){
-    const head='<div class="sub" style="margin-bottom:6px;color:var(--text);font-weight:600;">EQ פרמטרי (יעד '+(targetMode==='house'?'House':'שטוח')+'):</div>';
+    const head='<div class="sub" style="margin-bottom:6px;color:var(--text);font-weight:600;">EQ פרמטרי · אופטימיזציית 6 Bands (יעד '+(targetMode==='house'?'House':'שטוח')+'):</div>';
     box.innerHTML = head + corrParamHtml(tfResult.corr);
     return;
   }
@@ -1840,20 +1840,40 @@ function computeAndShow(noModal){
   renderEqResult();
   if(!noModal) showModal(eqPanel);
 }
+// Fit six real parametric bell filters simultaneously. This is deliberately not
+// a peak-picker or a conversion of the 31 graphic-EQ sliders.
 function paramFromCorr(corr){
-  const cand=[];
-  for(let k=1;k<GEQ.length-1;k++){ const v=corr[k], pv=corr[k-1], nv=corr[k+1];
-    if(v==null||pv==null||nv==null) continue;
-    const isMax=v>=pv&&v>nv&&v>1, isMin=v<=pv&&v<nv&&v<-1; if(!isMax&&!isMin) continue;
-    const half=v/2; let li=k,ri=k;
-    if(isMax){ while(li>0&&corr[li]!=null&&corr[li]>half)li--; while(ri<GEQ.length-1&&corr[ri]!=null&&corr[ri]>half)ri++; }
-    else     { while(li>0&&corr[li]!=null&&corr[li]<half)li--; while(ri<GEQ.length-1&&corr[ri]!=null&&corr[ri]<half)ri++; }
-    const q=Math.max(0.7,Math.min(8, GEQ[k]/Math.max(1,(GEQ[Math.min(GEQ.length-1,ri)]-GEQ[Math.max(0,li)]))));
-    cand.push({f:GEQ[k],gain:v,q,type:v<0?'cut':'boost',prom:Math.abs(v)});
+  const samples=GEQ.map((f,k)=>({f,target:corr[k]})).filter(s=>s.target!=null&&Number.isFinite(s.target)&&s.f>=eqMinFreq&&s.f<=eqMaxFreq);
+  if(!samples.length)return [];
+  const centers=GEQ.filter(f=>f>=eqMinFreq&&f<=eqMaxFreq),qs=[0.5,0.7,1,1.4,2,2.8,4,5.6,8,10];
+  const bell=(f,fc,q)=>1/(1+Math.pow(2*q*Math.sinh(Math.LN2*Math.log2(f/fc)),2));
+  const shape=(fc,q)=>samples.map(s=>bell(s.f,fc,q));
+  const gainFor=(residual,sh,fc)=>{
+    let dot=0,pow=0;for(let i=0;i<sh.length;i++){dot+=residual[i]*sh[i];pow+=sh[i]*sh[i];}
+    let g=pow>1e-9?dot/pow:0;const lo=fc<160?-6:-4,hi=cutOnly?0:(fc>500?1.5:3);
+    return Math.max(lo,Math.min(hi,g));
+  };
+  const error=(residual,sh,g)=>{let e=0;for(let i=0;i<sh.length;i++){const v=residual[i]-g*sh[i];e+=v*v;}return e;};
+  const filters=[],prediction=new Array(samples.length).fill(0);
+  for(let band=0;band<6;band++){
+    const residual=samples.map((s,i)=>s.target-prediction[i]);let base=residual.reduce((n,v)=>n+v*v,0),best=null;
+    for(const fc of centers)for(const q of qs){
+      const sh=shape(fc,q),g=gainFor(residual,sh,fc);if(Math.abs(g)<0.35)continue;
+      const e=error(residual,sh,g);if(!best||e<best.e)best={f:fc,q,gain:g,sh,e};
+    }
+    if(!best||base-best.e<0.35)break;
+    filters.push(best);for(let i=0;i<prediction.length;i++)prediction[i]+=best.gain*best.sh[i];
   }
-  cand.sort((a,b)=>b.prom-a.prom);
-  const picked=[]; cand.forEach(c=>{ if(!picked.some(p=>Math.abs(Math.log2(p.f/c.f))<0.66)) picked.push(c); });
-  return picked.slice(0,6).sort((a,b)=>a.f-b.f);
+  // Coordinate-descent refinement lets every band move after the other bands exist.
+  for(let pass=0;pass<3;pass++)for(let bi=0;bi<filters.length;bi++){
+    const old=filters[bi],residual=samples.map((s,i)=>s.target-(prediction[i]-old.gain*old.sh[i]));let best=old,bestE=Infinity;
+    for(const fc of centers)for(const q of qs){
+      const sh=shape(fc,q),g=gainFor(residual,sh,fc),e=error(residual,sh,g);
+      if(e<bestE){bestE=e;best={f:fc,q,gain:g,sh,e};}
+    }
+    for(let i=0;i<prediction.length;i++)prediction[i]+=best.gain*best.sh[i]-old.gain*old.sh[i];filters[bi]=best;
+  }
+  return filters.filter(s=>Math.abs(s.gain)>=0.5).map(s=>({f:s.f,gain:s.gain,q:s.q,type:s.gain<0?'cut':'boost'})).sort((a,b)=>a.f-b.f).slice(0,6);
 }
 
 function renderEqResult(){
@@ -3279,7 +3299,7 @@ document.addEventListener('keydown',e=>{
     const gb=document.getElementById('v52AutoDelayBtn');if(gb){gb.textContent=`Saved ${savedDelay.toFixed(2)} ms`;gb.classList.remove('has-result');}
     const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`תוצאה קודמת: ${savedDelay.toFixed(2)} ms · נדרשת מדידה חדשה`;
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.44';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.45';
   v3UpdateStatus();
 })();
 (function initAccent(){
