@@ -331,7 +331,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.43-workflow-and-visual-eq-range',
+    version: 'v5.4.44-visible-eq-range',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -622,8 +622,8 @@ function setEqCorrectionRange(minFreq,maxFreq,recompute=true){
     if(lo>=hi)lo=values[Math.max(0,values.indexOf(hi)-1)];
   }
   eqMinFreq=lo;eqMaxFreq=hi;
-  const minEl=document.getElementById('eqRangeMin'),maxEl=document.getElementById('eqRangeMax');
-  if(minEl)minEl.value=String(lo);if(maxEl)maxEl.value=String(hi);
+  ['eqRangeMin','eqDockRangeMin'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=String(lo);});
+  ['eqRangeMax','eqDockRangeMax'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=String(hi);});
   const label=document.getElementById('eqRangeLabel');if(label)label.textContent=fLabel(lo)+'Hz – '+fLabel(hi)+'Hz';
   prefSet('rta_eq_min',lo);prefSet('rta_eq_max',hi);
   if(recompute){
@@ -634,6 +634,8 @@ function setEqCorrectionRange(minFreq,maxFreq,recompute=true){
 }
 safeOn('eqRangeMin','change',e=>setEqCorrectionRange(e.target.value,eqMaxFreq));
 safeOn('eqRangeMax','change',e=>setEqCorrectionRange(eqMinFreq,e.target.value));
+safeOn('eqDockRangeMin','change',e=>setEqCorrectionRange(e.target.value,eqMaxFreq));
+safeOn('eqDockRangeMax','change',e=>setEqCorrectionRange(eqMinFreq,e.target.value));
 document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.addEventListener('click',function(){ setCutOnly(this.dataset.co==='1'); }));
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
@@ -829,7 +831,7 @@ function drawGEQ(c, freqs, corr){
       const rect=c.getBoundingClientRect(),left=36,right=14,W=rect.width,fMin=Math.max(20,data.freqs[0]),fMax=data.freqs[data.freqs.length-1];
       const fx=f=>left+(Math.log(f/fMin)/Math.log(fMax/fMin))*Math.max(1,W-left-right);
       const mx=e.clientX-rect.left,dl=Math.abs(mx-fx(eqMinFreq)),dh=Math.abs(mx-fx(eqMaxFreq));
-      if(Math.min(dl,dh)<=16){c._eqRangeDrag=dl<=dh?'min':'max';c.setPointerCapture?.(e.pointerId);e.preventDefault();}
+      if(Math.min(dl,dh)<=24){c._eqRangeDrag=dl<=dh?'min':'max';c.setPointerCapture?.(e.pointerId);e.preventDefault();}
     });
     c.addEventListener('pointermove',e=>{
       const data=c._geqData;if(!data)return;
@@ -884,15 +886,6 @@ function drawGEQ(c, freqs, corr){
   x.fillStyle=sunMode?'rgba(100,116,139,.13)':'rgba(2,8,14,.52)';
   if(rangeLo>left)x.fillRect(left,top,rangeLo-left,plotH);
   if(rangeHi<W-right)x.fillRect(rangeHi,top,W-right-rangeHi,plotH);
-  if(c.id==='eqCurveCanvas'){
-    const handle=(xx,label,side)=>{
-      x.strokeStyle='#3ea6ff';x.lineWidth=2;x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bot);x.stroke();
-      x.fillStyle='#3ea6ff';x.beginPath();x.moveTo(xx,top);x.lineTo(xx+(side==='min'?9:-9),top);x.lineTo(xx,top+9);x.closePath();x.fill();
-      x.font='700 9px monospace';x.textAlign=side==='min'?'left':'right';x.fillText(label,xx+(side==='min'?5:-5),top+13);
-    };
-    handle(rangeLo,'HPF '+fLabel(eqMinFreq)+'Hz','min');handle(rangeHi,'LPF '+fLabel(eqMaxFreq)+'Hz','max');
-  }
-
   x.font='9px monospace';x.textAlign='right';
   [-6,0,6].forEach(db=>{const yy=fy(db);x.strokeStyle=db===0?(sunMode?'rgba(15,23,42,.38)':'rgba(132,172,205,.55)'):(sunMode?'rgba(15,23,42,.10)':'rgba(132,172,205,.14)');x.setLineDash(db===0?[]:[3,4]);x.beginPath();x.moveTo(left,yy);x.lineTo(W-right,yy);x.stroke();x.fillStyle=sunMode?'#64748b':'#8093a3';x.fillText((db>0?'+':'')+db+' dB',left-5,yy+3);});
   x.setLineDash([]);
@@ -917,6 +910,16 @@ function drawGEQ(c, freqs, corr){
         x.fillStyle=sunMode?'#0f172a':'#eef5fa';x.textAlign='center';x.fillText(label,tx+tw/2,ty+16);
       }
     }
+  }
+  if(c.id==='eqCurveCanvas'){
+    const handle=(xx,label,side,color)=>{
+      x.save();x.strokeStyle=color;x.lineWidth=3;x.setLineDash([]);x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bot);x.stroke();
+      x.font='800 10px monospace';const bw=Math.max(62,x.measureText(label).width+12),bh=18,bx=side==='min'?xx:xx-bw;
+      x.fillStyle=color;x.fillRect(bx,top,bw,bh);x.fillStyle='#06111a';x.textAlign='center';x.fillText(label,bx+bw/2,top+12);
+      x.beginPath();x.moveTo(xx,top+bh);x.lineTo(xx+(side==='min'?11:-11),top+bh);x.lineTo(xx,top+bh+11);x.closePath();x.fillStyle=color;x.fill();x.restore();
+    };
+    handle(rangeLo,'HPF '+fLabel(eqMinFreq)+'Hz','min','#35d0ff');
+    handle(rangeHi,'LPF '+fLabel(eqMaxFreq)+'Hz','max','#ffb020');
   }
   let worst=null;
   for(let k=0;k<freqs.length;k++){ const v=corr[k]; if(v==null) continue; if(!worst||Math.abs(v)>Math.abs(worst.v)) worst={v,k}; }
@@ -3276,7 +3279,7 @@ document.addEventListener('keydown',e=>{
     const gb=document.getElementById('v52AutoDelayBtn');if(gb){gb.textContent=`Saved ${savedDelay.toFixed(2)} ms`;gb.classList.remove('has-result');}
     const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`תוצאה קודמת: ${savedDelay.toFixed(2)} ms · נדרשת מדידה חדשה`;
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.43';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.44';
   v3UpdateStatus();
 })();
 (function initAccent(){

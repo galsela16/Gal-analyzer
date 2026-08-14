@@ -281,6 +281,9 @@
   body.sun-mode #geqDockHead{ background:#f1f5f9; }
   #geqDockTitle{font-size:12px; font-weight:600; letter-spacing:.5px; color:var(--accent)}
   #geqDockTools{display:flex;align-items:center;gap:8px;margin-inline-start:auto;margin-inline-end:10px}
+  .geqRangeCtl{display:flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid #2a4052;border-radius:5px;background:#08131b;color:#9fb0bf;font-size:9px;white-space:nowrap}
+  .geqRangeCtl select{width:76px;border:0;background:transparent;color:#eef5fa;font:700 10px monospace;outline:none;cursor:pointer}
+  body.sun-mode .geqRangeCtl{background:#fff;border-color:#cbd5e1;color:#64748b}body.sun-mode .geqRangeCtl select{color:#0f172a}
   #geqCutMode{display:flex;direction:rtl;border:1px solid #2a4052;border-radius:5px;overflow:hidden;background:#08131b}
   #geqCutMode button{border:0;border-left:1px solid #2a4052;background:transparent;color:#8294a3;padding:5px 10px;font:700 10px inherit;cursor:pointer;white-space:nowrap}
   #geqCutMode button:last-child{border-left:0}#geqCutMode button.on{color:var(--accent);background:rgba(62,166,255,.14)}
@@ -1542,6 +1545,16 @@
       <div id="geqDockHead">
         <span id="geqDockTitle">תיקון EQ</span>
         <div id="geqDockTools">
+          <label class="geqRangeCtl">HPF
+            <select id="eqDockRangeMin" title="לא להציע תיקונים מתחת לתדר הזה">
+              <option value="20">20 Hz</option><option value="25">25 Hz</option><option value="31.5">31.5 Hz</option><option value="40" selected>40 Hz</option><option value="50">50 Hz</option><option value="63">63 Hz</option><option value="80">80 Hz</option><option value="100">100 Hz</option><option value="125">125 Hz</option><option value="160">160 Hz</option><option value="200">200 Hz</option><option value="250">250 Hz</option>
+            </select>
+          </label>
+          <label class="geqRangeCtl">LPF
+            <select id="eqDockRangeMax" title="לא להציע תיקונים מעל לתדר הזה">
+              <option value="500">500 Hz</option><option value="630">630 Hz</option><option value="800">800 Hz</option><option value="1000">1 kHz</option><option value="2000">2 kHz</option><option value="4000">4 kHz</option><option value="8000">8 kHz</option><option value="10000">10 kHz</option><option value="12500">12.5 kHz</option><option value="16000" selected>16 kHz</option><option value="20000">20 kHz</option>
+            </select>
+          </label>
           <span style="font-size:9px;color:var(--dim)">סוג תיקון</span>
           <div id="geqCutMode">
             <button type="button" data-co="0" class="on">גרף מלא</button>
@@ -1830,7 +1843,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.43</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.44</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

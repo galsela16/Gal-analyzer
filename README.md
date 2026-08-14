@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.43 — Faster TF workflow and visual EQ range
+# GAL Analyzer V5.4.44 — Always-visible HPF / LPF EQ range
+
+The HPF and LPF correction limits are now permanently visible in the EQ graph header, synchronized with the SPL/EQ panel controls. Larger cyan/orange handles are drawn above the curve and can be dragged directly.
 
 - The left-rail EQ button now toggles the entire correction workspace on/off. The arrow inside the workspace remains dedicated only to collapsing or expanding its contents.
 
