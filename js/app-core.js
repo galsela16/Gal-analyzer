@@ -337,7 +337,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.52-measurement-workflow-guide',
+    version: 'v5.4.53-tf-filter-handles',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -438,9 +438,12 @@ function eqRtaRangeFreq(px){
   const raw=freqForX(px);
   return GEQ.reduce((best,f)=>Math.abs(Math.log(f/raw))<Math.abs(Math.log(best/raw))?f:best,GEQ[0]);
 }
+function eqRangeWorkspaceOpen(){
+  return !!((eqPanel&&eqPanel.classList.contains('open'))||(tfPanel&&tfPanel.classList.contains('open')));
+}
 cv.addEventListener('pointerdown',e=>{
   if(!running||mode!=='rta') return;
-  if(eqPanel&&eqPanel.classList.contains('open')){
+  if(eqRangeWorkspaceOpen()){
     const dl=Math.abs(e.offsetX-eqRtaRangeX(eqMinFreq)),dh=Math.abs(e.offsetX-eqRtaRangeX(eqMaxFreq));
     if(Math.min(dl,dh)<=28){eqRtaRangeDrag=dl<=dh?'min':'max';try{cv.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}
   }
@@ -451,7 +454,7 @@ cv.addEventListener('pointermove',e=>{
   cursorX=e.offsetX;
   if(eqRtaRangeDrag){const f=eqRtaRangeFreq(e.offsetX);setEqCorrectionRange(eqRtaRangeDrag==='min'?f:eqMinFreq,eqRtaRangeDrag==='max'?f:eqMaxFreq,false);cv.style.cursor='ew-resize';return;}
   if(dragging)dragX1=e.offsetX;
-  if(eqPanel&&eqPanel.classList.contains('open')){const near=Math.min(Math.abs(e.offsetX-eqRtaRangeX(eqMinFreq)),Math.abs(e.offsetX-eqRtaRangeX(eqMaxFreq)))<=28;cv.style.cursor=near?'ew-resize':'crosshair';}
+  if(eqRangeWorkspaceOpen()){const near=Math.min(Math.abs(e.offsetX-eqRtaRangeX(eqMinFreq)),Math.abs(e.offsetX-eqRtaRangeX(eqMaxFreq)))<=28;cv.style.cursor=near?'ew-resize':'crosshair';}
 });
 cv.addEventListener('pointerleave',()=>{ cursorX=null; });
 cv.addEventListener('pointerup',e=>{
@@ -2497,7 +2500,7 @@ function draw(){
 
   if(mode==='rta'){
     drawRta(W,H,nyquist,bins,xForFreq);
-    if(eqPanel&&eqPanel.classList.contains('open')){
+    if(eqRangeWorkspaceOpen()){
       drawRtaEqRange(W,H,xForFreq);
       drawRtaEqCorrection(W,H,xForFreq);
     }
@@ -3366,7 +3369,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.52';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.53';
   v3UpdateStatus();
 })();
 (function initAccent(){

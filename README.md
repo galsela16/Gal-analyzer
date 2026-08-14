@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.52 — Measurement and workflow guide
+# GAL Analyzer V5.4.53 — HPF / LPF controls in TF
+
+The same refined draggable HPF/LPF handles now appear on the live RTA graph while either SPL/EQ or TF is open. Both workspaces share one synchronized correction range, and moving a handle recomputes the active TF recommendations.
 
 A compact guide button next to Help opens an in-app field workflow plus concise instructions for RTA, Waterfall, TF, Delay, RT60, SPL/EQ, Sub/Top and Trace comparison.
 
