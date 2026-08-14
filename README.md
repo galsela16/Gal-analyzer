@@ -1,4 +1,8 @@
-# GAL Analyzer V5.4.51 — Refined RTA filter handles
+# GAL Analyzer V5.4.52 — Measurement and workflow guide
+
+A compact guide button next to Help opens an in-app field workflow plus concise instructions for RTA, Waterfall, TF, Delay, RT60, SPL/EQ, Sub/Top and Trace comparison.
+
+Delay speaker alignment rows are now compact and responsive, showing speaker name, measured time, equivalent distance, measure action and anchor-relative result without oversized cards.
 
 The RTA HPF/LPF controls now use thin semi-transparent dashed lines, small rounded labels and subtle grab points. Only the active handle becomes stronger while dragging; the large banners, triangles and center instruction were removed.
 

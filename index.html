@@ -125,11 +125,17 @@
   #modalBg{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.22);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);display:none;align-items:center;justify-content:center;padding:16px}
   #modalBg.show{display:flex}
   
-  #helpBtn, #sunBtn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
+  #helpBtn, #sunBtn, #guideBtn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);
     background:var(--panel-2);color:var(--dim);font-weight:700;font-size:14px;cursor:pointer;transition:.14s;flex:none;display:flex;align-items:center;justify-content:center}
   #sunBtn{margin-inline-start:auto}
-  #helpBtn.on, #sunBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.14);box-shadow:0 0 12px rgba(62,166,255,.3)}
-  #helpBtn:hover, #sunBtn:hover{color:var(--text);border-color:#3a4656}
+  #helpBtn.on, #sunBtn.on, #guideBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.14);box-shadow:0 0 12px rgba(62,166,255,.3)}
+  #helpBtn:hover, #sunBtn:hover, #guideBtn:hover{color:var(--text);border-color:#3a4656}
+  #guidePanel{display:none;direction:rtl;width:min(92vw,780px);max-height:min(86vh,760px);overflow:auto;padding:18px;border:1px solid var(--accent);border-radius:10px;background:var(--panel);box-shadow:0 18px 55px rgba(0,0,0,.65);color:var(--text)}
+  #guidePanel.open{display:block}#guidePanel h2{font-size:17px;margin:0 0 5px;color:var(--accent)}#guidePanel>.sub{margin-bottom:14px;color:var(--dim);font-size:11px}
+  .guideFlow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:14px}.guideStep{position:relative;padding:9px 9px 9px 28px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);font-size:10px;line-height:1.45}.guideStep b{display:block;color:var(--accent);font-size:11px}.guideStep i{position:absolute;left:8px;top:8px;color:var(--dim);font:700 13px monospace}
+  .guideSections{display:grid;grid-template-columns:1fr 1fr;gap:7px}.guideSections details{border:1px solid var(--line);border-radius:7px;background:var(--panel-2);padding:0 10px}.guideSections summary{cursor:pointer;padding:9px 0;color:var(--text);font-weight:700;font-size:11px}.guideSections p{margin:0 0 9px;color:var(--dim);font-size:10px;line-height:1.65}.guideSections strong{color:var(--text)}
+  #guideClose{display:block;margin:15px auto 0;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--text);padding:7px 24px;cursor:pointer}
+  @media(max-width:700px){.guideFlow{grid-template-columns:1fr 1fr}.guideSections{grid-template-columns:1fr}}
   #swatches{display:flex;gap:6px;align-items:center;flex:none}
   .sw{width:18px;height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;transition:.12s}
   .sw:hover{transform:scale(1.15)}
@@ -519,7 +525,7 @@
   }
   #swatches{margin-left:auto}
   #sunBtn{margin-inline-start:0!important}
-  #helpBtn,#sunBtn{background:#0c1620}
+  #helpBtn,#sunBtn,#guideBtn{background:#0c1620}
   .v5HeaderActions{
     display:flex;align-items:center;gap:7px;direction:rtl;
   }
@@ -745,6 +751,13 @@
   #dlyPanel.measureDock .dlyAlignmentHead{display:flex;flex-direction:column;gap:7px;align-items:center;justify-content:center}
   #dlyPanel.measureDock .dlyAlignmentHead .ctrl{min-height:0!important;width:100%;box-sizing:border-box}
   #dlyPanel.measureDock #dlySpk{display:flex!important;width:100%!important;max-height:none!important;gap:5px!important}
+  .dlySpeakerRow{display:grid;grid-template-columns:22px minmax(80px,1fr) 120px 54px minmax(86px,120px);align-items:center;gap:6px;min-height:34px;padding:4px 7px;border:1px solid #223543;border-radius:6px;background:rgba(10,21,30,.68);transition:.14s}
+  .dlySpeakerRow:hover{border-color:#36566d;background:rgba(14,29,40,.82)}.dlySpeakerRow.anchor{border-color:rgba(62,166,255,.45);box-shadow:inset 3px 0 0 rgba(62,166,255,.75)}
+  .dlySpeakerRow .posName{min-width:0;width:100%;border:0;border-bottom:1px solid transparent;background:transparent;color:var(--text);font:600 11px inherit;padding:3px 2px}.dlySpeakerRow .posName:focus{outline:0;border-bottom-color:var(--accent)}
+  .dlySpeakerRow .dlyTime{font:10px monospace;color:var(--dim);white-space:nowrap}.dlySpeakerRow .dlyDelta{font-size:10px;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dlySpeakerRow .dlyMeasOne{padding:4px 7px!important;font-size:10px!important;min-height:25px!important}
+  .dlySpeakerRow .dlyAnchor{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:13px;cursor:pointer;color:var(--dim)}.dlySpeakerRow.anchor .dlyAnchor{color:var(--accent);background:rgba(62,166,255,.12)}
+  body.sun-mode .dlySpeakerRow{background:rgba(248,250,252,.92);border-color:#cbd5e1}body.sun-mode .dlySpeakerRow:hover{background:#fff;border-color:#94a3b8}
+  @media(max-width:760px){.dlySpeakerRow{grid-template-columns:22px minmax(70px,1fr) 105px 50px}.dlySpeakerRow .dlyDelta{grid-column:2/5;text-align:start}}
   #dlyPanel.measureDock .dlyActions{grid-area:actions;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #1f303e;padding-top:9px}
   #dlyPanel.measureDock>.dockMoreBtn,#dlyPanel.measureDock>.dockClose{position:absolute!important;top:9px!important;z-index:2;order:initial!important}
   #dlyPanel.measureDock>.dockMoreBtn{left:52px!important}
@@ -837,7 +850,8 @@
   }
   body.sun-mode .v5HeaderAction,
   body.sun-mode #helpBtn,
-  body.sun-mode #sunBtn{
+  body.sun-mode #sunBtn,
+  body.sun-mode #guideBtn{
     background:#f8fafc!important;
     border-color:#cbd5e1!important;
     color:#334155!important;
@@ -1226,6 +1240,7 @@
     </div>
     <button id="sunBtn" title="מצב אור שמש / ניגודיות גבוהה" aria-label="מצב אור שמש">☀️</button>
     <button id="helpBtn" title="מצב עזרה — רחף על כפתור להסבר" aria-label="מצב עזרה">?</button>
+    <button id="guideBtn" title="מדריך מדידות ו־Workflow" aria-label="מדריך הפעלה">≡</button>
     <div id="swatches" title="צבע האפליקציה" role="group" aria-label="צבע האפליקציה">
       <button class="sw on" data-c="#3ea6ff" style="background:#3ea6ff" aria-label="כחול" title="כחול"></button>
       <button class="sw" data-c="#40d17a" style="background:#40d17a" aria-label="ירוק" title="ירוק"></button>
@@ -1307,7 +1322,33 @@
     </div>
     <button class="zoomBtn" id="zoomBtn">⤢ טווח מלא</button>
     
-    <div id="modalBg"></div>
+    <div id="modalBg">
+      <div id="guidePanel" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+        <h2 id="guideTitle">מדריך מדידות · Workflow</h2>
+        <div class="sub">סדר עבודה מומלץ למערכת PA — מהחיבור ועד אימות התוצאה.</div>
+        <div class="guideFlow">
+          <div class="guideStep"><i>1</i><b>I/O וכיול</b>בחר MIC 1 ו־REF 2 וטען קובץ כיול למיקרופון.</div>
+          <div class="guideStep"><i>2</i><b>רמות</b>נגן Pink Noise וכוונן רמות יציבות ללא קליפ.</div>
+          <div class="guideStep"><i>3</i><b>Auto Delay</b>מדוד מחדש בכל הקמה. זה מפצה את נתיב המדידה.</div>
+          <div class="guideStep"><i>4</i><b>Delay רמקולים</b>יישר זמני הגעה בין מערכות לפני EQ.</div>
+          <div class="guideStep"><i>5</i><b>Sub / Top</b>בצע יישור פאזה עדין באזור החיתוך.</div>
+          <div class="guideStep"><i>6</i><b>SPL / EQ</b>מדוד 3–5 מיקומים וקבע HPF/LPF ויעד.</div>
+          <div class="guideStep"><i>7</i><b>TF ואימות</b>בדוק תגובה, פאזה וקוהרנטיות לאחר השינויים.</div>
+          <div class="guideStep"><i>8</i><b>RT60 ו־Waterfall</b>בדוק דעיכה; בעיות חדר אינן תמיד פתירות ב־EQ.</div>
+        </div>
+        <div class="guideSections">
+          <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
+          <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> Auto Delay טרי → קוהרנטיות → תגובה ופאזה → EQ. אל תסמוך על אזור עם קוהרנטיות נמוכה.</p></details>
+          <details><summary>Delay · זמני הגעה</summary><p>מדוד רמקול עוגן ואז את האחרים מאותו מיקום מיקרופון. מטר הפרש מרחק הוא בערך 2.9ms; תוצאה רחוקה מכך דורשת בדיקת ניתוב.</p></details>
+          <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
+          <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
+          <details><summary>Sub / Top · יישור חיתוך</summary><p>שמור Sub ואחריו Top ובדוק Δφ באזור החיתוך. Delay נותן זמן הגעה גס; Sub/Top משלים יישור פאזה עדין.</p></details>
+          <details><summary>Trace · לפני ואחרי</summary><p>שמור Trace לפני שינוי. לאחריו השווה באותו מיקום מיקרופון, אותה עוצמה ואותו אות בדיקה.</p></details>
+        </div>
+        <button id="guideClose" type="button">סגור</button>
+      </div>
+    </div>
     
     <div id="srcOverlay">
       <div id="srcBox">
@@ -1850,7 +1891,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.51</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.52</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

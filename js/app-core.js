@@ -337,7 +337,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.51-refined-rta-filter-handles',
+    version: 'v5.4.52-measurement-workflow-guide',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1059,6 +1059,7 @@ safeOn('calResetBtn', 'click',()=>{
 
 var alignOn=false;
 const modalBg=document.getElementById('modalBg');
+const guidePanel=document.getElementById('guidePanel');
 const measureDockIds=['rtPanel','eqPanel','tfPanel','areaPanel','dlyPanel'];
 const stageEl=document.getElementById('stage');
 function dockAdvanced(id, parentLevels=0, block=false){
@@ -1124,12 +1125,14 @@ function abortRT60(){
 }
 function closeModals(){
   abortRT60();
-  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel'].forEach(id=>{const p=document.getElementById(id);if(p){p.classList.remove('open','expanded');const m=p.querySelector('.dockMoreBtn');if(m)m.textContent='עוד ▾';}});
+  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel','guidePanel'].forEach(id=>{const p=document.getElementById(id);if(p){p.classList.remove('open','expanded');const m=p.querySelector('.dockMoreBtn');if(m)m.textContent='עוד ▾';}});
   modalBg.classList.remove('show');
   if(typeof updateMeasureDockHeight==='function') updateMeasureDockHeight();
 }
 modalBg.addEventListener('click',e=>{ if(e.target===modalBg) closeModals(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModals(); });
+safeOn('guideBtn','click',()=>showModal(guidePanel));
+safeOn('guideClose','click',closeModals);
 
 const areaPanel=document.getElementById('areaPanel');
 document.querySelectorAll('#eqModeSwitchB button').forEach(b=>b.addEventListener('click',function(){
@@ -1645,12 +1648,13 @@ function renderDlySpk(){
         add = d>=0 ? '<b style="color:var(--accent)">+'+d.toFixed(2)+' ms</b>'
                    : '<span style="color:var(--warn)">'+d.toFixed(2)+' ms (מאוחר מהעוגן)</span>'; }
     }
-    return '<div class="calRow" style="gap:6px">'+
-      '<span class="dlyAnchor" data-a="'+i+'" title="בחר כעוגן" style="cursor:pointer;font-size:15px;color:'+(i===dlyAnchor?'var(--accent)':'var(--dim)')+'">'+(i===dlyAnchor?'◉':'◎')+'</span>'+
-      '<input class="posName" data-i="'+i+'" value="'+escapeHtml(s.name||dlyName(i))+'" style="flex:1">'+
-      '<span style="min-width:64px;font-size:11px;color:var(--dim)">'+(s.ms==null?'—':s.ms.toFixed(2)+'ms')+'</span>'+
-      '<button class="toggle dlyMeasOne" data-i="'+i+'" style="padding:6px 10px;font-size:11px">מדוד</button>'+
-      '<span style="min-width:74px;font-size:11px;text-align:end">'+add+'</span>'+
+    const time=s.ms==null?'טרם נמדד':s.ms.toFixed(2)+' ms · '+(s.ms*.343).toFixed(2)+' m';
+    return '<div class="dlySpeakerRow '+(i===dlyAnchor?'anchor':'')+'">'+
+      '<span class="dlyAnchor" data-a="'+i+'" title="בחר כעוגן">'+(i===dlyAnchor?'●':'○')+'</span>'+
+      '<input class="posName" data-i="'+i+'" value="'+escapeHtml(s.name||dlyName(i))+'">'+
+      '<span class="dlyTime">'+time+'</span>'+
+      '<button class="toggle dlyMeasOne" data-i="'+i+'">מדוד</button>'+
+      '<span class="dlyDelta">'+add+'</span>'+
       '</div>';
   }).join('');
   box.querySelectorAll('.dlyAnchor').forEach(a=>a.addEventListener('click',function(){ dlyAnchor=+this.dataset.a; renderDlySpk(); }));
@@ -3362,7 +3366,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.51';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.52';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3713,6 +3717,7 @@ const HELP={
   sunBtn:'מצב אור שמש: רקע בהיר וניגודיות גבוהה לעבודה בשטח.',
   swatches:'צבע האפליקציה — משנה גם את צבע הברים בגרף.',
   helpBtn:'מצב עזרה: רחף על כל כפתור לקבל הסבר.',
+  guideBtn:'מדריך מסודר לכל מדידה ולסדר העבודה המומלץ בשטח.',
   genBtn:'גנרטור אותות: רעש ורוד/לבן, סינוס או סוויפ.\nלמדידה ולכיוונון המערכת.',
   eqBtn:'מדידת תגובה: חד־ערוצי (מיק\' מול יעד)\nאו דו־ערוצי (מיק\'+רפרנס = TF).',
   calBtn:'כיולי מיקרופון: טען קובץ כיול (REW)\nלתיקון צביעת המיקרופון.',
