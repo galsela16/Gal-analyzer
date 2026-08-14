@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.53 — HPF / LPF controls in TF
+# GAL Analyzer V5.4.54 — Compact TF correlation meter
+
+The TF correlation meter is now a slim single-row status control with a small value, short rounded scale and concise state text. The large scale labels and oversized card spacing were removed while preserving polarity and signal-quality feedback.
 
 The same refined draggable HPF/LPF handles now appear on the live RTA graph while either SPL/EQ or TF is open. Both workspaces share one synchronized correction range, and moving a handle recomputes the active TF recommendations.
 

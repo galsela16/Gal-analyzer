@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-53-tf-filter-handles-20260814';
+const CACHE = 'gal-analyzer-v5-4-54-compact-tf-correlation-20260814';
 const ASSETS = [
   './',
   './index.html',

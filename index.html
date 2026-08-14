@@ -697,20 +697,22 @@
   }
   #tfPanel.measureDock #tfTraceLegend{display:none}
   #tfPanel.measureDock #tfCorrCard{
-    display:block!important;flex:1 0 100%!important;width:100%!important;min-width:0;max-width:none;
-    min-height:92px;background:#0b151e;border:1px solid #263b4b;border-radius:6px;
-    padding:9px 14px!important;margin:0!important;order:20;box-sizing:border-box;
+    display:grid!important;grid-template-columns:minmax(190px,240px) minmax(180px,1fr) minmax(120px,210px);align-items:center;gap:10px;
+    flex:1 0 100%!important;width:100%!important;min-width:0;max-width:none;min-height:46px;
+    background:rgba(11,21,30,.72);border:1px solid #263b4b;border-radius:6px;
+    padding:6px 10px!important;margin:0!important;order:20;box-sizing:border-box;
   }
-  #tfCorrHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px}
-  #tfCorrHead strong{font-size:12px;color:#dce6ee}
-  #tfCorrVal{font:800 21px/1 monospace!important;letter-spacing:.4px}
-  #tfCorrScale{display:grid;grid-template-columns:1fr 1fr 1fr;direction:ltr;font:700 10px monospace;color:#718596;margin-bottom:3px}
+  #tfCorrHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0}
+  #tfCorrHead strong{font-size:10px;color:#dce6ee;white-space:nowrap}
+  #tfCorrVal{font:800 15px/1 monospace!important;letter-spacing:.2px}
+  #tfCorrScale{display:none}
   #tfCorrScale span:nth-child(2){text-align:center}#tfCorrScale span:last-child{text-align:right}
-  #tfCorrTrack{display:block!important;position:relative!important;width:100%!important;height:20px!important;border:1px solid #31485a;border-radius:5px;background:linear-gradient(90deg,rgba(255,59,107,.28),rgba(255,209,102,.10) 48%,rgba(57,217,138,.28));overflow:visible!important}
-  #tfCorrFill{box-shadow:0 0 9px currentColor;transition:width .12s linear,background .12s linear}
-  #tfCorrMarker{position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;background:#fff;box-shadow:0 0 7px rgba(255,255,255,.8);left:50%;transform:translateX(-50%);transition:left .12s linear}
-  #tfCorrStatus{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px}
-  #tfCorrTip{font-weight:700!important}
+  #tfCorrTrack{display:block!important;position:relative!important;width:100%!important;height:8px!important;border:1px solid #31485a;border-radius:999px;background:linear-gradient(90deg,rgba(255,59,107,.24),rgba(255,209,102,.08) 48%,rgba(57,217,138,.24));overflow:visible!important}
+  #tfCorrFill{box-shadow:none;transition:width .12s linear,background .12s linear;border-radius:999px!important}
+  #tfCorrMarker{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:2px;background:#fff;box-shadow:0 0 4px rgba(255,255,255,.55);left:50%;transform:translateX(-50%);transition:left .12s linear}
+  #tfCorrStatus{display:block;margin:0;font-size:9px;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tfCorrStatus span:last-child{display:none}#tfCorrTip{font-weight:600!important}
+  @media(max-width:760px){#tfPanel.measureDock #tfCorrCard{grid-template-columns:1fr minmax(140px,1.5fr)}#tfCorrStatus{grid-column:1/3;text-align:start}}
   #tfPanel.measureDock #tfCanvas{display:none!important}
   #tfPanel.measureDock #tfGeqList{flex:1 1 100%!important;width:100%!important;max-height:none!important;overflow:visible!important;order:900}
   #tfPanel.measureDock #tfGeqList>.sub{display:block!important;color:#dce6ee!important;font-size:11px!important;margin:0 0 6px!important}
@@ -1891,7 +1893,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.53</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.54</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
