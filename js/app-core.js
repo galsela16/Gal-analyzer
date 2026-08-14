@@ -337,7 +337,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.50-elegant-eq-overlay',
+    version: 'v5.4.51-refined-rta-filter-handles',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2548,15 +2548,18 @@ function drawRtaEqRange(W,H,xForFreq){
   const xLo=xForFreq(eqMinFreq),xHi=xForFreq(eqMaxFreq);
   ctx.save();ctx.setLineDash([]);
   const handle=(x,label,side,color)=>{
-    ctx.strokeStyle=color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,plotH);ctx.stroke();
-    ctx.font='800 12px monospace';const bw=Math.max(88,ctx.measureText(label).width+18),bh=27,bx=side==='min'?Math.min(x,W-bw):Math.max(0,x-bw);
-    ctx.fillStyle=color;ctx.fillRect(bx,8,bw,bh);ctx.fillStyle='#06111a';ctx.textAlign='center';ctx.fillText(label,bx+bw/2,26);
-    ctx.beginPath();ctx.moveTo(x,35);ctx.lineTo(x+(side==='min'?14:-14),35);ctx.lineTo(x,49);ctx.closePath();ctx.fillStyle=color;ctx.fill();
+    const active=eqRtaRangeDrag===side;
+    ctx.globalAlpha=active?1:.72;ctx.strokeStyle=color;ctx.lineWidth=active?2.4:1.35;ctx.setLineDash(active?[]:[4,4]);
+    ctx.beginPath();ctx.moveTo(x,31);ctx.lineTo(x,plotH);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='700 10px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif';
+    const bw=Math.max(68,ctx.measureText(label).width+16),bh=20,bx=side==='min'?Math.min(x+5,W-bw-4):Math.max(4,x-bw-5),by=7,r=7;
+    ctx.beginPath();ctx.moveTo(bx+r,by);ctx.lineTo(bx+bw-r,by);ctx.quadraticCurveTo(bx+bw,by,bx+bw,by+r);ctx.lineTo(bx+bw,by+bh-r);ctx.quadraticCurveTo(bx+bw,by+bh,bx+bw-r,by+bh);ctx.lineTo(bx+r,by+bh);ctx.quadraticCurveTo(bx,by+bh,bx,by+bh-r);ctx.lineTo(bx,by+r);ctx.quadraticCurveTo(bx,by,bx+r,by);ctx.closePath();
+    ctx.fillStyle=sunMode?'rgba(255,255,255,.94)':'rgba(8,19,28,.92)';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=sunMode?'#1e293b':'#dce8f0';ctx.textAlign='center';ctx.fillText(label,bx+bw/2,by+13.5);
+    ctx.beginPath();ctx.arc(x,31,active?4.5:3.2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;
   };
-  handle(xLo,'HPF  '+fLabel(eqMinFreq)+'Hz','min','#35d0ff');
-  handle(xHi,'LPF  '+fLabel(eqMaxFreq)+'Hz','max','#ffb020');
-  ctx.font='700 10px sans-serif';ctx.textAlign='center';ctx.fillStyle=sunMode?'#334155':'#d8e5ee';
-  ctx.fillText('גרור את הידיות לקביעת טווח המלצות ה־EQ',(xLo+xHi)/2,18);
+  handle(xLo,'HPF · '+fLabel(eqMinFreq)+' Hz','min','#38bdf8');
+  handle(xHi,'LPF · '+fLabel(eqMaxFreq)+' Hz','max','#f59e0b');
   ctx.restore();
 }
 
@@ -3359,7 +3362,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.50';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.51';
   v3UpdateStatus();
 })();
 (function initAccent(){

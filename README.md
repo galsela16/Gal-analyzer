@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.50 — Elegant EQ correction overlay
+# GAL Analyzer V5.4.51 — Refined RTA filter handles
+
+The RTA HPF/LPF controls now use thin semi-transparent dashed lines, small rounded labels and subtle grab points. Only the active handle becomes stronger while dragging; the large banners, triangles and center instruction were removed.
 
 After measurement, the proposed EQ curve appears as a compact ±6 dB ribbon inside the lower part of the live RTA graph. The large correction dock now opens collapsed by default; its detailed curve and priority cards are available only through “הצג פירוט”, so the spectrum remains visible.
 
