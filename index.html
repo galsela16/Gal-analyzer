@@ -284,6 +284,11 @@
   .geqRangeCtl{display:flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid #2a4052;border-radius:5px;background:#08131b;color:#9fb0bf;font-size:9px;white-space:nowrap}
   .geqRangeCtl select{width:76px;border:0;background:transparent;color:#eef5fa;font:700 10px monospace;outline:none;cursor:pointer}
   body.sun-mode .geqRangeCtl{background:#fff;border-color:#cbd5e1;color:#64748b}body.sun-mode .geqRangeCtl select{color:#0f172a}
+  #eqRangeBar{display:flex!important;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;border:2px solid rgba(62,166,255,.7)!important;border-radius:7px;background:rgba(62,166,255,.10);padding:8px 10px!important}
+  #eqRangeBar:before{content:"טווח המלצות";color:var(--accent);font-size:10px;font-weight:800;white-space:nowrap}
+  #eqRangeBar .ctrl:first-of-type{border-inline-start:4px solid #35d0ff!important}
+  #eqRangeBar .ctrl:nth-of-type(2){border-inline-start:4px solid #ffb020!important}
+  #eqPanel.measureDock #eqRangeBar{flex:1 1 100%;width:100%;box-sizing:border-box;order:20}
   #geqCutMode{display:flex;direction:rtl;border:1px solid #2a4052;border-radius:5px;overflow:hidden;background:#08131b}
   #geqCutMode button{border:0;border-left:1px solid #2a4052;background:transparent;color:#8294a3;padding:5px 10px;font:700 10px inherit;cursor:pointer;white-space:nowrap}
   #geqCutMode button:last-child{border-left:0}#geqCutMode button.on{color:var(--accent);background:rgba(62,166,255,.14)}
@@ -1364,7 +1369,7 @@
         <button id="combBtn" class="toggle">בדוק פאזה</button>
       </div>
       <div id="combResult" style="display:none;text-align:center;font-size:12px"></div>
-      <div style="display:flex;gap:10px;align-items:end;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
+      <div id="eqRangeBar" style="display:flex;gap:10px;align-items:end;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
         <div class="ctrl" style="min-width:130px;flex:0 1 170px">
           <label>תיקון החל מ־ (HPF)</label>
           <select id="eqRangeMin">
@@ -1843,10 +1848,10 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.45</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.46</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=5.4.46"></script>
 </body>
 </html>

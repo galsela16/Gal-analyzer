@@ -22,7 +22,7 @@ for(const asset of ['app.js','js/app-core.js','js/core/config.js','js/core/diagn
 }
 
 // Every asset named in the offline cache must exist in the release folder.
-const cachedAssets=[...worker.matchAll(/'\.\/([^']+)'/g)].map(match=>match[1]);
+const cachedAssets=[...worker.matchAll(/'\.\/([^']+)'/g)].map(match=>match[1].split('?')[0]);
 for(const asset of cachedAssets) await access(asset,constants.R_OK);
 
 // Keep all literal UI hookups honest. The two entries below are optional
