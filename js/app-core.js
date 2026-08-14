@@ -331,7 +331,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.42-eq-correction-range',
+    version: 'v5.4.43-workflow-and-visual-eq-range',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -816,8 +816,24 @@ function drawGEQ(c, freqs, corr){
   c._geqData={freqs,corr};
   if(c.id==='eqCurveCanvas'&&!c._geqHoverReady){
     c._geqHoverReady=true;c._geqHover=-1;
+    const rangeFromPointer=e=>{
+      const data=c._geqData;if(!data)return null;
+      const rect=c.getBoundingClientRect(),left=36,right=14,W=rect.width;
+      const fMin=Math.max(20,data.freqs[0]),fMax=data.freqs[data.freqs.length-1];
+      const ratio=Math.max(0,Math.min(1,(e.clientX-rect.left-left)/Math.max(1,W-left-right)));
+      const raw=fMin*Math.pow(fMax/fMin,ratio);
+      return GEQ.reduce((best,f)=>Math.abs(Math.log(f/raw))<Math.abs(Math.log(best/raw))?f:best,GEQ[0]);
+    };
+    c.addEventListener('pointerdown',e=>{
+      const data=c._geqData;if(!data)return;
+      const rect=c.getBoundingClientRect(),left=36,right=14,W=rect.width,fMin=Math.max(20,data.freqs[0]),fMax=data.freqs[data.freqs.length-1];
+      const fx=f=>left+(Math.log(f/fMin)/Math.log(fMax/fMin))*Math.max(1,W-left-right);
+      const mx=e.clientX-rect.left,dl=Math.abs(mx-fx(eqMinFreq)),dh=Math.abs(mx-fx(eqMaxFreq));
+      if(Math.min(dl,dh)<=16){c._eqRangeDrag=dl<=dh?'min':'max';c.setPointerCapture?.(e.pointerId);e.preventDefault();}
+    });
     c.addEventListener('pointermove',e=>{
       const data=c._geqData;if(!data)return;
+      if(c._eqRangeDrag){const f=rangeFromPointer(e);if(f!=null)setEqCorrectionRange(c._eqRangeDrag==='min'?f:eqMinFreq,c._eqRangeDrag==='max'?f:eqMaxFreq);return;}
       const rect=c.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
       const W=rect.width,H=132,left=36,right=14,top=17,bot=H-25,mid=(top+bot)/2,range=9;
       const fMin=Math.max(20,data.freqs[0]),fMax=data.freqs[data.freqs.length-1],plotW=Math.max(1,W-left-right),plotH=bot-top;
@@ -827,7 +843,9 @@ function drawGEQ(c, freqs, corr){
       data.freqs.forEach((f,k)=>{const v=data.corr[k];if(v==null||!Number.isFinite(v))return;const d=Math.hypot(mx-fx(f),my-fy(v));if(d<best){best=d;nearest=k;}});
       const next=best<=18?nearest:-1;if(next!==c._geqHover){c._geqHover=next;drawGEQ(c,data.freqs,data.corr);}
     });
-    c.addEventListener('pointerleave',()=>{const data=c._geqData;if(c._geqHover!==-1&&data){c._geqHover=-1;drawGEQ(c,data.freqs,data.corr);}});
+    const endRangeDrag=()=>{c._eqRangeDrag=null;};
+    c.addEventListener('pointerup',endRangeDrag);c.addEventListener('pointercancel',endRangeDrag);
+    c.addEventListener('pointerleave',()=>{if(c._eqRangeDrag)return;const data=c._geqData;if(c._geqHover!==-1&&data){c._geqHover=-1;drawGEQ(c,data.freqs,data.corr);}});
   }
   if(c && c.id==='eqCurveCanvas'){
     const values=document.getElementById('geqValues');
@@ -866,6 +884,14 @@ function drawGEQ(c, freqs, corr){
   x.fillStyle=sunMode?'rgba(100,116,139,.13)':'rgba(2,8,14,.52)';
   if(rangeLo>left)x.fillRect(left,top,rangeLo-left,plotH);
   if(rangeHi<W-right)x.fillRect(rangeHi,top,W-right-rangeHi,plotH);
+  if(c.id==='eqCurveCanvas'){
+    const handle=(xx,label,side)=>{
+      x.strokeStyle='#3ea6ff';x.lineWidth=2;x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bot);x.stroke();
+      x.fillStyle='#3ea6ff';x.beginPath();x.moveTo(xx,top);x.lineTo(xx+(side==='min'?9:-9),top);x.lineTo(xx,top+9);x.closePath();x.fill();
+      x.font='700 9px monospace';x.textAlign=side==='min'?'left':'right';x.fillText(label,xx+(side==='min'?5:-5),top+13);
+    };
+    handle(rangeLo,'HPF '+fLabel(eqMinFreq)+'Hz','min');handle(rangeHi,'LPF '+fLabel(eqMaxFreq)+'Hz','max');
+  }
 
   x.font='9px monospace';x.textAlign='right';
   [-6,0,6].forEach(db=>{const yy=fy(db);x.strokeStyle=db===0?(sunMode?'rgba(15,23,42,.38)':'rgba(132,172,205,.55)'):(sunMode?'rgba(15,23,42,.10)':'rgba(132,172,205,.14)');x.setLineDash(db===0?[]:[3,4]);x.beginPath();x.moveTo(left,yy);x.lineTo(W-right,yy);x.stroke();x.fillStyle=sunMode?'#64748b':'#8093a3';x.fillText((db>0?'+':'')+db+' dB',left-5,yy+3);});
@@ -1040,7 +1066,7 @@ function setupMeasureDocks(){
   // TF starts as a compact live workspace. Deep diagnostics and less-frequent
   // actions move behind "עוד", leaving most of the screen to the graph.
   dockAdvanced('tfCorrFill',2);
-  ['tfDelayInfo','tfTraceClearBtn','tfSwapBtn','tfOverlayBtn','tfMeasBtn','tfCsvBtn'].forEach(id=>dockAdvanced(id));
+  ['tfDelayInfo','tfTraceClearBtn','tfSwapBtn','tfOverlayBtn','tfCsvBtn'].forEach(id=>dockAdvanced(id));
   ['eqModeSwitchA','eqModeSeg','cutOnlySeg','areaModeSeg','areaCutSeg','dlyCountSeg','rtLevel','rtRange'].forEach(id=>dockAdvanced(id,1));
   dockAdvanced('tfModeSeg',0);
   dockAdvanced('tfTargetCtrl',0);
@@ -3250,7 +3276,7 @@ document.addEventListener('keydown',e=>{
     const gb=document.getElementById('v52AutoDelayBtn');if(gb){gb.textContent=`Saved ${savedDelay.toFixed(2)} ms`;gb.classList.remove('has-result');}
     const info=document.getElementById('tfDelayInfo');if(info)info.textContent=`תוצאה קודמת: ${savedDelay.toFixed(2)} ms · נדרשת מדידה חדשה`;
   }
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.42';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.43';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3411,7 +3437,6 @@ function v5InitWorkspace(){
   safeOn('v5ResetSession','click',()=>{
     if(confirm('לאפס את הסשן? הפעולה תנקה מדידות, Traces ותוצאות EQ.')){resetSession();v3Toast('הסשן אופס');}
   });
-  safeOn('v5CaptureAction','click',()=>{ const b=document.getElementById('saveBtn'); if(b)b.click(); });
 
   // Header TF button now opens the working TF dock instead of only overlaying lines.
   const oldTf=document.getElementById('tfOverlayHdr');
