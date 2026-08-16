@@ -16,6 +16,9 @@ let tfTraces=[];
 const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
 let delaySearchMs = 50;
+let dlyDisplayUnit = 'ms';
+let dlyDistanceOffsetMs = null;
+let dlyDistanceKnownM = 1;
 let showTfPhase = false;
 let showTfCoh = false;
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
@@ -336,7 +339,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.56-unified-delay-engine',
+    version: 'v5.4.57-calibrated-distance',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1248,7 +1251,7 @@ function renderAreaList(){
 
 tfPanel=document.getElementById('tfPanel');
 safeOn('tfClose', 'click',closeModals);
-safeOn('tfSwapBtn', 'click',function(){ tfSwap=!tfSwap; resetTfAutoDelay(); this.classList.toggle('on',tfSwap); });
+safeOn('tfSwapBtn', 'click',function(){ tfSwap=!tfSwap; resetTfAutoDelay(); resetDistanceCalibration(); this.classList.toggle('on',tfSwap); });
 function setTfOverlay(on){
   tfOverlay=on;
   const a=document.getElementById('tfOverlayBtn'), b=document.getElementById('tfOverlayHdr');
@@ -1535,6 +1538,7 @@ function resetDelay(){
   dlyState='idle';
   dlySpeakers.forEach((s,i)=>{ s.ms=null;s.confidence=0;s.spreadMs=null;s.name=dlyName(i); });
   dlyAnchor=0;
+  resetDistanceCalibration();
   const st=document.getElementById('dlyStatus'); if(st) st.textContent='—';
   renderDlySpk();
 }
@@ -1549,6 +1553,38 @@ document.querySelectorAll('[data-delay-range] button').forEach(b=>b.addEventList
   syncDelayRangeUi();
 }));
 syncDelayRangeUi();
+
+function delayMsToMeters(ms){ return Number(ms)*343/1000; }
+function calibratedDistanceMeters(pathMs,offsetMs){
+  if(pathMs==null||pathMs===''||offsetMs==null||offsetMs==='')return null;
+  if(!Number.isFinite(Number(pathMs))||!Number.isFinite(Number(offsetMs)))return null;
+  return Math.max(0,delayMsToMeters(Number(pathMs)-Number(offsetMs)));
+}
+function updateDlyUnitUi(){
+  document.querySelectorAll('#dlyUnitSeg button').forEach(b=>b.classList.toggle('on',b.dataset.unit===dlyDisplayUnit));
+  const cal=document.getElementById('dlyDistanceCal');
+  if(cal){cal.classList.toggle('show',dlyDisplayUnit==='m');cal.classList.toggle('calibrated',Number.isFinite(dlyDistanceOffsetMs));}
+  const state=document.getElementById('dlyDistanceCalState');
+  if(state){
+    state.innerHTML=Number.isFinite(dlyDistanceOffsetMs)
+      ? '<span style="color:#42d57b">✓ מכויל</span> · מרחק ייחוס '+dlyDistanceKnownM.toFixed(1)+'m · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'
+      : 'למרחק אמיתי צריך לכייל פעם אחת מול מרחק ידוע.';
+  }
+  const info=document.getElementById('dlyInfo');
+  if(info)info.textContent=dlyDisplayUnit==='m'
+    ? (Number.isFinite(dlyDistanceOffsetMs)?'מרחק משוער לאחר הפחתת זמן המערכת. החלפת רמקול, DSP, ניתוב או כרטיס מחייבת כיול מחדש.':'הצב את המיקרופון במרחק מדוד מהרמקול וכייל לפני הצגת מטרים.')
+    : 'הזמן המוחלט כולל את כל שרשרת המדידה ואינו מרחק פיזי. לכיוון רמקולים השתמש רק ב־Δ מול העוגן.';
+  if(typeof renderDlySpk==='function')renderDlySpk();
+}
+function resetDistanceCalibration(){
+  dlyDistanceOffsetMs=null;
+  updateDlyUnitUi();
+}
+document.querySelectorAll('#dlyUnitSeg button').forEach(b=>b.addEventListener('click',function(){
+  dlyDisplayUnit=this.dataset.unit==='m'?'m':'ms';updateDlyUnitUi();
+  const st=document.getElementById('dlyStatus');
+  if(st&&dlyDisplayUnit==='m'&&!Number.isFinite(dlyDistanceOffsetMs))st.textContent='כדי למדוד מרחק: הצב את המיקרופון במרחק ידוע ולחץ “כייל מרחק”.';
+}));
 
 function fft(re,im,inv){
   const n=re.length;
@@ -1610,6 +1646,16 @@ function delayFailureText(res,silent){
   if(res&&res.validChecks)return 'התוצאה לא יציבה: רק '+res.validChecks+' מתוך 3 בדיקות התאימו. נסה Sweep, העלה רמה או השתק החזרות קרובות.';
   return 'לא נמצא זמן הגעה ברור — ודא ששני הערוצים מקבלים אותו אות רחב־פס.';
 }
+function dlyPathResultHtml(ms){
+  const meters=calibratedDistanceMeters(ms,dlyDistanceOffsetMs);
+  if(dlyDisplayUnit==='m'&&meters!=null){
+    return 'מרחק אקוסטי משוער: <b>'+meters.toFixed(2)+' מטר</b><br><span style="font-size:11px;color:var(--dim)">זמן נתיב '+ms.toFixed(2)+'ms לאחר קיזוז מערכת מכויל</span>';
+  }
+  if(dlyDisplayUnit==='m'){
+    return 'זמן נתיב כולל: <b>'+ms.toFixed(2)+' ms</b><br><span style="font-size:11px;color:var(--warn)">לא מציג מטרים לפני כיול מרחק ידוע</span>';
+  }
+  return 'זמן נתיב כולל: <b>'+ms.toFixed(2)+' ms</b>';
+}
 function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
   const st=document.getElementById('dlyStatus');
   if(!res||!res.reliable){ st.textContent=delayFailureText(res,silent); return; }
@@ -1618,7 +1664,7 @@ function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), 
   const alternatives=res.alternatives&&res.alternatives.length
     ? '<br>פסגות חלופיות: '+res.alternatives.map(v=>(v>=0?'+':'')+v.toFixed(1)+'ms').join(', ')
     : '';
-  st.innerHTML='זמן נתיב כולל: <b>'+ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+' · לא ממירים את המספר הזה למרחק'+alternatives+'</span>';
+  st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?' · לא ממירים את המספר הזה למרחק':'')+alternatives+'</span>';
 },{maxDelayMs:delaySearchMs,mode:'arrival'}); }
 function delayChunkSize(sr,maxDelayMs){
   const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
@@ -1683,6 +1729,22 @@ safeOn('dlyLoopbackBtn','click',function(){
   },{maxDelayMs:20,mode:'loopback'}),3800);
 });
 
+safeOn('dlyDistanceCalBtn','click',function(){
+  const input=document.getElementById('dlyKnownDistance');
+  const known=Math.max(.2,Math.min(20,Number(input&&input.value)||1));
+  if(input)input.value=known.toFixed(1);
+  const btn=this,st=document.getElementById('dlyStatus');
+  st.textContent='הצב את המיקרופון בדיוק '+known.toFixed(1)+' מטר מהרמקול והשאר את אותו ניתוב.';
+  pickSource(()=>runDelayCapture(btn,(res,silent)=>{
+    if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
+    dlyDistanceKnownM=known;
+    dlyDistanceOffsetMs=res.ms-known/343*1000;
+    dlyDisplayUnit='m';
+    updateDlyUnitUi();
+    st.innerHTML='✓ כיול מרחק נשמר לסשן: <b>'+known.toFixed(1)+'m</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">זמן מערכת שחושב: '+dlyDistanceOffsetMs.toFixed(2)+'ms · כעת מדוד מהמיקום הרצוי.</span>';
+  },{maxDelayMs:delaySearchMs,mode:'distance-calibration'}),3800);
+});
+
 const DLY_NAMES=['Top','Sub','FF'];
 function dlyName(i){ return DLY_NAMES[i] || ('רמקול '+(i+1)); }
 let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null}];
@@ -1700,10 +1762,16 @@ function renderDlySpk(){
     if(s.ms!=null && dlySpeakers[dlyAnchor] && dlySpeakers[dlyAnchor].ms!=null){
       if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן · יעד</span>';
       else{ const d=dlySpeakers[dlyAnchor].ms - s.ms;
-        add = d>=-.05 ? '<b style="color:var(--accent)">הוסף '+Math.max(0,d).toFixed(2)+' ms</b>'
-                   : '<span style="color:var(--warn)">מאוחר ב־'+Math.abs(d).toFixed(2)+'ms<br>בחר אותו כעוגן</span>'; }
+        const equivalentM=delayMsToMeters(Math.abs(d));
+        add = d>=-.05
+          ? '<b style="color:var(--accent)">'+(dlyDisplayUnit==='m'?'פער שקול '+equivalentM.toFixed(2)+'m · ':'')+'הוסף '+Math.max(0,d).toFixed(2)+' ms</b>'
+          : '<span style="color:var(--warn)">מאוחר ב־'+(dlyDisplayUnit==='m'?equivalentM.toFixed(2)+'m · ':'')+Math.abs(d).toFixed(2)+'ms<br>בחר אותו כעוגן</span>'; }
     }
-    const time=s.ms==null?'טרם נמדד':'נתיב '+s.ms.toFixed(2)+' ms'+(s.spreadMs!=null?' · ±'+(s.spreadMs/2).toFixed(2):'');
+    const distance=s.ms==null?null:calibratedDistanceMeters(s.ms,dlyDistanceOffsetMs);
+    const time=s.ms==null?'טרם נמדד'
+      :dlyDisplayUnit==='m'
+        ?(distance==null?'נדרש כיול מטרים':'≈ '+distance.toFixed(2)+' m · '+s.ms.toFixed(2)+'ms')
+        :'נתיב '+s.ms.toFixed(2)+' ms'+(s.spreadMs!=null?' · ±'+(s.spreadMs/2).toFixed(2):'');
     return '<div class="dlySpeakerRow '+(i===dlyAnchor?'anchor':'')+'">'+
       '<span class="dlyAnchor" data-a="'+i+'" title="בחר כעוגן">'+(i===dlyAnchor?'●':'○')+'</span>'+
       '<input class="posName" data-i="'+i+'" value="'+escapeHtml(s.name||dlyName(i))+'">'+
@@ -1730,6 +1798,7 @@ document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('
   this.classList.add('on'); setDlyCount(+this.dataset.n);
 }));
 renderDlySpk();
+updateDlyUnitUi();
 
 function computeDelay(ref, mic, sr, options){
   options=options||{};
@@ -2273,6 +2342,7 @@ async function start(deviceId){
   errBox.style.display='none';
   // Compensation is valid only for the current physical routing.
   resetTfAutoDelay();
+  resetDistanceCalibration();
   try{
     if(deviceId===undefined)deviceId=activeInId;
     const audio = {
@@ -2416,6 +2486,7 @@ async function switchInput(deviceId){
 function stop(){
   running=false; if(raf) cancelAnimationFrame(raf);
   resetTfAutoDelay();
+  resetDistanceCalibration();
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
   if(rt60ArmTimer){clearTimeout(rt60ArmTimer);rt60ArmTimer=null;}if(rt60CutTimer){clearTimeout(rt60CutTimer);rt60CutTimer=null;}if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
   rt60State='idle'; measState='idle'; areaState='idle'; dlyState='idle';
@@ -3470,7 +3541,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.56';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.57';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3864,6 +3935,9 @@ const HELP={
   areaEqBtn:'חשב תיקון EQ ממוצע לכל האזורים.',
   dlyMeasBtn:'מודד שלוש פעמים את זמן הנתיב הכולל. להשוואת רמקולים השתמש רק ב־Δ מול העוגן.',
   dlyLoopbackBtn:'בדיקת חיבור: אותו אות בשתי הכניסות צריך להחזיר תוצאה קרובה ל־0ms.',
+  dlyUnitSeg:'בחר תצוגת זמן ב־ms או מרחק משוער במטרים. מטרים דורשים כיול מול מרחק ידוע.',
+  dlyKnownDistance:'המרחק המדוד בפועל בין מרכז הרמקול למיקרופון בזמן כיול המרחק.',
+  dlyDistanceCalBtn:'הצב את המיקרופון במרחק הידוע ולחץ כאן. הכיול מפחית את זמן המחשב, הכרטיס, המיקסר וה־DSP.',
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
   rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',

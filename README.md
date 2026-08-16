@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.56 — Unified delay engine
+# GAL Analyzer V5.4.57 — Calibrated distance display
+
+V5.4.57 adds a milliseconds/meters selector to the arrival-time workspace. Absolute distance is never calculated from raw path delay: meter mode requires a known-distance acoustic calibration, subtracts the measured electronic/system offset and labels the result as estimated. The calibration is session-only and resets after input, routing, channel or audio-session changes. Speaker alignment continues to show the exact millisecond value that must be entered in the DSP, with an optional equivalent distance difference alongside it.
 
 V5.4.56 replaces the two different delay paths with one long-capture engine shared by TF synchronization and speaker-arrival comparison. Every accepted result must pass three independent time-window checks, agree within 0.20ms and match the full recording. The search range is selectable at 20/50/100ms and the FFT window grows automatically at high sample rates.
 

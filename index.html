@@ -755,6 +755,11 @@
   #dlyPanel.measureDock #dlySpk{display:flex!important;width:100%!important;max-height:none!important;gap:5px!important}
   .delayRangeControl{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;color:var(--dim);font-size:9px}
   .delayRangeControl .seg button{min-width:39px;padding:4px 7px!important;font-size:9px!important}
+  .dlyUnitControl{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--dim);font-size:9px}.dlyUnitControl .seg button{min-width:58px;padding:4px 8px!important;font-size:9px!important}
+  #dlyDistanceCal{display:none;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;padding:6px 8px;border:1px solid rgba(62,166,255,.28);border-radius:5px;background:rgba(62,166,255,.05);font-size:9px;color:var(--dim)}
+  #dlyDistanceCal.show{display:flex}#dlyDistanceCal.calibrated{border-color:rgba(66,213,123,.35);background:rgba(66,213,123,.05)}
+  #dlyDistanceCal label{display:flex;align-items:center;gap:4px;white-space:nowrap}#dlyKnownDistance{width:54px;padding:4px 5px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--text);font:10px monospace;text-align:center}
+  #dlyDistanceCalBtn{padding:4px 8px!important;font-size:9px!important;min-height:25px!important}#dlyDistanceCalState{flex:1 1 150px;text-align:center;line-height:1.35}
   .delayChecks{display:inline-flex;align-items:center;gap:3px;margin-inline-start:5px;vertical-align:middle}.delayChecks i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#425361}.delayChecks i.ok{background:#42d57b;box-shadow:0 0 5px rgba(66,213,123,.4)}.delayChecks i.bad{background:#ff5968}
   .dlySpeakerRow{display:grid;grid-template-columns:22px minmax(80px,1fr) 105px 54px minmax(96px,145px);align-items:center;gap:6px;min-height:34px;padding:4px 7px;border:1px solid #223543;border-radius:6px;background:rgba(10,21,30,.68);transition:.14s}
   .dlySpeakerRow:hover{border-color:#36566d;background:rgba(14,29,40,.82)}.dlySpeakerRow.anchor{border-color:rgba(62,166,255,.45);box-shadow:inset 3px 0 0 rgba(62,166,255,.75)}
@@ -1345,7 +1350,7 @@
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
           <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> סנכרון TF פעם אחת → קוהרנטיות → תגובה ופאזה → EQ. סנכרן מחדש רק אם החלפת ניתוב, כרטיס, ערוצים או מיקום מיקרופון. אל תסמוך על אזור עם קוהרנטיות נמוכה.</p></details>
-          <details><summary>Delay · זמני הגעה</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
+          <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע מאותו רמקול ובאותו ניתוב. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
           <details><summary>Sub / Top · יישור חיתוך</summary><p>שמור Sub ואחריו Top ובדוק Δφ באזור החיתוך. Delay נותן זמן הגעה גס; Sub/Top משלים יישור פאזה עדין.</p></details>
@@ -1572,6 +1577,12 @@
         <button id="dlyMeasBtn" class="toggle">מדוד זמן נתיב · 3×</button>
         <div id="dlyStatus" style="text-align:center;color:var(--text)">מוכן למדידה</div>
         <div class="delayRangeControl"><span>טווח חיפוש</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
+        <div class="dlyUnitControl"><span>תצוגת תוצאה</span><div class="seg" id="dlyUnitSeg"><button data-unit="ms" class="on">ms</button><button data-unit="m">מטרים</button></div></div>
+        <div id="dlyDistanceCal">
+          <span id="dlyDistanceCalState">למרחק אמיתי צריך לכייל פעם אחת מול מרחק ידוע.</span>
+          <label>מרחק ידוע <input id="dlyKnownDistance" type="number" min="0.2" max="20" step="0.1" value="1.0"> מטר</label>
+          <button id="dlyDistanceCalBtn" class="toggle" type="button">כייל מרחק</button>
+        </div>
         <div class="sub" id="dlyInfo">הזמן המוחלט כולל את כל שרשרת המדידה ואינו מרחק פיזי. לכיוון רמקולים השתמש רק ב־Δ מול העוגן.</div>
       </div>
 
@@ -1899,7 +1910,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.56</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.57</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

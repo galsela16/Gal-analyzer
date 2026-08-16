@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-56-unified-delay-engine-20260816';
+const CACHE = 'gal-analyzer-v5-4-57-calibrated-distance-20260816';
 const ASSETS = [
   './',
   './index.html',
