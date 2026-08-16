@@ -776,6 +776,7 @@
   .dlyUnitControl{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--dim);font-size:9px}.dlyUnitControl .seg button{min-width:58px;padding:4px 8px!important;font-size:9px!important}
   #dlyDistanceCal{display:none;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;padding:6px 8px;border:1px solid rgba(62,166,255,.28);border-radius:5px;background:rgba(62,166,255,.05);font-size:9px;color:var(--dim)}
   #dlyDistanceCal.show{display:flex}#dlyDistanceCal.calibrated{border-color:rgba(66,213,123,.35);background:rgba(66,213,123,.05)}
+  #dlyDistanceCal.invalid{border-color:rgba(255,89,104,.45);background:rgba(255,89,104,.06)}
   #dlyDistanceCal label{display:flex;align-items:center;gap:4px;white-space:nowrap}#dlyKnownDistance{width:54px;padding:4px 5px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--text);font:10px monospace;text-align:center}
   #dlyDistanceCalBtn{padding:4px 8px!important;font-size:9px!important;min-height:25px!important}#dlyDistanceCalState{flex:1 1 150px;text-align:center;line-height:1.35}
   .delayChecks{display:inline-flex;align-items:center;gap:3px;margin-inline-start:5px;vertical-align:middle}.delayChecks i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#425361}.delayChecks i.ok{background:#42d57b;box-shadow:0 0 5px rgba(66,213,123,.4)}.delayChecks i.bad{background:#ff5968}
@@ -1372,7 +1373,7 @@
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
           <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace או מדידת EQ. שלב 2 פותח אוטומטית את תצוגות הפאזה והקוהרנטיות, והפעולות בשלב 3 נפתחות רק כשהאות בטווח המדידה אמין. סנכרן מחדש רק אם החלפת ניתוב, כרטיס, ערוצים או מיקום מיקרופון.</p></details>
-          <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע מאותו רמקול ובאותו ניתוב. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
+          <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע ומדוד מהמרכז האקוסטי של אותו רמקול ובאותו ניתוב. כיול שדורש קיזוז מערכת שלילי משמעותי יידחה. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
           <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו, קבע את תדר החיתוך, ואז מדוד סאב לבד וטופ לבד בלי להזיז את המיקרופון ובלי לסנכרן מחדש. המנוע בודק שליש אוקטבה סביב החיתוך, מדמה דיליי ופולריות ומציג מה לשנות ומה השיפור הצפוי. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
@@ -1937,7 +1938,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.60</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.61</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

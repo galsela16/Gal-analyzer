@@ -22,6 +22,7 @@ let delaySearchMs = 50;
 let dlyDisplayUnit = 'ms';
 let dlyDistanceOffsetMs = null;
 let dlyDistanceKnownM = 1;
+let dlyDistanceCalError = '';
 let showTfPhase = false;
 let showTfCoh = false;
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
@@ -351,7 +352,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.60-guided-tf-workflow',
+    version: 'v5.4.61-safe-distance-calibration',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1644,29 +1645,46 @@ document.querySelectorAll('[data-delay-range] button').forEach(b=>b.addEventList
 syncDelayRangeUi();
 
 function delayMsToMeters(ms){ return Number(ms)*343/1000; }
+function validateDistanceCalibration(pathMs,knownM,toleranceMs=.25){
+  const path=Number(pathMs),known=Number(knownM),tolerance=Math.max(0,Number(toleranceMs)||0);
+  if(!Number.isFinite(path)||path<0||!Number.isFinite(known)||known<=0){
+    return {ok:false,reason:'נתוני הכיול אינם תקינים'};
+  }
+  const acousticMs=known/343*1000;
+  const rawOffsetMs=path-acousticMs;
+  const measuredMaxM=delayMsToMeters(path);
+  if(rawOffsetMs < -tolerance){
+    return {ok:false,reason:'המרחק שהוזן גדול מזמן ההגעה שנמדד',pathMs:path,knownM:known,acousticMs,rawOffsetMs,measuredMaxM};
+  }
+  return {ok:true,pathMs:path,knownM:known,acousticMs,rawOffsetMs,offsetMs:Math.max(0,rawOffsetMs),measuredMaxM,clamped:rawOffsetMs<0};
+}
 function calibratedDistanceMeters(pathMs,offsetMs){
   if(pathMs==null||pathMs===''||offsetMs==null||offsetMs==='')return null;
   if(!Number.isFinite(Number(pathMs))||!Number.isFinite(Number(offsetMs)))return null;
+  if(Number(offsetMs)<0)return null;
   return Math.max(0,delayMsToMeters(Number(pathMs)-Number(offsetMs)));
 }
 function updateDlyUnitUi(){
   document.querySelectorAll('#dlyUnitSeg button').forEach(b=>b.classList.toggle('on',b.dataset.unit===dlyDisplayUnit));
   const cal=document.getElementById('dlyDistanceCal');
-  if(cal){cal.classList.toggle('show',dlyDisplayUnit==='m');cal.classList.toggle('calibrated',Number.isFinite(dlyDistanceOffsetMs));}
+  if(cal){cal.classList.toggle('show',dlyDisplayUnit==='m');cal.classList.toggle('calibrated',Number.isFinite(dlyDistanceOffsetMs));cal.classList.toggle('invalid',!!dlyDistanceCalError);}
   const state=document.getElementById('dlyDistanceCalState');
   if(state){
     state.innerHTML=Number.isFinite(dlyDistanceOffsetMs)
       ? '<span style="color:#42d57b">✓ מכויל</span> · מרחק ייחוס '+dlyDistanceKnownM.toFixed(1)+'m · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'
-      : 'למרחק אמיתי צריך לכייל פעם אחת מול מרחק ידוע.';
+      : dlyDistanceCalError
+        ? '<span style="color:var(--hot)">✕ הכיול נדחה</span> · '+dlyDistanceCalError
+        : 'למרחק אמיתי צריך לכייל פעם אחת מול מרחק ידוע.';
   }
   const info=document.getElementById('dlyInfo');
   if(info)info.textContent=dlyDisplayUnit==='m'
-    ? (Number.isFinite(dlyDistanceOffsetMs)?'מרחק משוער לאחר הפחתת זמן המערכת. החלפת רמקול, DSP, ניתוב או כרטיס מחייבת כיול מחדש.':'הצב את המיקרופון במרחק מדוד מהרמקול וכייל לפני הצגת מטרים.')
+    ? (Number.isFinite(dlyDistanceOffsetMs)?'מרחק משוער לאחר הפחתת זמן המערכת. החלפת רמקול, DSP, ניתוב או כרטיס מחייבת כיול מחדש.':dlyDistanceCalError?'הכיול לא נשמר. תקן את המרחק הידוע ובצע מדידה מחדש.':'הצב את המיקרופון במרחק מדוד מהרמקול וכייל לפני הצגת מטרים.')
     : 'הזמן המוחלט כולל את כל שרשרת המדידה ואינו מרחק פיזי. לכיוון רמקולים השתמש רק ב־Δ מול העוגן.';
   if(typeof renderDlySpk==='function')renderDlySpk();
 }
-function resetDistanceCalibration(){
+function resetDistanceCalibration(errorMessage=''){
   dlyDistanceOffsetMs=null;
+  dlyDistanceCalError=errorMessage;
   updateDlyUnitUi();
 }
 document.querySelectorAll('#dlyUnitSeg button').forEach(b=>b.addEventListener('click',function(){
@@ -1820,17 +1838,34 @@ safeOn('dlyLoopbackBtn','click',function(){
 
 safeOn('dlyDistanceCalBtn','click',function(){
   const input=document.getElementById('dlyKnownDistance');
-  const known=Math.max(.2,Math.min(20,Number(input&&input.value)||1));
-  if(input)input.value=known.toFixed(1);
+  const known=Number(input&&input.value);
   const btn=this,st=document.getElementById('dlyStatus');
+  if(!Number.isFinite(known)||known<.2||known>20){
+    resetDistanceCalibration('הזן מרחק ידוע בין 0.2 ל־20 מטר');
+    st.innerHTML='<span style="color:var(--hot)">✕ הכיול לא התחיל:</span> הזן מרחק ידוע תקין בין 0.2 ל־20 מטר.';
+    return;
+  }
+  if(input)input.value=known.toFixed(1);
+  resetDistanceCalibration();
   st.textContent='הצב את המיקרופון בדיוק '+known.toFixed(1)+' מטר מהרמקול והשאר את אותו ניתוב.';
   pickSource(()=>runDelayCapture(btn,(res,silent)=>{
     if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
+    const check=validateDistanceCalibration(res.ms,known);
+    if(!check.ok){
+      const measured=Number.isFinite(check.measuredMaxM)?check.measuredMaxM.toFixed(2):'—';
+      const reason='הוזנו '+known.toFixed(1)+'m, אך זמן ההגעה '+res.ms.toFixed(2)+'ms מתאים לכל היותר לכ־'+measured+'m';
+      resetDistanceCalibration(reason);
+      dlyDisplayUnit='m';updateDlyUnitUi();
+      st.innerHTML='<span style="color:var(--hot)">✕ הכיול נדחה ולא נשמר.</span> '+reason+'.<br><span style="font-size:11px;color:var(--dim)">בדוק את המרחק מהמרכז האקוסטי של הרמקול והפעל כיול מחדש.</span>';
+      return;
+    }
     dlyDistanceKnownM=known;
-    dlyDistanceOffsetMs=res.ms-known/343*1000;
+    dlyDistanceOffsetMs=check.offsetMs;
+    dlyDistanceCalError='';
     dlyDisplayUnit='m';
     updateDlyUnitUi();
-    st.innerHTML='✓ כיול מרחק נשמר לסשן: <b>'+known.toFixed(1)+'m</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">זמן מערכת שחושב: '+dlyDistanceOffsetMs.toFixed(2)+'ms · כעת מדוד מהמיקום הרצוי.</span>';
+    const clampNote=check.clamped?' · סטייה של '+Math.abs(check.rawOffsetMs).toFixed(2)+'ms נוטרלה בתחום הסבילות':'';
+    st.innerHTML='✓ כיול מרחק נשמר לסשן: <b>'+known.toFixed(1)+'m</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">נמדדו '+res.ms.toFixed(2)+'ms · זמן אקוסטי צפוי '+check.acousticMs.toFixed(2)+'ms · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'+clampNote+'.</span>';
   },{maxDelayMs:delaySearchMs,mode:'distance-calibration'}),3800);
 });
 
@@ -3777,7 +3812,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.60';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.61';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4173,7 +4208,7 @@ const HELP={
   dlyLoopbackBtn:'בדיקת חיבור: אותו אות בשתי הכניסות צריך להחזיר תוצאה קרובה ל־0ms.',
   dlyUnitSeg:'בחר תצוגת זמן ב־ms או מרחק משוער במטרים. מטרים דורשים כיול מול מרחק ידוע.',
   dlyKnownDistance:'המרחק המדוד בפועל בין מרכז הרמקול למיקרופון בזמן כיול המרחק.',
-  dlyDistanceCalBtn:'הצב את המיקרופון במרחק הידוע ולחץ כאן. הכיול מפחית את זמן המחשב, הכרטיס, המיקסר וה־DSP.',
+  dlyDistanceCalBtn:'הצב את המיקרופון במרחק הידוע ולחץ כאן. הכיול מפחית את זמן המערכת ונפסל אם המרחק שהוזן אינו אפשרי לפי זמן ההגעה שנמדד.',
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
   phPinkBtn:'מפעיל Pink Noise למדידת Sub/Top. אפשר להשתמש גם במקור חיצוני שמגיע ל־Reference.',

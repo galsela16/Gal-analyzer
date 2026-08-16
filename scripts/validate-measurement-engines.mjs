@@ -16,6 +16,7 @@ const computeDelay=Function('fft','delayChunkSize',`${extract('computeDelay')};r
 const computeStableDelay=Function('computeDelay',`${extract('computeStableDelay')};return computeStableDelay`)(computeDelay);
 const delayMsToMeters=Function(`${extract('delayMsToMeters')};return delayMsToMeters`)();
 const calibratedDistanceMeters=Function('delayMsToMeters',`${extract('calibratedDistanceMeters')};return calibratedDistanceMeters`)(delayMsToMeters);
+const validateDistanceCalibration=Function('delayMsToMeters',`${extract('validateDistanceCalibration')};return validateDistanceCalibration`)(delayMsToMeters);
 const optimizeSubTopAlignment=Function(`${extract('optimizeSubTopAlignment')};return optimizeSubTopAlignment`)();
 const binOverlapPowerDb=Function('db2lin',`${extract('binOverlapPowerDb')};return binOverlapPowerDb`)(db=>10**(db/10));
 const binOverlapLinearPower=Function(`${extract('binOverlapLinearPower')};return binOverlapLinearPower`)();
@@ -89,7 +90,14 @@ for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
   const systemOffset=35,knownDistance=1,calibrationPath=systemOffset+knownDistance/343*1000;
   assert(Math.abs(calibratedDistanceMeters(calibrationPath,systemOffset)-knownDistance)<1e-10,'Known-distance calibration conversion failed');
   assert.equal(calibratedDistanceMeters(38,null),null,'Uncalibrated path delay must not be presented as distance');
+  assert.equal(calibratedDistanceMeters(1.68,-1.24),null,'Negative system offset must never produce a calibrated distance');
   assert(Math.abs(delayMsToMeters(5)-1.715)<1e-12,'Relative delay-to-distance conversion failed');
+  const halfMeter=validateDistanceCalibration(1.68,.5);
+  assert(halfMeter.ok&&Math.abs(halfMeter.offsetMs-.2227)<.001,'A valid 0.5m calibration must preserve the measured system offset');
+  const falseMeter=validateDistanceCalibration(1.68,1);
+  assert(!falseMeter.ok&&Math.abs(falseMeter.measuredMaxM-.57624)<1e-5,'A physically impossible 1m calibration must be rejected');
+  const withinTolerance=validateDistanceCalibration(2.82,1,.25);
+  assert(withinTolerance.ok&&withinTolerance.clamped&&withinTolerance.offsetMs===0,'A tiny negative offset inside tolerance must clamp to zero');
 }
 {
   const sr=48000,fftN=16384,n=fftN/2;

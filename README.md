@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.60 — Guided TF workflow
+# GAL Analyzer V5.4.61 — Safe distance calibration
+
+V5.4.61 validates a known-distance calibration against the measured raw arrival time before saving it. A known distance that would require a significantly negative system delay is rejected with the raw milliseconds and maximum physically possible distance; tiny negative values within 0.25ms measurement tolerance are clamped to zero. Invalid calibration input and negative stored offsets can no longer produce a “calibrated” meter result.
 
 V5.4.60 turns the TF dock into a guided three-step workflow: synchronize TF, verify live phase/coherence quality, then choose either a Trace capture or a six-second EQ measurement. Trace and EQ actions remain locked until synchronization and verification succeed; routing changes, FFT changes and coherence-threshold changes invalidate the appropriate stage. Less-frequent TF utilities remain behind “More”.
 
