@@ -11,7 +11,9 @@ function extract(name){
   }throw new Error(`Unclosed ${name}`);
 }
 const fft=Function(`${extract('fft')};return fft`)();
-const computeDelay=Function('fft',`${extract('computeDelay')};return computeDelay`)(fft);
+const delayChunkSize=Function(`${extract('delayChunkSize')};return delayChunkSize`)();
+const computeDelay=Function('fft','delayChunkSize',`${extract('computeDelay')};return computeDelay`)(fft,delayChunkSize);
+const computeStableDelay=Function('computeDelay',`${extract('computeStableDelay')};return computeStableDelay`)(computeDelay);
 const binOverlapPowerDb=Function('db2lin',`${extract('binOverlapPowerDb')};return binOverlapPowerDb`)(db=>10**(db/10));
 const binOverlapLinearPower=Function(`${extract('binOverlapLinearPower')};return binOverlapLinearPower`)();
 const analyzeDecay=Function(`${extract('analyzeDecay')};return analyzeDecay`)();
@@ -57,6 +59,27 @@ for(const sr of [44100,48000,96000])for(const ms of [1,2.9,5,10,18]){
   const sr=48000,ref=broadband(32768,sr),samples=240,mic=delayed(ref,samples,{invert:true,noise:.005});
   const r=computeDelay(ref,mic,sr,{maxDelayMs:20});
   assert(r&&Math.abs(Math.abs(r.ms)-5)<.15&&r.reliable,'Delay must survive inverted polarity');
+}
+for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
+  const n=sr===96000?196608:131072,ref=broadband(n,sr),samples=Math.round(ms*sr/1000),mic=delayed(ref,samples,{noise:.008,reflection:.22,reflectionLag:Math.round(.009*sr)});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:range});
+  assert(r&&r.reliable&&r.validChecks===3,`Stable delay rejected: ${sr}Hz ${ms}ms`);
+  assert(Math.abs(r.ms-samples/sr*1000)<.15,`Long-range delay error: wanted ${ms}, got ${r?.ms}`);
+  delayCases.push(`${sr}/${ms}ms stable→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,n=98304,third=n/3,ref=broadband(n,sr),mic=new Float64Array(n);
+  for(let block=0;block<3;block++){
+    const lag=Math.round((8+block*2)*sr/1000),start=block*third,end=(block+1)*third;
+    for(let i=start;i<end;i++)mic[i]=i-lag>=start?ref[i-lag]:0;
+  }
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20});
+  assert(r&&!r.reliable&&r.validChecks>=2,'Changing delay must fail the three-check stability gate');
+}
+{
+  const sr=48000,ref=broadband(98304,sr),mic=Float64Array.from(ref);
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20});
+  assert(r&&r.reliable&&Math.abs(r.ms)<.03,'0ms loopback validation failed');
 }
 {
   const silence=new Float64Array(16384);assert.equal(computeDelay(silence,silence,48000,{maxDelayMs:20}),null,'Silence must not produce delay');

@@ -15,6 +15,7 @@ let tfDelayMs = 0;
 let tfTraces=[];
 const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
+let delaySearchMs = 50;
 let showTfPhase = false;
 let showTfCoh = false;
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
@@ -246,34 +247,32 @@ safeOn('tfPhaseToggleBtn','click',function(){
 });
 
 
-function tfAutoDelay(){
+function tfAutoDelay(event){
   const globalBtn=document.getElementById('v52AutoDelayBtn');
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
-  if(globalBtn){globalBtn.classList.add('on');globalBtn.textContent='⏱ מודד…';}
-  
-  const m = tfSwap ? timeDataRef : timeData;
-  const r = tfSwap ? timeData : timeDataRef;
-  const sr = audioCtx.sampleRate;
-  
-  const res = computeDelay(r, m, sr, {maxDelayMs:20});
-  if(!res || !res.reliable){
-    if(globalBtn){globalBtn.classList.remove('on');globalBtn.textContent='⏱ Auto Delay';}
-    v3Toast(res?'הדיליי לא יציב — נסה sweep או אות רחב־פס':'לא זוהה דיליי ברור — ודא ששני הערוצים מקבלים אות יציב');
-    return;
-  }
-  
-  tfDelayMs = res.ms;
-  tfDelaySamples = res.samples;
-  const dist = (tfDelayMs / 1000) * 343;
-  const info=document.getElementById('tfDelayInfo');if(info)info.textContent = `דיליי פעיל: ${tfDelayMs.toFixed(2)} ms (~${dist.toFixed(2)}m)`;
-  if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`Delay ${tfDelayMs.toFixed(2)} ms`;}
-  v3Toast(`Auto Delay: ${tfDelayMs.toFixed(2)} ms`);
+  const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
+  pickSource(()=>runDelayCapture(trigger||globalBtn,(res,silent)=>{
+    if(!res || !res.reliable){
+      resetTfAutoDelay();
+      const msg=silent==='mic'?'אין אות במיקרופון'
+        :silent==='ref'?'אין אות ב־Reference'
+        :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
+      v3Toast(msg); return;
+    }
+    tfDelayMs=res.ms; tfDelaySamples=res.samples;
+    const checks=delayChecksHtml(res);
+    const info=document.getElementById('tfDelayInfo');
+    if(info)info.innerHTML=`TF מסונכרן: <b>${tfDelayMs.toFixed(2)} ms</b> ${checks} <span style="color:var(--dim)">פיזור ${res.spreadMs.toFixed(2)}ms</span>`;
+    [globalBtn,document.getElementById('tfAutoDelayBtn')].forEach(btn=>{if(btn){btn.classList.remove('on');btn.classList.add('has-result');btn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}});
+    v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
+  },{maxDelayMs:delaySearchMs,mode:'tf'}),3800);
 }
 
 function resetTfAutoDelay(){
   tfDelayMs=0;tfDelaySamples=0;
-  const info=document.getElementById('tfDelayInfo');if(info)info.textContent='סנכרון דיליי TF: 0.00 ms';
-  const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent='⏱ Auto Delay';}
+  const info=document.getElementById('tfDelayInfo');if(info)info.textContent='TF עדיין לא מסונכרן';
+  const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent='⏱ סנכרון TF';}
+  const panelBtn=document.getElementById('tfAutoDelayBtn');if(panelBtn){panelBtn.classList.remove('on','has-result');panelBtn.textContent='⏱ סנכרון TF';}
 }
 
 safeOn('fbSens', 'input',e=>{
@@ -337,7 +336,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.55-field-preflight-audit',
+    version: 'v5.4.56-unified-delay-engine',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1091,12 +1090,12 @@ function setupMeasureDocks(){
     }
   });
   // heavy/advanced sections stay hidden until "עוד"
-  ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','dlyInfo','dlySpk','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
+  ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
   ['tfSmooth','tfCohGate'].forEach(id=>dockAdvanced(id,1));
   // TF starts as a compact live workspace. Deep diagnostics and less-frequent
   // actions move behind "עוד", leaving most of the screen to the graph.
   dockAdvanced('tfCorrFill',2);
-  ['tfDelayInfo','tfTraceClearBtn','tfSwapBtn','tfOverlayBtn','tfCsvBtn'].forEach(id=>dockAdvanced(id));
+  ['tfTraceClearBtn','tfSwapBtn','tfOverlayBtn','tfCsvBtn'].forEach(id=>dockAdvanced(id));
   ['eqModeSwitchA','eqModeSeg','cutOnlySeg','areaModeSeg','areaCutSeg','dlyCountSeg','rtLevel','rtRange'].forEach(id=>dockAdvanced(id,1));
   dockAdvanced('tfModeSeg',0);
   dockAdvanced('tfTargetCtrl',0);
@@ -1489,7 +1488,7 @@ function tfCompute(){
   const corr=buildCorr(H, rel);
   tfResult={corr,H,rel,coh};
   document.getElementById('tfInfo').textContent = on? 'מוצגים רק פסים שעברו גם סף Reference וגם קוהרנטיות '+tfCohGate.toFixed(2)+'.' :
-    'אין פסים אמינים — בדוק Reference, Auto Delay, קוהרנטיות או החלפת ערוצים.';
+    'אין פסים אמינים — בדוק Reference, סנכרון TF, קוהרנטיות או החלפת ערוצים.';
   renderTFList();
 }
 
@@ -1534,13 +1533,22 @@ safeOn('dlyBtn', 'click',()=>{
 safeOn('dlyClose', 'click',closeModals);
 function resetDelay(){
   dlyState='idle';
-  dlySpeakers.forEach((s,i)=>{ s.ms=null; s.name=dlyName(i); });
+  dlySpeakers.forEach((s,i)=>{ s.ms=null;s.confidence=0;s.spreadMs=null;s.name=dlyName(i); });
   dlyAnchor=0;
   const st=document.getElementById('dlyStatus'); if(st) st.textContent='—';
   renderDlySpk();
 }
 safeOn('dlyReset', 'click',resetDelay);
-safeOn('dlyMeasBtn', 'click',()=>pickSource(measureDelay,2100));
+safeOn('dlyMeasBtn', 'click',()=>pickSource(measureDelay,3800));
+
+function syncDelayRangeUi(){
+  document.querySelectorAll('[data-delay-range] button').forEach(b=>b.classList.toggle('on',Number(b.dataset.ms)===delaySearchMs));
+}
+document.querySelectorAll('[data-delay-range] button').forEach(b=>b.addEventListener('click',function(){
+  delaySearchMs=Math.max(20,Math.min(100,Number(this.dataset.ms)||50));
+  syncDelayRangeUi();
+}));
+syncDelayRangeUi();
 
 function fft(re,im,inv){
   const n=re.length;
@@ -1590,28 +1598,43 @@ function setGainEl(fill,lbl,db){
 }
 function setGain(id, db){ setGainEl(document.getElementById(id+'Fill'), document.getElementById(id+'Gain'), db); }
 
+function delayChecksHtml(res){
+  const checks=res&&Array.isArray(res.checks)?res.checks:[];
+  let html='<span class="delayChecks" title="שלוש בדיקות יציבות">';
+  for(let i=0;i<3;i++)html+='<i class="'+(checks[i]&&checks[i].reliable?'ok':'bad')+'"></i>';
+  return html+'</span>';
+}
+function delayFailureText(res,silent){
+  if(silent==='mic')return 'המיקרופון לא קלט אות — בדוק גיין וחיבור.';
+  if(silent==='ref')return 'כניסה 2 (Reference) שקטה — בדוק את הניתוב מהמיקסר.';
+  if(res&&res.validChecks)return 'התוצאה לא יציבה: רק '+res.validChecks+' מתוך 3 בדיקות התאימו. נסה Sweep, העלה רמה או השתק החזרות קרובות.';
+  return 'לא נמצא זמן הגעה ברור — ודא ששני הערוצים מקבלים אותו אות רחב־פס.';
+}
 function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
   const st=document.getElementById('dlyStatus');
-  if(res==null){
-    st.textContent = silent==='mic' ? 'המיקרופון לא קלט אות — בדוק גיין/חיבור.'
-                   : silent==='ref' ? 'כניסה 2 (רפרנס) שקטה — ודא ניתוב רפרנס מהמיקסר.'
-                   : 'לא הצלחתי — ודא שמנגן אות רחב־פס ושכניסה 2 מקבלת רפרנס.';
-    return; }
-  const ms=res.ms, dist=Math.abs(ms)/1000*343;
-  const quality=res.reliable?'אמינות '+Math.round(res.confidence*100)+'%':'⚠ תוצאה לא יציבה — מדוד שוב עם sweep/רעש רחב־פס';
+  if(!res||!res.reliable){ st.textContent=delayFailureText(res,silent); return; }
+  const ms=res.ms;
+  const quality='יציב '+res.validChecks+'/3 · אמינות '+Math.round(res.confidence*100)+'% · פיזור '+res.spreadMs.toFixed(2)+'ms';
   const alternatives=res.alternatives&&res.alternatives.length
     ? '<br>פסגות חלופיות: '+res.alternatives.map(v=>(v>=0?'+':'')+v.toFixed(1)+'ms').join(', ')
     : '';
-  st.innerHTML=(res.reliable?'':'⚠ ')+'דיליי ≈ <b>'+ms.toFixed(2)+' ms</b><br><span style="font-size:11px;color:'+(res.reliable?'var(--dim)':'var(--warn)')+'">≈ '+dist.toFixed(2)+' מ\' · '+(ms>=0?'המיק\' מאחר אחרי הרפרנס':'המיק\' מקדים את הרפרנס')+' · '+quality+alternatives+'</span>';
-}); }
-function runDelayCapture(btn, cb){
+  st.innerHTML='זמן נתיב כולל: <b>'+ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+' · לא ממירים את המספר הזה למרחק'+alternatives+'</span>';
+},{maxDelayMs:delaySearchMs,mode:'arrival'}); }
+function delayChunkSize(sr,maxDelayMs){
+  const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
+  let n=8192; while(n/2-2<required&&n<65536)n*=2; return n;
+}
+function runDelayCapture(btn, cb, options){
+  options=options||{};
   if(!running||!analyserRef||!source){ alert('צריך כרטיס קול עם input סטריאו (מיק\'+רפרנס).'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   unfreezeForMeasure();
   dlyState='measuring';
-  const prevTxt=btn.textContent; btn.textContent='מקליט…'; btn.style.opacity=.5;
+  const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent='בודק 1 · 2 · 3…';btn.style.opacity=.5;btn.disabled=true;}
   const sr=audioCtx.sampleRate;
-  const captureSec = (genOn && genType==='sweep') ? Math.min(10, genSweepDur+0.6) : 2.0;
+  const maxDelayMs=Math.max(20,Math.min(100,Number(options.maxDelayMs)||delaySearchMs));
+  const minCapture=delayChunkSize(sr,maxDelayMs)*3/sr+.35;
+  const captureSec = (genOn && genType==='sweep') ? Math.min(10,Math.max(3.2,minCapture,genSweepDur+0.6)) : Math.max(3.2,minCapture);
   const want=Math.floor(sr*captureSec);
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
@@ -1619,7 +1642,7 @@ function runDelayCapture(btn, cb){
     workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet');
   } catch(e) {
     alert('AudioWorklet לא נטען. פתח את האתר דרך שרת (למשל Live Server ב-VSCode) ולא כקובץ מתיקייה.');
-    dlyState='idle'; btn.textContent=prevTxt; btn.style.opacity=1;
+    dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
     return;
   }
 
@@ -1632,27 +1655,41 @@ function runDelayCapture(btn, cb){
     const len = Math.min(c0.length, want - pos);
     for(let i=0; i<len; i++) { mic[pos]=c0[i]; ref[pos]=c1[i]; pos++; }
   };
-  workletNode.port.postMessage({ cmd: 'start' });
+  workletNode.port.postMessage({ cmd: 'start', micChannel:measChannel, refChannel:refChannel });
 
   setTimeout(()=>{
     workletNode.port.postMessage({ cmd: 'stop' });
-    try{ source.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
-    dlyState='idle'; btn.textContent=prevTxt; btn.style.opacity=1;
-    const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
-    const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
-    const micRms=rmsOf(m), refRms=rmsOf(r);
-    if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
-    cb(computeDelay(r, m, sr, {maxDelayMs:20}));
+    // Give the worklet one message turn to flush its last partial block before
+    // disconnecting and analysing the complete capture.
+    setTimeout(()=>{
+      try{ source.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
+      dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
+      const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
+      const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
+      const micRms=rmsOf(m), refRms=rmsOf(r);
+      if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
+      cb(computeStableDelay(r, m, sr, {maxDelayMs}));
+    },60);
   }, captureSec*1000+100);
 }
 
+safeOn('dlyLoopbackBtn','click',function(){
+  if(!confirm('בדיקת חיבור דורשת שאותו אות בדיוק יגיע לשתי הכניסות.\nחבר/נתב את אותו Reference ל־MIC 1 ול־REF 2, ואז המשך.'))return;
+  const btn=this,st=document.getElementById('dlyStatus');
+  pickSource(()=>runDelayCapture(btn,(res,silent)=>{
+    if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
+    const ok=Math.abs(res.ms)<=.30;
+    st.innerHTML=(ok?'✓ החיבור מסונכרן':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
+  },{maxDelayMs:20,mode:'loopback'}),3800);
+});
+
 const DLY_NAMES=['Top','Sub','FF'];
 function dlyName(i){ return DLY_NAMES[i] || ('רמקול '+(i+1)); }
-let dlySpeakers=[{name:dlyName(0),ms:null},{name:dlyName(1),ms:null}];
+let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null}];
 let dlyAnchor=0;
 function setDlyCount(n){
   const cur=dlySpeakers.length;
-  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null}); }
+  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null,confidence:0,spreadMs:null}); }
   else if(n<cur){ dlySpeakers=dlySpeakers.slice(0,n); if(dlyAnchor>=n) dlyAnchor=0; }
   renderDlySpk();
 }
@@ -1661,12 +1698,12 @@ function renderDlySpk(){
   box.innerHTML=dlySpeakers.map((s,i)=>{
     let add='—';
     if(s.ms!=null && dlySpeakers[dlyAnchor] && dlySpeakers[dlyAnchor].ms!=null){
-      if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן</span>';
+      if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן · יעד</span>';
       else{ const d=dlySpeakers[dlyAnchor].ms - s.ms;
-        add = d>=0 ? '<b style="color:var(--accent)">+'+d.toFixed(2)+' ms</b>'
-                   : '<span style="color:var(--warn)">'+d.toFixed(2)+' ms (מאוחר מהעוגן)</span>'; }
+        add = d>=-.05 ? '<b style="color:var(--accent)">הוסף '+Math.max(0,d).toFixed(2)+' ms</b>'
+                   : '<span style="color:var(--warn)">מאוחר ב־'+Math.abs(d).toFixed(2)+'ms<br>בחר אותו כעוגן</span>'; }
     }
-    const time=s.ms==null?'טרם נמדד':s.ms.toFixed(2)+' ms · '+(s.ms*.343).toFixed(2)+' m';
+    const time=s.ms==null?'טרם נמדד':'נתיב '+s.ms.toFixed(2)+' ms'+(s.spreadMs!=null?' · ±'+(s.spreadMs/2).toFixed(2):'');
     return '<div class="dlySpeakerRow '+(i===dlyAnchor?'anchor':'')+'">'+
       '<span class="dlyAnchor" data-a="'+i+'" title="בחר כעוגן">'+(i===dlyAnchor?'●':'○')+'</span>'+
       '<input class="posName" data-i="'+i+'" value="'+escapeHtml(s.name||dlyName(i))+'">'+
@@ -1679,11 +1716,13 @@ function renderDlySpk(){
   box.querySelectorAll('.posName').forEach(inp=>inp.addEventListener('change',function(){ const i=+this.dataset.i; if(dlySpeakers[i]) dlySpeakers[i].name=this.value; }));
   box.querySelectorAll('.dlyMeasOne').forEach(b=>b.addEventListener('click',function(){
     const i=+this.dataset.i, btn=this;
-    pickSource(()=>runDelayCapture(btn,(res)=>{
+    pickSource(()=>runDelayCapture(btn,(res,silent)=>{
       if(res==null){ btn.textContent='נכשל'; setTimeout(()=>btn.textContent='מדוד',1500); return; }
-      if(!res.reliable){ btn.textContent='לא יציב'; setTimeout(()=>btn.textContent='מדוד',1800); return; }
-      dlySpeakers[i].ms=res.ms; renderDlySpk();
-    }),2100);
+      if(!res.reliable){ btn.textContent='לא יציב'; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent='מדוד',1800); return; }
+      dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;
+      const st=document.getElementById('dlyStatus');if(st)st.innerHTML='✓ '+escapeHtml(dlySpeakers[i].name)+' נשמר: <b>'+res.ms.toFixed(2)+'ms</b> '+delayChecksHtml(res)+' · עכשיו מדוד את הרמקול הבא בלי להזיז את המיקרופון.';
+      renderDlySpk();
+    },{maxDelayMs:delaySearchMs,mode:'speaker'}),3800);
   }));
 }
 document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('click',function(){
@@ -1695,9 +1734,9 @@ renderDlySpk();
 function computeDelay(ref, mic, sr, options){
   options=options||{};
   const L = Math.min(ref.length, mic.length);
-  const chunkSize = 8192;
-  const hopSize = 4096;
-  const maxDelayMs=Math.max(2,Math.min(80,Number(options.maxDelayMs)||20));
+  const maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
+  const chunkSize=delayChunkSize(sr,maxDelayMs);
+  const hopSize=chunkSize/2;
   const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),chunkSize/2-2);
   if(L < chunkSize) return null;
 
@@ -1804,6 +1843,8 @@ function computeDelay(ref, mic, sr, options){
   const sorted=chunkLags.slice().sort((a,b)=>a-b);
   const median=sorted[Math.floor(sorted.length/2)];
   const consistent=chunkLags.filter(v=>Math.abs(v-median)<=Math.max(3,sr*.0005)).length/validChunks;
+  const deviations=chunkLags.map(v=>Math.abs(v-median)/sr*1000).sort((a,b)=>a-b);
+  const chunkSpreadMs=deviations[Math.min(deviations.length-1,Math.floor(deviations.length*.9))]||0;
   const rival=peaks.find(p=>Math.abs(p.lag-chosen.lag)>Math.max(4,sr*.001));
   const separation=rival?Math.max(0,Math.min(1,(chosen.v-rival.v)/(Math.abs(chosen.v)+1e-12))):1;
   const confidence=Math.max(0,Math.min(1,.65*consistent+.35*separation));
@@ -1811,7 +1852,40 @@ function computeDelay(ref, mic, sr, options){
   const broadbandScore=Math.max(0,Math.min(1,(activeBins-6)/30));
   const finalConfidence=confidence*broadbandScore;
   const alternatives=peaks.filter(p=>p!==chosen&&p.v>=strongest.v*.65).slice(0,3).map(p=>p.lag/sr*1000);
-  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins};
+  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins,consistent,validChunks,chunkSpreadMs};
+}
+
+// One capture is divided into three independent time windows. A result is only
+// accepted when at least two windows agree within 0.20ms and the full capture
+// points to the same arrival. This prevents a reflection or one bass cycle from
+// silently becoming the system delay.
+function computeStableDelay(ref,mic,sr,options){
+  options=options||{};
+  const L=Math.min(ref.length,mic.length),maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
+  const full=computeDelay(ref,mic,sr,{maxDelayMs});
+  const checks=[];
+  const third=Math.floor(L/3);
+  for(let i=0;i<3;i++){
+    const start=i*third,end=i===2?L:(i+1)*third;
+    checks.push(computeDelay(ref.subarray(start,end),mic.subarray(start,end),sr,{maxDelayMs}));
+  }
+  const valid=checks.filter(r=>r&&r.reliable).sort((a,b)=>a.ms-b.ms);
+  if(!valid.length){
+    if(!full)return null;
+    return Object.assign({},full,{reliable:false,stable:false,checks,validChecks:0,spreadMs:Infinity});
+  }
+  const medianMs=valid[Math.floor(valid.length/2)].ms;
+  const spreadMs=valid.length>1?valid[valid.length-1].ms-valid[0].ms:Infinity;
+  const fullAgrees=!!(full&&full.reliable&&Math.abs(full.ms-medianMs)<=.25);
+  const stable=valid.length>=2&&spreadMs<=.20&&fullAgrees;
+  const base=valid.reduce((best,r)=>Math.abs(r.ms-medianMs)<Math.abs(best.ms-medianMs)?r:best,valid[0]);
+  const avgConfidence=valid.reduce((sum,r)=>sum+r.confidence,0)/valid.length;
+  const confidence=Math.max(0,Math.min(1,avgConfidence*(stable?1:.55)));
+  const alternatives=Array.from(new Set(valid.flatMap(r=>r.alternatives||[]).map(v=>Math.round(v*10)/10))).filter(v=>Math.abs(v-medianMs)>.5).slice(0,3);
+  return Object.assign({},base,{
+    ms:medianMs,samples:medianMs*sr/1000,confidence,reliable:stable,stable,
+    checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs
+  });
 }
 
 function measureBusy(){
@@ -3396,7 +3470,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.55';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.56';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3756,7 +3830,7 @@ const HELP={
   wgtBtn:'שקלול המד: dBZ (טכני), dBA (חוק/אוזן),\ndBC (עם בס). לחיצה מחליפה.',
   leqBtn:'אפס Leq: מתחיל מדידת ממוצע עוצמה\nמחדש מהרגע הזה.',
   tfTraceBtn:'לוכד את עקומת ה-TF הנוכחית ומשאיר אותה על הגרף להשוואה למדידה הבאה.',
-  tfAutoDelayBtn:'מחשב אוטומטית את הפרש הזמן בין הרפרנס למיקרופון ומיישר את ה-TF.',
+  tfAutoDelayBtn:'סנכרון TF: מודד שלוש פעמים את הפרש הזמן בין Reference למיקרופון ומיישר את הפאזה. אינו מכוון דיליי בין רמקולים.',
   resetPeakBtn:'איפוס מיידי של כל סימוני ה-Peak Hold.',
   avgSpeedSeg:'קובע כמה מהר המיצוע מגיב לשינויים. מהיר = תגובה זריזה, איטי = תצוגה יציבה.',
   peakBtn:'Peak Hold: משאיר את השיאים על המסך.',
@@ -3788,7 +3862,8 @@ const HELP={
   eqResetBtn:'נקה את כל המיקומים.',
   areaMeasBtn:'מדוד אזור חדש (עד 4). להשוואת\nצדדים שונים של המעגל.',
   areaEqBtn:'חשב תיקון EQ ממוצע לכל האזורים.',
-  dlyMeasBtn:'מדוד דיליי בודד (מיק\' מול רפרנס).',
+  dlyMeasBtn:'מודד שלוש פעמים את זמן הנתיב הכולל. להשוואת רמקולים השתמש רק ב־Δ מול העוגן.',
+  dlyLoopbackBtn:'בדיקת חיבור: אותו אות בשתי הכניסות צריך להחזיר תוצאה קרובה ל־0ms.',
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
   rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',
@@ -3796,7 +3871,7 @@ const HELP={
   rtRange:'טווח דעיכה נדרש. נמוך יותר = קל\nלמדוד בחדר שקט, פחות מדויק.',
   tfOverlayHdr:'הצג/הסתר את עקומות המיק\' והרפרנס\nיחד על הגרף הראשי.',
   tfOverlayBtn:'משאיר את עקומות המיק\' והרפרנס על הגרף\nהראשי גם כשהפאנל סגור.',
-  tfAutoDelayBtn:'מחשב ומאפס את השהיית הטיסה האקוסטית של המיקרופון בלחיצה אחת.',
+  tfAutoDelayBtn:'סנכרון TF בלבד: מפצה את הפרש נתיבי MIC ו־Reference. מבצעים פעם אחת אחרי שינוי חיבור או מיקום מיקרופון.',
   tfPhaseToggleBtn:'מציג/מסתיר את גרף הפאזה (ירוק).',
   tfCohToggleBtn:'מציג/מסתיר את גרף הקוהרנטיות (אדום מקווקו).',
   saveBtn:'מדידות שמורות: שמור וטען מדידות\nלפי מקום ותאריך.',
@@ -3813,7 +3888,7 @@ const HELP={
   v5ResetSession:'מאפס מדידות, Traces ותוצאות EQ לאחר בקשת אישור.',
   v54SideToggle:'פותח או סוגר את סרגל המדידות בצד שמאל.',
   v52IoBtn:'I/O: בחירת כרטיס קול, ערוצים, רזולוציה וכיול.',
-  v52AutoDelayBtn:'Auto Delay כללי: מודד את הפרש הזמן בין MIC 1 ל-REF 2 מכל מצב ומחיל אותו על מנוע ה-TF.',
+  v52AutoDelayBtn:'סנכרון TF: מפצה את הפרש הזמן בין MIC 1 ל־REF 2 עבור גרפי TF ופאזה בלבד. הוא אינו דיליי שמוסיפים לרמקול.',
   v52GenBtn:'פותח את הגנרטור בתחתית בלי לכסות את הגרף.',
   v52FreezeBtn:'מקפיא או מחזיר לפעולה את התצוגה החיה.',
   v52CaptureBtn:'פותח את אזור השמירה והלכידות.',

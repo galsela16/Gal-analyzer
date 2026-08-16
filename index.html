@@ -753,10 +753,13 @@
   #dlyPanel.measureDock .dlyAlignmentHead{display:flex;flex-direction:column;gap:7px;align-items:center;justify-content:center}
   #dlyPanel.measureDock .dlyAlignmentHead .ctrl{min-height:0!important;width:100%;box-sizing:border-box}
   #dlyPanel.measureDock #dlySpk{display:flex!important;width:100%!important;max-height:none!important;gap:5px!important}
-  .dlySpeakerRow{display:grid;grid-template-columns:22px minmax(80px,1fr) 120px 54px minmax(86px,120px);align-items:center;gap:6px;min-height:34px;padding:4px 7px;border:1px solid #223543;border-radius:6px;background:rgba(10,21,30,.68);transition:.14s}
+  .delayRangeControl{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;color:var(--dim);font-size:9px}
+  .delayRangeControl .seg button{min-width:39px;padding:4px 7px!important;font-size:9px!important}
+  .delayChecks{display:inline-flex;align-items:center;gap:3px;margin-inline-start:5px;vertical-align:middle}.delayChecks i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#425361}.delayChecks i.ok{background:#42d57b;box-shadow:0 0 5px rgba(66,213,123,.4)}.delayChecks i.bad{background:#ff5968}
+  .dlySpeakerRow{display:grid;grid-template-columns:22px minmax(80px,1fr) 105px 54px minmax(96px,145px);align-items:center;gap:6px;min-height:34px;padding:4px 7px;border:1px solid #223543;border-radius:6px;background:rgba(10,21,30,.68);transition:.14s}
   .dlySpeakerRow:hover{border-color:#36566d;background:rgba(14,29,40,.82)}.dlySpeakerRow.anchor{border-color:rgba(62,166,255,.45);box-shadow:inset 3px 0 0 rgba(62,166,255,.75)}
   .dlySpeakerRow .posName{min-width:0;width:100%;border:0;border-bottom:1px solid transparent;background:transparent;color:var(--text);font:600 11px inherit;padding:3px 2px}.dlySpeakerRow .posName:focus{outline:0;border-bottom-color:var(--accent)}
-  .dlySpeakerRow .dlyTime{font:10px monospace;color:var(--dim);white-space:nowrap}.dlySpeakerRow .dlyDelta{font-size:10px;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dlySpeakerRow .dlyMeasOne{padding:4px 7px!important;font-size:10px!important;min-height:25px!important}
+  .dlySpeakerRow .dlyTime{font:10px monospace;color:var(--dim);white-space:nowrap}.dlySpeakerRow .dlyDelta{font-size:10px;text-align:end;line-height:1.25}.dlySpeakerRow .dlyMeasOne{padding:4px 7px!important;font-size:10px!important;min-height:25px!important}
   .dlySpeakerRow .dlyAnchor{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:13px;cursor:pointer;color:var(--dim)}.dlySpeakerRow.anchor .dlyAnchor{color:var(--accent);background:rgba(62,166,255,.12)}
   body.sun-mode .dlySpeakerRow{background:rgba(248,250,252,.92);border-color:#cbd5e1}body.sun-mode .dlySpeakerRow:hover{background:#fff;border-color:#94a3b8}
   @media(max-width:760px){.dlySpeakerRow{grid-template-columns:22px minmax(70px,1fr) 105px 50px}.dlySpeakerRow .dlyDelta{grid-column:2/5;text-align:start}}
@@ -1072,7 +1075,7 @@
   .v52QuickBtn:hover{border-color:var(--accent);color:var(--accent)}
   .v52QuickBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.11)}
   .v52QuickBtn.danger.on{border-color:#ff5968;color:#ff7180;background:rgba(255,89,104,.08)}
-  #v52AutoDelayBtn.has-result{border-color:#42d57b;color:#42d57b;background:rgba(66,213,123,.08);font-variant-numeric:tabular-nums}
+  #v52AutoDelayBtn.has-result,#tfAutoDelayBtn.has-result{border-color:#42d57b!important;color:#42d57b!important;background:rgba(66,213,123,.08)!important;font-variant-numeric:tabular-nums}
   #v52QuickSpacer{flex:1;min-width:4px}
 
   #v52IODock{
@@ -1290,7 +1293,7 @@
     
     <!-- Quick Floating Bar for Live TF Mode -->
     <div id="tfQuickBar" class="tfQuickBar">
-      <button id="qbAutoDelay" title="סנכרון דיליי אוטומטי">⏱️ Auto-Delay</button>
+      <button id="qbAutoDelay" title="סנכרון ערוצי TF">⏱️ TF Sync</button>
       <button id="qbCoh" title="הצג/הסתר קוהרנטיות">📊 Coh</button>
       <button id="qbPhase" title="הצג/הסתר פאזה">📐 Phase</button>
     </div>
@@ -1331,8 +1334,8 @@
         <div class="guideFlow">
           <div class="guideStep"><i>1</i><b>I/O וכיול</b>בחר MIC 1 ו־REF 2 וטען קובץ כיול למיקרופון.</div>
           <div class="guideStep"><i>2</i><b>רמות</b>נגן Pink Noise וכוונן רמות יציבות ללא קליפ.</div>
-          <div class="guideStep"><i>3</i><b>Auto Delay</b>מדוד מחדש בכל הקמה. זה מפצה את נתיב המדידה.</div>
-          <div class="guideStep"><i>4</i><b>Delay רמקולים</b>יישר זמני הגעה בין מערכות לפני EQ.</div>
+          <div class="guideStep"><i>3</i><b>סנכרון TF</b>בצע פעם אחת אחרי חיבור המיק׳ והרפרנס. זה מיישר את שני ערוצי המדידה בלבד.</div>
+          <div class="guideStep"><i>4</i><b>זמני הגעה</b>מדוד כל רמקול לבדו מאותו מיקום, והשווה רק את Δ מול העוגן.</div>
           <div class="guideStep"><i>5</i><b>Sub / Top</b>בצע יישור פאזה עדין באזור החיתוך.</div>
           <div class="guideStep"><i>6</i><b>SPL / EQ</b>מדוד 3–5 מיקומים וקבע HPF/LPF ויעד.</div>
           <div class="guideStep"><i>7</i><b>TF ואימות</b>בדוק תגובה, פאזה וקוהרנטיות לאחר השינויים.</div>
@@ -1341,8 +1344,8 @@
         <div class="guideSections">
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
-          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> Auto Delay טרי → קוהרנטיות → תגובה ופאזה → EQ. אל תסמוך על אזור עם קוהרנטיות נמוכה.</p></details>
-          <details><summary>Delay · זמני הגעה</summary><p>מדוד רמקול עוגן ואז את האחרים מאותו מיקום מיקרופון. מטר הפרש מרחק הוא בערך 2.9ms; תוצאה רחוקה מכך דורשת בדיקת ניתוב.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> סנכרון TF פעם אחת → קוהרנטיות → תגובה ופאזה → EQ. סנכרן מחדש רק אם החלפת ניתוב, כרטיס, ערוצים או מיקום מיקרופון. אל תסמוך על אזור עם קוהרנטיות נמוכה.</p></details>
+          <details><summary>Delay · זמני הגעה</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
           <details><summary>Sub / Top · יישור חיתוך</summary><p>שמור Sub ואחריו Top ובדוק Δφ באזור החיתוך. Delay נותן זמן הגעה גס; Sub/Top משלים יישור פאזה עדין.</p></details>
@@ -1518,7 +1521,7 @@
         <div id="tfCorrStatus"><span id="tfCorrTip" style="color:var(--dim)">ממתין לאות בשני הערוצים</span><span>טווח: ‎−1.00 עד ‎+1.00</span></div>
       </div>
       <div id="tfBtns">
-        <button class="toggle" id="tfAutoDelayBtn" style="display:none">⏱ Auto Delay</button>
+        <button class="toggle" id="tfAutoDelayBtn">⏱ סנכרון TF</button>
         <button class="toggle" id="tfPhaseToggleBtn">Phase</button>
         <button class="toggle" id="tfCohToggleBtn">Coh</button>
         <button class="toggle" id="tfTraceBtn">לכוד Trace</button>
@@ -1529,7 +1532,8 @@
         <button class="toggle" id="tfCsvBtn">CSV</button>
       </div>
       <div id="tfTraceLegend" class="tfTraceLegend"></div>
-      <div id="tfDelayInfo" style="text-align:center;font-size:11px;color:var(--accent)">סנכרון דיליי TF: 0.00 ms</div>
+      <div id="tfDelayInfo" style="text-align:center;font-size:11px;color:var(--accent)">TF עדיין לא מסונכרן</div>
+      <div class="delayRangeControl"><span>טווח חיפוש</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
       <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:6px 0">
         <div class="ctrl" style="min-width:150px">
           <label>יציבות TF <b id="tfSmoothVal">בינונית</b></label>
@@ -1558,16 +1562,17 @@
     </div>
     
     <div id="dlyPanel">
-      <h3>מדידת דיליי · Delay Finder</h3>
+      <h3>השוואת זמני הגעה · רמקולים</h3>
       <div class="dlyInputs">
         <div class="chBar"><span id="dlyL1" style="min-width:90px">כניסה 1 · מיק'</span><div class="track"><div class="fill" id="dlyMicFill"></div></div><span class="gainLbl" id="dlyMicGain">—</span></div>
         <div class="chBar"><span id="dlyL2" style="min-width:90px">כניסה 2 · Reference</span><div class="track"><div class="fill" id="dlyRefFill"></div></div><span class="gainLbl" id="dlyRefGain">—</span></div>
       </div>
       <div class="dlyMeasureCard">
-        <div class="sub">נגן רעש ורוד או מוזיקה במערכת ושלח Reference לכניסה 2.</div>
-        <button id="dlyMeasBtn" class="toggle">מדוד דיליי (2ש')</button>
+        <div class="sub">נגן אות רחב־פס ושלח אותו גם למערכת וגם ל־Reference. המנוע מבצע 3 בדיקות עצמאיות.</div>
+        <button id="dlyMeasBtn" class="toggle">מדוד זמן נתיב · 3×</button>
         <div id="dlyStatus" style="text-align:center;color:var(--text)">מוכן למדידה</div>
-        <div class="sub" id="dlyInfo">הדיליי הוא הזמן שבו המיק' מאחר אחרי ה־Reference.</div>
+        <div class="delayRangeControl"><span>טווח חיפוש</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
+        <div class="sub" id="dlyInfo">הזמן המוחלט כולל את כל שרשרת המדידה ואינו מרחק פיזי. לכיוון רמקולים השתמש רק ב־Δ מול העוגן.</div>
       </div>
 
       <div class="dlyAlignment">
@@ -1581,11 +1586,12 @@
             <button data-n="6">6</button>
           </div>
           </div>
-          <div class="sub">מדוד כל רמקול מאותו מיקום ובחר עוגן ◎.</div>
+          <div class="sub">רמקול אחד בלבד בכל מדידה · המיקרופון נשאר קבוע · בחר את המאוחר כעוגן ◎.</div>
         </div>
         <div id="dlySpk" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
       <div class="dlyActions">
+        <button id="dlyLoopbackBtn" class="toggle" title="חבר אותו אות לשתי הכניסות ובדוק שהמערכת מחזירה קרוב ל־0ms">בדיקת חיבור 0ms</button>
         <button id="dlyReset" class="toggle">אפס דיליי</button>
         <button id="dlyClose">סגור</button>
       </div>
@@ -1724,7 +1730,7 @@
       </div>
       <div class="v52QuickGroup">
         <button class="v52QuickBtn" id="v52IoBtn" type="button" onclick="v52SetIo(!v52IoOpen)">I/O</button>
-        <button class="v52QuickBtn" id="v52AutoDelayBtn" type="button">⏱ Auto Delay</button>
+        <button class="v52QuickBtn" id="v52AutoDelayBtn" type="button">⏱ סנכרון TF</button>
         <button class="v52QuickBtn" id="v52GenBtn" type="button" onclick="v53SetGeneratorDock(!genPanel.classList.contains('open'))">Generator</button>
       </div>
       <div id="v52QuickSpacer"></div>
@@ -1893,7 +1899,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.55</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.56</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

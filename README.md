@@ -1,4 +1,8 @@
-# GAL Analyzer V5.4.55 — Field preflight measurement audit
+# GAL Analyzer V5.4.56 — Unified delay engine
+
+V5.4.56 replaces the two different delay paths with one long-capture engine shared by TF synchronization and speaker-arrival comparison. Every accepted result must pass three independent time-window checks, agree within 0.20ms and match the full recording. The search range is selectable at 20/50/100ms and the FFT window grows automatically at high sample rates.
+
+The interface now separates the jobs explicitly: “TF Sync” aligns MIC and Reference for transfer-function phase/coherence; speaker alignment measures each loudspeaker alone and presents only the relative Δ and the positive delay to add. Absolute path time is no longer presented as physical distance. A same-signal 0ms loopback check was also added.
 
 Measurement-engine preflight coverage now tests delay at 44.1/48/96 kHz with noise and reflections, rejects silence and single-tone ambiguity, verifies TF phase compensation, band coherence, low-frequency band integration, mic-cal interpolation, RT60 regression, EQ safety limits and the six-band parametric optimizer.
 
@@ -14,7 +18,7 @@ The same refined draggable HPF/LPF handles now appear on the live RTA graph whil
 
 A compact guide button next to Help opens an in-app field workflow plus concise instructions for RTA, Waterfall, TF, Delay, RT60, SPL/EQ, Sub/Top and Trace comparison.
 
-Delay speaker alignment rows are now compact and responsive, showing speaker name, measured time, equivalent distance, measure action and anchor-relative result without oversized cards.
+Delay speaker alignment rows are compact and responsive, showing speaker name, total path time, measurement stability and the anchor-relative delay to add. The misleading equivalent-distance field was removed.
 
 The RTA HPF/LPF controls now use thin semi-transparent dashed lines, small rounded labels and subtle grab points. Only the active handle becomes stronger while dragging; the large banners, triangles and center instruction were removed.
 
@@ -22,7 +26,7 @@ After measurement, the proposed EQ curve appears as a compact ±6 dB ribbon insi
 
 In SPL/EQ mode, the correction limits are now large draggable handles directly on the live RTA graph (cyan HPF, orange LPF). The lower selector row is hidden to preserve graph space; all range values remain synchronized internally.
 
-Auto Delay is no longer stored in preferences or session exports. It resets whenever audio starts, stops or switches input, so every physical setup requires a fresh measurement. The opening description now reflects the current 1/6-octave RTA, TF, Delay, SPL/EQ and Sub/Top workflow.
+TF Sync is not stored in preferences or session exports. It resets whenever audio starts, stops or switches input, so every physical setup gets a fresh synchronization. The opening description reflects the current 1/6-octave RTA, TF, arrival-time, SPL/EQ and Sub/Top workflow.
 
 The SPL/EQ measurement dock contains a prominent, always-visible HPF/LPF correction-range bar. The experimental forced cache-navigation behavior from V5.4.46 was removed to restore stable startup and audio initialization.
 
@@ -32,7 +36,7 @@ The HPF and LPF correction limits are now permanently visible in the EQ graph he
 
 - The left-rail EQ button now toggles the entire correction workspace on/off. The arrow inside the workspace remains dedicated only to collapsing or expanding its contents.
 
-- Auto Delay now lives in the persistent bottom bar next to I/O, works from every measurement view, shows the measured result on its button and leaves only a read-only active-delay status inside TF.
+- TF Sync lives in the persistent bottom bar next to I/O, works from every measurement view, shows the measured result on its button and keeps a detailed stability status inside TF.
 
 - The rail EQ button now uses a direct, explicit action in the HTML rather than depending on the later workspace initialization sequence. It also shows immediate press feedback.
 

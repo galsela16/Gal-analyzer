@@ -14,7 +14,7 @@ for(const file of ['app.js','js/app-core.js','js/core/config.js','js/core/diagno
 
 const html=await readFile('index.html','utf8');
 const worker=await readFile('sw.js','utf8');
-for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','v5TraceList']){
+for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','v5TraceList','tfAutoDelayBtn','dlyLoopbackBtn']){
   if(!html.includes(`id="${id}"`)) throw new Error(`Missing UI anchor: ${id}`);
 }
 for(const asset of ['app.js','js/app-core.js','js/core/config.js','js/core/diagnostics.js']){
@@ -29,6 +29,9 @@ for(const asset of cachedAssets) await access(asset,constants.R_OK);
 // legacy fallbacks and are intentionally guarded in app-core.js.
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 const core=await readFile('js/app-core.js','utf8');
+const recorder=await readFile('recorder-worklet.js','utf8');
+if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
+if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');
 const optionalLegacyIds=new Set(['autoCalBtn','fft','v3CalChip']);
 const wiredIds=[...core.matchAll(/safeOn\(['"]([^'"]+)['"]/g)].map(match=>match[1]);
 for(const id of wiredIds){
