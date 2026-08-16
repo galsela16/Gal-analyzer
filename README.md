@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.59 — Guided Sub/Top workflow
+# GAL Analyzer V5.4.60 — Guided TF workflow
+
+V5.4.60 turns the TF dock into a guided three-step workflow: synchronize TF, verify live phase/coherence quality, then choose either a Trace capture or a six-second EQ measurement. Trace and EQ actions remain locked until synchronization and verification succeed; routing changes, FFT changes and coherence-threshold changes invalidate the appropriate stage. Less-frequent TF utilities remain behind “More”.
 
 V5.4.59 moves TF synchronization into the Sub/Top measurement bar and presents the full sequence as three adjacent, numbered steps: TF Sync, capture Sub, capture Top. Each step unlocks only after the preceding measurement succeeds, and the recommendation panel tells the operator exactly which source must remain active next.
 

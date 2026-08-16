@@ -21,6 +21,7 @@ const binOverlapPowerDb=Function('db2lin',`${extract('binOverlapPowerDb')};retur
 const binOverlapLinearPower=Function(`${extract('binOverlapLinearPower')};return binOverlapLinearPower`)();
 const analyzeDecay=Function(`${extract('analyzeDecay')};return analyzeDecay`)();
 const applyDelayPhaseToCross=Function(`${extract('applyDelayPhaseToCross')};return applyDelayPhaseToCross`)();
+const evaluateTfVerification=Function(`${extract('evaluateTfVerification')};return evaluateTfVerification`)();
 const testPxx=new Float64Array(8192).fill(1),testPyy=new Float64Array(8192).fill(1),testRe=new Float64Array(8192).fill(Math.sqrt(.81)),testIm=new Float64Array(8192);
 const tfBandCoherence=Function('tfPxx','tfPyy','tfPxyRe','tfPxyIm','TF_FFT_N',`${extract('tfBandCoherence')};return tfBandCoherence`)(testPxx,testPyy,testRe,testIm,16384);
 const geqBody=source.match(/const GEQ=\[([\s\S]*?)\];/)?.[1];
@@ -130,6 +131,12 @@ for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
   const phaseLead=2*Math.PI*k*delay/n,correctedLead=applyDelayPhaseToCross(Math.cos(phaseLead),Math.sin(phaseLead),k,n,-delay);
   assert(Math.abs(Math.atan2(correctedLead.im,correctedLead.re))<1e-10,'Negative TF delay compensation failed');
   assert(Math.abs(tfBandCoherence(1000,2**(1/6),48000)-.81)<1e-10,'TF band coherence aggregation failed');
+}
+{
+  const good=evaluateTfVerification([.82,.75,.68,.2,.1],.4,true);
+  assert(good.ok&&good.passing===3,'TF workflow must accept adequate coherent coverage');
+  assert(!evaluateTfVerification([.25,.3,.39,.1,.2],.4,true).ok,'TF workflow must reject weak coherence');
+  assert(!evaluateTfVerification([.9,.9,.9],.4,false).ok,'TF workflow must reject missing input signal');
 }
 
 {

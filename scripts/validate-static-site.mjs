@@ -14,7 +14,7 @@ for(const file of ['app.js','js/app-core.js','js/core/config.js','js/core/diagno
 
 const html=await readFile('index.html','utf8');
 const worker=await readFile('sw.js','utf8');
-for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','v5TraceList','tfAutoDelayBtn','dlyLoopbackBtn','dlyUnitSeg','dlyKnownDistance','dlyDistanceCalBtn','phWorkflowSteps','phSyncBtn','phRecommendation']){
+for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','v5TraceList','tfWorkflowSteps','tfAutoDelayBtn','tfVerifyBtn','tfUtilityBtns','dlyLoopbackBtn','dlyUnitSeg','dlyKnownDistance','dlyDistanceCalBtn','phWorkflowSteps','phSyncBtn','phRecommendation']){
   if(!html.includes(`id="${id}"`)) throw new Error(`Missing UI anchor: ${id}`);
 }
 for(const asset of ['app.js','js/app-core.js','js/core/config.js','js/core/diagnostics.js']){
@@ -30,6 +30,10 @@ for(const asset of cachedAssets) await access(asset,constants.R_OK);
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 const core=await readFile('js/app-core.js','utf8');
 for(const workflowCheck of [
+  "safeOn('tfVerifyBtn','click',verifyTfWorkflow)",
+  "verify.disabled=busy||!tfDelayReady",
+  "trace.disabled=busy||!tfWorkflowVerified",
+  "eq.disabled=busy||!tfWorkflowVerified",
   "safeOn('phSyncBtn','click',tfAutoDelay)",
   "sub.disabled=phMeasuring||!tfDelayReady",
   "top.disabled=phMeasuring||!tfDelayReady||!phaseSub",

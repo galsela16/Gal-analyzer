@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-59-inline-sub-top-workflow-20260816';
+const CACHE = 'gal-analyzer-v5-4-60-guided-tf-workflow-20260816';
 const ASSETS = [
   './',
   './index.html',

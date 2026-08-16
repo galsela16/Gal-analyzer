@@ -388,6 +388,14 @@
   #tfCanvas{width:100%;height:150px;position:relative;flex-shrink:0;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none}
   #tfGeqList{display:flex;flex-direction:column;gap:6px;z-index:2;width:100%}
   #tfBtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  #tfWorkflowSteps{display:flex;align-items:center;justify-content:center;gap:5px;direction:rtl;flex-wrap:wrap}
+  #tfWorkflowSteps button{min-width:112px}
+  #tfWorkflowSteps button:disabled{opacity:.42!important;cursor:default!important;filter:saturate(.45)}
+  #tfWorkflowSteps button.on{border-color:#42d57b!important;color:#42d57b!important;background:rgba(66,213,123,.1)!important}
+  #tfUtilityBtns{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+  #tfDelayInfo.ready{color:#42d57b!important;border-color:rgba(66,213,123,.4)!important}
+  #tfDelayInfo.warn{color:#f59e0b!important;border-color:rgba(245,158,11,.42)!important;background:rgba(245,158,11,.06)!important}
+  @media(max-width:760px){#tfWorkflowSteps{width:100%}#tfWorkflowSteps button{min-width:0;flex:1 1 44%;padding-inline:7px}}
   #tfClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
     font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   
@@ -701,8 +709,10 @@
     border-top:1px solid #172632;padding-top:8px;
   }
   #tfPanel.measureDock #tfDelayInfo{
-    min-width:145px;color:#56df86!important;background:#0b1817!important;border-color:#214a39!important
+    min-width:145px;color:var(--accent)!important;background:#0b151e!important;border-color:#253746!important
   }
+  #tfPanel.measureDock #tfDelayInfo.ready{color:#56df86!important;background:#0b1817!important;border-color:#214a39!important}
+  #tfPanel.measureDock #tfDelayInfo.warn{color:#f59e0b!important;background:rgba(245,158,11,.06)!important;border-color:rgba(245,158,11,.42)!important}
   #tfPanel.measureDock #tfTraceLegend{display:none}
   #tfPanel.measureDock #tfCorrCard{
     display:grid!important;grid-template-columns:minmax(190px,240px) minmax(180px,1fr) minmax(120px,210px);align-items:center;gap:10px;
@@ -1361,7 +1371,7 @@
         <div class="guideSections">
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
-          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> סנכרון TF פעם אחת → קוהרנטיות → תגובה ופאזה → EQ. סנכרן מחדש רק אם החלפת ניתוב, כרטיס, ערוצים או מיקום מיקרופון. אל תסמוך על אזור עם קוהרנטיות נמוכה.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace או מדידת EQ. שלב 2 פותח אוטומטית את תצוגות הפאזה והקוהרנטיות, והפעולות בשלב 3 נפתחות רק כשהאות בטווח המדידה אמין. סנכרן מחדש רק אם החלפת ניתוב, כרטיס, ערוצים או מיקום מיקרופון.</p></details>
           <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע מאותו רמקול ובאותו ניתוב. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
@@ -1538,18 +1548,23 @@
         <div id="tfCorrStatus"><span id="tfCorrTip" style="color:var(--dim)">ממתין לאות בשני הערוצים</span><span>טווח: ‎−1.00 עד ‎+1.00</span></div>
       </div>
       <div id="tfBtns">
-        <button class="toggle" id="tfAutoDelayBtn">⏱ סנכרון TF</button>
-        <button class="toggle" id="tfPhaseToggleBtn">Phase</button>
-        <button class="toggle" id="tfCohToggleBtn">Coh</button>
-        <button class="toggle" id="tfTraceBtn">לכוד Trace</button>
-        <button class="toggle" id="tfTraceClearBtn">נקה Traces</button>
-        <button class="toggle" id="tfSwapBtn">החלף ערוצים</button>
-        <button class="toggle" id="tfOverlayBtn">הצג על הגרף</button>
-        <button class="toggle" id="tfMeasBtn">מדוד EQ (6ש')</button>
-        <button class="toggle" id="tfCsvBtn">CSV</button>
+        <div id="tfWorkflowSteps" aria-label="סדר מדידת TF">
+          <button class="toggle" id="tfAutoDelayBtn">1 · סנכרון TF</button>
+          <button class="toggle" id="tfVerifyBtn" disabled>2 · אימות TF</button>
+          <button class="toggle" id="tfTraceBtn" disabled>3א · לכוד Trace</button>
+          <button class="toggle" id="tfMeasBtn" disabled>3ב · מדוד EQ</button>
+        </div>
+        <div id="tfUtilityBtns" aria-label="פעולות TF נוספות">
+          <button class="toggle" id="tfPhaseToggleBtn">Phase</button>
+          <button class="toggle" id="tfCohToggleBtn">Coh</button>
+          <button class="toggle" id="tfTraceClearBtn">נקה Traces</button>
+          <button class="toggle" id="tfSwapBtn">החלף ערוצים</button>
+          <button class="toggle" id="tfOverlayBtn">הצג על הגרף</button>
+          <button class="toggle" id="tfCsvBtn">CSV</button>
+        </div>
       </div>
       <div id="tfTraceLegend" class="tfTraceLegend"></div>
-      <div id="tfDelayInfo" style="text-align:center;font-size:11px;color:var(--accent)">TF עדיין לא מסונכרן</div>
+      <div id="tfDelayInfo" role="status" style="text-align:center;font-size:11px;color:var(--accent)"><b>שלב 1:</b> הפעל אות רחב־פס ובצע סנכרון TF</div>
       <div class="delayRangeControl"><span>טווח חיפוש</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
       <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:6px 0">
         <div class="ctrl" style="min-width:150px">
@@ -1922,7 +1937,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.59</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.60</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
