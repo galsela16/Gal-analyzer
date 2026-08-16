@@ -16,6 +16,7 @@ const computeDelay=Function('fft','delayChunkSize',`${extract('computeDelay')};r
 const computeStableDelay=Function('computeDelay',`${extract('computeStableDelay')};return computeStableDelay`)(computeDelay);
 const delayMsToMeters=Function(`${extract('delayMsToMeters')};return delayMsToMeters`)();
 const calibratedDistanceMeters=Function('delayMsToMeters',`${extract('calibratedDistanceMeters')};return calibratedDistanceMeters`)(delayMsToMeters);
+const delayDisplayValue=Function('calibratedDistanceMeters',`${extract('delayDisplayValue')};return delayDisplayValue`)(calibratedDistanceMeters);
 const validateDistanceCalibration=Function('delayMsToMeters',`${extract('validateDistanceCalibration')};return validateDistanceCalibration`)(delayMsToMeters);
 const optimizeSubTopAlignment=Function(`${extract('optimizeSubTopAlignment')};return optimizeSubTopAlignment`)();
 const binOverlapPowerDb=Function('db2lin',`${extract('binOverlapPowerDb')};return binOverlapPowerDb`)(db=>10**(db/10));
@@ -98,6 +99,10 @@ for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
   assert(!falseMeter.ok&&Math.abs(falseMeter.measuredMaxM-.57624)<1e-5,'A physically impossible 1m calibration must be rejected');
   const withinTolerance=validateDistanceCalibration(2.82,1,.25);
   assert(withinTolerance.ok&&withinTolerance.clamped&&withinTolerance.offsetMs===0,'A tiny negative offset inside tolerance must clamp to zero');
+  const metersDisplay=delayDisplayValue(1.68,'m',halfMeter.offsetMs);
+  assert(metersDisplay&&metersDisplay.unit==='m'&&Math.abs(metersDisplay.value-.5)<1e-10,'Meter mode must format a calibrated path in meters');
+  assert.equal(delayDisplayValue(1.68,'m',null),null,'Meter mode must not fall back to milliseconds without calibration');
+  assert.equal(delayDisplayValue(1.68,'ms',null).unit,'ms','Millisecond mode must remain available explicitly');
 }
 {
   const sr=48000,fftN=16384,n=fftN/2;

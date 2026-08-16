@@ -30,10 +30,13 @@ for(const asset of cachedAssets) await access(asset,constants.R_OK);
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 const core=await readFile('js/app-core.js','utf8');
 for(const workflowCheck of [
-  "safeOn('tfVerifyBtn','click',verifyTfWorkflow)",
+  "safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000))",
   "verify.disabled=busy||!tfDelayReady",
   "trace.disabled=busy||!tfWorkflowVerified",
   "eq.disabled=busy||!tfWorkflowVerified",
+  "tfWorkflowVerifyTimer=setTimeout",
+  "st.dataset.delayResult==='path'",
+  "st.dataset.delayResult==='speaker'",
   "safeOn('phSyncBtn','click',tfAutoDelay)",
   "sub.disabled=phMeasuring||!tfDelayReady",
   "top.disabled=phMeasuring||!tfDelayReady||!phaseSub",

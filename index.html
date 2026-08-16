@@ -1372,7 +1372,7 @@
         <div class="guideSections">
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
-          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace או מדידת EQ. שלב 2 פותח אוטומטית את תצוגות הפאזה והקוהרנטיות, והפעולות בשלב 3 נפתחות רק כשהאות בטווח המדידה אמין. סנכרן מחדש רק אם החלפת ניתוב, כרטיס, ערוצים או מיקום מיקרופון.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace או מדידת EQ. בשלב 2 בחר רעש ורוד, סוויפ או מקור חיצוני; האפליקציה מפעילה את האות הנבחר, אוספת שתי שניות ופותחת את תצוגות הפאזה והקוהרנטיות. שלב 3 נפתח רק כשהאות בטווח המדידה אמין.</p></details>
           <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע ומדוד מהמרכז האקוסטי של אותו רמקול ובאותו ניתוב. כיול שדורש קיזוז מערכת שלילי משמעותי יידחה. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
@@ -1551,7 +1551,7 @@
       <div id="tfBtns">
         <div id="tfWorkflowSteps" aria-label="סדר מדידת TF">
           <button class="toggle" id="tfAutoDelayBtn">1 · סנכרון TF</button>
-          <button class="toggle" id="tfVerifyBtn" disabled>2 · אימות TF</button>
+          <button class="toggle" id="tfVerifyBtn" title="בחר רעש ורוד, סוויפ או מקור חיצוני; האפליקציה תאסוף ותאמת פאזה וקוהרנטיות" disabled>2 · אימות TF</button>
           <button class="toggle" id="tfTraceBtn" disabled>3א · לכוד Trace</button>
           <button class="toggle" id="tfMeasBtn" disabled>3ב · מדוד EQ</button>
         </div>
@@ -1938,7 +1938,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.61</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.62</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 

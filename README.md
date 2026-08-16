@@ -1,4 +1,6 @@
-# GAL Analyzer V5.4.61 — Safe distance calibration
+# GAL Analyzer V5.4.62 — Consistent delay units and self-contained TF verification
+
+V5.4.62 applies the Delay result-unit selector consistently to the main result, saved loudspeaker rows, status messages, stability spread, alternative peaks and equivalent alignment differences. Existing results are reformatted immediately when switching units; meter mode no longer leaves the primary result in milliseconds. TF step 2 now opens the shared source selector, can run Pink Noise or Sweep without opening the Generator dock, collects two seconds of fresh data and then verifies phase/coherence.
 
 V5.4.61 validates a known-distance calibration against the measured raw arrival time before saving it. A known distance that would require a significantly negative system delay is rejected with the raw milliseconds and maximum physically possible distance; tiny negative values within 0.25ms measurement tolerance are clamped to zero. Invalid calibration input and negative stored offsets can no longer produce a “calibrated” meter result.
 
