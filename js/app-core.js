@@ -12,6 +12,7 @@ let sunMode=false;
 
 // ---- TF Advanced Engine Variables ----
 let tfDelayMs = 0;
+let tfDelayReady = false;
 let tfTraces=[];
 const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
@@ -25,6 +26,7 @@ let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=�
 let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
 let phaseSub=null, phaseTop=null;  // צילומי פאזה: {ph:Float32Array, coh:Float32Array}
 let xoverF=90, showXover=false;    // סמן תדר חיתוך
+let alignRecommendation=null;
 
 let TF_FFT_N = 16384;
 let tfXr,tfXi,tfYr,tfYi,tfPxx,tfPyy,tfPxyRe,tfPxyIm,tfWin;
@@ -36,7 +38,7 @@ function configureTfFft(n){
   tfPxyRe=new Float32Array(TF_FFT_N/2); tfPxyIm=new Float32Array(TF_FFT_N/2);
   tfWin=new Float32Array(TF_FFT_N);
   for(let i=0;i<TF_FFT_N;i++) tfWin[i]=0.5*(1-Math.cos((2*Math.PI*i)/(TF_FFT_N-1)));
-  phaseSub=null; phaseTop=null;
+  phaseSub=null; phaseTop=null; alignRecommendation=null;
 }
 configureTfFft(TF_FFT_N);
 
@@ -240,6 +242,7 @@ safeOn('qbPhase', 'click', function(){
 });
 safeOn('tfAutoDelayBtn','click',tfAutoDelay);
 safeOn('v52AutoDelayBtn','click',tfAutoDelay);
+safeOn('phSyncBtn','click',tfAutoDelay);
 safeOn('tfCohToggleBtn','click',function(){
   showTfCoh=!showTfCoh; this.classList.toggle('on',showTfCoh);
   const q=document.getElementById('qbCoh'); if(q) q.classList.toggle('on',showTfCoh);
@@ -254,7 +257,11 @@ function tfAutoDelay(event){
   const globalBtn=document.getElementById('v52AutoDelayBtn');
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
   const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
-  pickSource(()=>runDelayCapture(trigger||globalBtn,(res,silent)=>{
+  pickSource(()=>{
+    tfDelayReady=false;
+    clearSubTopSnapshots('סנכרון TF מתבצע…');
+    syncSubTopWorkflowUi();
+    runDelayCapture(trigger||globalBtn,(res,silent)=>{
     if(!res || !res.reliable){
       resetTfAutoDelay();
       const msg=silent==='mic'?'אין אות במיקרופון'
@@ -262,17 +269,20 @@ function tfAutoDelay(event){
         :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
       v3Toast(msg); return;
     }
-    tfDelayMs=res.ms; tfDelaySamples=res.samples;
+    tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
+    clearSubTopSnapshots('סנכרון TF השתנה — מדוד שוב סאב וטופ.');
     const checks=delayChecksHtml(res);
     const info=document.getElementById('tfDelayInfo');
     if(info)info.innerHTML=`TF מסונכרן: <b>${tfDelayMs.toFixed(2)} ms</b> ${checks} <span style="color:var(--dim)">פיזור ${res.spreadMs.toFixed(2)}ms</span>`;
     [globalBtn,document.getElementById('tfAutoDelayBtn')].forEach(btn=>{if(btn){btn.classList.remove('on');btn.classList.add('has-result');btn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}});
     v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
-  },{maxDelayMs:delaySearchMs,mode:'tf'}),3800);
+  },{maxDelayMs:delaySearchMs,mode:'tf'});
+  },3800);
 }
 
 function resetTfAutoDelay(){
-  tfDelayMs=0;tfDelaySamples=0;
+  tfDelayMs=0;tfDelaySamples=0;tfDelayReady=false;
+  clearSubTopSnapshots('סנכרון TF אופס — סנכרן ואז מדוד שוב סאב וטופ.');
   const info=document.getElementById('tfDelayInfo');if(info)info.textContent='TF עדיין לא מסונכרן';
   const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent='⏱ סנכרון TF';}
   const panelBtn=document.getElementById('tfAutoDelayBtn');if(panelBtn){panelBtn.classList.remove('on','has-result');panelBtn.textContent='⏱ סנכרון TF';}
@@ -339,7 +349,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.57-calibrated-distance',
+    version: 'v5.4.59-inline-sub-top-workflow',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1959,7 +1969,7 @@ function computeStableDelay(ref,mic,sr,options){
 
 function measureBusy(){
   return measState==='measuring' || areaState==='measuring' || tfState==='measuring'
-      || dlyState==='measuring' || rt60State!=='idle';
+      || dlyState==='measuring' || phMeasuring || rt60State!=='idle';
 }
 function unfreezeForMeasure(){
   if(!frozen) return;
@@ -2243,7 +2253,9 @@ function setFft(n){
   const supported=(window.GAL&&window.GAL.config&&window.GAL.config.supportedFft)||[8192,16384,32768];
   n=parseInt(n,10);
   fftSize=supported.includes(n)?n:16384;
+  const hadAlignment=!!(phaseSub||phaseTop);
   configureTfFft(fftSize);
+  if(hadAlignment)clearSubTopSnapshots('רזולוציית FFT השתנתה — מדוד שוב סאב וטופ.');
   setTimeout(v3UpdateStatus,0);
   if(analyser){
     analyser.fftSize=fftSize; analyserRef.fftSize=fftSize;
@@ -2286,10 +2298,6 @@ function resetSession(){
   const tr = stream && stream.getAudioTracks && stream.getAudioTracks()[0];
   if(running && (!tr || tr.readyState==='ended')){ stop(); start(); return; }
   peaks.fill(0); avgBuf.fill(0); snapCurve=null; frozen=false;
-  phaseSub=null; phaseTop=null; showXover=false; phMeasuring=false;
-  { const s=document.getElementById('phSubBtn'); if(s){ s.classList.remove('on'); s.textContent='מדוד + לכוד סאב'; s.disabled=false; } }
-  { const t=document.getElementById('phTopBtn'); if(t){ t.classList.remove('on'); t.textContent='מדוד + לכוד טופ'; t.disabled=false; } }
-  { const st=document.getElementById('phStatus'); if(st){ st.textContent='מדוד סאב לבד, ואז טופ לבד — כל מדידה 3 שניות.'; st.style.color='var(--dim)'; } }
   abA=null; abB=null; abView='off';
   { const a=document.getElementById('abCapA'); if(a){ a.classList.remove('on'); a.textContent='לכוד לפני (A)'; } }
   { const b=document.getElementById('abCapB'); if(b){ b.classList.remove('on'); b.textContent='לכוד אחרי (B)'; } }
@@ -3003,8 +3011,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.fillStyle='#e879f9'; ctx.fillText('טופ: '+(topOk?toDeg(phaseTop.ph[k]).toFixed(0)+'°':'— קוה׳ נמוכה'), rx, by+54);
       if(subOk && topOk){
         const d=wrap(toDeg(phaseTop.ph[k]-phaseSub.ph[k])); const ad=Math.abs(d);
-        const col = ad<30?'#22c55e' : ad>150?'#ef4444' : '#f59e0b';
-        const verdict = ad<30?'מיושר ✓' : ad>150?'הפוך — פולריות' : 'כוונן דיליי';
+        const col = ad<30?'#22c55e':'#f59e0b';
+        const verdict = ad<30?'מיושר ✓':'המלצה למטה';
         ctx.fillStyle=col; ctx.fillText('Δφ: '+(d>0?'+':'')+d.toFixed(0)+'°  '+verdict, rx, by+76);
       } else {
         ctx.fillStyle=sunMode?'#64748b':'#94a3b8'; ctx.fillText('לכוד סאב וטופ למדידת Δφ', rx, by+76);
@@ -3327,49 +3335,195 @@ safeOn('tfCohGate','input',function(e){
 });
 
 // ---- יישור חיתוך סאב/טופ ----
+function optimizeSubTopAlignment(sub,top,sr,crossoverHz,coherenceGate,options){
+  options=options||{};
+  if(!sub||!top||!sub.ph||!top.ph||!sub.mag||!top.mag||!sub.coh||!top.coh)return {reliable:false,reason:'חסרות מדידות סאב או טופ'};
+  sr=Math.max(8000,Number(sr)||48000);
+  crossoverHz=Math.max(20,Math.min(sr/3,Number(crossoverHz)||90));
+  coherenceGate=Math.max(0,Math.min(.95,Number(coherenceGate)||.4));
+  const n=Math.min(sub.ph.length,top.ph.length,sub.mag.length,top.mag.length,sub.coh.length,top.coh.length);
+  const fftN=Math.max(2,Number(sub.fftN)||Number(top.fftN)||n*2);
+  const ratio=Math.pow(2,1/3),fLo=crossoverHz/ratio,fHi=crossoverHz*ratio;
+  const points=[];let bandBins=0,cohSum=0,balanceSum=0;
+  for(let k=1;k<n;k++){
+    const f=k*sr/fftN;if(f<fLo||f>fHi)continue;bandBins++;
+    const cs=Number(sub.coh[k]),ct=Number(top.coh[k]),ms=Number(sub.mag[k]),mt=Number(top.mag[k]);
+    if(!Number.isFinite(cs)||!Number.isFinite(ct)||cs<coherenceGate||ct<coherenceGate||!Number.isFinite(ms)||!Number.isFinite(mt))continue;
+    const a=Math.pow(10,ms/20),b=Math.pow(10,mt/20);if(!(a>0)||!(b>0))continue;
+    const balance=Math.min(a,b)/Math.max(a,b);
+    if(balance<.08)continue;
+    const coh=Math.sqrt(Math.max(0,cs*ct)),weight=coh*Math.sqrt(balance);
+    points.push({f,a,b,ps:Number(sub.ph[k]),pt:Number(top.ph[k]),weight,coh,balance});
+    cohSum+=coh;balanceSum+=balance;
+  }
+  const coverage=bandBins?points.length/bandBins:0;
+  const meanCoh=points.length?cohSum/points.length:0,meanBalance=points.length?balanceSum/points.length:0;
+  const minPoints=Math.max(3,Math.min(5,Math.ceil(bandBins*.5)));
+  if(points.length<minPoints)return {reliable:false,reason:'אין מספיק נקודות אמינות סביב החיתוך',points:points.length,coverage,meanCoh,meanBalance,band:{lo:fLo,hi:fHi}};
+  const score=(tauMs,polarity)=>{
+    let sum=0,weights=0;
+    for(const p of points){
+      const relative=p.pt-p.ps-2*Math.PI*p.f*tauMs/1000+(polarity<0?Math.PI:0);
+      const combined=Math.sqrt(Math.max(1e-24,p.a*p.a+p.b*p.b+2*p.a*p.b*Math.cos(relative)));
+      const efficiency=20*Math.log10(Math.max(1e-12,combined/(p.a+p.b)));
+      sum+=p.weight*efficiency;weights+=p.weight;
+    }
+    return weights?sum/weights:-120;
+  };
+  const maxDelayMs=Math.max(.5,Math.min(20,Number(options.maxDelayMs)||20));
+  const stepMs=Math.max(.01,Math.min(.1,Number(options.stepMs)||.02));
+  const steps=Math.ceil(maxDelayMs/stepMs);
+  let peakScore=-Infinity;
+  for(const polarity of [1,-1])for(let i=-steps;i<=steps;i++)peakScore=Math.max(peakScore,score(i*stepMs,polarity));
+  // Several delays one cycle apart can look similar. Among candidates within
+  // 0.002dB of the optimum, prefer the smallest physical change and normal
+  // polarity, so the recommendation cannot jump to an unnecessary full cycle.
+  let chosen=null;
+  for(const polarity of [1,-1])for(let i=-steps;i<=steps;i++){
+    const tauMs=i*stepMs,s=score(tauMs,polarity);if(s<peakScore-.002)continue;
+    const rank=Math.abs(tauMs)+(polarity<0?.005:0);
+    if(!chosen||rank<chosen.rank||(rank===chosen.rank&&s>chosen.score))chosen={tauMs,polarity,score:s,rank};
+  }
+  const baselineScore=score(0,1),improvement=Math.max(0,chosen.score-baselineScore);
+  const nearest=points.reduce((best,p)=>Math.abs(p.f-crossoverHz)<Math.abs(best.f-crossoverHz)?p:best,points[0]);
+  const wrapDeg=rad=>{let d=rad*180/Math.PI;while(d>180)d-=360;while(d<-180)d+=360;return d;};
+  const beforeDeg=wrapDeg(nearest.pt-nearest.ps);
+  const afterDeg=wrapDeg(nearest.pt-nearest.ps-2*Math.PI*nearest.f*chosen.tauMs/1000+(chosen.polarity<0?Math.PI:0));
+  const balanceConfidence=Math.min(1,meanBalance/.5);
+  const confidence=Math.max(0,Math.min(1,meanCoh*(.45+.55*Math.min(1,coverage))*balanceConfidence));
+  const reliable=coverage>=.32&&meanCoh>=coherenceGate&&confidence>=.42;
+  const noChange=chosen.polarity>0&&Math.abs(chosen.tauMs)<.08&&(improvement<.3||Math.abs(afterDeg)<30);
+  return {
+    reliable,reason:reliable?'':'הקוהרנטיות או איזון העוצמות באזור החיתוך אינם מספיקים',
+    delayTarget:chosen.tauMs>.04?'top':chosen.tauMs<-.04?'sub':null,
+    delayMs:Math.abs(chosen.tauMs),polarityInverted:chosen.polarity<0,noChange,
+    improvementDb:improvement,currentScore:baselineScore,optimizedScore:chosen.score,
+    beforeDeg,afterDeg,confidence,coverage,meanCoh,meanBalance,points:points.length,
+    band:{lo:fLo,hi:fHi},crossoverHz
+  };
+}
+
+function scheduleAlignBarResize(){
+  setTimeout(()=>{
+    const bar=document.getElementById('alignBar'),stage=document.getElementById('stage');
+    if(!alignOn||!bar||!stage)return;
+    stage.style.setProperty('--bar-h',bar.offsetHeight+'px');
+    if(typeof resize==='function')resize();
+  },0);
+}
+function updateAlignmentRecommendation(){
+  const el=document.getElementById('phRecommendation');if(!el)return;
+  el.classList.remove('ready','warn');
+  if(!phaseSub||!phaseTop){
+    alignRecommendation=null;
+    if(!tfDelayReady) el.innerHTML='<strong>שלב 1:</strong><span>השאר טופ בלבד ובצע סנכרון TF</span>';
+    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, השאר סאב בלבד ולחץ מדוד סאב</span>';
+    else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, השאר טופ בלבד ולחץ מדוד טופ</span>';
+    scheduleAlignBarResize();
+    return;
+  }
+  const sr=(phaseSub.sr||phaseTop.sr||(audioCtx&&audioCtx.sampleRate)||48000);
+  const rec=optimizeSubTopAlignment(phaseSub,phaseTop,sr,xoverF,tfCohGate,{maxDelayMs:20,stepMs:.02});
+  alignRecommendation=rec;
+  const range=Math.round(rec.band.lo)+'–'+Math.round(rec.band.hi)+'Hz';
+  if(!rec.reliable){
+    el.classList.add('warn');
+    el.innerHTML='<strong>אין המלצה אמינה</strong><span>'+rec.reason+'</span><span class="phRecMeta">'+range+' · '+Math.round((rec.meanCoh||0)*100)+'% קוהרנטיות</span>';
+    scheduleAlignBarResize();
+    return;
+  }
+  const confidence=Math.round(rec.confidence*100),improvement=rec.improvementDb>12?'>12':rec.improvementDb.toFixed(1);
+  if(rec.noChange){
+    el.classList.add('ready');
+    el.innerHTML='<strong>✓ הסאב והטופ כבר מיושרים</strong><span>אין צורך לשנות דיליי או פולריות</span><span class="phRecMeta">'+range+' · Δφ צפוי '+rec.afterDeg.toFixed(0)+'° · אמינות '+confidence+'%</span>';
+    scheduleAlignBarResize();
+    return;
+  }
+  const actions=[];
+  actions.push(rec.polarityInverted?'הפוך פולריות בסאב':'השאר פולריות רגילה');
+  if(rec.delayTarget)actions.push('הוסף '+rec.delayMs.toFixed(2)+'ms ל'+(rec.delayTarget==='sub'?'סאב':'טופ'));
+  else actions.push('ללא תוספת דיליי');
+  el.classList.add('ready');
+  el.innerHTML='<strong>'+actions.join(' · ')+'</strong><span>שיפור צפוי '+improvement+'dB · אחרי השינוי מדוד מחדש כל מקור ששונה</span><span class="phRecMeta">'+range+' · Δφ '+rec.beforeDeg.toFixed(0)+'°→'+rec.afterDeg.toFixed(0)+'° · אמינות '+confidence+'%</span>';
+  scheduleAlignBarResize();
+}
+
 function tfPhaseSnapshot(){
   const n=TF_FFT_N/2, ph=new Float32Array(n), coh=new Float32Array(n), mag=new Float32Array(n);
   for(let k=0;k<n;k++){
     ph[k]=Math.atan2(tfPxyIm[k], tfPxyRe[k]);
     const pxySq=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
     coh[k]=Math.max(0,Math.min(1, pxySq/(tfPxx[k]*tfPyy[k]+1e-12)));
-    mag[k]=10*Math.log10(tfPyy[k]+1e-12);   // תגובת המיקרופון (dB) — מראה את הבור בחיתוך
+    mag[k]=20*Math.log10(Math.hypot(tfPxyRe[k],tfPxyIm[k])/(tfPxx[k]+1e-12)+1e-12);
   }
-  return {ph,coh,mag};
+  return {ph,coh,mag,sr:audioCtx?audioCtx.sampleRate:48000,fftN:TF_FFT_N};
 }
-let phMeasuring=false;
+let phMeasuring=false,phMeasureTimer=null;
+function syncSubTopWorkflowUi(){
+  const sync=document.getElementById('phSyncBtn');
+  const sub=document.getElementById('phSubBtn');
+  const top=document.getElementById('phTopBtn');
+  if(sync){
+    sync.classList.toggle('on',tfDelayReady);
+    sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':'1 · סנכרון TF';
+    sync.disabled=phMeasuring;
+  }
+  if(sub){
+    if(!phaseSub)sub.textContent='2 · מדוד סאב';
+    sub.disabled=phMeasuring||!tfDelayReady;
+  }
+  if(top){
+    if(!phaseTop)top.textContent='3 · מדוד טופ';
+    top.disabled=phMeasuring||!tfDelayReady||!phaseSub;
+  }
+}
+function clearSubTopSnapshots(message){
+  if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}
+  phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;
+  const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
+  const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
+  const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב לבד, ואז טופ לבד — כל מדידה 3 שניות.';st.style.color='var(--dim)';}
+  syncSubTopWorkflowUi();
+  updateAlignmentRecommendation();
+}
 function capturePhase(which){
   if(!analyser || !analyserRef){ alert('פאזה דורשת מדידת מיק/רפרנס פעילה (רפרנס בערוץ 2).'); return; }
-  if(phMeasuring) return;
+  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!tfDelayReady){ alert('תחילה בצע את שלב 1 — סנכרון TF.'); return; }
+  if(which==='top'&&!phaseSub){ alert('תחילה בצע את שלב 2 — מדידת הסאב לבדו.'); return; }
   phMeasuring=true;
   const btn=document.getElementById(which==='sub'?'phSubBtn':'phTopBtn');
   const other=document.getElementById(which==='sub'?'phTopBtn':'phSubBtn');
   const st=document.getElementById('phStatus');
   const label=which==='sub'?'סאב':'טופ';
-  const baseTxt=which==='sub'?'מדוד + לכוד סאב':'מדוד + לכוד טופ';
-  if(other) other.disabled=true;
+  if(which==='sub')phaseSub=null;else phaseTop=null;
+  alignRecommendation=null;
+  if(btn)btn.classList.remove('on');
+  syncSubTopWorkflowUi();
+  updateAlignmentRecommendation();
   // אפס צוברים לחלון מדידה נקי
   tfPxx.fill(0); tfPyy.fill(0); tfPxyRe.fill(0); tfPxyIm.fill(0);
   let t=3;
   const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
   tick();
-  const iv=setInterval(()=>{
+  phMeasureTimer=setInterval(()=>{
     t--;
     if(t>0){ tick(); return; }
-    clearInterval(iv);
+    clearInterval(phMeasureTimer);phMeasureTimer=null;
     const snap=tfPhaseSnapshot();
     if(which==='sub') phaseSub=snap; else phaseTop=snap;
     showXover=true;
     const N2=TF_FFT_N/2, nyq=(typeof audioCtx!=='undefined'&&audioCtx)?audioCtx.sampleRate/2:24000;
     const k=Math.min(N2-1, Math.round(xoverF/nyq*N2));
     const c=snap.coh[k];
-    if(btn){ btn.classList.add('on'); btn.textContent='✓ '+label+' נלכד'; }
-    if(other) other.disabled=false;
+    if(btn){ btn.classList.add('on'); btn.textContent='✓ '+(which==='sub'?'2':'3')+' · '+label+' נלכד'; }
     if(st){
       if(c>=0.5){ st.textContent='✓ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' — אמין'; st.style.color='#22c55e'; }
       else { st.textContent='⚠ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' נמוכה — קרב מיק׳/העלה רמה ומדוד שוב'; st.style.color='#f59e0b'; }
     }
     phMeasuring=false;
+    syncSubTopWorkflowUi();
+    updateAlignmentRecommendation();
   },1000);
 }
 safeOn('phSubBtn','click',()=>capturePhase('sub'));
@@ -3380,14 +3534,12 @@ safeOn('phPinkBtn','click',function(){
   genStart();
 });
 safeOn('phClearBtn','click',function(){
-  phaseSub=null; phaseTop=null; showXover=false;
-  const s=document.getElementById('phSubBtn'); if(s){ s.classList.remove('on'); s.textContent='מדוד + לכוד סאב'; s.disabled=false; }
-  const t=document.getElementById('phTopBtn'); if(t){ t.classList.remove('on'); t.textContent='מדוד + לכוד טופ'; t.disabled=false; }
-  const st=document.getElementById('phStatus'); if(st){ st.textContent='מדוד סאב לבד, ואז טופ לבד — כל מדידה 3 שניות.'; st.style.color='var(--dim)'; }
+  clearSubTopSnapshots();
 });
 safeOn('xoverF','input',function(e){
   xoverF=parseInt(e.target.value,10);
   const t=document.getElementById('xoverFVal'); if(t) t.textContent=xoverF+' Hz';
+  updateAlignmentRecommendation();
 });
 
 const SAVE_KEY='rta_saves';
@@ -3541,7 +3693,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.57';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.59';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3940,6 +4092,12 @@ const HELP={
   dlyDistanceCalBtn:'הצב את המיקרופון במרחק הידוע ולחץ כאן. הכיול מפחית את זמן המחשב, הכרטיס, המיקסר וה־DSP.',
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
+  phPinkBtn:'מפעיל Pink Noise למדידת Sub/Top. אפשר להשתמש גם במקור חיצוני שמגיע ל־Reference.',
+  phSyncBtn:'שלב 1: השאר טופ בלבד. הסנכרון מודד ומפצה את הפרש הנתיבים בין המיקרופון ל־Reference.',
+  phSubBtn:'לוכד שלוש שניות של הסאב לבדו. הטופ חייב להיות מושתק והמיקרופון נשאר קבוע.',
+  phTopBtn:'לוכד שלוש שניות של הטופ לבדו. הסאב חייב להיות מושתק ואין לבצע שוב סנכרון TF.',
+  xoverF:'תדר החיתוך בפועל. האופטימייזר בודק שליש אוקטבה סביב הערך הזה.',
+  phRecommendation:'המלצת יישור המחושבת מטווח החיתוך: רמקול לדיליי, ערך ms, פולריות, שיפור צפוי ואמינות.',
   rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',
   rtLevel:'עוצמת המדידה. כוונן לפני שמתחיל.',
   rtRange:'טווח דעיכה נדרש. נמוך יותר = קל\nלמדוד בחדר שקט, פחות מדויק.',

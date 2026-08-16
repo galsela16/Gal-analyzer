@@ -1,4 +1,8 @@
-# GAL Analyzer V5.4.57 — Calibrated distance display
+# GAL Analyzer V5.4.59 — Guided Sub/Top workflow
+
+V5.4.59 moves TF synchronization into the Sub/Top measurement bar and presents the full sequence as three adjacent, numbered steps: TF Sync, capture Sub, capture Top. Each step unlocks only after the preceding measurement succeeds, and the recommendation panel tells the operator exactly which source must remain active next.
+
+V5.4.58 replaces the single-frequency Sub/Top verdict with a coherence-gated optimizer across one-third octave around the selected crossover. It simulates positive delay on either source and normal/inverted relative polarity, rejects weak or severely imbalanced data, prefers the smallest near-optimal physical change and reports the source to delay, exact milliseconds, polarity state, predicted improvement and confidence. Individual snapshots now use transfer-magnitude (Pxy/Pxx), reducing sensitivity to Reference-level drift between the Sub and Top captures.
 
 V5.4.57 adds a milliseconds/meters selector to the arrival-time workspace. Absolute distance is never calculated from raw path delay: meter mode requires a known-distance acoustic calibration, subtracts the measured electronic/system offset and labels the result as estimated. The calibration is session-only and resets after input, routing, channel or audio-session changes. Speaker alignment continues to show the exact millisecond value that must be entered in the DSP, with an optional equivalent distance difference alongside it.
 

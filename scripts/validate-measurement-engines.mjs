@@ -16,6 +16,7 @@ const computeDelay=Function('fft','delayChunkSize',`${extract('computeDelay')};r
 const computeStableDelay=Function('computeDelay',`${extract('computeStableDelay')};return computeStableDelay`)(computeDelay);
 const delayMsToMeters=Function(`${extract('delayMsToMeters')};return delayMsToMeters`)();
 const calibratedDistanceMeters=Function('delayMsToMeters',`${extract('calibratedDistanceMeters')};return calibratedDistanceMeters`)(delayMsToMeters);
+const optimizeSubTopAlignment=Function(`${extract('optimizeSubTopAlignment')};return optimizeSubTopAlignment`)();
 const binOverlapPowerDb=Function('db2lin',`${extract('binOverlapPowerDb')};return binOverlapPowerDb`)(db=>10**(db/10));
 const binOverlapLinearPower=Function(`${extract('binOverlapLinearPower')};return binOverlapLinearPower`)();
 const analyzeDecay=Function(`${extract('analyzeDecay')};return analyzeDecay`)();
@@ -88,6 +89,32 @@ for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
   assert(Math.abs(calibratedDistanceMeters(calibrationPath,systemOffset)-knownDistance)<1e-10,'Known-distance calibration conversion failed');
   assert.equal(calibratedDistanceMeters(38,null),null,'Uncalibrated path delay must not be presented as distance');
   assert(Math.abs(delayMsToMeters(5)-1.715)<1e-12,'Relative delay-to-distance conversion failed');
+}
+{
+  const sr=48000,fftN=16384,n=fftN/2;
+  const makeSnap=(phaseFn,cohValue=.92,magDb=0)=>{
+    const ph=new Float32Array(n),coh=new Float32Array(n).fill(cohValue),mag=new Float32Array(n).fill(magDb);
+    for(let k=0;k<n;k++){const f=k*sr/fftN,p=phaseFn(f);ph[k]=Math.atan2(Math.sin(p),Math.cos(p));}
+    return {ph,coh,mag,sr,fftN};
+  };
+  const sub=makeSnap(()=>0),topLate=makeSnap(f=>-2*Math.PI*f*.003);
+  const late=optimizeSubTopAlignment(sub,topLate,sr,90,.4,{stepMs:.02});
+  assert(late.reliable&&!late.polarityInverted&&late.delayTarget==='sub',`Late top must recommend delaying sub, got ${JSON.stringify(late)}`);
+  assert(Math.abs(late.delayMs-3)<.18,`Sub/Top delay optimizer expected 3ms, got ${late.delayMs}`);
+  const topEarly=optimizeSubTopAlignment(sub,makeSnap(f=>2*Math.PI*f*.002),sr,90,.4,{stepMs:.02});
+  assert(topEarly.reliable&&!topEarly.polarityInverted&&topEarly.delayTarget==='top'&&Math.abs(topEarly.delayMs-2)<.18,'Early top must recommend delaying top');
+  const topVeryLate=optimizeSubTopAlignment(sub,makeSnap(f=>-2*Math.PI*f*.015),sr,90,.4,{stepMs:.02,maxDelayMs:20});
+  assert(topVeryLate.reliable&&topVeryLate.delayTarget==='sub'&&Math.abs(topVeryLate.delayMs-15)<.2,'Optimizer must disambiguate delays longer than one crossover cycle');
+  const inverted=optimizeSubTopAlignment(sub,makeSnap(()=>Math.PI),sr,90,.4,{stepMs:.02});
+  assert(inverted.reliable&&inverted.polarityInverted&&inverted.delayMs<.15,'Polarity inversion optimizer failed');
+  const invertedLate=optimizeSubTopAlignment(sub,makeSnap(f=>Math.PI-2*Math.PI*f*.0015),sr,90,.4,{stepMs:.02});
+  assert(invertedLate.reliable&&invertedLate.polarityInverted&&invertedLate.delayTarget==='sub'&&Math.abs(invertedLate.delayMs-1.5)<.2,'Combined polarity/delay optimization failed');
+  const aligned=optimizeSubTopAlignment(sub,makeSnap(()=>0),sr,90,.4,{stepMs:.02});
+  assert(aligned.reliable&&aligned.noChange,'Aligned Sub/Top must not recommend a change');
+  const weak=optimizeSubTopAlignment(makeSnap(()=>0,.15),makeSnap(()=>0,.15),sr,90,.4,{stepMs:.02});
+  assert(!weak.reliable,'Low-coherence Sub/Top data must be rejected');
+  const imbalanced=optimizeSubTopAlignment(makeSnap(()=>0,.92,0),makeSnap(()=>0,.92,-30),sr,90,.4,{stepMs:.02});
+  assert(!imbalanced.reliable,'Severely imbalanced crossover levels must be rejected');
 }
 {
   const silence=new Float64Array(16384);assert.equal(computeDelay(silence,silence,48000,{maxDelayMs:20}),null,'Silence must not produce delay');

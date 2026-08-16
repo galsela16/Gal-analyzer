@@ -85,7 +85,15 @@
   }
   #alignBar button.on{ border-color:var(--accent); color:var(--accent); background:rgba(62,166,255,.16); }
   #alignBar button:disabled{ opacity:.5; cursor:default; }
+  #phWorkflowSteps{display:flex;align-items:center;gap:5px;direction:rtl}
+  #phWorkflowSteps button{min-width:108px}
+  #phWorkflowSteps button.on{border-color:#42d57b;color:#42d57b;background:rgba(66,213,123,.1)}
   #alignBar #alignClose{ border-color:transparent; color:var(--dim); font-size:14px; padding:6px 8px; }
+  #phRecommendation{flex:1 0 100%;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;min-height:28px;padding:5px 9px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--dim);font-size:10px;text-align:center;line-height:1.35}
+  #phRecommendation strong{font-size:11px;color:var(--text)}#phRecommendation.ready{border-color:rgba(66,213,123,.42);background:rgba(66,213,123,.06)}#phRecommendation.ready strong{color:#42d57b}#phRecommendation.warn{border-color:rgba(245,158,11,.42);background:rgba(245,158,11,.06)}#phRecommendation.warn strong{color:#f59e0b}
+  #phRecommendation .phRecMeta{color:var(--dim);font-size:9px;white-space:nowrap}
+  body.sun-mode #phRecommendation{background:#f8fafc;border-color:#cbd5e1}body.sun-mode #phRecommendation.ready{background:#f0fdf4;border-color:#86efac}body.sun-mode #phRecommendation.warn{background:#fffbeb;border-color:#fcd34d}
+  @media(max-width:760px){#phWorkflowSteps{width:100%;justify-content:center}#phWorkflowSteps button{min-width:0;flex:1;padding-inline:7px}}
 
   .abWidget{
     position:absolute; top:10px; inset-inline-start:10px; z-index:8;
@@ -1305,14 +1313,18 @@
 
     <div id="alignBar">
       <button id="phPinkBtn" title="מנגן פינק נויז ישירות מהאפליקציה. לחלופין נגן ממקור חיצוני.">▶ פינק</button>
-      <button id="phSubBtn" title="מודד 3 שניות ולוכד את פאזת הסאב">מדוד סאב</button>
-      <button id="phTopBtn" title="מודד 3 שניות ולוכד את פאזת הטופ">מדוד טופ</button>
+      <div id="phWorkflowSteps" aria-label="סדר מדידת סאב וטופ">
+        <button id="phSyncBtn" title="שלב 1: מסנכרן את נתיבי המיקרופון והרפרנס">1 · סנכרון TF</button>
+        <button id="phSubBtn" title="שלב 2: מודד 3 שניות ולוכד את הסאב לבדו" disabled>2 · מדוד סאב</button>
+        <button id="phTopBtn" title="שלב 3: מודד 3 שניות ולוכד את הטופ לבדו" disabled>3 · מדוד טופ</button>
+      </div>
       <button id="phClearBtn">נקה</button>
       <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);white-space:nowrap">חיתוך <b id="xoverFVal" style="color:var(--accent)">90Hz</b>
         <input type="range" id="xoverF" min="30" max="300" step="1" value="90" style="width:120px">
       </span>
       <span id="phStatus" style="font-size:11px;color:var(--dim);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis"></span>
       <button id="alignClose" title="סגור יישור">✕</button>
+      <div id="phRecommendation" role="status"><strong>שלב 1:</strong> השאר טופ בלבד ובצע סנכרון TF</div>
     </div>
 
     <!-- A/B Comparison Floating Widget -->
@@ -1353,7 +1365,7 @@
           <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע מאותו רמקול ובאותו ניתוב. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
-          <details><summary>Sub / Top · יישור חיתוך</summary><p>שמור Sub ואחריו Top ובדוק Δφ באזור החיתוך. Delay נותן זמן הגעה גס; Sub/Top משלים יישור פאזה עדין.</p></details>
+          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו, קבע את תדר החיתוך, ואז מדוד סאב לבד וטופ לבד בלי להזיז את המיקרופון ובלי לסנכרן מחדש. המנוע בודק שליש אוקטבה סביב החיתוך, מדמה דיליי ופולריות ומציג מה לשנות ומה השיפור הצפוי. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
           <details><summary>Trace · לפני ואחרי</summary><p>שמור Trace לפני שינוי. לאחריו השווה באותו מיקום מיקרופון, אותה עוצמה ואותו אות בדיקה.</p></details>
         </div>
         <button id="guideClose" type="button">סגור</button>
@@ -1910,7 +1922,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.57</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.59</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
