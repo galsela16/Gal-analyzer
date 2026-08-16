@@ -1,4 +1,10 @@
-# GAL Analyzer V5.4.62 — Consistent delay units and self-contained TF verification
+# GAL Analyzer V5.4.63 — Self-contained Sub/Top capture and stable EQ controls
+
+V5.4.63 makes the Sub/Top workflow self-contained: steps 2 and 3 now open a focused choice between internal Pink Noise and an external source, start the selected signal automatically and stop it after the three-second capture. The separate Pink Noise button was removed. Sweep is intentionally unavailable here because matching steady-state captures are required for reliable phase comparison around the crossover.
+
+The detailed EQ correction dock now preserves its current expanded/collapsed state when “Full graph / Cuts only”, target or correction-range changes trigger a recalculation. A new result still opens in the compact state by default, while controls clicked inside an expanded result can no longer fold the panel. The rail's “EQ correction display” button now hides and restores both the detail dock and the proposed-EQ ribbon on the RTA graph.
+
+## V5.4.62
 
 V5.4.62 applies the Delay result-unit selector consistently to the main result, saved loudspeaker rows, status messages, stability spread, alternative peaks and equivalent alignment differences. Existing results are reformatted immediately when switching units; meter mode no longer leaves the primary result in milliseconds. TF step 2 now opens the shared source selector, can run Pink Noise or Sweep without opening the Generator dock, collects two seconds of fresh data and then verifies phase/coherence.
 

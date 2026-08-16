@@ -38,12 +38,19 @@ for(const workflowCheck of [
   "st.dataset.delayResult==='path'",
   "st.dataset.delayResult==='speaker'",
   "safeOn('phSyncBtn','click',tfAutoDelay)",
+  "safeOn('phSubBtn','click',()=>pickSource(()=>capturePhase('sub'),3200",
+  "safeOn('phTopBtn','click',()=>pickSource(()=>capturePhase('top'),3200",
   "sub.disabled=phMeasuring||!tfDelayReady",
   "top.disabled=phMeasuring||!tfDelayReady||!phaseSub",
   "if(which==='top'&&!phaseSub)"
 ]){
   if(!core.includes(workflowCheck)) throw new Error(`Sub/Top workflow guard missing: ${workflowCheck}`);
 }
+if(html.includes('id="phPinkBtn"')||core.includes("safeOn('phPinkBtn'")) throw new Error('Legacy Sub/Top Pink button must stay removed');
+if(!core.includes("const keepExpanded=expanded===true||(expanded==null&&wasVisible&&!dock.classList.contains('collapsed'))")) throw new Error('EQ dock does not preserve its expanded state during recalculation');
+if(!core.includes("if(this.closest('#geqCutMode'))" )||!core.includes('event.stopPropagation();')) throw new Error('EQ graph-mode controls can bubble into the dock collapse action');
+if(!core.includes("if(!eqCorrectionVisible||!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return")) throw new Error('EQ display toggle does not hide the proposed correction ribbon');
+if(!core.includes('function hideGeqDock(){ eqCorrectionVisible=false;')) throw new Error('EQ display toggle does not hide the complete correction workspace');
 const recorder=await readFile('recorder-worklet.js','utf8');
 if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
 if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');

@@ -129,6 +129,7 @@ let genSweepDur=4, sweepTimer=null, sweepStartT=0;
 let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rtLevel=-6;
 let eqMarks=null;
 let eqCurveData=null;
+let eqCorrectionVisible=false;
 let eqMode='graphic', lastEqCorr=null;
 let cutOnly=false;
 let tfMode='graphic';
@@ -359,7 +360,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.62-unit-consistency-tf-source',
+    version: 'v5.4.63-sub-top-source-geq-controls',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -561,11 +562,6 @@ function syncInlineGenBtns(){
       b.textContent = (genOn && genType==='pink') ? '⏹ עצור רעש' : '▶ רעש ורוד';
     }
   });
-  const pb=document.getElementById('phPinkBtn');
-  if(pb){
-    pb.classList.toggle('on', genOn && genType==='pink');
-    pb.textContent = (genOn && genType==='pink') ? '⏹ עצור פינק נויז' : '▶ פינק נויז מהאפליקציה';
-  }
 }
 
 function genApplyLevel(){
@@ -684,7 +680,13 @@ safeOn('eqRangeMin','change',e=>setEqCorrectionRange(e.target.value,eqMaxFreq));
 safeOn('eqRangeMax','change',e=>setEqCorrectionRange(eqMinFreq,e.target.value));
 safeOn('eqDockRangeMin','change',e=>setEqCorrectionRange(e.target.value,eqMaxFreq));
 safeOn('eqDockRangeMax','change',e=>setEqCorrectionRange(eqMinFreq,e.target.value));
-document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.addEventListener('click',function(){ setCutOnly(this.dataset.co==='1'); }));
+document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.addEventListener('click',function(event){
+  if(this.closest('#geqCutMode')){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  setCutOnly(this.dataset.co==='1');
+}));
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -804,10 +806,13 @@ function corrParamHtml(corr){
     return '<div class="eqRow '+s.type+'"><span class="f">'+f+'</span><span class="g">'+g+'</span><span class="q">Q '+s.q.toFixed(1)+'</span></div>';
   }).join('');
 }
-function showGeqDock(title,expanded=false){
+function showGeqDock(title,expanded){
   const dock=document.getElementById('geqDock'); if(!dock) return;
-  dock.style.display='block';dock.classList.toggle('collapsed',!expanded);
-  const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent=expanded?'הסתר פירוט':'הצג פירוט';
+  const wasVisible=getComputedStyle(dock).display!=='none';
+  const keepExpanded=expanded===true||(expanded==null&&wasVisible&&!dock.classList.contains('collapsed'));
+  eqCorrectionVisible=true;
+  dock.style.display='block';dock.classList.toggle('collapsed',!keepExpanded);
+  const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent=keepExpanded?'הסתר פירוט':'הצג פירוט';
   syncGeqBtn();
   const t=document.getElementById('geqDockTitle'); if(t&&title) t.textContent=title;
 }
@@ -832,28 +837,23 @@ function openLatestEqWorkspace(){
 window.openLatestEqWorkspaceFromRail=function(event){
   if(event){event.preventDefault();event.stopPropagation();}
   const dock=document.getElementById('geqDock');
-  if(dock&&getComputedStyle(dock).display!=='none'){
+  if(eqCorrectionVisible&&dock&&getComputedStyle(dock).display!=='none'){
     hideGeqDock();v3Toast('תצוגת ה-EQ הוסתרה');return false;
   }
   openLatestEqWorkspace();
   return false;
 };
-function hideGeqDock(){ const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
+function hideGeqDock(){ eqCorrectionVisible=false;const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
 function syncGeqBtn(){
   const legacy=document.getElementById('geqShowBtn'),rail=document.getElementById('v5EqWorkspace'),d=document.getElementById('geqDock');
-  const visible=!!(d&&getComputedStyle(d).display!=='none');
+  const visible=!!(eqCorrectionVisible&&d&&getComputedStyle(d).display!=='none');
   if(legacy)legacy.classList.toggle('on',visible);
   if(rail){rail.classList.toggle('on',visible);rail.textContent=visible?'EQ · הסתר תיקונים':'EQ · תצוגת תיקונים';rail.setAttribute('aria-pressed',visible?'true':'false');}
 }
 safeOn('geqShowBtn', 'click',function(){
   const d=document.getElementById('geqDock');
-  if(d.style.display==='none' || !d.style.display){
-    if(!eqCurveData){ alert('אין עדיין תיקון להצגה — בצע מדידת תגובה קודם.'); return; }
-    d.style.display='block'; d.classList.remove('collapsed');
-    document.getElementById('geqDockToggle').textContent='▼';
-    drawGEQ(document.getElementById('eqCurveCanvas'), eqCurveData.freqs, eqCurveData.corr);
-  } else d.style.display='none';
-  syncGeqBtn();
+  if(eqCorrectionVisible&&d&&getComputedStyle(d).display!=='none') hideGeqDock();
+  else openLatestEqWorkspace();
 });
 safeOn('geqDockToggle', 'click',function(){
   const d=document.getElementById('geqDock');
@@ -1174,17 +1174,22 @@ function openAreas(){
 }
 safeOn('areaClose', 'click',closeModals);
 safeOn('areaMeasBtn', 'click',()=>pickSource(measureArea,5000));
-let pendingMeasureFn=null, pendingDur=5000;
+let pendingMeasureFn=null, pendingDur=5000, pendingSourceOptions=null;
 const srcOverlay=document.getElementById('srcOverlay');
-function pickSource(fn, dur){
+function pickSource(fn, dur, options){
   if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
-  pendingMeasureFn=fn; pendingDur=dur||5000; srcOverlay.classList.add('show');
+  pendingMeasureFn=fn;pendingDur=dur||5000;pendingSourceOptions=options||{};
+  const allowed=Array.isArray(pendingSourceOptions.allowed)?pendingSourceOptions.allowed:['pink','sweep','external'];
+  const title=document.querySelector('#srcBox .srcTitle');if(title)title.textContent=pendingSourceOptions.title||'איזה אות להשמיע למדידה?';
+  document.querySelectorAll('#srcBox button[data-src]').forEach(btn=>{btn.style.display=btn.dataset.src==='cancel'||allowed.includes(btn.dataset.src)?'':'none';});
+  srcOverlay.classList.add('show');
 }
-srcOverlay.addEventListener('click',e=>{ if(e.target===srcOverlay) srcOverlay.classList.remove('show'); });
+srcOverlay.addEventListener('click',e=>{ if(e.target===srcOverlay){srcOverlay.classList.remove('show');pendingMeasureFn=null;pendingSourceOptions=null;} });
 document.querySelectorAll('#srcBox button').forEach(b=>b.addEventListener('click',function(){
   srcOverlay.classList.remove('show');
-  const src=this.dataset.src; if(src==='cancel'||!pendingMeasureFn) return;
-  runWithSource(src, pendingMeasureFn, pendingDur); pendingMeasureFn=null;
+  const src=this.dataset.src,fn=pendingMeasureFn,dur=pendingDur;pendingMeasureFn=null;pendingSourceOptions=null;
+  if(src==='cancel'||!fn) return;
+  runWithSource(src,fn,dur);
 }));
 function setGenTypeUI(kind){
   document.querySelectorAll('#genType button').forEach(x=>x.classList.toggle('on', x.dataset.t===kind));
@@ -2923,7 +2928,7 @@ function drawRtaEqRange(W,H,xForFreq){
 }
 
 function drawRtaEqCorrection(W,H,xForFreq){
-  if(!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return;
+  if(!eqCorrectionVisible||!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return;
   const meterH=(meterEl&&meterEl.style.display!=='none')?40:6,plotH=H-meterH-16;
   const ribbonH=Math.min(82,Math.max(58,plotH*.18)),top=plotH-ribbonH-5,mid=top+ribbonH/2,scale=(ribbonH*.38)/6;
   const pts=[];for(let i=0;i<eqCurveData.freqs.length;i++){const f=eqCurveData.freqs[i],v=eqCurveData.corr[i];if(v!=null&&Number.isFinite(v))pts.push({x:xForFreq(f),y:mid-v*scale,v});}
@@ -3593,8 +3598,8 @@ function updateAlignmentRecommendation(){
   if(!phaseSub||!phaseTop){
     alignRecommendation=null;
     if(!tfDelayReady) el.innerHTML='<strong>שלב 1:</strong><span>השאר טופ בלבד ובצע סנכרון TF</span>';
-    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, השאר סאב בלבד ולחץ מדוד סאב</span>';
-    else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, השאר טופ בלבד ולחץ מדוד טופ</span>';
+    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר רעש ורוד פנימי או מקור חיצוני</span>';
+    else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, לחץ מדוד טופ ובחר את אותו מקור אות</span>';
     scheduleAlignBarResize();
     return;
   }
@@ -3658,7 +3663,7 @@ function clearSubTopSnapshots(message){
   phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;
   const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
   const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
-  const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב לבד, ואז טופ לבד — כל מדידה 3 שניות.';st.style.color='var(--dim)';}
+  const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב ואז טופ — בכל שלב בחר רעש ורוד פנימי או מקור חיצוני.';st.style.color='var(--dim)';}
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
 }
@@ -3702,13 +3707,8 @@ function capturePhase(which){
     updateAlignmentRecommendation();
   },1000);
 }
-safeOn('phSubBtn','click',()=>capturePhase('sub'));
-safeOn('phTopBtn','click',()=>capturePhase('top'));
-safeOn('phPinkBtn','click',function(){
-  if(genOn && genType==='pink'){ genStop(); return; }
-  genType='pink'; if(typeof setGenTypeUI==='function') setGenTypeUI('pink');
-  genStart();
-});
+safeOn('phSubBtn','click',()=>pickSource(()=>capturePhase('sub'),3200,{title:'אות למדידת הסאב לבדו',allowed:['pink','external']}));
+safeOn('phTopBtn','click',()=>pickSource(()=>capturePhase('top'),3200,{title:'אות למדידת הטופ לבדו',allowed:['pink','external']}));
 safeOn('phClearBtn','click',function(){
   clearSubTopSnapshots();
 });
@@ -3869,7 +3869,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.62';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.63';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4268,10 +4268,9 @@ const HELP={
   dlyDistanceCalBtn:'הצב את המיקרופון במרחק הידוע ולחץ כאן. הכיול מפחית את זמן המערכת ונפסל אם המרחק שהוזן אינו אפשרי לפי זמן ההגעה שנמדד.',
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
-  phPinkBtn:'מפעיל Pink Noise למדידת Sub/Top. אפשר להשתמש גם במקור חיצוני שמגיע ל־Reference.',
   phSyncBtn:'שלב 1: השאר טופ בלבד. הסנכרון מודד ומפצה את הפרש הנתיבים בין המיקרופון ל־Reference.',
-  phSubBtn:'לוכד שלוש שניות של הסאב לבדו. הטופ חייב להיות מושתק והמיקרופון נשאר קבוע.',
-  phTopBtn:'לוכד שלוש שניות של הטופ לבדו. הסאב חייב להיות מושתק ואין לבצע שוב סנכרון TF.',
+  phSubBtn:'שלב 2: פותח בחירת רעש ורוד פנימי או מקור חיצוני ולוכד שלוש שניות של הסאב לבדו. הטופ חייב להיות מושתק.',
+  phTopBtn:'שלב 3: פותח את אותה בחירת אות ולוכד שלוש שניות של הטופ לבדו. הסאב חייב להיות מושתק.',
   xoverF:'תדר החיתוך בפועל. האופטימייזר בודק שליש אוקטבה סביב הערך הזה.',
   phRecommendation:'המלצת יישור המחושבת מטווח החיתוך: רמקול לדיליי, ערך ms, פולריות, שיפור צפוי ואמינות.',
   rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',

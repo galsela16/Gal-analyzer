@@ -1323,11 +1323,10 @@
     </div>
 
     <div id="alignBar">
-      <button id="phPinkBtn" title="מנגן פינק נויז ישירות מהאפליקציה. לחלופין נגן ממקור חיצוני.">▶ פינק</button>
       <div id="phWorkflowSteps" aria-label="סדר מדידת סאב וטופ">
         <button id="phSyncBtn" title="שלב 1: מסנכרן את נתיבי המיקרופון והרפרנס">1 · סנכרון TF</button>
-        <button id="phSubBtn" title="שלב 2: מודד 3 שניות ולוכד את הסאב לבדו" disabled>2 · מדוד סאב</button>
-        <button id="phTopBtn" title="שלב 3: מודד 3 שניות ולוכד את הטופ לבדו" disabled>3 · מדוד טופ</button>
+        <button id="phSubBtn" title="שלב 2: בחר רעש ורוד פנימי או מקור חיצוני ולכוד את הסאב לבדו" disabled>2 · מדוד סאב</button>
+        <button id="phTopBtn" title="שלב 3: בחר את אותו מקור אות ולכוד את הטופ לבדו" disabled>3 · מדוד טופ</button>
       </div>
       <button id="phClearBtn">נקה</button>
       <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);white-space:nowrap">חיתוך <b id="xoverFVal" style="color:var(--accent)">90Hz</b>
@@ -1376,7 +1375,7 @@
           <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע ומדוד מהמרכז האקוסטי של אותו רמקול ובאותו ניתוב. כיול שדורש קיזוז מערכת שלילי משמעותי יידחה. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
-          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו, קבע את תדר החיתוך, ואז מדוד סאב לבד וטופ לבד בלי להזיז את המיקרופון ובלי לסנכרן מחדש. המנוע בודק שליש אוקטבה סביב החיתוך, מדמה דיליי ופולריות ומציג מה לשנות ומה השיפור הצפוי. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
+          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו וקבע את תדר החיתוך. לחיצה על מדוד סאב או מדוד טופ תפתח בחירת רעש ורוד פנימי או מקור חיצוני; האפליקציה תפעיל את האות למשך הלכידה ותעצור אותו בסיום. מדוד כל מקור לבדו, באותו אות ובלי להזיז את המיקרופון. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
           <details><summary>Trace · לפני ואחרי</summary><p>שמור Trace לפני שינוי. לאחריו השווה באותו מיקום מיקרופון, אותה עוצמה ואותו אות בדיקה.</p></details>
         </div>
         <button id="guideClose" type="button">סגור</button>
@@ -1938,7 +1937,7 @@
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.4.62</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.4.63</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
