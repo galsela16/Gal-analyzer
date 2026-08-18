@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-4-63-sub-top-source-geq-controls-20260816';
+const CACHE = 'gal-analyzer-v5-5-0-sweep-delay-20260818';
 const ASSETS = [
   './',
   './index.html',

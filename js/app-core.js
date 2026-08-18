@@ -1869,7 +1869,14 @@ function runDelayCapture(btn, cb, options){
       const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
       const micRms=rmsOf(m), refRms=rmsOf(r);
       if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
-      cb(computeStableDelay(r, m, sr, {maxDelayMs}));
+      // Tell the estimator what kind of excitation it is looking at. A swept
+      // sine is narrowband inside any short analysis chunk, so it must be
+      // correlated across the whole capture instead of per-chunk. Pink/white
+      // noise stays on the proven per-chunk path; anything else ('auto') tries
+      // the chunk path first and falls back to full-capture correlation.
+      const signalType=(genOn&&genType==='sweep')?'sweep'
+        :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
+      cb(computeStableDelay(r, m, sr, {maxDelayMs, signalType}));
     },60);
   }, captureSec*1000+100);
 }
@@ -2110,13 +2117,117 @@ function computeDelay(ref, mic, sr, options){
   return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins,consistent,validChunks,chunkSpreadMs};
 }
 
+// Full-capture GCC-PHAT for non-stationary excitation (swept sine). A sweep is
+// only a single tone inside any short window, so the per-chunk estimator above
+// starves for broadband content and rejects it. Correlated across the entire
+// capture, however, the sweep sweeps through the whole band and produces one of
+// the sharpest cross-correlation peaks there is. We still run three overlapping
+// wide windows for a real stability check that stays broadband on a sweep.
+function computeSweepDelay(ref,mic,sr,options){
+  options=options||{};
+  const L=Math.min(ref.length,mic.length);
+  const maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
+  if(L<8192)return null;
+  let N=1;while(N<L)N<<=1;N=Math.min(N,1<<19); // cap 524288 samples (~10.9s @48k)
+  const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),N/2-2);
+  if(maxLag<2)return null;
+
+  const xr=new Float64Array(N),xi=new Float64Array(N),yr=new Float64Array(N),yi=new Float64Array(N);
+  const windows=[[0,L],[0,Math.floor(L*0.66)],[L-Math.floor(L*0.66),L]];
+  const results=[];
+
+  for(let wi=0;wi<windows.length;wi++){
+    const ws=windows[wi][0],we=windows[wi][1],seg=we-ws;
+    if(seg<4096){results.push(null);continue;}
+    xr.fill(0);xi.fill(0);yr.fill(0);yi.fill(0);
+    // Light Tukey taper (10% each edge) so a sweep that does not start/stop
+    // exactly at the capture boundary does not smear the spectrum.
+    const taper=Math.max(1,Math.floor(seg*0.1));
+    let eRef=0,eMic=0;
+    for(let i=0;i<seg;i++){
+      let w=1;
+      if(i<taper)w=0.5*(1-Math.cos(Math.PI*i/taper));
+      else if(i>=seg-taper)w=0.5*(1-Math.cos(Math.PI*(seg-1-i)/taper));
+      const rv=ref[ws+i]*w,mv=mic[ws+i]*w;
+      xr[i]=rv;yr[i]=mv;eRef+=rv*rv;eMic+=mv*mv;
+    }
+    if(eRef<1e-7||eMic<1e-7){results.push(null);continue;}
+    fft(xr,xi,false);fft(yr,yi,false);
+    let crossMax=0;
+    for(let k=1;k<N/2;k++){
+      const f=k*sr/N;if(f<25||f>16000)continue;
+      const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
+      const m=Math.hypot(cr,ci);if(m>crossMax)crossMax=m;
+    }
+    let activeBins=0;
+    for(let k=0;k<N;k++){
+      const signedK=k<=N/2?k:k-N,f=Math.abs(signedK)*sr/N;
+      const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
+      const mag=Math.hypot(cr,ci)+1e-12;
+      if(k>0&&k<N/2&&f>=25&&f<=16000&&mag>=crossMax*.05)activeBins++;
+      let w=0;
+      if(f>=20&&f<=18000){
+        const lo=Math.min(1,(f-20)/40),hi=Math.min(1,(18000-f)/3000);
+        w=Math.max(0,Math.min(lo,hi));
+      }
+      xr[k]=w*cr/mag;xi[k]=w*ci/mag;
+    }
+    fft(xr,xi,true);
+    let best=-Infinity,bestLag=0;
+    for(let lag=-maxLag;lag<=maxLag;lag++){
+      const idx=lag<0?N+lag:lag,v=xr[idx];
+      if(v>best){best=v;bestLag=lag;}
+    }
+    const guard=Math.max(4,Math.round(sr*.0006));
+    let second=-Infinity;
+    for(let lag=-maxLag;lag<=maxLag;lag++){
+      if(Math.abs(lag-bestLag)<=guard)continue;
+      const idx=lag<0?N+lag:lag;if(xr[idx]>second)second=xr[idx];
+    }
+    const li=(bestLag-1)<0?N+bestLag-1:bestLag-1;
+    const cidx=bestLag<0?N+bestLag:bestLag;
+    const ri=(bestLag+1)<0?N+bestLag+1:bestLag+1;
+    const denom=xr[li]-2*xr[cidx]+xr[ri];
+    const frac=Math.abs(denom)>1e-12?.5*(xr[li]-xr[ri])/denom:0;
+    const lag=bestLag+Math.max(-.5,Math.min(.5,frac));
+    const separation=best>0?Math.max(0,Math.min(1,(best-Math.max(0,second))/best)):0;
+    results.push({ms:lag/sr*1000,samples:lag,peak:best,separation,activeBins});
+  }
+
+  const full=results[0];
+  if(!full)return null;
+  const tol=0.30;
+  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&Math.abs(r.ms-full.ms)<=tol)}));
+  const validChecks=checks.filter(c=>c.reliable).length;
+  const agreeMs=results.filter((r,i)=>checks[i].reliable).map(r=>r.ms);
+  const spreadMs=agreeMs.length>1?Math.max.apply(null,agreeMs)-Math.min.apply(null,agreeMs):0;
+  const reliable=!!(full.separation>=.40&&full.activeBins>=60&&validChecks>=2&&spreadMs<=tol);
+  const confidence=Math.max(0,Math.min(1,full.separation*Math.min(1,full.activeBins/120)));
+  return {
+    ms:full.ms,samples:full.samples,confidence,reliable,stable:reliable,
+    checks,validChecks,spreadMs,fullMs:full.ms,alternatives:[],maxDelayMs,
+    activeBins:full.activeBins,method:'sweep'
+  };
+}
+
 // One capture is divided into three independent time windows. A result is only
 // accepted when at least two windows agree within 0.20ms and the full capture
 // points to the same arrival. This prevents a reflection or one bass cycle from
-// silently becoming the system delay.
+// silently becoming the system delay. Non-stationary excitation (a sweep) is
+// routed to computeSweepDelay, and any signal type gets a full-capture rescue
+// pass when the per-chunk path cannot lock.
 function computeStableDelay(ref,mic,sr,options){
   options=options||{};
   const L=Math.min(ref.length,mic.length),maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
+  const signalType=options.signalType||'auto';
+
+  // A swept sine goes straight to the full-capture correlator.
+  let sweepResult=null;
+  if(signalType==='sweep'){
+    sweepResult=computeSweepDelay(ref,mic,sr,{maxDelayMs});
+    if(sweepResult&&sweepResult.reliable)return sweepResult;
+  }
+
   const full=computeDelay(ref,mic,sr,{maxDelayMs});
   const checks=[];
   const third=Math.floor(L/3);
@@ -2125,22 +2236,33 @@ function computeStableDelay(ref,mic,sr,options){
     checks.push(computeDelay(ref.subarray(start,end),mic.subarray(start,end),sr,{maxDelayMs}));
   }
   const valid=checks.filter(r=>r&&r.reliable).sort((a,b)=>a.ms-b.ms);
+
+  let chunkResult;
   if(!valid.length){
-    if(!full)return null;
-    return Object.assign({},full,{reliable:false,stable:false,checks,validChecks:0,spreadMs:Infinity});
+    chunkResult=full?Object.assign({},full,{reliable:false,stable:false,checks,validChecks:0,spreadMs:Infinity}):null;
+  }else{
+    const medianMs=valid[Math.floor(valid.length/2)].ms;
+    const spreadMs=valid.length>1?valid[valid.length-1].ms-valid[0].ms:Infinity;
+    const fullAgrees=!!(full&&full.reliable&&Math.abs(full.ms-medianMs)<=.25);
+    const stable=valid.length>=2&&spreadMs<=.20&&fullAgrees;
+    const base=valid.reduce((best,r)=>Math.abs(r.ms-medianMs)<Math.abs(best.ms-medianMs)?r:best,valid[0]);
+    const avgConfidence=valid.reduce((sum,r)=>sum+r.confidence,0)/valid.length;
+    const confidence=Math.max(0,Math.min(1,avgConfidence*(stable?1:.55)));
+    const alternatives=Array.from(new Set(valid.flatMap(r=>r.alternatives||[]).map(v=>Math.round(v*10)/10))).filter(v=>Math.abs(v-medianMs)>.5).slice(0,3);
+    chunkResult=Object.assign({},base,{
+      ms:medianMs,samples:medianMs*sr/1000,confidence,reliable:stable,stable,
+      checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs
+    });
   }
-  const medianMs=valid[Math.floor(valid.length/2)].ms;
-  const spreadMs=valid.length>1?valid[valid.length-1].ms-valid[0].ms:Infinity;
-  const fullAgrees=!!(full&&full.reliable&&Math.abs(full.ms-medianMs)<=.25);
-  const stable=valid.length>=2&&spreadMs<=.20&&fullAgrees;
-  const base=valid.reduce((best,r)=>Math.abs(r.ms-medianMs)<Math.abs(best.ms-medianMs)?r:best,valid[0]);
-  const avgConfidence=valid.reduce((sum,r)=>sum+r.confidence,0)/valid.length;
-  const confidence=Math.max(0,Math.min(1,avgConfidence*(stable?1:.55)));
-  const alternatives=Array.from(new Set(valid.flatMap(r=>r.alternatives||[]).map(v=>Math.round(v*10)/10))).filter(v=>Math.abs(v-medianMs)>.5).slice(0,3);
-  return Object.assign({},base,{
-    ms:medianMs,samples:medianMs*sr/1000,confidence,reliable:stable,stable,
-    checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs
-  });
+
+  if(chunkResult&&chunkResult.reliable)return chunkResult;
+
+  // The stationary path could not lock. For unknown ('auto') or otherwise
+  // marginal signals, rescue with a full-capture correlation before giving up.
+  if(!sweepResult&&signalType!=='noise')sweepResult=computeSweepDelay(ref,mic,sr,{maxDelayMs});
+  if(sweepResult&&sweepResult.reliable)return sweepResult;
+
+  return chunkResult;
 }
 
 function measureBusy(){

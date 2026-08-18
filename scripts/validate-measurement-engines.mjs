@@ -13,7 +13,8 @@ function extract(name){
 const fft=Function(`${extract('fft')};return fft`)();
 const delayChunkSize=Function(`${extract('delayChunkSize')};return delayChunkSize`)();
 const computeDelay=Function('fft','delayChunkSize',`${extract('computeDelay')};return computeDelay`)(fft,delayChunkSize);
-const computeStableDelay=Function('computeDelay',`${extract('computeStableDelay')};return computeStableDelay`)(computeDelay);
+const computeSweepDelay=Function('fft',`${extract('computeSweepDelay')};return computeSweepDelay`)(fft);
+const computeStableDelay=Function('computeDelay','computeSweepDelay',`${extract('computeStableDelay')};return computeStableDelay`)(computeDelay,computeSweepDelay);
 const delayMsToMeters=Function(`${extract('delayMsToMeters')};return delayMsToMeters`)();
 const calibratedDistanceMeters=Function('delayMsToMeters',`${extract('calibratedDistanceMeters')};return calibratedDistanceMeters`)(delayMsToMeters);
 const delayDisplayValue=Function('calibratedDistanceMeters',`${extract('delayDisplayValue')};return delayDisplayValue`)(calibratedDistanceMeters);
@@ -86,6 +87,28 @@ for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
   const sr=48000,ref=broadband(98304,sr),mic=Float64Array.from(ref);
   const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20});
   assert(r&&r.reliable&&Math.abs(r.ms)<.03,'0ms loopback validation failed');
+}
+// Swept-sine excitation: narrowband in any short window, so the per-chunk path
+// rejects it. The full-capture correlator (signalType:'sweep') must lock it.
+function expSweep(n,sr,f0=30,f1=18000){
+  const x=new Float64Array(n),T=n/sr,K=T/Math.log(f1/f0);
+  for(let i=0;i<n;i++){const t=i/sr;x[i]=Math.sin(2*Math.PI*f0*K*(Math.exp(t/K)-1));}
+  return x;
+}
+for(const sr of [44100,48000,96000])for(const ms of [2,5,12]){
+  const n=sr===96000?262144:131072,ref=expSweep(n,sr),samples=Math.round(ms*sr/1000);
+  const mic=delayed(ref,samples,{noise:.01,reflection:.3,reflectionLag:Math.round(.006*sr)});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable,`Sweep delay unreliable: ${sr}Hz ${ms}ms`);
+  assert(Math.abs(r.ms-samples/sr*1000)<.15,`Sweep delay error: wanted ${ms}, got ${r&&r.ms}`);
+  assert(r.method==='sweep',`Sweep must use the full-capture correlator (${sr}Hz ${ms}ms)`);
+  delayCases.push(`${sr}/${ms}ms sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  // A pure swept sine must still be rejected when the two channels are unrelated.
+  const sr=48000,n=131072,ref=expSweep(n,sr),mic=broadband(n,sr);
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(!r||!r.reliable,'Uncorrelated sweep vs noise must not be accepted');
 }
 {
   const systemOffset=35,knownDistance=1,calibrationPath=systemOffset+knownDistance/343*1000;
