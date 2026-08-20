@@ -14,6 +14,7 @@ for(const file of ['app.js','js/app-core.js','js/core/config.js','js/core/diagno
 
 const html=await readFile('index.html','utf8');
 const worker=await readFile('sw.js','utf8');
+const config=await readFile('js/core/config.js','utf8');
 for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','v5TraceList','tfWorkflowSteps','tfAutoDelayBtn','tfVerifyBtn','tfUtilityBtns','dlyLoopbackBtn','dlyUnitSeg','dlyKnownDistance','dlyDistanceCalBtn','phWorkflowSteps','phSyncBtn','phRecommendation']){
   if(!html.includes(`id="${id}"`)) throw new Error(`Missing UI anchor: ${id}`);
 }
@@ -51,6 +52,16 @@ if(!core.includes("const keepExpanded=expanded===true||(expanded==null&&wasVisib
 if(!core.includes("if(this.closest('#geqCutMode'))" )||!core.includes('event.stopPropagation();')) throw new Error('EQ graph-mode controls can bubble into the dock collapse action');
 if(!core.includes("if(!eqCorrectionVisible||!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return")) throw new Error('EQ display toggle does not hide the proposed correction ribbon');
 if(!core.includes('function hideGeqDock(){ eqCorrectionVisible=false;')) throw new Error('EQ display toggle does not hide the complete correction workspace');
+for(const delaySafetyCheck of [
+  'const maxFft=1<<19',
+  'while(N<seg+pad)N<<=1',
+  'const guardMs=Math.min(12,Math.max(.6,resolutionMs*1.5))',
+  "if(signalType==='sweep'&&sweepResult)return sweepResult"
+]){
+  if(!core.includes(delaySafetyCheck)) throw new Error(`Sweep-delay safety guard missing: ${delaySafetyCheck}`);
+}
+if(core.includes("signalType!=='noise')sweepResult=computeSweepDelay")) throw new Error('Unknown external audio can still fall through to the sweep estimator');
+if(!html.includes('GAL Analyzer V5.5.1')||!config.includes("version:'5.5.1-safe-sweep-delay'")||!worker.includes('v5-5-1-safe-sweep-delay')) throw new Error('V5.5.1 release identifiers are inconsistent');
 const recorder=await readFile('recorder-worklet.js','utf8');
 if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
 if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');

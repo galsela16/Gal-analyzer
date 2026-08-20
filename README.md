@@ -1,4 +1,8 @@
-# GAL Analyzer V5.4.63 — Self-contained Sub/Top capture and stable EQ controls
+# GAL Analyzer V5.5.1 — Safe swept-sine delay measurement
+
+V5.5.1 makes the swept-sine delay path safe at every supported sample rate and sweep duration. Long 96 kHz captures are analysed in bounded, zero-padded windows instead of overflowing the FFT buffer; narrow-band sub sweeps use a bandwidth-aware peak guard and stability tolerance; and unknown external audio can no longer fall through to the sweep-only estimator. The delay preflight now includes long 96 kHz, inverted-polarity, sub-band and strong-reflection cases (30 accepted delay cases in total).
+
+## V5.4.63
 
 V5.4.63 makes the Sub/Top workflow self-contained: steps 2 and 3 now open a focused choice between internal Pink Noise and an external source, start the selected signal automatically and stop it after the three-second capture. The separate Pink Noise button was removed. Sweep is intentionally unavailable here because matching steady-state captures are required for reliable phase comparison around the crossover.
 

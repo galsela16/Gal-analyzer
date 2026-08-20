@@ -11,11 +11,20 @@ function extract(name){
   }throw new Error(`Unclosed ${name}`);
 }
 const fft=Function(`${extract('fft')};return fft`)();
-const computeDelay=Function('fft',`${extract('computeDelay')};return computeDelay`)(fft);
+const delayChunkSize=Function(`${extract('delayChunkSize')};return delayChunkSize`)();
+const computeDelay=Function('fft','delayChunkSize',`${extract('computeDelay')};return computeDelay`)(fft,delayChunkSize);
+const computeSweepDelay=Function('fft',`${extract('computeSweepDelay')};return computeSweepDelay`)(fft);
+const computeStableDelay=Function('computeDelay','computeSweepDelay',`${extract('computeStableDelay')};return computeStableDelay`)(computeDelay,computeSweepDelay);
+const delayMsToMeters=Function(`${extract('delayMsToMeters')};return delayMsToMeters`)();
+const calibratedDistanceMeters=Function('delayMsToMeters',`${extract('calibratedDistanceMeters')};return calibratedDistanceMeters`)(delayMsToMeters);
+const delayDisplayValue=Function('calibratedDistanceMeters',`${extract('delayDisplayValue')};return delayDisplayValue`)(calibratedDistanceMeters);
+const validateDistanceCalibration=Function('delayMsToMeters',`${extract('validateDistanceCalibration')};return validateDistanceCalibration`)(delayMsToMeters);
+const optimizeSubTopAlignment=Function(`${extract('optimizeSubTopAlignment')};return optimizeSubTopAlignment`)();
 const binOverlapPowerDb=Function('db2lin',`${extract('binOverlapPowerDb')};return binOverlapPowerDb`)(db=>10**(db/10));
 const binOverlapLinearPower=Function(`${extract('binOverlapLinearPower')};return binOverlapLinearPower`)();
 const analyzeDecay=Function(`${extract('analyzeDecay')};return analyzeDecay`)();
 const applyDelayPhaseToCross=Function(`${extract('applyDelayPhaseToCross')};return applyDelayPhaseToCross`)();
+const evaluateTfVerification=Function(`${extract('evaluateTfVerification')};return evaluateTfVerification`)();
 const testPxx=new Float64Array(8192).fill(1),testPyy=new Float64Array(8192).fill(1),testRe=new Float64Array(8192).fill(Math.sqrt(.81)),testIm=new Float64Array(8192);
 const tfBandCoherence=Function('tfPxx','tfPyy','tfPxyRe','tfPxyIm','TF_FFT_N',`${extract('tfBandCoherence')};return tfBandCoherence`)(testPxx,testPyy,testRe,testIm,16384);
 const geqBody=source.match(/const GEQ=\[([\s\S]*?)\];/)?.[1];
@@ -58,6 +67,125 @@ for(const sr of [44100,48000,96000])for(const ms of [1,2.9,5,10,18]){
   const r=computeDelay(ref,mic,sr,{maxDelayMs:20});
   assert(r&&Math.abs(Math.abs(r.ms)-5)<.15&&r.reliable,'Delay must survive inverted polarity');
 }
+for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
+  const n=sr===96000?196608:131072,ref=broadband(n,sr),samples=Math.round(ms*sr/1000),mic=delayed(ref,samples,{noise:.008,reflection:.22,reflectionLag:Math.round(.009*sr)});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:range});
+  assert(r&&r.reliable&&r.validChecks===3,`Stable delay rejected: ${sr}Hz ${ms}ms`);
+  assert(Math.abs(r.ms-samples/sr*1000)<.15,`Long-range delay error: wanted ${ms}, got ${r?.ms}`);
+  delayCases.push(`${sr}/${ms}ms stable→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,n=98304,third=n/3,ref=broadband(n,sr),mic=new Float64Array(n);
+  for(let block=0;block<3;block++){
+    const lag=Math.round((8+block*2)*sr/1000),start=block*third,end=(block+1)*third;
+    for(let i=start;i<end;i++)mic[i]=i-lag>=start?ref[i-lag]:0;
+  }
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20});
+  assert(r&&!r.reliable&&r.validChecks>=2,'Changing delay must fail the three-check stability gate');
+}
+{
+  const sr=48000,ref=broadband(98304,sr),mic=Float64Array.from(ref);
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20});
+  assert(r&&r.reliable&&Math.abs(r.ms)<.03,'0ms loopback validation failed');
+}
+// Swept-sine excitation: narrowband in any short window, so the per-chunk path
+// rejects it. The full-capture correlator (signalType:'sweep') must lock it.
+function expSweep(n,sr,f0=30,f1=18000){
+  const x=new Float64Array(n),T=n/sr,K=T/Math.log(f1/f0);
+  for(let i=0;i<n;i++){const t=i/sr;x[i]=Math.sin(2*Math.PI*f0*K*(Math.exp(t/K)-1));}
+  return x;
+}
+for(const sr of [44100,48000,96000])for(const ms of [2,5,12]){
+  const n=sr===96000?262144:131072,ref=expSweep(n,sr),samples=Math.round(ms*sr/1000);
+  const mic=delayed(ref,samples,{noise:.01,reflection:.3,reflectionLag:Math.round(.006*sr)});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable,`Sweep delay unreliable: ${sr}Hz ${ms}ms`);
+  assert(Math.abs(r.ms-samples/sr*1000)<.15,`Sweep delay error: wanted ${ms}, got ${r&&r.ms}`);
+  assert(r.method==='sweep',`Sweep must use the full-capture correlator (${sr}Hz ${ms}ms)`);
+  delayCases.push(`${sr}/${ms}ms sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,n=131072,ref=expSweep(n,sr),samples=Math.round(.005*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{invert:true,noise:.005}),sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable&&Math.abs(r.ms-5)<.15,'Sweep delay must survive inverted polarity');
+  delayCases.push(`48000/5ms inverted sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  // The UI permits a 10 second sweep. At 96 kHz this exceeds the FFT cap and
+  // must be windowed with zero padding rather than turning 12 ms into a false 0 ms.
+  const sr=96000,n=Math.round(sr*9.5),ref=expSweep(n,sr),samples=Math.round(.012*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{noise:.008,reflection:.3,reflectionLag:Math.round(.006*sr)}),sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable&&Math.abs(r.ms-12)<.15,`Long 96 kHz sweep error: wanted 12, got ${r&&r.ms}`);
+  delayCases.push(`96000/12ms long sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  // A sub-only passband has a wide correlation lobe; its shoulders are not
+  // separate arrivals and must not make an otherwise clean capture fail.
+  const sr=48000,n=262144,ref=expSweep(n,sr,25,140),samples=Math.round(.005*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{noise:.002}),sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable&&Math.abs(r.ms-5)<.65,`Sub-band sweep error: wanted 5, got ${r&&r.ms}`);
+  delayCases.push(`48000/5ms sub-band sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,n=131072,ref=expSweep(n,sr),samples=Math.round(.005*sr);
+  const mic=delayed(ref,samples,{noise:.005,reflection:1.3,reflectionLag:Math.round(.020*sr)});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:50,signalType:'sweep'});
+  assert(!r||!r.reliable||Math.abs(r.ms-5)<.3,'A stronger late reflection must not be accepted as the direct arrival');
+}
+{
+  const sr=48000,n=131072,ref=expSweep(n,sr),samples=Math.round(.005*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{noise:.005}),sr,{maxDelayMs:20,signalType:'auto'});
+  assert(!r||r.method!=='sweep','Unknown external audio must not silently use the sweep-only estimator');
+}
+{
+  // A pure swept sine must still be rejected when the two channels are unrelated.
+  const sr=48000,n=131072,ref=expSweep(n,sr),mic=broadband(n,sr);
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(!r||!r.reliable,'Uncorrelated sweep vs noise must not be accepted');
+}
+{
+  const systemOffset=35,knownDistance=1,calibrationPath=systemOffset+knownDistance/343*1000;
+  assert(Math.abs(calibratedDistanceMeters(calibrationPath,systemOffset)-knownDistance)<1e-10,'Known-distance calibration conversion failed');
+  assert.equal(calibratedDistanceMeters(38,null),null,'Uncalibrated path delay must not be presented as distance');
+  assert.equal(calibratedDistanceMeters(1.68,-1.24),null,'Negative system offset must never produce a calibrated distance');
+  assert(Math.abs(delayMsToMeters(5)-1.715)<1e-12,'Relative delay-to-distance conversion failed');
+  const halfMeter=validateDistanceCalibration(1.68,.5);
+  assert(halfMeter.ok&&Math.abs(halfMeter.offsetMs-.2227)<.001,'A valid 0.5m calibration must preserve the measured system offset');
+  const falseMeter=validateDistanceCalibration(1.68,1);
+  assert(!falseMeter.ok&&Math.abs(falseMeter.measuredMaxM-.57624)<1e-5,'A physically impossible 1m calibration must be rejected');
+  const withinTolerance=validateDistanceCalibration(2.82,1,.25);
+  assert(withinTolerance.ok&&withinTolerance.clamped&&withinTolerance.offsetMs===0,'A tiny negative offset inside tolerance must clamp to zero');
+  const metersDisplay=delayDisplayValue(1.68,'m',halfMeter.offsetMs);
+  assert(metersDisplay&&metersDisplay.unit==='m'&&Math.abs(metersDisplay.value-.5)<1e-10,'Meter mode must format a calibrated path in meters');
+  assert.equal(delayDisplayValue(1.68,'m',null),null,'Meter mode must not fall back to milliseconds without calibration');
+  assert.equal(delayDisplayValue(1.68,'ms',null).unit,'ms','Millisecond mode must remain available explicitly');
+}
+{
+  const sr=48000,fftN=16384,n=fftN/2;
+  const makeSnap=(phaseFn,cohValue=.92,magDb=0)=>{
+    const ph=new Float32Array(n),coh=new Float32Array(n).fill(cohValue),mag=new Float32Array(n).fill(magDb);
+    for(let k=0;k<n;k++){const f=k*sr/fftN,p=phaseFn(f);ph[k]=Math.atan2(Math.sin(p),Math.cos(p));}
+    return {ph,coh,mag,sr,fftN};
+  };
+  const sub=makeSnap(()=>0),topLate=makeSnap(f=>-2*Math.PI*f*.003);
+  const late=optimizeSubTopAlignment(sub,topLate,sr,90,.4,{stepMs:.02});
+  assert(late.reliable&&!late.polarityInverted&&late.delayTarget==='sub',`Late top must recommend delaying sub, got ${JSON.stringify(late)}`);
+  assert(Math.abs(late.delayMs-3)<.18,`Sub/Top delay optimizer expected 3ms, got ${late.delayMs}`);
+  const topEarly=optimizeSubTopAlignment(sub,makeSnap(f=>2*Math.PI*f*.002),sr,90,.4,{stepMs:.02});
+  assert(topEarly.reliable&&!topEarly.polarityInverted&&topEarly.delayTarget==='top'&&Math.abs(topEarly.delayMs-2)<.18,'Early top must recommend delaying top');
+  const topVeryLate=optimizeSubTopAlignment(sub,makeSnap(f=>-2*Math.PI*f*.015),sr,90,.4,{stepMs:.02,maxDelayMs:20});
+  assert(topVeryLate.reliable&&topVeryLate.delayTarget==='sub'&&Math.abs(topVeryLate.delayMs-15)<.2,'Optimizer must disambiguate delays longer than one crossover cycle');
+  const inverted=optimizeSubTopAlignment(sub,makeSnap(()=>Math.PI),sr,90,.4,{stepMs:.02});
+  assert(inverted.reliable&&inverted.polarityInverted&&inverted.delayMs<.15,'Polarity inversion optimizer failed');
+  const invertedLate=optimizeSubTopAlignment(sub,makeSnap(f=>Math.PI-2*Math.PI*f*.0015),sr,90,.4,{stepMs:.02});
+  assert(invertedLate.reliable&&invertedLate.polarityInverted&&invertedLate.delayTarget==='sub'&&Math.abs(invertedLate.delayMs-1.5)<.2,'Combined polarity/delay optimization failed');
+  const aligned=optimizeSubTopAlignment(sub,makeSnap(()=>0),sr,90,.4,{stepMs:.02});
+  assert(aligned.reliable&&aligned.noChange,'Aligned Sub/Top must not recommend a change');
+  const weak=optimizeSubTopAlignment(makeSnap(()=>0,.15),makeSnap(()=>0,.15),sr,90,.4,{stepMs:.02});
+  assert(!weak.reliable,'Low-coherence Sub/Top data must be rejected');
+  const imbalanced=optimizeSubTopAlignment(makeSnap(()=>0,.92,0),makeSnap(()=>0,.92,-30),sr,90,.4,{stepMs:.02});
+  assert(!imbalanced.reliable,'Severely imbalanced crossover levels must be rejected');
+}
 {
   const silence=new Float64Array(16384);assert.equal(computeDelay(silence,silence,48000,{maxDelayMs:20}),null,'Silence must not produce delay');
 }
@@ -72,6 +200,12 @@ for(const sr of [44100,48000,96000])for(const ms of [1,2.9,5,10,18]){
   const phaseLead=2*Math.PI*k*delay/n,correctedLead=applyDelayPhaseToCross(Math.cos(phaseLead),Math.sin(phaseLead),k,n,-delay);
   assert(Math.abs(Math.atan2(correctedLead.im,correctedLead.re))<1e-10,'Negative TF delay compensation failed');
   assert(Math.abs(tfBandCoherence(1000,2**(1/6),48000)-.81)<1e-10,'TF band coherence aggregation failed');
+}
+{
+  const good=evaluateTfVerification([.82,.75,.68,.2,.1],.4,true);
+  assert(good.ok&&good.passing===3,'TF workflow must accept adequate coherent coverage');
+  assert(!evaluateTfVerification([.25,.3,.39,.1,.2],.4,true).ok,'TF workflow must reject weak coherence');
+  assert(!evaluateTfVerification([.9,.9,.9],.4,false).ok,'TF workflow must reject missing input signal');
 }
 
 {

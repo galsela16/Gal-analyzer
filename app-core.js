@@ -12,19 +12,33 @@ let sunMode=false;
 
 // ---- TF Advanced Engine Variables ----
 let tfDelayMs = 0;
+let tfDelayReady = false;
+let tfWorkflowVerified = false;
+let tfDelayQualityText = '';
+let tfWorkflowVerifying = false;
+let tfWorkflowVerifyTimer = null;
 let tfTraces=[];
 const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
+let delaySearchMs = 50;
+let dlyDisplayUnit = 'ms';
+let dlyDistanceOffsetMs = null;
+let dlyDistanceKnownM = 1;
+let dlyDistanceCalError = '';
+let dlyLastPathResult = null;
+let dlyLastSpeakerResult = null;
 let showTfPhase = false;
 let showTfCoh = false;
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
 let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
 let phaseSub=null, phaseTop=null;  // צילומי פאזה: {ph:Float32Array, coh:Float32Array}
 let xoverF=90, showXover=false;    // סמן תדר חיתוך
+let alignRecommendation=null;
 
 let TF_FFT_N = 16384;
 let tfXr,tfXi,tfYr,tfYi,tfPxx,tfPyy,tfPxyRe,tfPxyIm,tfWin;
 function configureTfFft(n){
+  cancelTfWorkflowVerification();
   TF_FFT_N=Math.max(8192,Math.min(32768,parseInt(n,10)||16384));
   tfXr=new Float32Array(TF_FFT_N); tfXi=new Float32Array(TF_FFT_N);
   tfYr=new Float32Array(TF_FFT_N); tfYi=new Float32Array(TF_FFT_N);
@@ -32,7 +46,8 @@ function configureTfFft(n){
   tfPxyRe=new Float32Array(TF_FFT_N/2); tfPxyIm=new Float32Array(TF_FFT_N/2);
   tfWin=new Float32Array(TF_FFT_N);
   for(let i=0;i<TF_FFT_N;i++) tfWin[i]=0.5*(1-Math.cos((2*Math.PI*i)/(TF_FFT_N-1)));
-  phaseSub=null; phaseTop=null;
+  tfWorkflowVerified=false;
+  phaseSub=null; phaseTop=null; alignRecommendation=null;
 }
 configureTfFft(TF_FFT_N);
 
@@ -114,6 +129,7 @@ let genSweepDur=4, sweepTimer=null, sweepStartT=0;
 let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rtLevel=-6;
 let eqMarks=null;
 let eqCurveData=null;
+let eqCorrectionVisible=false;
 let eqMode='graphic', lastEqCorr=null;
 let cutOnly=false;
 let tfMode='graphic';
@@ -236,6 +252,7 @@ safeOn('qbPhase', 'click', function(){
 });
 safeOn('tfAutoDelayBtn','click',tfAutoDelay);
 safeOn('v52AutoDelayBtn','click',tfAutoDelay);
+safeOn('phSyncBtn','click',tfAutoDelay);
 safeOn('tfCohToggleBtn','click',function(){
   showTfCoh=!showTfCoh; this.classList.toggle('on',showTfCoh);
   const q=document.getElementById('qbCoh'); if(q) q.classList.toggle('on',showTfCoh);
@@ -246,34 +263,40 @@ safeOn('tfPhaseToggleBtn','click',function(){
 });
 
 
-function tfAutoDelay(){
+function tfAutoDelay(event){
   const globalBtn=document.getElementById('v52AutoDelayBtn');
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
-  if(globalBtn){globalBtn.classList.add('on');globalBtn.textContent='⏱ מודד…';}
-  
-  const m = tfSwap ? timeDataRef : timeData;
-  const r = tfSwap ? timeData : timeDataRef;
-  const sr = audioCtx.sampleRate;
-  
-  const res = computeDelay(r, m, sr, {maxDelayMs:20});
-  if(!res || !res.reliable){
-    if(globalBtn){globalBtn.classList.remove('on');globalBtn.textContent='⏱ Auto Delay';}
-    v3Toast(res?'הדיליי לא יציב — נסה sweep או אות רחב־פס':'לא זוהה דיליי ברור — ודא ששני הערוצים מקבלים אות יציב');
-    return;
-  }
-  
-  tfDelayMs = res.ms;
-  tfDelaySamples = res.samples;
-  const dist = (tfDelayMs / 1000) * 343;
-  const info=document.getElementById('tfDelayInfo');if(info)info.textContent = `דיליי פעיל: ${tfDelayMs.toFixed(2)} ms (~${dist.toFixed(2)}m)`;
-  if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`Delay ${tfDelayMs.toFixed(2)} ms`;}
-  v3Toast(`Auto Delay: ${tfDelayMs.toFixed(2)} ms`);
+  const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
+  pickSource(()=>{
+    cancelTfWorkflowVerification();
+    tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
+    clearSubTopSnapshots('סנכרון TF מתבצע…');
+    syncSubTopWorkflowUi();
+    syncTfWorkflowUi('<b>שלב 1:</b> מבצע שלוש בדיקות סנכרון…');
+    runDelayCapture(trigger||globalBtn,(res,silent)=>{
+    if(!res || !res.reliable){
+      resetTfAutoDelay();
+      const msg=silent==='mic'?'אין אות במיקרופון'
+        :silent==='ref'?'אין אות ב־Reference'
+        :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
+      v3Toast(msg); return;
+    }
+    tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
+    tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms';
+    clearSubTopSnapshots('סנכרון TF השתנה — מדוד שוב סאב וטופ.');
+    syncTfWorkflowUi();
+    if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}
+    v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
+  },{maxDelayMs:delaySearchMs,mode:'tf'});
+  },3800);
 }
 
 function resetTfAutoDelay(){
-  tfDelayMs=0;tfDelaySamples=0;
-  const info=document.getElementById('tfDelayInfo');if(info)info.textContent='סנכרון דיליי TF: 0.00 ms';
-  const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent='⏱ Auto Delay';}
+  cancelTfWorkflowVerification();
+  tfDelayMs=0;tfDelaySamples=0;tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
+  clearSubTopSnapshots('סנכרון TF אופס — סנכרן ואז מדוד שוב סאב וטופ.');
+  syncTfWorkflowUi();
+  const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent='⏱ סנכרון TF';}
 }
 
 safeOn('fbSens', 'input',e=>{
@@ -337,7 +360,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.4.55-field-preflight-audit',
+    version: 'v5.5.1-safe-sweep-delay',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -539,11 +562,6 @@ function syncInlineGenBtns(){
       b.textContent = (genOn && genType==='pink') ? '⏹ עצור רעש' : '▶ רעש ורוד';
     }
   });
-  const pb=document.getElementById('phPinkBtn');
-  if(pb){
-    pb.classList.toggle('on', genOn && genType==='pink');
-    pb.textContent = (genOn && genType==='pink') ? '⏹ עצור פינק נויז' : '▶ פינק נויז מהאפליקציה';
-  }
 }
 
 function genApplyLevel(){
@@ -662,7 +680,13 @@ safeOn('eqRangeMin','change',e=>setEqCorrectionRange(e.target.value,eqMaxFreq));
 safeOn('eqRangeMax','change',e=>setEqCorrectionRange(eqMinFreq,e.target.value));
 safeOn('eqDockRangeMin','change',e=>setEqCorrectionRange(e.target.value,eqMaxFreq));
 safeOn('eqDockRangeMax','change',e=>setEqCorrectionRange(eqMinFreq,e.target.value));
-document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.addEventListener('click',function(){ setCutOnly(this.dataset.co==='1'); }));
+document.querySelectorAll('#cutOnlySeg button, #areaCutSeg button, #geqCutMode button').forEach(b=>b.addEventListener('click',function(event){
+  if(this.closest('#geqCutMode')){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  setCutOnly(this.dataset.co==='1');
+}));
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',function(){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -782,10 +806,13 @@ function corrParamHtml(corr){
     return '<div class="eqRow '+s.type+'"><span class="f">'+f+'</span><span class="g">'+g+'</span><span class="q">Q '+s.q.toFixed(1)+'</span></div>';
   }).join('');
 }
-function showGeqDock(title,expanded=false){
+function showGeqDock(title,expanded){
   const dock=document.getElementById('geqDock'); if(!dock) return;
-  dock.style.display='block';dock.classList.toggle('collapsed',!expanded);
-  const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent=expanded?'הסתר פירוט':'הצג פירוט';
+  const wasVisible=getComputedStyle(dock).display!=='none';
+  const keepExpanded=expanded===true||(expanded==null&&wasVisible&&!dock.classList.contains('collapsed'));
+  eqCorrectionVisible=true;
+  dock.style.display='block';dock.classList.toggle('collapsed',!keepExpanded);
+  const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent=keepExpanded?'הסתר פירוט':'הצג פירוט';
   syncGeqBtn();
   const t=document.getElementById('geqDockTitle'); if(t&&title) t.textContent=title;
 }
@@ -810,28 +837,23 @@ function openLatestEqWorkspace(){
 window.openLatestEqWorkspaceFromRail=function(event){
   if(event){event.preventDefault();event.stopPropagation();}
   const dock=document.getElementById('geqDock');
-  if(dock&&getComputedStyle(dock).display!=='none'){
+  if(eqCorrectionVisible&&dock&&getComputedStyle(dock).display!=='none'){
     hideGeqDock();v3Toast('תצוגת ה-EQ הוסתרה');return false;
   }
   openLatestEqWorkspace();
   return false;
 };
-function hideGeqDock(){ const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
+function hideGeqDock(){ eqCorrectionVisible=false;const d=document.getElementById('geqDock'); if(d) d.style.display='none'; syncGeqBtn(); }
 function syncGeqBtn(){
   const legacy=document.getElementById('geqShowBtn'),rail=document.getElementById('v5EqWorkspace'),d=document.getElementById('geqDock');
-  const visible=!!(d&&getComputedStyle(d).display!=='none');
+  const visible=!!(eqCorrectionVisible&&d&&getComputedStyle(d).display!=='none');
   if(legacy)legacy.classList.toggle('on',visible);
   if(rail){rail.classList.toggle('on',visible);rail.textContent=visible?'EQ · הסתר תיקונים':'EQ · תצוגת תיקונים';rail.setAttribute('aria-pressed',visible?'true':'false');}
 }
 safeOn('geqShowBtn', 'click',function(){
   const d=document.getElementById('geqDock');
-  if(d.style.display==='none' || !d.style.display){
-    if(!eqCurveData){ alert('אין עדיין תיקון להצגה — בצע מדידת תגובה קודם.'); return; }
-    d.style.display='block'; d.classList.remove('collapsed');
-    document.getElementById('geqDockToggle').textContent='▼';
-    drawGEQ(document.getElementById('eqCurveCanvas'), eqCurveData.freqs, eqCurveData.corr);
-  } else d.style.display='none';
-  syncGeqBtn();
+  if(eqCorrectionVisible&&d&&getComputedStyle(d).display!=='none') hideGeqDock();
+  else openLatestEqWorkspace();
 });
 safeOn('geqDockToggle', 'click',function(){
   const d=document.getElementById('geqDock');
@@ -1091,12 +1113,12 @@ function setupMeasureDocks(){
     }
   });
   // heavy/advanced sections stay hidden until "עוד"
-  ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','dlyInfo','dlySpk','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
+  ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
   ['tfSmooth','tfCohGate'].forEach(id=>dockAdvanced(id,1));
   // TF starts as a compact live workspace. Deep diagnostics and less-frequent
   // actions move behind "עוד", leaving most of the screen to the graph.
   dockAdvanced('tfCorrFill',2);
-  ['tfDelayInfo','tfTraceClearBtn','tfSwapBtn','tfOverlayBtn','tfCsvBtn'].forEach(id=>dockAdvanced(id));
+  dockAdvanced('tfUtilityBtns');
   ['eqModeSwitchA','eqModeSeg','cutOnlySeg','areaModeSeg','areaCutSeg','dlyCountSeg','rtLevel','rtRange'].forEach(id=>dockAdvanced(id,1));
   dockAdvanced('tfModeSeg',0);
   dockAdvanced('tfTargetCtrl',0);
@@ -1152,17 +1174,22 @@ function openAreas(){
 }
 safeOn('areaClose', 'click',closeModals);
 safeOn('areaMeasBtn', 'click',()=>pickSource(measureArea,5000));
-let pendingMeasureFn=null, pendingDur=5000;
+let pendingMeasureFn=null, pendingDur=5000, pendingSourceOptions=null;
 const srcOverlay=document.getElementById('srcOverlay');
-function pickSource(fn, dur){
+function pickSource(fn, dur, options){
   if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
-  pendingMeasureFn=fn; pendingDur=dur||5000; srcOverlay.classList.add('show');
+  pendingMeasureFn=fn;pendingDur=dur||5000;pendingSourceOptions=options||{};
+  const allowed=Array.isArray(pendingSourceOptions.allowed)?pendingSourceOptions.allowed:['pink','sweep','external'];
+  const title=document.querySelector('#srcBox .srcTitle');if(title)title.textContent=pendingSourceOptions.title||'איזה אות להשמיע למדידה?';
+  document.querySelectorAll('#srcBox button[data-src]').forEach(btn=>{btn.style.display=btn.dataset.src==='cancel'||allowed.includes(btn.dataset.src)?'':'none';});
+  srcOverlay.classList.add('show');
 }
-srcOverlay.addEventListener('click',e=>{ if(e.target===srcOverlay) srcOverlay.classList.remove('show'); });
+srcOverlay.addEventListener('click',e=>{ if(e.target===srcOverlay){srcOverlay.classList.remove('show');pendingMeasureFn=null;pendingSourceOptions=null;} });
 document.querySelectorAll('#srcBox button').forEach(b=>b.addEventListener('click',function(){
   srcOverlay.classList.remove('show');
-  const src=this.dataset.src; if(src==='cancel'||!pendingMeasureFn) return;
-  runWithSource(src, pendingMeasureFn, pendingDur); pendingMeasureFn=null;
+  const src=this.dataset.src,fn=pendingMeasureFn,dur=pendingDur;pendingMeasureFn=null;pendingSourceOptions=null;
+  if(src==='cancel'||!fn) return;
+  runWithSource(src,fn,dur);
 }));
 function setGenTypeUI(kind){
   document.querySelectorAll('#genType button').forEach(x=>x.classList.toggle('on', x.dataset.t===kind));
@@ -1249,7 +1276,7 @@ function renderAreaList(){
 
 tfPanel=document.getElementById('tfPanel');
 safeOn('tfClose', 'click',closeModals);
-safeOn('tfSwapBtn', 'click',function(){ tfSwap=!tfSwap; resetTfAutoDelay(); this.classList.toggle('on',tfSwap); });
+safeOn('tfSwapBtn', 'click',function(){ tfSwap=!tfSwap; resetTfAutoDelay(); resetDistanceCalibration(); this.classList.toggle('on',tfSwap); });
 function setTfOverlay(on){
   tfOverlay=on;
   const a=document.getElementById('tfOverlayBtn'), b=document.getElementById('tfOverlayHdr');
@@ -1259,6 +1286,89 @@ function setTfOverlay(on){
 safeOn('tfOverlayBtn', 'click',()=>setTfOverlay(!tfOverlay));
 safeOn('tfMeasBtn', 'click',()=>pickSource(tfMeasure,6000));
 safeOn('tfCsvBtn', 'click',tfExportCsv);
+
+function tfWorkflowSignalPresent(data){
+  if(!data||!data.length)return false;
+  let peak=-120;
+  for(let i=0;i<data.length;i+=8)if(data[i]>peak)peak=data[i];
+  return peak>-85;
+}
+function evaluateTfVerification(coherence,gate,signalsOk){
+  if(!signalsOk)return {ok:false,passing:0,checked:0,mean:0,reason:'אין מספיק אות בשני הערוצים'};
+  const values=(coherence||[]).filter(Number.isFinite),checked=values.length;
+  const passing=values.filter(c=>c>=Math.max(.4,gate)).length;
+  const required=Math.max(3,Math.ceil(checked*.3));
+  const mean=checked?values.reduce((sum,c)=>sum+c,0)/checked:0;
+  const ok=checked>=3&&passing>=required;
+  return {ok,passing,checked,mean,reason:ok?'':'קוהרנטיות נמוכה מדי בטווח המדידה'};
+}
+function tfWorkflowQuality(){
+  if(!running||!analyserRef||!audioCtx)return {ok:false,reason:'אין מדידה דו־ערוצית פעילה'};
+  const signalsOk=tfWorkflowSignalPresent(floatData)&&tfWorkflowSignalPresent(floatDataRef);
+  const snap=tfCurrentSnapshot();
+  if(!snap)return {ok:false,reason:'עדיין אין נתוני TF'};
+  const coherence=[];
+  const lo=Math.max(31.5,eqMinFreq),hi=Math.min(16000,eqMaxFreq),gate=Math.max(.4,tfCohGate);
+  for(const f of GEQ){
+    if(f<lo||f>hi)continue;
+    const k=Math.min(snap.coh.length-1,Math.max(1,Math.round(f*TF_FFT_N/snap.sr)));
+    const c=snap.coh[k];
+    if(Number.isFinite(c))coherence.push(c);
+  }
+  return evaluateTfVerification(coherence,gate,signalsOk);
+}
+function setTfPhaseAndCoherence(on){
+  showTfPhase=on;showTfCoh=on;
+  const phase=document.getElementById('tfPhaseToggleBtn'),coh=document.getElementById('tfCohToggleBtn');
+  const qPhase=document.getElementById('qbPhase'),qCoh=document.getElementById('qbCoh');
+  if(phase)phase.classList.toggle('on',on);if(coh)coh.classList.toggle('on',on);
+  if(qPhase)qPhase.classList.toggle('on',on);if(qCoh)qCoh.classList.toggle('on',on);
+}
+function syncTfWorkflowUi(message,tone){
+  const busy=measureBusy();
+  const sync=document.getElementById('tfAutoDelayBtn');
+  const verify=document.getElementById('tfVerifyBtn');
+  const trace=document.getElementById('tfTraceBtn');
+  const eq=document.getElementById('tfMeasBtn');
+  const info=document.getElementById('tfDelayInfo');
+  if(sync){sync.classList.toggle('on',tfDelayReady);sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':'1 · סנכרון TF';sync.disabled=busy;}
+  if(verify){verify.classList.toggle('on',tfWorkflowVerified);verify.textContent=tfWorkflowVerifying?'2 · מאמת…':tfWorkflowVerified?'✓ 2 · TF אומת':'2 · אימות TF';verify.disabled=busy||!tfDelayReady;}
+  if(trace)trace.disabled=busy||!tfWorkflowVerified;
+  if(eq)eq.disabled=busy||!tfWorkflowVerified;
+  if(info){
+    info.classList.remove('ready','warn');
+    if(tone)info.classList.add(tone);
+    if(message)info.innerHTML=message;
+    else if(!tfDelayReady)info.innerHTML='<b>שלב 1:</b> הפעל אות רחב־פס ובצע סנכרון TF';
+    else if(!tfWorkflowVerified)info.innerHTML='<b>✓ TF '+tfDelayMs.toFixed(2)+'ms</b> '+tfDelayQualityText+' · <b>שלב 2:</b> אמת פאזה וקוהרנטיות';
+    else {info.classList.add('ready');info.innerHTML='<b>✓ TF מוכן</b> · בחר לכידת Trace או מדידת EQ';}
+  }
+}
+function cancelTfWorkflowVerification(){
+  if(tfWorkflowVerifyTimer){clearTimeout(tfWorkflowVerifyTimer);tfWorkflowVerifyTimer=null;}
+  tfWorkflowVerifying=false;
+}
+function verifyTfWorkflow(){
+  if(!tfDelayReady){v3Toast('תחילה בצע סנכרון TF');return;}
+  if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
+  setTfPhaseAndCoherence(true);
+  tfWorkflowVerified=false;tfWorkflowVerifying=true;
+  tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
+  syncTfWorkflowUi('<b>שלב 2:</b> אוסף נתוני פאזה וקוהרנטיות במשך 2 שניות…');
+  tfWorkflowVerifyTimer=setTimeout(()=>{
+    tfWorkflowVerifyTimer=null;tfWorkflowVerifying=false;
+    const q=tfWorkflowQuality();
+    tfWorkflowVerified=!!q.ok;
+    if(q.ok){
+      syncTfWorkflowUi('<b>✓ שלב 2 הושלם</b> · '+q.passing+'/'+q.checked+' תחומים עברו סף קוהרנטיות · בחר Trace או EQ','ready');
+      v3Toast('TF אומת — אפשר ללכוד Trace או למדוד EQ');
+    }else{
+      syncTfWorkflowUi('<b>שלב 2 לא עבר:</b> '+q.reason+' · בדוק רמות, ניתוב ו־Reference ונסה שוב','warn');
+      v3Toast(q.reason);
+    }
+  },2000);
+}
+safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000));
 
 
 function tfCurrentSnapshot(){
@@ -1285,6 +1395,8 @@ function renderTfTraceLegend(){
 }
 function captureTfTrace(){
   if(!running||!analyserRef){ alert('הפעל כרטיס קול סטריאו (מיק + רפרנס).'); return; }
+  if(!tfDelayReady||!tfWorkflowVerified){ alert('תחילה השלם סנכרון ואימות TF.'); return; }
+  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   const s=tfCurrentSnapshot(); if(!s) return;
   const idx=tfTraces.length+1;
   s.type='tf'; s.visible=true; s.name='TF '+idx; s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
@@ -1448,15 +1560,18 @@ function updateTfLevels(){
 }
 function tfMeasure(){
   if(!running||!analyserRef){ alert('הפעל מיקרופון עם כרטיס קול (input סטריאו).'); return; }
+  if(!tfDelayReady||!tfWorkflowVerified){ alert('תחילה השלם סנכרון ואימות TF.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   unfreezeForMeasure();
   const bins=floatData.length;
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
   tfMic=new Float64Array(bins); tfRef=new Float64Array(bins); tfFrames=0; tfState='measuring';
-  const btn=document.getElementById('tfMeasBtn'); btn.textContent='מודד…'; btn.style.opacity=.5;
+  const btn=document.getElementById('tfMeasBtn'); btn.textContent='מודד EQ…'; btn.style.opacity=.5;
+  syncTfWorkflowUi();
   setTimeout(()=>{
-    tfState='idle'; btn.textContent='מדוד שוב (6ש\')'; btn.style.opacity=1;
+    tfState='idle'; btn.textContent='3ב · מדוד EQ שוב'; btn.style.opacity=1;
     tfCompute();
+    syncTfWorkflowUi();
   },6000);
 }
 function tfBandCoherence(fc,halfWidthRatio,sr){
@@ -1489,7 +1604,7 @@ function tfCompute(){
   const corr=buildCorr(H, rel);
   tfResult={corr,H,rel,coh};
   document.getElementById('tfInfo').textContent = on? 'מוצגים רק פסים שעברו גם סף Reference וגם קוהרנטיות '+tfCohGate.toFixed(2)+'.' :
-    'אין פסים אמינים — בדוק Reference, Auto Delay, קוהרנטיות או החלפת ערוצים.';
+    'אין פסים אמינים — בדוק Reference, סנכרון TF, קוהרנטיות או החלפת ערוצים.';
   renderTFList();
 }
 
@@ -1534,13 +1649,83 @@ safeOn('dlyBtn', 'click',()=>{
 safeOn('dlyClose', 'click',closeModals);
 function resetDelay(){
   dlyState='idle';
-  dlySpeakers.forEach((s,i)=>{ s.ms=null; s.name=dlyName(i); });
+  dlyLastPathResult=null;dlyLastSpeakerResult=null;
+  dlySpeakers.forEach((s,i)=>{ s.ms=null;s.confidence=0;s.spreadMs=null;s.name=dlyName(i); });
   dlyAnchor=0;
-  const st=document.getElementById('dlyStatus'); if(st) st.textContent='—';
+  resetDistanceCalibration();
+  const st=document.getElementById('dlyStatus'); if(st){delete st.dataset.delayResult;st.textContent='—';}
   renderDlySpk();
 }
 safeOn('dlyReset', 'click',resetDelay);
-safeOn('dlyMeasBtn', 'click',()=>pickSource(measureDelay,2100));
+safeOn('dlyMeasBtn', 'click',()=>pickSource(measureDelay,3800));
+
+function syncDelayRangeUi(){
+  document.querySelectorAll('[data-delay-range] button').forEach(b=>b.classList.toggle('on',Number(b.dataset.ms)===delaySearchMs));
+}
+document.querySelectorAll('[data-delay-range] button').forEach(b=>b.addEventListener('click',function(){
+  delaySearchMs=Math.max(20,Math.min(100,Number(this.dataset.ms)||50));
+  syncDelayRangeUi();
+}));
+syncDelayRangeUi();
+
+function delayMsToMeters(ms){ return Number(ms)*343/1000; }
+function validateDistanceCalibration(pathMs,knownM,toleranceMs=.25){
+  const path=Number(pathMs),known=Number(knownM),tolerance=Math.max(0,Number(toleranceMs)||0);
+  if(!Number.isFinite(path)||path<0||!Number.isFinite(known)||known<=0){
+    return {ok:false,reason:'נתוני הכיול אינם תקינים'};
+  }
+  const acousticMs=known/343*1000;
+  const rawOffsetMs=path-acousticMs;
+  const measuredMaxM=delayMsToMeters(path);
+  if(rawOffsetMs < -tolerance){
+    return {ok:false,reason:'המרחק שהוזן גדול מזמן ההגעה שנמדד',pathMs:path,knownM:known,acousticMs,rawOffsetMs,measuredMaxM};
+  }
+  return {ok:true,pathMs:path,knownM:known,acousticMs,rawOffsetMs,offsetMs:Math.max(0,rawOffsetMs),measuredMaxM,clamped:rawOffsetMs<0};
+}
+function calibratedDistanceMeters(pathMs,offsetMs){
+  if(pathMs==null||pathMs===''||offsetMs==null||offsetMs==='')return null;
+  if(!Number.isFinite(Number(pathMs))||!Number.isFinite(Number(offsetMs)))return null;
+  if(Number(offsetMs)<0)return null;
+  return Math.max(0,delayMsToMeters(Number(pathMs)-Number(offsetMs)));
+}
+function delayDisplayValue(pathMs,unit,offsetMs){
+  if(unit==='m'){
+    const distance=calibratedDistanceMeters(pathMs,offsetMs);
+    return distance==null?null:{value:distance,unit:'m'};
+  }
+  const value=Number(pathMs);
+  return Number.isFinite(value)?{value,unit:'ms'}:null;
+}
+function updateDlyUnitUi(){
+  document.querySelectorAll('#dlyUnitSeg button').forEach(b=>b.classList.toggle('on',b.dataset.unit===dlyDisplayUnit));
+  const cal=document.getElementById('dlyDistanceCal');
+  if(cal){cal.classList.toggle('show',dlyDisplayUnit==='m');cal.classList.toggle('calibrated',Number.isFinite(dlyDistanceOffsetMs));cal.classList.toggle('invalid',!!dlyDistanceCalError);}
+  const state=document.getElementById('dlyDistanceCalState');
+  if(state){
+    state.innerHTML=Number.isFinite(dlyDistanceOffsetMs)
+      ? '<span style="color:#42d57b">✓ מכויל</span> · מרחק ייחוס '+dlyDistanceKnownM.toFixed(1)+'m · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'
+      : dlyDistanceCalError
+        ? '<span style="color:var(--hot)">✕ הכיול נדחה</span> · '+dlyDistanceCalError
+        : 'למרחק אמיתי צריך לכייל פעם אחת מול מרחק ידוע.';
+  }
+  const info=document.getElementById('dlyInfo');
+  if(info)info.textContent=dlyDisplayUnit==='m'
+    ? (Number.isFinite(dlyDistanceOffsetMs)?'מרחק משוער לאחר הפחתת זמן המערכת. החלפת רמקול, DSP, ניתוב או כרטיס מחייבת כיול מחדש.':dlyDistanceCalError?'הכיול לא נשמר. תקן את המרחק הידוע ובצע מדידה מחדש.':'הצב את המיקרופון במרחק מדוד מהרמקול וכייל לפני הצגת מטרים.')
+    : 'הזמן המוחלט כולל את כל שרשרת המדידה ואינו מרחק פיזי. לכיוון רמקולים השתמש רק ב־Δ מול העוגן.';
+  if(typeof renderDlySpk==='function')renderDlySpk();
+}
+function resetDistanceCalibration(errorMessage=''){
+  dlyDistanceOffsetMs=null;
+  dlyDistanceCalError=errorMessage;
+  updateDlyUnitUi();
+}
+document.querySelectorAll('#dlyUnitSeg button').forEach(b=>b.addEventListener('click',function(){
+  dlyDisplayUnit=this.dataset.unit==='m'?'m':'ms';updateDlyUnitUi();
+  const st=document.getElementById('dlyStatus');
+  if(st&&st.dataset.delayResult==='path'&&dlyLastPathResult)renderDelayPathResult(dlyLastPathResult);
+  else if(st&&st.dataset.delayResult==='speaker'&&dlyLastSpeakerResult)renderSpeakerMeasurementStatus(dlyLastSpeakerResult.index,dlyLastSpeakerResult.result);
+  else if(st&&dlyDisplayUnit==='m'&&!Number.isFinite(dlyDistanceOffsetMs))st.textContent='כדי למדוד מרחק: הצב את המיקרופון במרחק ידוע ולחץ “כייל מרחק”.';
+}));
 
 function fft(re,im,inv){
   const n=re.length;
@@ -1590,28 +1775,67 @@ function setGainEl(fill,lbl,db){
 }
 function setGain(id, db){ setGainEl(document.getElementById(id+'Fill'), document.getElementById(id+'Gain'), db); }
 
+function delayChecksHtml(res){
+  const checks=res&&Array.isArray(res.checks)?res.checks:[];
+  let html='<span class="delayChecks" title="שלוש בדיקות יציבות">';
+  for(let i=0;i<3;i++)html+='<i class="'+(checks[i]&&checks[i].reliable?'ok':'bad')+'"></i>';
+  return html+'</span>';
+}
+function delayFailureText(res,silent){
+  if(silent==='mic')return 'המיקרופון לא קלט אות — בדוק גיין וחיבור.';
+  if(silent==='ref')return 'כניסה 2 (Reference) שקטה — בדוק את הניתוב מהמיקסר.';
+  if(res&&res.validChecks)return 'התוצאה לא יציבה: רק '+res.validChecks+' מתוך 3 בדיקות התאימו. נסה Sweep, העלה רמה או השתק החזרות קרובות.';
+  return 'לא נמצא זמן הגעה ברור — ודא ששני הערוצים מקבלים אותו אות רחב־פס.';
+}
+function dlyPathResultHtml(ms){
+  const displayed=delayDisplayValue(ms,dlyDisplayUnit,dlyDistanceOffsetMs);
+  if(dlyDisplayUnit==='m'&&displayed){
+    return 'מרחק אקוסטי משוער: <b>'+displayed.value.toFixed(2)+' מטר</b><br><span style="font-size:11px;color:var(--dim)">לאחר הפחתת קיזוז המערכת המכויל</span>';
+  }
+  if(dlyDisplayUnit==='m'){
+    return '<span style="color:var(--warn)">לא ניתן להציג מרחק לפני כיול מול מרחק ידוע</span>';
+  }
+  return 'זמן נתיב כולל: <b>'+ms.toFixed(2)+' ms</b>';
+}
+function renderDelayPathResult(res){
+  const st=document.getElementById('dlyStatus');
+  const ms=res.ms;
+  const spread=dlyDisplayUnit==='m'
+    ? (Number.isFinite(dlyDistanceOffsetMs)?delayMsToMeters(res.spreadMs).toFixed(2)+'m':'—')
+    : res.spreadMs.toFixed(2)+'ms';
+  const quality='יציב '+res.validChecks+'/3 · אמינות '+Math.round(res.confidence*100)+'% · פיזור '+spread;
+  const alternativeValues=res.alternatives&&res.alternatives.length
+    ? res.alternatives.map(v=>{
+        const displayed=delayDisplayValue(v,dlyDisplayUnit,dlyDistanceOffsetMs);
+        return displayed?(displayed.unit==='m'?'≈'+displayed.value.toFixed(2)+'m':(v>=0?'+':'')+displayed.value.toFixed(1)+'ms'):null;
+      }).filter(Boolean).join(', ')
+    : '';
+  const alternatives=alternativeValues?'<br>פסגות חלופיות: '+alternativeValues:'';
+  st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?' · לא ממירים את המספר הזה למרחק':'')+alternatives+'</span>';
+  st.dataset.delayResult='path';
+}
 function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
   const st=document.getElementById('dlyStatus');
-  if(res==null){
-    st.textContent = silent==='mic' ? 'המיקרופון לא קלט אות — בדוק גיין/חיבור.'
-                   : silent==='ref' ? 'כניסה 2 (רפרנס) שקטה — ודא ניתוב רפרנס מהמיקסר.'
-                   : 'לא הצלחתי — ודא שמנגן אות רחב־פס ושכניסה 2 מקבלת רפרנס.';
-    return; }
-  const ms=res.ms, dist=Math.abs(ms)/1000*343;
-  const quality=res.reliable?'אמינות '+Math.round(res.confidence*100)+'%':'⚠ תוצאה לא יציבה — מדוד שוב עם sweep/רעש רחב־פס';
-  const alternatives=res.alternatives&&res.alternatives.length
-    ? '<br>פסגות חלופיות: '+res.alternatives.map(v=>(v>=0?'+':'')+v.toFixed(1)+'ms').join(', ')
-    : '';
-  st.innerHTML=(res.reliable?'':'⚠ ')+'דיליי ≈ <b>'+ms.toFixed(2)+' ms</b><br><span style="font-size:11px;color:'+(res.reliable?'var(--dim)':'var(--warn)')+'">≈ '+dist.toFixed(2)+' מ\' · '+(ms>=0?'המיק\' מאחר אחרי הרפרנס':'המיק\' מקדים את הרפרנס')+' · '+quality+alternatives+'</span>';
-}); }
-function runDelayCapture(btn, cb){
+  dlyLastSpeakerResult=null;
+  if(!res||!res.reliable){ dlyLastPathResult=null;delete st.dataset.delayResult;st.textContent=delayFailureText(res,silent); return; }
+  dlyLastPathResult=res;
+  renderDelayPathResult(res);
+},{maxDelayMs:delaySearchMs,mode:'arrival'}); }
+function delayChunkSize(sr,maxDelayMs){
+  const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
+  let n=8192; while(n/2-2<required&&n<65536)n*=2; return n;
+}
+function runDelayCapture(btn, cb, options){
+  options=options||{};
   if(!running||!analyserRef||!source){ alert('צריך כרטיס קול עם input סטריאו (מיק\'+רפרנס).'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   unfreezeForMeasure();
   dlyState='measuring';
-  const prevTxt=btn.textContent; btn.textContent='מקליט…'; btn.style.opacity=.5;
+  const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent='בודק 1 · 2 · 3…';btn.style.opacity=.5;btn.disabled=true;}
   const sr=audioCtx.sampleRate;
-  const captureSec = (genOn && genType==='sweep') ? Math.min(10, genSweepDur+0.6) : 2.0;
+  const maxDelayMs=Math.max(20,Math.min(100,Number(options.maxDelayMs)||delaySearchMs));
+  const minCapture=delayChunkSize(sr,maxDelayMs)*3/sr+.35;
+  const captureSec = (genOn && genType==='sweep') ? Math.min(10,Math.max(3.2,minCapture,genSweepDur+0.6)) : Math.max(3.2,minCapture);
   const want=Math.floor(sr*captureSec);
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
@@ -1619,7 +1843,7 @@ function runDelayCapture(btn, cb){
     workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet');
   } catch(e) {
     alert('AudioWorklet לא נטען. פתח את האתר דרך שרת (למשל Live Server ב-VSCode) ולא כקובץ מתיקייה.');
-    dlyState='idle'; btn.textContent=prevTxt; btn.style.opacity=1;
+    dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
     return;
   }
 
@@ -1632,27 +1856,83 @@ function runDelayCapture(btn, cb){
     const len = Math.min(c0.length, want - pos);
     for(let i=0; i<len; i++) { mic[pos]=c0[i]; ref[pos]=c1[i]; pos++; }
   };
-  workletNode.port.postMessage({ cmd: 'start' });
+  workletNode.port.postMessage({ cmd: 'start', micChannel:measChannel, refChannel:refChannel });
 
   setTimeout(()=>{
     workletNode.port.postMessage({ cmd: 'stop' });
-    try{ source.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
-    dlyState='idle'; btn.textContent=prevTxt; btn.style.opacity=1;
-    const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
-    const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
-    const micRms=rmsOf(m), refRms=rmsOf(r);
-    if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
-    cb(computeDelay(r, m, sr, {maxDelayMs:20}));
+    // Give the worklet one message turn to flush its last partial block before
+    // disconnecting and analysing the complete capture.
+    setTimeout(()=>{
+      try{ source.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
+      dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
+      const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
+      const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
+      const micRms=rmsOf(m), refRms=rmsOf(r);
+      if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
+      // Tell the estimator what kind of excitation it is looking at. A swept
+      // sine is narrowband inside any short analysis chunk, so it must be
+      // correlated across the whole capture instead of per-chunk. Pink/white
+      // noise stays on the proven per-chunk path; anything else ('auto') tries
+      // the chunk path first and falls back to full-capture correlation.
+      const signalType=(genOn&&genType==='sweep')?'sweep'
+        :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
+      cb(computeStableDelay(r, m, sr, {maxDelayMs, signalType}));
+    },60);
   }, captureSec*1000+100);
 }
 
+safeOn('dlyLoopbackBtn','click',function(){
+  if(!confirm('בדיקת חיבור דורשת שאותו אות בדיוק יגיע לשתי הכניסות.\nחבר/נתב את אותו Reference ל־MIC 1 ול־REF 2, ואז המשך.'))return;
+  const btn=this,st=document.getElementById('dlyStatus');
+  dlyLastPathResult=null;dlyLastSpeakerResult=null;delete st.dataset.delayResult;
+  pickSource(()=>runDelayCapture(btn,(res,silent)=>{
+    if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
+    const ok=Math.abs(res.ms)<=.30;
+    st.innerHTML=(ok?'✓ החיבור מסונכרן':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
+  },{maxDelayMs:20,mode:'loopback'}),3800);
+});
+
+safeOn('dlyDistanceCalBtn','click',function(){
+  const input=document.getElementById('dlyKnownDistance');
+  const known=Number(input&&input.value);
+  const btn=this,st=document.getElementById('dlyStatus');
+  dlyLastPathResult=null;dlyLastSpeakerResult=null;delete st.dataset.delayResult;
+  if(!Number.isFinite(known)||known<.2||known>20){
+    resetDistanceCalibration('הזן מרחק ידוע בין 0.2 ל־20 מטר');
+    st.innerHTML='<span style="color:var(--hot)">✕ הכיול לא התחיל:</span> הזן מרחק ידוע תקין בין 0.2 ל־20 מטר.';
+    return;
+  }
+  if(input)input.value=known.toFixed(1);
+  resetDistanceCalibration();
+  st.textContent='הצב את המיקרופון בדיוק '+known.toFixed(1)+' מטר מהרמקול והשאר את אותו ניתוב.';
+  pickSource(()=>runDelayCapture(btn,(res,silent)=>{
+    if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
+    const check=validateDistanceCalibration(res.ms,known);
+    if(!check.ok){
+      const measured=Number.isFinite(check.measuredMaxM)?check.measuredMaxM.toFixed(2):'—';
+      const reason='הוזנו '+known.toFixed(1)+'m, אך זמן ההגעה '+res.ms.toFixed(2)+'ms מתאים לכל היותר לכ־'+measured+'m';
+      resetDistanceCalibration(reason);
+      dlyDisplayUnit='m';updateDlyUnitUi();
+      st.innerHTML='<span style="color:var(--hot)">✕ הכיול נדחה ולא נשמר.</span> '+reason+'.<br><span style="font-size:11px;color:var(--dim)">בדוק את המרחק מהמרכז האקוסטי של הרמקול והפעל כיול מחדש.</span>';
+      return;
+    }
+    dlyDistanceKnownM=known;
+    dlyDistanceOffsetMs=check.offsetMs;
+    dlyDistanceCalError='';
+    dlyDisplayUnit='m';
+    updateDlyUnitUi();
+    const clampNote=check.clamped?' · סטייה של '+Math.abs(check.rawOffsetMs).toFixed(2)+'ms נוטרלה בתחום הסבילות':'';
+    st.innerHTML='✓ כיול מרחק נשמר לסשן: <b>'+known.toFixed(1)+'m</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">נמדדו '+res.ms.toFixed(2)+'ms · זמן אקוסטי צפוי '+check.acousticMs.toFixed(2)+'ms · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'+clampNote+'.</span>';
+  },{maxDelayMs:delaySearchMs,mode:'distance-calibration'}),3800);
+});
+
 const DLY_NAMES=['Top','Sub','FF'];
 function dlyName(i){ return DLY_NAMES[i] || ('רמקול '+(i+1)); }
-let dlySpeakers=[{name:dlyName(0),ms:null},{name:dlyName(1),ms:null}];
+let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null}];
 let dlyAnchor=0;
 function setDlyCount(n){
   const cur=dlySpeakers.length;
-  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null}); }
+  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null,confidence:0,spreadMs:null}); }
   else if(n<cur){ dlySpeakers=dlySpeakers.slice(0,n); if(dlyAnchor>=n) dlyAnchor=0; }
   renderDlySpk();
 }
@@ -1661,12 +1941,22 @@ function renderDlySpk(){
   box.innerHTML=dlySpeakers.map((s,i)=>{
     let add='—';
     if(s.ms!=null && dlySpeakers[dlyAnchor] && dlySpeakers[dlyAnchor].ms!=null){
-      if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן</span>';
+      if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן · יעד</span>';
       else{ const d=dlySpeakers[dlyAnchor].ms - s.ms;
-        add = d>=0 ? '<b style="color:var(--accent)">+'+d.toFixed(2)+' ms</b>'
-                   : '<span style="color:var(--warn)">'+d.toFixed(2)+' ms (מאוחר מהעוגן)</span>'; }
+        const equivalentM=delayMsToMeters(Math.abs(d));
+        if(Math.abs(d)<=.05)add='<b style="color:var(--accent)">✓ מיושר לעוגן</b>';
+        else if(d>0)add=dlyDisplayUnit==='m'
+          ? '<b style="color:var(--accent)">דיליי שקול +'+equivalentM.toFixed(2)+'m</b>'
+          : '<b style="color:var(--accent)">הוסף '+d.toFixed(2)+' ms</b>';
+        else add=dlyDisplayUnit==='m'
+          ? '<span style="color:var(--warn)">מאוחר ב־'+equivalentM.toFixed(2)+'m<br>בחר אותו כעוגן</span>'
+          : '<span style="color:var(--warn)">מאוחר ב־'+Math.abs(d).toFixed(2)+'ms<br>בחר אותו כעוגן</span>'; }
     }
-    const time=s.ms==null?'טרם נמדד':s.ms.toFixed(2)+' ms · '+(s.ms*.343).toFixed(2)+' m';
+    const distance=s.ms==null?null:calibratedDistanceMeters(s.ms,dlyDistanceOffsetMs);
+    const time=s.ms==null?'טרם נמדד'
+      :dlyDisplayUnit==='m'
+        ?(distance==null?'נדרש כיול מטרים':'≈ '+distance.toFixed(2)+' m')
+        :'נתיב '+s.ms.toFixed(2)+' ms'+(s.spreadMs!=null?' · ±'+(s.spreadMs/2).toFixed(2):'');
     return '<div class="dlySpeakerRow '+(i===dlyAnchor?'anchor':'')+'">'+
       '<span class="dlyAnchor" data-a="'+i+'" title="בחר כעוגן">'+(i===dlyAnchor?'●':'○')+'</span>'+
       '<input class="posName" data-i="'+i+'" value="'+escapeHtml(s.name||dlyName(i))+'">'+
@@ -1679,25 +1969,36 @@ function renderDlySpk(){
   box.querySelectorAll('.posName').forEach(inp=>inp.addEventListener('change',function(){ const i=+this.dataset.i; if(dlySpeakers[i]) dlySpeakers[i].name=this.value; }));
   box.querySelectorAll('.dlyMeasOne').forEach(b=>b.addEventListener('click',function(){
     const i=+this.dataset.i, btn=this;
-    pickSource(()=>runDelayCapture(btn,(res)=>{
+    const status=document.getElementById('dlyStatus');dlyLastPathResult=null;dlyLastSpeakerResult=null;if(status)delete status.dataset.delayResult;
+    pickSource(()=>runDelayCapture(btn,(res,silent)=>{
       if(res==null){ btn.textContent='נכשל'; setTimeout(()=>btn.textContent='מדוד',1500); return; }
-      if(!res.reliable){ btn.textContent='לא יציב'; setTimeout(()=>btn.textContent='מדוד',1800); return; }
-      dlySpeakers[i].ms=res.ms; renderDlySpk();
-    }),2100);
+      if(!res.reliable){ btn.textContent='לא יציב'; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent='מדוד',1800); return; }
+      dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;
+      dlyLastSpeakerResult={index:i,result:res};renderSpeakerMeasurementStatus(i,res);
+      renderDlySpk();
+    },{maxDelayMs:delaySearchMs,mode:'speaker'}),3800);
   }));
+}
+function renderSpeakerMeasurementStatus(i,res){
+  const st=document.getElementById('dlyStatus');if(!st||!res)return;
+  const displayed=delayDisplayValue(res.ms,dlyDisplayUnit,dlyDistanceOffsetMs);
+  const value=displayed?(displayed.unit==='m'?displayed.value.toFixed(2)+'m':displayed.value.toFixed(2)+'ms'):'נשמר · נדרש כיול להצגת מטרים';
+  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+' נשמר: <b>'+value+'</b> '+delayChecksHtml(res)+' · עכשיו מדוד את הרמקול הבא בלי להזיז את המיקרופון.';
+  st.dataset.delayResult='speaker';
 }
 document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('click',function(){
   document.querySelectorAll('#dlyCountSeg button').forEach(x=>x.classList.remove('on'));
   this.classList.add('on'); setDlyCount(+this.dataset.n);
 }));
 renderDlySpk();
+updateDlyUnitUi();
 
 function computeDelay(ref, mic, sr, options){
   options=options||{};
   const L = Math.min(ref.length, mic.length);
-  const chunkSize = 8192;
-  const hopSize = 4096;
-  const maxDelayMs=Math.max(2,Math.min(80,Number(options.maxDelayMs)||20));
+  const maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
+  const chunkSize=delayChunkSize(sr,maxDelayMs);
+  const hopSize=chunkSize/2;
   const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),chunkSize/2-2);
   if(L < chunkSize) return null;
 
@@ -1804,6 +2105,8 @@ function computeDelay(ref, mic, sr, options){
   const sorted=chunkLags.slice().sort((a,b)=>a-b);
   const median=sorted[Math.floor(sorted.length/2)];
   const consistent=chunkLags.filter(v=>Math.abs(v-median)<=Math.max(3,sr*.0005)).length/validChunks;
+  const deviations=chunkLags.map(v=>Math.abs(v-median)/sr*1000).sort((a,b)=>a-b);
+  const chunkSpreadMs=deviations[Math.min(deviations.length-1,Math.floor(deviations.length*.9))]||0;
   const rival=peaks.find(p=>Math.abs(p.lag-chosen.lag)>Math.max(4,sr*.001));
   const separation=rival?Math.max(0,Math.min(1,(chosen.v-rival.v)/(Math.abs(chosen.v)+1e-12))):1;
   const confidence=Math.max(0,Math.min(1,.65*consistent+.35*separation));
@@ -1811,12 +2114,177 @@ function computeDelay(ref, mic, sr, options){
   const broadbandScore=Math.max(0,Math.min(1,(activeBins-6)/30));
   const finalConfidence=confidence*broadbandScore;
   const alternatives=peaks.filter(p=>p!==chosen&&p.v>=strongest.v*.65).slice(0,3).map(p=>p.lag/sr*1000);
-  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins};
+  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins,consistent,validChunks,chunkSpreadMs};
+}
+
+// Full-capture GCC-PHAT for non-stationary excitation (swept sine). A sweep is
+// only a single tone inside any short window, so the per-chunk estimator above
+// starves for broadband content and rejects it. Correlated across the entire
+// capture, however, the sweep sweeps through the whole band and produces one of
+// the sharpest cross-correlation peaks there is. We still run three overlapping
+// wide windows for a real stability check that stays broadband on a sweep.
+function computeSweepDelay(ref,mic,sr,options){
+  options=options||{};
+  const L=Math.min(ref.length,mic.length);
+  const maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
+  if(L<8192)return null;
+  const maxFft=1<<19;
+  const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),maxFft/2-2);
+  if(maxLag<2)return null;
+  // Keep enough zero padding for a linear (not circular) correlation at every
+  // supported search range. Long 96 kHz captures are analysed as three wide
+  // representative windows instead of silently overflowing the FFT buffers.
+  const pad=Math.max(64,maxLag*2+2);
+  const maxSeg=Math.max(8192,maxFft-pad);
+  const mainSeg=Math.min(L,maxSeg);
+  // Broad-band sweeps remain broadband in shorter windows, but a sub-only
+  // sweep needs most of its duration to retain enough occupied bandwidth.
+  const sideSeg=Math.min(mainSeg,Math.max(8192,Math.floor(L*.82)));
+  const centerStart=Math.max(0,Math.floor((L-mainSeg)/2));
+  const windows=L>maxSeg
+    ? [[centerStart,centerStart+mainSeg],[0,mainSeg],[L-mainSeg,L]]
+    : [[0,L],[0,sideSeg],[L-sideSeg,L]];
+  const results=[];
+
+  for(let wi=0;wi<windows.length;wi++){
+    const ws=windows[wi][0],we=windows[wi][1],seg=we-ws;
+    if(seg<4096){results.push(null);continue;}
+    let N=1;while(N<seg+pad)N<<=1;
+    if(N>maxFft){results.push(null);continue;}
+    const xr=new Float64Array(N),xi=new Float64Array(N),yr=new Float64Array(N),yi=new Float64Array(N);
+    // Light Tukey taper (10% each edge) so a sweep that does not start/stop
+    // exactly at the capture boundary does not smear the spectrum.
+    const taper=Math.max(1,Math.floor(seg*0.1));
+    let eRef=0,eMic=0;
+    for(let i=0;i<seg;i++){
+      let w=1;
+      if(i<taper)w=0.5*(1-Math.cos(Math.PI*i/taper));
+      else if(i>=seg-taper)w=0.5*(1-Math.cos(Math.PI*(seg-1-i)/taper));
+      const rv=ref[ws+i]*w,mv=mic[ws+i]*w;
+      xr[i]=rv;yr[i]=mv;eRef+=rv*rv;eMic+=mv*mv;
+    }
+    if(eRef<1e-7||eMic<1e-7){results.push(null);continue;}
+    fft(xr,xi,false);fft(yr,yi,false);
+    let crossMax=0;
+    for(let k=1;k<N/2;k++){
+      const f=k*sr/N;if(f<25||f>16000)continue;
+      const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
+      const m=Math.hypot(cr,ci);if(m>crossMax)crossMax=m;
+    }
+    let activeBins=0,activeLo=Infinity,activeHi=0;
+    for(let k=0;k<N;k++){
+      const signedK=k<=N/2?k:k-N,f=Math.abs(signedK)*sr/N;
+      const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
+      const mag=Math.hypot(cr,ci)+1e-12;
+      if(k>0&&k<N/2&&f>=25&&f<=16000&&mag>=crossMax*.05){activeBins++;activeLo=Math.min(activeLo,f);activeHi=Math.max(activeHi,f);}
+      let w=0;
+      if(f>=20&&f<=18000){
+        const lo=Math.min(1,(f-20)/40),hi=Math.min(1,(18000-f)/3000);
+        w=Math.max(0,Math.min(lo,hi));
+      }
+      xr[k]=w*cr/mag;xi[k]=w*ci/mag;
+    }
+    fft(xr,xi,true);
+    let best=-Infinity,bestLag=0;
+    for(let lag=-maxLag;lag<=maxLag;lag++){
+      const idx=lag<0?N+lag:lag,v=xr[idx];
+      if(v>best){best=v;bestLag=lag;}
+    }
+    const bandwidthHz=activeBins?Math.max(0,activeHi-activeLo):0;
+    // A narrow-band sub sweep has a naturally wide correlation lobe. Do not
+    // count the shoulders of that same lobe as rival arrivals.
+    const resolutionMs=bandwidthHz>0?1000/bandwidthHz:Infinity;
+    const guardMs=Math.min(12,Math.max(.6,resolutionMs*1.5));
+    const guard=Math.max(4,Math.round(sr*guardMs/1000));
+    let second=-Infinity;
+    for(let lag=-maxLag;lag<=maxLag;lag++){
+      if(Math.abs(lag-bestLag)<=guard)continue;
+      const idx=lag<0?N+lag:lag;if(xr[idx]>second)second=xr[idx];
+    }
+    const li=(bestLag-1)<0?N+bestLag-1:bestLag-1;
+    const cidx=bestLag<0?N+bestLag:bestLag;
+    const ri=(bestLag+1)<0?N+bestLag+1:bestLag+1;
+    const denom=xr[li]-2*xr[cidx]+xr[ri];
+    const frac=Math.abs(denom)>1e-12?.5*(xr[li]-xr[ri])/denom:0;
+    const lag=bestLag+Math.max(-.5,Math.min(.5,frac));
+    const separation=best>0?Math.max(0,Math.min(1,(best-Math.max(0,second))/best)):0;
+    const toleranceMs=Math.min(1,Math.max(.30,resolutionMs*.10));
+    results.push({ms:lag/sr*1000,samples:lag,peak:best,separation,activeBins,bandwidthHz,resolutionMs,toleranceMs});
+  }
+
+  const full=results[0];
+  if(!full)return null;
+  const tol=full.toleranceMs;
+  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=70&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
+  const validChecks=checks.filter(c=>c.reliable).length;
+  const agreeMs=results.filter((r,i)=>checks[i].reliable).map(r=>r.ms);
+  const spreadMs=agreeMs.length>1?Math.max.apply(null,agreeMs)-Math.min.apply(null,agreeMs):0;
+  const reliable=!!(full.separation>=.40&&full.activeBins>=60&&full.bandwidthHz>=70&&validChecks>=2&&spreadMs<=tol);
+  const confidence=Math.max(0,Math.min(1,full.separation*Math.min(1,full.activeBins/120)*Math.min(1,full.bandwidthHz/100)));
+  return {
+    ms:full.ms,samples:full.samples,confidence,reliable,stable:reliable,
+    checks,validChecks,spreadMs,fullMs:full.ms,alternatives:[],maxDelayMs,
+    activeBins:full.activeBins,bandwidthHz:full.bandwidthHz,resolutionMs:full.resolutionMs,method:'sweep'
+  };
+}
+
+// One capture is divided into three independent time windows. A result is only
+// accepted when at least two windows agree within 0.20ms and the full capture
+// points to the same arrival. This prevents a reflection or one bass cycle from
+// silently becoming the system delay. Non-stationary excitation (a sweep) is
+// routed to computeSweepDelay, and any signal type gets a full-capture rescue
+// pass when the per-chunk path cannot lock.
+function computeStableDelay(ref,mic,sr,options){
+  options=options||{};
+  const L=Math.min(ref.length,mic.length),maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
+  const signalType=options.signalType||'auto';
+
+  // A swept sine goes straight to the full-capture correlator.
+  let sweepResult=null;
+  if(signalType==='sweep'){
+    sweepResult=computeSweepDelay(ref,mic,sr,{maxDelayMs});
+    if(sweepResult&&sweepResult.reliable)return sweepResult;
+  }
+
+  const full=computeDelay(ref,mic,sr,{maxDelayMs});
+  const checks=[];
+  const third=Math.floor(L/3);
+  for(let i=0;i<3;i++){
+    const start=i*third,end=i===2?L:(i+1)*third;
+    checks.push(computeDelay(ref.subarray(start,end),mic.subarray(start,end),sr,{maxDelayMs}));
+  }
+  const valid=checks.filter(r=>r&&r.reliable).sort((a,b)=>a.ms-b.ms);
+
+  let chunkResult;
+  if(!valid.length){
+    chunkResult=full?Object.assign({},full,{reliable:false,stable:false,checks,validChecks:0,spreadMs:Infinity}):null;
+  }else{
+    const medianMs=valid[Math.floor(valid.length/2)].ms;
+    const spreadMs=valid.length>1?valid[valid.length-1].ms-valid[0].ms:Infinity;
+    const fullAgrees=!!(full&&full.reliable&&Math.abs(full.ms-medianMs)<=.25);
+    const stable=valid.length>=2&&spreadMs<=.20&&fullAgrees;
+    const base=valid.reduce((best,r)=>Math.abs(r.ms-medianMs)<Math.abs(best.ms-medianMs)?r:best,valid[0]);
+    const avgConfidence=valid.reduce((sum,r)=>sum+r.confidence,0)/valid.length;
+    const confidence=Math.max(0,Math.min(1,avgConfidence*(stable?1:.55)));
+    const alternatives=Array.from(new Set(valid.flatMap(r=>r.alternatives||[]).map(v=>Math.round(v*10)/10))).filter(v=>Math.abs(v-medianMs)>.5).slice(0,3);
+    chunkResult=Object.assign({},base,{
+      ms:medianMs,samples:medianMs*sr/1000,confidence,reliable:stable,stable,
+      checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs
+    });
+  }
+
+  if(chunkResult&&chunkResult.reliable)return chunkResult;
+
+  // Do not apply the sweep correlator to arbitrary music or an unknown external
+  // source: a plausible-looking full-capture peak is not proof of a sweep.
+  // For an explicitly selected sweep, preserve its diagnostics even on failure.
+  if(signalType==='sweep'&&sweepResult)return sweepResult;
+  return chunkResult;
 }
 
 function measureBusy(){
   return measState==='measuring' || areaState==='measuring' || tfState==='measuring'
-      || dlyState==='measuring' || rt60State!=='idle';
+      || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || rt60State!=='idle';
 }
 function unfreezeForMeasure(){
   if(!frozen) return;
@@ -2100,7 +2568,10 @@ function setFft(n){
   const supported=(window.GAL&&window.GAL.config&&window.GAL.config.supportedFft)||[8192,16384,32768];
   n=parseInt(n,10);
   fftSize=supported.includes(n)?n:16384;
+  const hadAlignment=!!(phaseSub||phaseTop);
   configureTfFft(fftSize);
+  if(hadAlignment)clearSubTopSnapshots('רזולוציית FFT השתנתה — מדוד שוב סאב וטופ.');
+  if(tfDelayReady)syncTfWorkflowUi('<b>רזולוציית FFT השתנתה:</b> בצע שוב את אימות TF','warn');
   setTimeout(v3UpdateStatus,0);
   if(analyser){
     analyser.fftSize=fftSize; analyserRef.fftSize=fftSize;
@@ -2143,10 +2614,6 @@ function resetSession(){
   const tr = stream && stream.getAudioTracks && stream.getAudioTracks()[0];
   if(running && (!tr || tr.readyState==='ended')){ stop(); start(); return; }
   peaks.fill(0); avgBuf.fill(0); snapCurve=null; frozen=false;
-  phaseSub=null; phaseTop=null; showXover=false; phMeasuring=false;
-  { const s=document.getElementById('phSubBtn'); if(s){ s.classList.remove('on'); s.textContent='מדוד + לכוד סאב'; s.disabled=false; } }
-  { const t=document.getElementById('phTopBtn'); if(t){ t.classList.remove('on'); t.textContent='מדוד + לכוד טופ'; t.disabled=false; } }
-  { const st=document.getElementById('phStatus'); if(st){ st.textContent='מדוד סאב לבד, ואז טופ לבד — כל מדידה 3 שניות.'; st.style.color='var(--dim)'; } }
   abA=null; abB=null; abView='off';
   { const a=document.getElementById('abCapA'); if(a){ a.classList.remove('on'); a.textContent='לכוד לפני (A)'; } }
   { const b=document.getElementById('abCapB'); if(b){ b.classList.remove('on'); b.textContent='לכוד אחרי (B)'; } }
@@ -2199,6 +2666,7 @@ async function start(deviceId){
   errBox.style.display='none';
   // Compensation is valid only for the current physical routing.
   resetTfAutoDelay();
+  resetDistanceCalibration();
   try{
     if(deviceId===undefined)deviceId=activeInId;
     const audio = {
@@ -2342,6 +2810,7 @@ async function switchInput(deviceId){
 function stop(){
   running=false; if(raf) cancelAnimationFrame(raf);
   resetTfAutoDelay();
+  resetDistanceCalibration();
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
   if(rt60ArmTimer){clearTimeout(rt60ArmTimer);rt60ArmTimer=null;}if(rt60CutTimer){clearTimeout(rt60CutTimer);rt60CutTimer=null;}if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
   rt60State='idle'; measState='idle'; areaState='idle'; dlyState='idle';
@@ -2598,7 +3067,7 @@ function drawRtaEqRange(W,H,xForFreq){
 }
 
 function drawRtaEqCorrection(W,H,xForFreq){
-  if(!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return;
+  if(!eqCorrectionVisible||!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return;
   const meterH=(meterEl&&meterEl.style.display!=='none')?40:6,plotH=H-meterH-16;
   const ribbonH=Math.min(82,Math.max(58,plotH*.18)),top=plotH-ribbonH-5,mid=top+ribbonH/2,scale=(ribbonH*.38)/6;
   const pts=[];for(let i=0;i<eqCurveData.freqs.length;i++){const f=eqCurveData.freqs[i],v=eqCurveData.corr[i];if(v!=null&&Number.isFinite(v))pts.push({x:xForFreq(f),y:mid-v*scale,v});}
@@ -2858,8 +3327,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.fillStyle='#e879f9'; ctx.fillText('טופ: '+(topOk?toDeg(phaseTop.ph[k]).toFixed(0)+'°':'— קוה׳ נמוכה'), rx, by+54);
       if(subOk && topOk){
         const d=wrap(toDeg(phaseTop.ph[k]-phaseSub.ph[k])); const ad=Math.abs(d);
-        const col = ad<30?'#22c55e' : ad>150?'#ef4444' : '#f59e0b';
-        const verdict = ad<30?'מיושר ✓' : ad>150?'הפוך — פולריות' : 'כוונן דיליי';
+        const col = ad<30?'#22c55e':'#f59e0b';
+        const verdict = ad<30?'מיושר ✓':'המלצה למטה';
         ctx.fillStyle=col; ctx.fillText('Δφ: '+(d>0?'+':'')+d.toFixed(0)+'°  '+verdict, rx, by+76);
       } else {
         ctx.fillStyle=sunMode?'#64748b':'#94a3b8'; ctx.fillText('לכוד סאב וטופ למדידת Δφ', rx, by+76);
@@ -3179,70 +3648,213 @@ safeOn('tfCohGate','input',function(e){
   tfCohGate = Math.max(0, Math.min(0.9, parseInt(e.target.value,10)/100));
   const t = document.getElementById('tfCohGateVal');
   if(t) t.textContent = tfCohGate.toFixed(2);
+  if(tfDelayReady){
+    tfWorkflowVerified=false;
+    syncTfWorkflowUi('<b>סף הקוהרנטיות השתנה:</b> בצע שוב את שלב 2','warn');
+  }
 });
 
 // ---- יישור חיתוך סאב/טופ ----
+function optimizeSubTopAlignment(sub,top,sr,crossoverHz,coherenceGate,options){
+  options=options||{};
+  if(!sub||!top||!sub.ph||!top.ph||!sub.mag||!top.mag||!sub.coh||!top.coh)return {reliable:false,reason:'חסרות מדידות סאב או טופ'};
+  sr=Math.max(8000,Number(sr)||48000);
+  crossoverHz=Math.max(20,Math.min(sr/3,Number(crossoverHz)||90));
+  coherenceGate=Math.max(0,Math.min(.95,Number(coherenceGate)||.4));
+  const n=Math.min(sub.ph.length,top.ph.length,sub.mag.length,top.mag.length,sub.coh.length,top.coh.length);
+  const fftN=Math.max(2,Number(sub.fftN)||Number(top.fftN)||n*2);
+  const ratio=Math.pow(2,1/3),fLo=crossoverHz/ratio,fHi=crossoverHz*ratio;
+  const points=[];let bandBins=0,cohSum=0,balanceSum=0;
+  for(let k=1;k<n;k++){
+    const f=k*sr/fftN;if(f<fLo||f>fHi)continue;bandBins++;
+    const cs=Number(sub.coh[k]),ct=Number(top.coh[k]),ms=Number(sub.mag[k]),mt=Number(top.mag[k]);
+    if(!Number.isFinite(cs)||!Number.isFinite(ct)||cs<coherenceGate||ct<coherenceGate||!Number.isFinite(ms)||!Number.isFinite(mt))continue;
+    const a=Math.pow(10,ms/20),b=Math.pow(10,mt/20);if(!(a>0)||!(b>0))continue;
+    const balance=Math.min(a,b)/Math.max(a,b);
+    if(balance<.08)continue;
+    const coh=Math.sqrt(Math.max(0,cs*ct)),weight=coh*Math.sqrt(balance);
+    points.push({f,a,b,ps:Number(sub.ph[k]),pt:Number(top.ph[k]),weight,coh,balance});
+    cohSum+=coh;balanceSum+=balance;
+  }
+  const coverage=bandBins?points.length/bandBins:0;
+  const meanCoh=points.length?cohSum/points.length:0,meanBalance=points.length?balanceSum/points.length:0;
+  const minPoints=Math.max(3,Math.min(5,Math.ceil(bandBins*.5)));
+  if(points.length<minPoints)return {reliable:false,reason:'אין מספיק נקודות אמינות סביב החיתוך',points:points.length,coverage,meanCoh,meanBalance,band:{lo:fLo,hi:fHi}};
+  const score=(tauMs,polarity)=>{
+    let sum=0,weights=0;
+    for(const p of points){
+      const relative=p.pt-p.ps-2*Math.PI*p.f*tauMs/1000+(polarity<0?Math.PI:0);
+      const combined=Math.sqrt(Math.max(1e-24,p.a*p.a+p.b*p.b+2*p.a*p.b*Math.cos(relative)));
+      const efficiency=20*Math.log10(Math.max(1e-12,combined/(p.a+p.b)));
+      sum+=p.weight*efficiency;weights+=p.weight;
+    }
+    return weights?sum/weights:-120;
+  };
+  const maxDelayMs=Math.max(.5,Math.min(20,Number(options.maxDelayMs)||20));
+  const stepMs=Math.max(.01,Math.min(.1,Number(options.stepMs)||.02));
+  const steps=Math.ceil(maxDelayMs/stepMs);
+  let peakScore=-Infinity;
+  for(const polarity of [1,-1])for(let i=-steps;i<=steps;i++)peakScore=Math.max(peakScore,score(i*stepMs,polarity));
+  // Several delays one cycle apart can look similar. Among candidates within
+  // 0.002dB of the optimum, prefer the smallest physical change and normal
+  // polarity, so the recommendation cannot jump to an unnecessary full cycle.
+  let chosen=null;
+  for(const polarity of [1,-1])for(let i=-steps;i<=steps;i++){
+    const tauMs=i*stepMs,s=score(tauMs,polarity);if(s<peakScore-.002)continue;
+    const rank=Math.abs(tauMs)+(polarity<0?.005:0);
+    if(!chosen||rank<chosen.rank||(rank===chosen.rank&&s>chosen.score))chosen={tauMs,polarity,score:s,rank};
+  }
+  const baselineScore=score(0,1),improvement=Math.max(0,chosen.score-baselineScore);
+  const nearest=points.reduce((best,p)=>Math.abs(p.f-crossoverHz)<Math.abs(best.f-crossoverHz)?p:best,points[0]);
+  const wrapDeg=rad=>{let d=rad*180/Math.PI;while(d>180)d-=360;while(d<-180)d+=360;return d;};
+  const beforeDeg=wrapDeg(nearest.pt-nearest.ps);
+  const afterDeg=wrapDeg(nearest.pt-nearest.ps-2*Math.PI*nearest.f*chosen.tauMs/1000+(chosen.polarity<0?Math.PI:0));
+  const balanceConfidence=Math.min(1,meanBalance/.5);
+  const confidence=Math.max(0,Math.min(1,meanCoh*(.45+.55*Math.min(1,coverage))*balanceConfidence));
+  const reliable=coverage>=.32&&meanCoh>=coherenceGate&&confidence>=.42;
+  const noChange=chosen.polarity>0&&Math.abs(chosen.tauMs)<.08&&(improvement<.3||Math.abs(afterDeg)<30);
+  return {
+    reliable,reason:reliable?'':'הקוהרנטיות או איזון העוצמות באזור החיתוך אינם מספיקים',
+    delayTarget:chosen.tauMs>.04?'top':chosen.tauMs<-.04?'sub':null,
+    delayMs:Math.abs(chosen.tauMs),polarityInverted:chosen.polarity<0,noChange,
+    improvementDb:improvement,currentScore:baselineScore,optimizedScore:chosen.score,
+    beforeDeg,afterDeg,confidence,coverage,meanCoh,meanBalance,points:points.length,
+    band:{lo:fLo,hi:fHi},crossoverHz
+  };
+}
+
+function scheduleAlignBarResize(){
+  setTimeout(()=>{
+    const bar=document.getElementById('alignBar'),stage=document.getElementById('stage');
+    if(!alignOn||!bar||!stage)return;
+    stage.style.setProperty('--bar-h',bar.offsetHeight+'px');
+    if(typeof resize==='function')resize();
+  },0);
+}
+function updateAlignmentRecommendation(){
+  const el=document.getElementById('phRecommendation');if(!el)return;
+  el.classList.remove('ready','warn');
+  if(!phaseSub||!phaseTop){
+    alignRecommendation=null;
+    if(!tfDelayReady) el.innerHTML='<strong>שלב 1:</strong><span>השאר טופ בלבד ובצע סנכרון TF</span>';
+    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר רעש ורוד פנימי או מקור חיצוני</span>';
+    else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, לחץ מדוד טופ ובחר את אותו מקור אות</span>';
+    scheduleAlignBarResize();
+    return;
+  }
+  const sr=(phaseSub.sr||phaseTop.sr||(audioCtx&&audioCtx.sampleRate)||48000);
+  const rec=optimizeSubTopAlignment(phaseSub,phaseTop,sr,xoverF,tfCohGate,{maxDelayMs:20,stepMs:.02});
+  alignRecommendation=rec;
+  const range=Math.round(rec.band.lo)+'–'+Math.round(rec.band.hi)+'Hz';
+  if(!rec.reliable){
+    el.classList.add('warn');
+    el.innerHTML='<strong>אין המלצה אמינה</strong><span>'+rec.reason+'</span><span class="phRecMeta">'+range+' · '+Math.round((rec.meanCoh||0)*100)+'% קוהרנטיות</span>';
+    scheduleAlignBarResize();
+    return;
+  }
+  const confidence=Math.round(rec.confidence*100),improvement=rec.improvementDb>12?'>12':rec.improvementDb.toFixed(1);
+  if(rec.noChange){
+    el.classList.add('ready');
+    el.innerHTML='<strong>✓ הסאב והטופ כבר מיושרים</strong><span>אין צורך לשנות דיליי או פולריות</span><span class="phRecMeta">'+range+' · Δφ צפוי '+rec.afterDeg.toFixed(0)+'° · אמינות '+confidence+'%</span>';
+    scheduleAlignBarResize();
+    return;
+  }
+  const actions=[];
+  actions.push(rec.polarityInverted?'הפוך פולריות בסאב':'השאר פולריות רגילה');
+  if(rec.delayTarget)actions.push('הוסף '+rec.delayMs.toFixed(2)+'ms ל'+(rec.delayTarget==='sub'?'סאב':'טופ'));
+  else actions.push('ללא תוספת דיליי');
+  el.classList.add('ready');
+  el.innerHTML='<strong>'+actions.join(' · ')+'</strong><span>שיפור צפוי '+improvement+'dB · אחרי השינוי מדוד מחדש כל מקור ששונה</span><span class="phRecMeta">'+range+' · Δφ '+rec.beforeDeg.toFixed(0)+'°→'+rec.afterDeg.toFixed(0)+'° · אמינות '+confidence+'%</span>';
+  scheduleAlignBarResize();
+}
+
 function tfPhaseSnapshot(){
   const n=TF_FFT_N/2, ph=new Float32Array(n), coh=new Float32Array(n), mag=new Float32Array(n);
   for(let k=0;k<n;k++){
     ph[k]=Math.atan2(tfPxyIm[k], tfPxyRe[k]);
     const pxySq=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
     coh[k]=Math.max(0,Math.min(1, pxySq/(tfPxx[k]*tfPyy[k]+1e-12)));
-    mag[k]=10*Math.log10(tfPyy[k]+1e-12);   // תגובת המיקרופון (dB) — מראה את הבור בחיתוך
+    mag[k]=20*Math.log10(Math.hypot(tfPxyRe[k],tfPxyIm[k])/(tfPxx[k]+1e-12)+1e-12);
   }
-  return {ph,coh,mag};
+  return {ph,coh,mag,sr:audioCtx?audioCtx.sampleRate:48000,fftN:TF_FFT_N};
 }
-let phMeasuring=false;
+let phMeasuring=false,phMeasureTimer=null;
+function syncSubTopWorkflowUi(){
+  const sync=document.getElementById('phSyncBtn');
+  const sub=document.getElementById('phSubBtn');
+  const top=document.getElementById('phTopBtn');
+  if(sync){
+    sync.classList.toggle('on',tfDelayReady);
+    sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':'1 · סנכרון TF';
+    sync.disabled=phMeasuring;
+  }
+  if(sub){
+    if(!phaseSub)sub.textContent='2 · מדוד סאב';
+    sub.disabled=phMeasuring||!tfDelayReady;
+  }
+  if(top){
+    if(!phaseTop)top.textContent='3 · מדוד טופ';
+    top.disabled=phMeasuring||!tfDelayReady||!phaseSub;
+  }
+}
+function clearSubTopSnapshots(message){
+  if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}
+  phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;
+  const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
+  const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
+  const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב ואז טופ — בכל שלב בחר רעש ורוד פנימי או מקור חיצוני.';st.style.color='var(--dim)';}
+  syncSubTopWorkflowUi();
+  updateAlignmentRecommendation();
+}
 function capturePhase(which){
   if(!analyser || !analyserRef){ alert('פאזה דורשת מדידת מיק/רפרנס פעילה (רפרנס בערוץ 2).'); return; }
-  if(phMeasuring) return;
+  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!tfDelayReady){ alert('תחילה בצע את שלב 1 — סנכרון TF.'); return; }
+  if(which==='top'&&!phaseSub){ alert('תחילה בצע את שלב 2 — מדידת הסאב לבדו.'); return; }
   phMeasuring=true;
   const btn=document.getElementById(which==='sub'?'phSubBtn':'phTopBtn');
   const other=document.getElementById(which==='sub'?'phTopBtn':'phSubBtn');
   const st=document.getElementById('phStatus');
   const label=which==='sub'?'סאב':'טופ';
-  const baseTxt=which==='sub'?'מדוד + לכוד סאב':'מדוד + לכוד טופ';
-  if(other) other.disabled=true;
+  if(which==='sub')phaseSub=null;else phaseTop=null;
+  alignRecommendation=null;
+  if(btn)btn.classList.remove('on');
+  syncSubTopWorkflowUi();
+  updateAlignmentRecommendation();
   // אפס צוברים לחלון מדידה נקי
   tfPxx.fill(0); tfPyy.fill(0); tfPxyRe.fill(0); tfPxyIm.fill(0);
   let t=3;
   const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
   tick();
-  const iv=setInterval(()=>{
+  phMeasureTimer=setInterval(()=>{
     t--;
     if(t>0){ tick(); return; }
-    clearInterval(iv);
+    clearInterval(phMeasureTimer);phMeasureTimer=null;
     const snap=tfPhaseSnapshot();
     if(which==='sub') phaseSub=snap; else phaseTop=snap;
     showXover=true;
     const N2=TF_FFT_N/2, nyq=(typeof audioCtx!=='undefined'&&audioCtx)?audioCtx.sampleRate/2:24000;
     const k=Math.min(N2-1, Math.round(xoverF/nyq*N2));
     const c=snap.coh[k];
-    if(btn){ btn.classList.add('on'); btn.textContent='✓ '+label+' נלכד'; }
-    if(other) other.disabled=false;
+    if(btn){ btn.classList.add('on'); btn.textContent='✓ '+(which==='sub'?'2':'3')+' · '+label+' נלכד'; }
     if(st){
       if(c>=0.5){ st.textContent='✓ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' — אמין'; st.style.color='#22c55e'; }
       else { st.textContent='⚠ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' נמוכה — קרב מיק׳/העלה רמה ומדוד שוב'; st.style.color='#f59e0b'; }
     }
     phMeasuring=false;
+    syncSubTopWorkflowUi();
+    updateAlignmentRecommendation();
   },1000);
 }
-safeOn('phSubBtn','click',()=>capturePhase('sub'));
-safeOn('phTopBtn','click',()=>capturePhase('top'));
-safeOn('phPinkBtn','click',function(){
-  if(genOn && genType==='pink'){ genStop(); return; }
-  genType='pink'; if(typeof setGenTypeUI==='function') setGenTypeUI('pink');
-  genStart();
-});
+safeOn('phSubBtn','click',()=>pickSource(()=>capturePhase('sub'),3200,{title:'אות למדידת הסאב לבדו',allowed:['pink','external']}));
+safeOn('phTopBtn','click',()=>pickSource(()=>capturePhase('top'),3200,{title:'אות למדידת הטופ לבדו',allowed:['pink','external']}));
 safeOn('phClearBtn','click',function(){
-  phaseSub=null; phaseTop=null; showXover=false;
-  const s=document.getElementById('phSubBtn'); if(s){ s.classList.remove('on'); s.textContent='מדוד + לכוד סאב'; s.disabled=false; }
-  const t=document.getElementById('phTopBtn'); if(t){ t.classList.remove('on'); t.textContent='מדוד + לכוד טופ'; t.disabled=false; }
-  const st=document.getElementById('phStatus'); if(st){ st.textContent='מדוד סאב לבד, ואז טופ לבד — כל מדידה 3 שניות.'; st.style.color='var(--dim)'; }
+  clearSubTopSnapshots();
 });
 safeOn('xoverF','input',function(e){
   xoverF=parseInt(e.target.value,10);
   const t=document.getElementById('xoverFVal'); if(t) t.textContent=xoverF+' Hz';
+  updateAlignmentRecommendation();
 });
 
 const SAVE_KEY='rta_saves';
@@ -3396,7 +4008,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.4.55';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.1';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -3756,7 +4368,7 @@ const HELP={
   wgtBtn:'שקלול המד: dBZ (טכני), dBA (חוק/אוזן),\ndBC (עם בס). לחיצה מחליפה.',
   leqBtn:'אפס Leq: מתחיל מדידת ממוצע עוצמה\nמחדש מהרגע הזה.',
   tfTraceBtn:'לוכד את עקומת ה-TF הנוכחית ומשאיר אותה על הגרף להשוואה למדידה הבאה.',
-  tfAutoDelayBtn:'מחשב אוטומטית את הפרש הזמן בין הרפרנס למיקרופון ומיישר את ה-TF.',
+  tfAutoDelayBtn:'סנכרון TF: מודד שלוש פעמים את הפרש הזמן בין Reference למיקרופון ומיישר את הפאזה. אינו מכוון דיליי בין רמקולים.',
   resetPeakBtn:'איפוס מיידי של כל סימוני ה-Peak Hold.',
   avgSpeedSeg:'קובע כמה מהר המיצוע מגיב לשינויים. מהיר = תגובה זריזה, איטי = תצוגה יציבה.',
   peakBtn:'Peak Hold: משאיר את השיאים על המסך.',
@@ -3788,15 +4400,25 @@ const HELP={
   eqResetBtn:'נקה את כל המיקומים.',
   areaMeasBtn:'מדוד אזור חדש (עד 4). להשוואת\nצדדים שונים של המעגל.',
   areaEqBtn:'חשב תיקון EQ ממוצע לכל האזורים.',
-  dlyMeasBtn:'מדוד דיליי בודד (מיק\' מול רפרנס).',
+  dlyMeasBtn:'מודד שלוש פעמים את זמן הנתיב הכולל. להשוואת רמקולים השתמש רק ב־Δ מול העוגן.',
+  dlyLoopbackBtn:'בדיקת חיבור: אותו אות בשתי הכניסות צריך להחזיר תוצאה קרובה ל־0ms.',
+  dlyUnitSeg:'בחר תצוגת זמן ב־ms או מרחק משוער במטרים. מטרים דורשים כיול מול מרחק ידוע.',
+  dlyKnownDistance:'המרחק המדוד בפועל בין מרכז הרמקול למיקרופון בזמן כיול המרחק.',
+  dlyDistanceCalBtn:'הצב את המיקרופון במרחק הידוע ולחץ כאן. הכיול מפחית את זמן המערכת ונפסל אם המרחק שהוזן אינו אפשרי לפי זמן ההגעה שנמדד.',
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
+  phSyncBtn:'שלב 1: השאר טופ בלבד. הסנכרון מודד ומפצה את הפרש הנתיבים בין המיקרופון ל־Reference.',
+  phSubBtn:'שלב 2: פותח בחירת רעש ורוד פנימי או מקור חיצוני ולוכד שלוש שניות של הסאב לבדו. הטופ חייב להיות מושתק.',
+  phTopBtn:'שלב 3: פותח את אותה בחירת אות ולוכד שלוש שניות של הטופ לבדו. הסאב חייב להיות מושתק.',
+  xoverF:'תדר החיתוך בפועל. האופטימייזר בודק שליש אוקטבה סביב הערך הזה.',
+  phRecommendation:'המלצת יישור המחושבת מטווח החיתוך: רמקול לדיליי, ערך ms, פולריות, שיפור צפוי ואמינות.',
   rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',
   rtLevel:'עוצמת המדידה. כוונן לפני שמתחיל.',
   rtRange:'טווח דעיכה נדרש. נמוך יותר = קל\nלמדוד בחדר שקט, פחות מדויק.',
   tfOverlayHdr:'הצג/הסתר את עקומות המיק\' והרפרנס\nיחד על הגרף הראשי.',
   tfOverlayBtn:'משאיר את עקומות המיק\' והרפרנס על הגרף\nהראשי גם כשהפאנל סגור.',
-  tfAutoDelayBtn:'מחשב ומאפס את השהיית הטיסה האקוסטית של המיקרופון בלחיצה אחת.',
+  tfAutoDelayBtn:'סנכרון TF בלבד: מפצה את הפרש נתיבי MIC ו־Reference. מבצעים פעם אחת אחרי שינוי חיבור או מיקום מיקרופון.',
+  tfVerifyBtn:'שלב 2: פותח בחירת מקור, מפעיל אות פנימי אם נבחר, אוסף שתי שניות ומאמת פאזה וקוהרנטיות לפני Trace או EQ.',
   tfPhaseToggleBtn:'מציג/מסתיר את גרף הפאזה (ירוק).',
   tfCohToggleBtn:'מציג/מסתיר את גרף הקוהרנטיות (אדום מקווקו).',
   saveBtn:'מדידות שמורות: שמור וטען מדידות\nלפי מקום ותאריך.',
@@ -3813,7 +4435,7 @@ const HELP={
   v5ResetSession:'מאפס מדידות, Traces ותוצאות EQ לאחר בקשת אישור.',
   v54SideToggle:'פותח או סוגר את סרגל המדידות בצד שמאל.',
   v52IoBtn:'I/O: בחירת כרטיס קול, ערוצים, רזולוציה וכיול.',
-  v52AutoDelayBtn:'Auto Delay כללי: מודד את הפרש הזמן בין MIC 1 ל-REF 2 מכל מצב ומחיל אותו על מנוע ה-TF.',
+  v52AutoDelayBtn:'סנכרון TF: מפצה את הפרש הזמן בין MIC 1 ל־REF 2 עבור גרפי TF ופאזה בלבד. הוא אינו דיליי שמוסיפים לרמקול.',
   v52GenBtn:'פותח את הגנרטור בתחתית בלי לכסות את הגרף.',
   v52FreezeBtn:'מקפיא או מחזיר לפעולה את התצוגה החיה.',
   v52CaptureBtn:'פותח את אזור השמירה והלכידות.',

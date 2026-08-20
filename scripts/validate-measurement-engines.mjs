@@ -105,6 +105,39 @@ for(const sr of [44100,48000,96000])for(const ms of [2,5,12]){
   delayCases.push(`${sr}/${ms}ms sweep→${r.ms.toFixed(3)}ms`);
 }
 {
+  const sr=48000,n=131072,ref=expSweep(n,sr),samples=Math.round(.005*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{invert:true,noise:.005}),sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable&&Math.abs(r.ms-5)<.15,'Sweep delay must survive inverted polarity');
+  delayCases.push(`48000/5ms inverted sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  // The UI permits a 10 second sweep. At 96 kHz this exceeds the FFT cap and
+  // must be windowed with zero padding rather than turning 12 ms into a false 0 ms.
+  const sr=96000,n=Math.round(sr*9.5),ref=expSweep(n,sr),samples=Math.round(.012*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{noise:.008,reflection:.3,reflectionLag:Math.round(.006*sr)}),sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable&&Math.abs(r.ms-12)<.15,`Long 96 kHz sweep error: wanted 12, got ${r&&r.ms}`);
+  delayCases.push(`96000/12ms long sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  // A sub-only passband has a wide correlation lobe; its shoulders are not
+  // separate arrivals and must not make an otherwise clean capture fail.
+  const sr=48000,n=262144,ref=expSweep(n,sr,25,140),samples=Math.round(.005*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{noise:.002}),sr,{maxDelayMs:20,signalType:'sweep'});
+  assert(r&&r.reliable&&Math.abs(r.ms-5)<.65,`Sub-band sweep error: wanted 5, got ${r&&r.ms}`);
+  delayCases.push(`48000/5ms sub-band sweep→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,n=131072,ref=expSweep(n,sr),samples=Math.round(.005*sr);
+  const mic=delayed(ref,samples,{noise:.005,reflection:1.3,reflectionLag:Math.round(.020*sr)});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:50,signalType:'sweep'});
+  assert(!r||!r.reliable||Math.abs(r.ms-5)<.3,'A stronger late reflection must not be accepted as the direct arrival');
+}
+{
+  const sr=48000,n=131072,ref=expSweep(n,sr),samples=Math.round(.005*sr);
+  const r=computeStableDelay(ref,delayed(ref,samples,{noise:.005}),sr,{maxDelayMs:20,signalType:'auto'});
+  assert(!r||r.method!=='sweep','Unknown external audio must not silently use the sweep-only estimator');
+}
+{
   // A pure swept sine must still be rejected when the two channels are unrelated.
   const sr=48000,n=131072,ref=expSweep(n,sr),mic=broadband(n,sr);
   const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20,signalType:'sweep'});

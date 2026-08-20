@@ -360,7 +360,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.0-sweep-delay',
+    version: 'v5.5.1-safe-sweep-delay',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2128,18 +2128,30 @@ function computeSweepDelay(ref,mic,sr,options){
   const L=Math.min(ref.length,mic.length);
   const maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
   if(L<8192)return null;
-  let N=1;while(N<L)N<<=1;N=Math.min(N,1<<19); // cap 524288 samples (~10.9s @48k)
-  const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),N/2-2);
+  const maxFft=1<<19;
+  const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),maxFft/2-2);
   if(maxLag<2)return null;
-
-  const xr=new Float64Array(N),xi=new Float64Array(N),yr=new Float64Array(N),yi=new Float64Array(N);
-  const windows=[[0,L],[0,Math.floor(L*0.66)],[L-Math.floor(L*0.66),L]];
+  // Keep enough zero padding for a linear (not circular) correlation at every
+  // supported search range. Long 96 kHz captures are analysed as three wide
+  // representative windows instead of silently overflowing the FFT buffers.
+  const pad=Math.max(64,maxLag*2+2);
+  const maxSeg=Math.max(8192,maxFft-pad);
+  const mainSeg=Math.min(L,maxSeg);
+  // Broad-band sweeps remain broadband in shorter windows, but a sub-only
+  // sweep needs most of its duration to retain enough occupied bandwidth.
+  const sideSeg=Math.min(mainSeg,Math.max(8192,Math.floor(L*.82)));
+  const centerStart=Math.max(0,Math.floor((L-mainSeg)/2));
+  const windows=L>maxSeg
+    ? [[centerStart,centerStart+mainSeg],[0,mainSeg],[L-mainSeg,L]]
+    : [[0,L],[0,sideSeg],[L-sideSeg,L]];
   const results=[];
 
   for(let wi=0;wi<windows.length;wi++){
     const ws=windows[wi][0],we=windows[wi][1],seg=we-ws;
     if(seg<4096){results.push(null);continue;}
-    xr.fill(0);xi.fill(0);yr.fill(0);yi.fill(0);
+    let N=1;while(N<seg+pad)N<<=1;
+    if(N>maxFft){results.push(null);continue;}
+    const xr=new Float64Array(N),xi=new Float64Array(N),yr=new Float64Array(N),yi=new Float64Array(N);
     // Light Tukey taper (10% each edge) so a sweep that does not start/stop
     // exactly at the capture boundary does not smear the spectrum.
     const taper=Math.max(1,Math.floor(seg*0.1));
@@ -2159,12 +2171,12 @@ function computeSweepDelay(ref,mic,sr,options){
       const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
       const m=Math.hypot(cr,ci);if(m>crossMax)crossMax=m;
     }
-    let activeBins=0;
+    let activeBins=0,activeLo=Infinity,activeHi=0;
     for(let k=0;k<N;k++){
       const signedK=k<=N/2?k:k-N,f=Math.abs(signedK)*sr/N;
       const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
       const mag=Math.hypot(cr,ci)+1e-12;
-      if(k>0&&k<N/2&&f>=25&&f<=16000&&mag>=crossMax*.05)activeBins++;
+      if(k>0&&k<N/2&&f>=25&&f<=16000&&mag>=crossMax*.05){activeBins++;activeLo=Math.min(activeLo,f);activeHi=Math.max(activeHi,f);}
       let w=0;
       if(f>=20&&f<=18000){
         const lo=Math.min(1,(f-20)/40),hi=Math.min(1,(18000-f)/3000);
@@ -2178,7 +2190,12 @@ function computeSweepDelay(ref,mic,sr,options){
       const idx=lag<0?N+lag:lag,v=xr[idx];
       if(v>best){best=v;bestLag=lag;}
     }
-    const guard=Math.max(4,Math.round(sr*.0006));
+    const bandwidthHz=activeBins?Math.max(0,activeHi-activeLo):0;
+    // A narrow-band sub sweep has a naturally wide correlation lobe. Do not
+    // count the shoulders of that same lobe as rival arrivals.
+    const resolutionMs=bandwidthHz>0?1000/bandwidthHz:Infinity;
+    const guardMs=Math.min(12,Math.max(.6,resolutionMs*1.5));
+    const guard=Math.max(4,Math.round(sr*guardMs/1000));
     let second=-Infinity;
     for(let lag=-maxLag;lag<=maxLag;lag++){
       if(Math.abs(lag-bestLag)<=guard)continue;
@@ -2191,22 +2208,23 @@ function computeSweepDelay(ref,mic,sr,options){
     const frac=Math.abs(denom)>1e-12?.5*(xr[li]-xr[ri])/denom:0;
     const lag=bestLag+Math.max(-.5,Math.min(.5,frac));
     const separation=best>0?Math.max(0,Math.min(1,(best-Math.max(0,second))/best)):0;
-    results.push({ms:lag/sr*1000,samples:lag,peak:best,separation,activeBins});
+    const toleranceMs=Math.min(1,Math.max(.30,resolutionMs*.10));
+    results.push({ms:lag/sr*1000,samples:lag,peak:best,separation,activeBins,bandwidthHz,resolutionMs,toleranceMs});
   }
 
   const full=results[0];
   if(!full)return null;
-  const tol=0.30;
-  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&Math.abs(r.ms-full.ms)<=tol)}));
+  const tol=full.toleranceMs;
+  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=70&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
   const validChecks=checks.filter(c=>c.reliable).length;
   const agreeMs=results.filter((r,i)=>checks[i].reliable).map(r=>r.ms);
   const spreadMs=agreeMs.length>1?Math.max.apply(null,agreeMs)-Math.min.apply(null,agreeMs):0;
-  const reliable=!!(full.separation>=.40&&full.activeBins>=60&&validChecks>=2&&spreadMs<=tol);
-  const confidence=Math.max(0,Math.min(1,full.separation*Math.min(1,full.activeBins/120)));
+  const reliable=!!(full.separation>=.40&&full.activeBins>=60&&full.bandwidthHz>=70&&validChecks>=2&&spreadMs<=tol);
+  const confidence=Math.max(0,Math.min(1,full.separation*Math.min(1,full.activeBins/120)*Math.min(1,full.bandwidthHz/100)));
   return {
     ms:full.ms,samples:full.samples,confidence,reliable,stable:reliable,
     checks,validChecks,spreadMs,fullMs:full.ms,alternatives:[],maxDelayMs,
-    activeBins:full.activeBins,method:'sweep'
+    activeBins:full.activeBins,bandwidthHz:full.bandwidthHz,resolutionMs:full.resolutionMs,method:'sweep'
   };
 }
 
@@ -2257,11 +2275,10 @@ function computeStableDelay(ref,mic,sr,options){
 
   if(chunkResult&&chunkResult.reliable)return chunkResult;
 
-  // The stationary path could not lock. For unknown ('auto') or otherwise
-  // marginal signals, rescue with a full-capture correlation before giving up.
-  if(!sweepResult&&signalType!=='noise')sweepResult=computeSweepDelay(ref,mic,sr,{maxDelayMs});
-  if(sweepResult&&sweepResult.reliable)return sweepResult;
-
+  // Do not apply the sweep correlator to arbitrary music or an unknown external
+  // source: a plausible-looking full-capture peak is not proof of a sweep.
+  // For an explicitly selected sweep, preserve its diagnostics even on failure.
+  if(signalType==='sweep'&&sweepResult)return sweepResult;
   return chunkResult;
 }
 
@@ -3991,7 +4008,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.0';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.1';
   v3UpdateStatus();
 })();
 (function initAccent(){
