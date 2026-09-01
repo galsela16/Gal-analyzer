@@ -142,6 +142,9 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
+// V5.5.3 visual Waterfall history. Each row is a frequency slice;
+// rendering uses perspective ridges while the existing analyzer stays untouched.
+const wf3d={rows:[],frame:0,maxRows:34,maxHz:20000};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -360,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.1-safe-sweep-delay',
+    version: 'v5.5.3-ui-refresh',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1371,6 +1374,54 @@ function verifyTfWorkflow(){
 safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000));
 
 
+
+window.tfPhaseCursorHz=window.tfPhaseCursorHz||1000;
+window.tfPhaseGateEnabled=window.tfPhaseGateEnabled!==false;
+window.tfPhaseUnwrap=!!window.tfPhaseUnwrap;
+window.tfPhaseZeroAtCursor=!!window.tfPhaseZeroAtCursor;
+window.getTfPhaseCursorInfo=function(freq,unwrap,zeroAtCursor){
+  if(!audioCtx||!tfPxyRe||!tfPxyIm)return null;
+  const n=TF_FFT_N/2,nyq=audioCtx.sampleRate/2;
+  const k=Math.max(1,Math.min(n-1,Math.round(Number(freq||1000)/nyq*n)));
+  const pxx=tfPxx[k],pyy=tfPyy[k],sq=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
+  const coh=Math.max(0,Math.min(1,sq/(pxx*pyy+1e-20)));
+  let ph=Math.atan2(tfPxyIm[k],tfPxyRe[k])*180/Math.PI;
+  // Cursor readout intentionally stays wrapped for a stable, intuitive value.
+  if(zeroAtCursor)ph=0;
+  return {phaseDeg:ph,coh,freq:k*audioCtx.sampleRate/TF_FFT_N};
+};
+
+
+const tfConfidenceHistory=[];
+function tfBandConfidence(snap,lo=80,hi=12000){
+  if(!snap||!snap.coh||!snap.mag)return {score:0,label:'LOW',coverage:0,meanCoh:0,stability:0,reason:'No TF data'};
+  const vals=[], mags=[];
+  for(let k=1;k<snap.coh.length;k++){
+    const f=k*snap.sr/TF_FFT_N;if(f<lo||f>hi)continue;
+    const c=snap.coh[k],m=snap.mag[k];
+    if(Number.isFinite(c)&&Number.isFinite(m)){vals.push(c);if(c>=tfCohGate)mags.push(m);}
+  }
+  if(!vals.length)return {score:0,label:'LOW',coverage:0,meanCoh:0,stability:0,reason:'No usable bandwidth'};
+  const meanCoh=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const coverage=vals.filter(c=>c>=tfCohGate).length/vals.length;
+  const now=Date.now();
+  const med=mags.length?(mags.slice().sort((a,b)=>a-b)[Math.floor(mags.length/2)]):NaN;
+  tfConfidenceHistory.push({t:now,med,meanCoh,coverage});
+  while(tfConfidenceHistory.length>8||tfConfidenceHistory[0]?.t<now-5000)tfConfidenceHistory.shift();
+  const recent=tfConfidenceHistory.filter(x=>Number.isFinite(x.med));
+  let stability=.5;
+  if(recent.length>=3){
+    const av=recent.reduce((a,x)=>a+x.med,0)/recent.length;
+    const sd=Math.sqrt(recent.reduce((a,x)=>a+(x.med-av)*(x.med-av),0)/recent.length);
+    stability=Math.max(0,Math.min(1,1-sd/2.5));
+  }
+  const score=Math.max(0,Math.min(1,.48*meanCoh+.34*coverage+.18*stability));
+  const label=score>=.78&&coverage>=.62?'HIGH':score>=.56&&coverage>=.38?'MEDIUM':'LOW';
+  let reason=label==='HIGH'?'Stable TF':coverage<.38?'Low coherent bandwidth':meanCoh<Math.max(.5,tfCohGate)?'Low coherence':'Unstable response';
+  return {score,label,coverage,meanCoh,stability,reason};
+}
+window.tfBandConfidence=tfBandConfidence;
+
 function tfCurrentSnapshot(){
   if(!analyserRef || !audioCtx) return null;
   computeComplexTf();
@@ -1386,8 +1437,52 @@ function tfCurrentSnapshot(){
   }
   vals.sort((a,b)=>a-b);
   const offset=vals.length?vals[Math.floor(vals.length/2)]:0;
-  return {mag,ph,coh,offset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()};
+  const snap={mag,ph,coh,offset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()}; snap.confidence=tfBandConfidence(snap); return snap;
 }
+
+// V5.5.3 Trace Manager + Spatial Average
+function v552CloneArray(a){return a?Array.from(a):[];}
+function v552SpatialAverage(indices){
+  const selected=indices.map(i=>tfTraces[i]).filter(Boolean);
+  if(selected.length<2)return {ok:false,reason:'Select at least two traces'};
+  const type=selected[0].type;
+  if(selected.some(t=>t.type!==type))return {ok:false,reason:'Average traces of the same type'};
+  const idx=tfTraces.length+1,color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  if(type==='rta'){
+    const n=selected[0].values?.length||0;
+    if(!n||selected.some(t=>t.values?.length!==n))return {ok:false,reason:'Trace sizes do not match'};
+    const values=new Array(n).fill(0);
+    for(let k=0;k<n;k++){
+      // Existing RTA trace values are normalized display-domain values; average the canonical captured values.
+      let sum=0;for(const t of selected)sum+=t.values[k];values[k]=sum/selected.length;
+    }
+    const out={type:'rta',visible:true,name:'AVG '+selected.length,color,values,bands:selected[0].bands,t:Date.now(),spatialAverage:true,sourceCount:selected.length};
+    tfTraces.push(out);renderTfTraceLegend();return {ok:true,trace:out};
+  }
+  if(type==='tf'){
+    const n=selected[0].mag?.length||0;
+    if(!n||selected.some(t=>t.mag?.length!==n))return {ok:false,reason:'TF trace sizes do not match'};
+    const mag=new Float32Array(n),coh=new Float32Array(n),ph=new Float32Array(n);
+    for(let k=1;k<n;k++){
+      let m=0,c=0,cr=0,ci=0,w=0;
+      for(const t of selected){
+        const q=Math.max(.05,Number.isFinite(t.coh[k])?t.coh[k]:0);
+        m+=t.mag[k]*q;c+=t.coh[k];cr+=Math.cos(t.ph[k])*q;ci+=Math.sin(t.ph[k])*q;w+=q;
+      }
+      mag[k]=m/w;coh[k]=c/selected.length;ph[k]=Math.atan2(ci,cr);
+    }
+    const out={type:'tf',visible:true,name:'AVG TF '+selected.length,color,mag,coh,ph,offset:selected.reduce((a,t)=>a+(t.offset||0),0)/selected.length,sr:selected[0].sr,delayMs:selected.reduce((a,t)=>a+(t.delayMs||0),0)/selected.length,t:Date.now(),spatialAverage:true,sourceCount:selected.length};
+    out.confidence=typeof tfBandConfidence==='function'?tfBandConfidence(out):null;
+    tfTraces.push(out);renderTfTraceLegend();return {ok:true,trace:out};
+  }
+  return {ok:false,reason:'Unsupported trace type'};
+}
+window.v552SpatialAverage=v552SpatialAverage;
+window.v552GetTraces=()=>tfTraces;
+window.v552RenameTrace=(i,name)=>{if(tfTraces[i]&&name?.trim()){tfTraces[i].name=name.trim().slice(0,40);renderTfTraceLegend();return true}return false};
+window.v552ToggleTrace=i=>{if(!tfTraces[i])return false;tfTraces[i].visible=tfTraces[i].visible===false;renderTfTraceLegend();return true};
+window.v552DeleteTrace=i=>{if(!tfTraces[i])return false;tfTraces.splice(i,1);renderTfTraceLegend();return true};
+
 function renderTfTraceLegend(){
   const el=document.getElementById('tfTraceLegend');
   if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map((t,i)=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+'</span>').join('');
@@ -1398,9 +1493,10 @@ function captureTfTrace(){
   if(!tfDelayReady||!tfWorkflowVerified){ alert('תחילה השלם סנכרון ואימות TF.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   const s=tfCurrentSnapshot(); if(!s) return;
+  if(s.confidence&&s.confidence.label==='LOW'){ alert('TF confidence is LOW: '+s.confidence.reason+'. Improve reference level/coherence and try again.'); return; }
   const idx=tfTraces.length+1;
   s.type='tf'; s.visible=true; s.name='TF '+idx; s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
-  tfTraces.push(s); if(tfTraces.length>6) tfTraces.shift();
+  tfTraces.push(s); if(tfTraces.length>24) tfTraces.shift();
   renderTfTraceLegend(); v3Toast('נלכד '+s.name);
 }
 function captureWorkspaceTrace(){
@@ -1408,7 +1504,7 @@ function captureWorkspaceTrace(){
   if(v5WorkspaceMode==='tf'&&analyserRef){captureTfTrace();return;}
   const idx=tfTraces.length+1;
   tfTraces.push({type:'rta',visible:true,name:(mode==='spec'?'Waterfall ':'RTA ')+idx,color:TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length],values:lastV.slice(),bands:BANDS,t:Date.now()});
-  if(tfTraces.length>6)tfTraces.shift();
+  if(tfTraces.length>24)tfTraces.shift();
   renderTfTraceLegend();v3Toast('נלכד Trace להשוואה');
 }
 safeOn('tfTraceBtn','click',captureTfTrace);
@@ -1784,8 +1880,14 @@ function delayChecksHtml(res){
 function delayFailureText(res,silent){
   if(silent==='mic')return 'המיקרופון לא קלט אות — בדוק גיין וחיבור.';
   if(silent==='ref')return 'כניסה 2 (Reference) שקטה — בדוק את הניתוב מהמיקסר.';
-  if(res&&res.validChecks)return 'התוצאה לא יציבה: רק '+res.validChecks+' מתוך 3 בדיקות התאימו. נסה Sweep, העלה רמה או השתק החזרות קרובות.';
-  return 'לא נמצא זמן הגעה ברור — ודא ששני הערוצים מקבלים אותו אות רחב־פס.';
+  const bw=res&&Number.isFinite(res.bandwidthHz)?res.bandwidthHz:0;
+  const checks=res&&Number.isFinite(res.validChecks)?res.validChecks:0;
+  const conf=res&&Number.isFinite(res.confidence)?Math.round(res.confidence*100):0;
+  if(res&&res.method==='noise'&&bw>0&&bw<900){
+    return 'Pink Noise measurement unreliable — רוחב הפס השימושי צר מדי ('+Math.round(bw)+' Hz). נסה Sweep, העלה רמה או התקרב מעט ל־PA.';
+  }
+  if(res&&checks)return 'UNSTABLE — רק '+checks+' מתוך 3 בדיקות התאימו · אמינות '+conf+'%. נסה Sweep, העלה רמה או השתק החזרות קרובות.';
+  return 'לא נמצא זמן הגעה ברור — ודא ששני הערוצים מקבלים אותו אות רחב־פס. אם אתה עובד מרחוק מה־PA, נסה Sweep.';
 }
 function dlyPathResultHtml(ms){
   const displayed=delayDisplayValue(ms,dlyDisplayUnit,dlyDistanceOffsetMs);
@@ -1803,7 +1905,13 @@ function renderDelayPathResult(res){
   const spread=dlyDisplayUnit==='m'
     ? (Number.isFinite(dlyDistanceOffsetMs)?delayMsToMeters(res.spreadMs).toFixed(2)+'m':'—')
     : res.spreadMs.toFixed(2)+'ms';
-  const quality='יציב '+res.validChecks+'/3 · אמינות '+Math.round(res.confidence*100)+'% · פיזור '+spread;
+  const confidencePct=Math.round(res.confidence*100);
+  const stableLabel=res.reliable?'STABLE ✓':'UNSTABLE';
+  const bw=Number.isFinite(res.bandwidthHz)&&res.bandwidthHz>0?Math.round(res.bandwidthHz):null;
+  const method=res.method==='sweep'?'SWEEP':(res.method==='noise'?'PINK / NOISE':'AUTO');
+  const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+'% · פיזור '+spread;
+  const acousticDistance=(ms>0?delayMsToMeters(ms):null);
+  const diagnostic='<br><span style="font-size:11px;color:var(--dim)">'+method+(bw?' · Usable bandwidth ≈ '+bw+' Hz':'')+(acousticDistance!=null?' · זמן מעבר שקול ≈ '+acousticDistance.toFixed(1)+'m':'')+'</span>';
   const alternativeValues=res.alternatives&&res.alternatives.length
     ? res.alternatives.map(v=>{
         const displayed=delayDisplayValue(v,dlyDisplayUnit,dlyDistanceOffsetMs);
@@ -1811,7 +1919,7 @@ function renderDelayPathResult(res){
       }).filter(Boolean).join(', ')
     : '';
   const alternatives=alternativeValues?'<br>פסגות חלופיות: '+alternativeValues:'';
-  st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?' · לא ממירים את המספר הזה למרחק':'')+alternatives+'</span>';
+  st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?' · לא ממירים את המספר הזה למרחק':'')+alternatives+'</span>'+diagnostic;
   st.dataset.delayResult='path';
 }
 function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
@@ -1876,7 +1984,12 @@ function runDelayCapture(btn, cb, options){
       // the chunk path first and falls back to full-capture correlation.
       const signalType=(genOn&&genType==='sweep')?'sweep'
         :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
-      cb(computeStableDelay(r, m, sr, {maxDelayMs, signalType}));
+      const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
+      if(delayResult&&delayResult.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
+        delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);
+        window.lastDelayRepeatability=delayResult.repeatability;
+      }
+      cb(delayResult);
     },60);
   }, captureSec*1000+100);
 }
@@ -2114,7 +2227,8 @@ function computeDelay(ref, mic, sr, options){
   const broadbandScore=Math.max(0,Math.min(1,(activeBins-6)/30));
   const finalConfidence=confidence*broadbandScore;
   const alternatives=peaks.filter(p=>p!==chosen&&p.v>=strongest.v*.65).slice(0,3).map(p=>p.lag/sr*1000);
-  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins,consistent,validChunks,chunkSpreadMs};
+  const bandwidthHz=activeBins*sr/chunkSize;
+  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins,bandwidthHz,consistent,validChunks,chunkSpreadMs,method:'noise'};
 }
 
 // Full-capture GCC-PHAT for non-stationary excitation (swept sine). A sweep is
@@ -2269,7 +2383,8 @@ function computeStableDelay(ref,mic,sr,options){
     const alternatives=Array.from(new Set(valid.flatMap(r=>r.alternatives||[]).map(v=>Math.round(v*10)/10))).filter(v=>Math.abs(v-medianMs)>.5).slice(0,3);
     chunkResult=Object.assign({},base,{
       ms:medianMs,samples:medianMs*sr/1000,confidence,reliable:stable,stable,
-      checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs
+      checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs,
+      bandwidthHz:valid.reduce((sum,r)=>sum+(Number(r.bandwidthHz)||0),0)/valid.length,method:signalType==='noise'?'noise':(base.method||'noise')
     });
   }
 
@@ -2640,7 +2755,8 @@ function resetSession(){
 }
 
 function setMode(m){
-  mode=m;
+  const prevMode=mode;mode=m;
+  if(m==='spec'&&prevMode!=='spec')resetWaterfallResonances();
   document.getElementById('mRta').classList.toggle('on',m==='rta');
   document.getElementById('mSpec').classList.toggle('on',m==='spec');
   document.getElementById('v53AnalysisToggle')?.classList.toggle('on',m==='rta');
@@ -3148,7 +3264,12 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     }
     
     if(tfOpen)computeComplexTf();
-    if(!alignView)tfDrawDualLiveView(W,plotH);
+    // V5.5.3 TF Pro: when TF is selected, the main graph is the transfer
+    // magnitude response. Raw MIC/REF curves remain available before TF opens.
+    if(!alignView){
+      if(tfOpen && tfDelayReady) tfDrawMagnitudeView(W,plotH,nyquist);
+      else tfDrawDualLiveView(W,plotH);
+    }
 
     if(tfOpen && showTfCoh && !alignView){
       ctx.beginPath();
@@ -3169,25 +3290,41 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     }
 
     if(tfOpen && showTfPhase && !alignView){
-      ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      let penDown=false, prevY=0;
-      for(let px = 0; px <= W; px += 2){
-        const f = freqForX(px);
-        const k = Math.min(TF_FFT_N/2 - 1, Math.round(f / nyquist * (TF_FFT_N/2)));
-        const pxx = tfPxx[k], pyy = tfPyy[k];
-        const pxySq = tfPxyRe[k]*tfPxyRe[k] + tfPxyIm[k]*tfPxyIm[k];
-        const coh = Math.max(0, Math.min(1, pxySq / (pxx * pyy + 1e-12)));
-        if(coh < tfCohGate){ penDown=false; continue; }   // שער קוהרנטיות: מסתיר פאזה לא-אמינה
-        const phaseRad = Math.atan2(tfPxyIm[k], tfPxyRe[k]);
-        const phaseNorm = 0.5 - (phaseRad / (2 * Math.PI));
-        const y = plotH * Math.max(0, Math.min(1, phaseNorm));
-        if(penDown && Math.abs(y - prevY) > plotH*0.5){ penDown=false; } // שבירה ב-wrap ±180°
-        penDown ? ctx.lineTo(px, y) : ctx.moveTo(px, y);
-        penDown=true; prevY=y;
+      const Np=TF_FFT_N/2, unwrap=!!window.tfPhaseUnwrap, gateOn=window.tfPhaseGateEnabled!==false;
+      const cursorHz=Number(window.tfPhaseCursorHz)||1000;
+      const cursorK=Math.max(1,Math.min(Np-1,Math.round(cursorHz/nyquist*Np)));
+      const cursorPhase=Math.atan2(tfPxyIm[cursorK],tfPxyRe[cursorK]);
+      const zeroRef=window.tfPhaseZeroAtCursor?cursorPhase:0;
+      ctx.strokeStyle='rgba(34,197,94,0.92)';ctx.lineWidth=1.8;ctx.beginPath();
+      let penDown=false,prevRaw=0,cum=0,have=false,prevY=0;
+      for(let px=0;px<=W;px+=2){
+        const f=freqForX(px),k=Math.min(Np-1,Math.max(1,Math.round(f/nyquist*Np)));
+        const pxx=tfPxx[k],pyy=tfPyy[k],pxySq=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
+        const coh=Math.max(0,Math.min(1,pxySq/(pxx*pyy+1e-12)));
+        if(gateOn&&coh<tfCohGate){penDown=false;have=false;continue;}
+        const raw=Math.atan2(tfPxyIm[k],tfPxyRe[k])-zeroRef;
+        let phase=raw;
+        if(unwrap){
+          if(have){let d=raw-prevRaw;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;
+          phase=cum;prevRaw=raw;have=true;
+          // Auto scale unwrapped phase to a practical ±720° window.
+          const deg=Math.max(-720,Math.min(720,phase*180/Math.PI));
+          const y=plotH*(1-(deg+720)/1440);
+          penDown?ctx.lineTo(px,y):ctx.moveTo(px,y);penDown=true;prevY=y;
+        }else{
+          let wrapped=phase;while(wrapped>Math.PI)wrapped-=2*Math.PI;while(wrapped<-Math.PI)wrapped+=2*Math.PI;
+          const y=plotH*(0.5-wrapped/(2*Math.PI));
+          if(penDown&&Math.abs(y-prevY)>plotH*.5)penDown=false;
+          penDown?ctx.lineTo(px,y):ctx.moveTo(px,y);penDown=true;prevY=y;
+        }
       }
       ctx.stroke();
+      // Phase reference grid and frequency cursor.
+      ctx.save();ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8291a3';
+      const labels=unwrap?[-720,-360,0,360,720]:[-180,-90,0,90,180];
+      labels.forEach(d=>{const y=unwrap?plotH*(1-(d+720)/1440):plotH*(.5-d/360);ctx.strokeStyle=d===0?'rgba(34,197,94,.28)':'rgba(148,163,184,.10)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillText(d+'°',4,Math.max(10,Math.min(plotH-2,y-2)));});
+      const cx=xForFreq(cursorHz);ctx.strokeStyle='rgba(255,255,255,.50)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,plotH);ctx.stroke();ctx.setLineDash([]);
+      ctx.restore();
     }
 
     // ---- יישור חיתוך סאב/טופ: פאזה לא-עטופה + סמן + Δφ ----
@@ -3526,7 +3663,208 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ? (exactHz>=1000?(exactHz/1000).toFixed(3)+' kHz':Math.round(exactHz)+' Hz') : '—';
 }
 
+
+// V5.5.3 Waterfall Resonance Finder — integrated into Waterfall.
+const wfResonance={enabled:true,frame:0,started:0,tracks:new Map(),candidates:[],maxHz:20000,minPromDb:2.5,minAgeMs:1800};
+window.wfResonance=wfResonance;
+function resetWaterfallResonances(){
+  if(typeof wfDecayState!=='undefined'){wfDecayState.bands.clear();wfDecayState.lastT=0;}
+  wfResonance.frame=0;wfResonance.started=performance.now();wfResonance.tracks.clear();wfResonance.candidates=[];
+  if(window.wf3d)window.wf3d.rows=[];
+}
+window.resetWaterfallResonances=resetWaterfallResonances;
+function updateWaterfallResonances(nyquist){
+  if(!wfResonance.enabled||frozen||!floatData?.length)return;
+  if((++wfResonance.frame)%4)return;
+  const now=performance.now();if(!wfResonance.started)wfResonance.started=now;
+  const vals=[];
+  for(let b=0;b<BANDS;b++){
+    const fc=ISO[b];if(fc<20||fc>wfResonance.maxHz){vals[b]=null;continue;}
+    vals[b]=calibratedResponseDb(binOverlapPowerDb(floatData,fc/R,fc*R,nyquist),fc);
+  }
+  for(let b=1;b<BANDS-1;b++){
+    const fc=ISO[b],db=vals[b];if(db==null)continue;
+    const neigh=[];
+    for(let k=Math.max(0,b-3);k<=Math.min(BANDS-1,b+3);k++)if(Math.abs(k-b)>1&&vals[k]!=null)neigh.push(vals[k]);
+    if(!neigh.length)continue;
+    const local=neigh.reduce((a,v)=>a+v,0)/neigh.length,prom=db-local;
+    let t=wfResonance.tracks.get(b)||{hz:fc,ema:db,var:0,prom,score:0,hits:0,total:0};
+    const d=db-t.ema;t.ema+=.16*d;t.var=.86*t.var+.14*d*d;t.prom=.78*t.prom+.22*prom;t.total++;
+    if(t.prom>=wfResonance.minPromDb&&Math.sqrt(Math.max(0,t.var))<3.2){t.hits++;t.score=Math.min(1,t.score+.075);}
+    else t.score=Math.max(0,t.score-.045);
+    wfResonance.tracks.set(b,t);
+  }
+  if(now-wfResonance.started<wfResonance.minAgeMs){wfResonance.candidates=[];return;}
+  const ranked=[...wfResonance.tracks.values()].filter(t=>t.total>=10&&t.score>=.48&&t.prom>=wfResonance.minPromDb)
+    .sort((a,b)=>(b.score*b.prom)-(a.score*a.prom));
+  const chosen=[];
+  for(const t of ranked){if(chosen.some(c=>Math.abs(Math.log2(c.hz/t.hz))<.11))continue;chosen.push(t);if(chosen.length>=4)break;}
+  wfResonance.candidates=chosen;
+}
+
+// V5.5.3 Waterfall decay validation.
+// Adds decay evidence to persistent spectral resonance detection.
+const wfDecayState={bands:new Map(),lastT:0};
+function updateWaterfallDecayEvidence(nyquist){
+  if(!wfResonance||!wfResonance.enabled||!floatData||!ISO?.length)return;
+  const now=performance.now();
+  wfDecayState.lastT=now;
+  const R=Math.pow(2,1/12);
+  for(const f of ISO){
+    if(f<20||f>Math.min(20000,nyquist*.96)||f>=nyquist)continue;
+    const db=calibratedResponseDb(binOverlapPowerDb(floatData,f/R,f*R,nyquist),f);
+    if(!Number.isFinite(db))continue;
+    let st=wfDecayState.bands.get(f);
+    if(!st)st={prev:db,peak:db,fallStart:0,decayDb:0,decayMs:0,events:0,score:0,region:''};
+    const drop=st.prev-db;
+    if(db>st.peak-1){st.peak=db;st.fallStart=0;st.decayDb=0;st.decayMs=0;}
+    if(drop>0.35&&db<st.peak-1.5&&!st.fallStart)st.fallStart=now;
+    if(st.fallStart){
+      st.decayDb=Math.max(st.decayDb,st.peak-db);st.decayMs=now-st.fallStart;
+      if(db>st.prev+.7||st.decayDb>=12||st.decayMs>2200){
+        if(st.decayDb>=5&&st.decayMs>=180){
+          const slope=st.decayDb/(st.decayMs/1000);
+          const region=f<200?'ROOM MODE':f<2000?'RESONANCE':f<8000?'REFLECTION / RING':'HF DECAY';
+          const slopeRef=f<200?22:f<2000?34:f<8000?52:72;
+          const slopeSpan=f<200?16:f<2000?24:f<8000?34:46;
+          const slow=Math.max(0,Math.min(1,(slopeRef-slope)/slopeSpan));
+          st.region=region;st.lastSlope=slope;st.score=.65*st.score+.35*slow;st.events++;
+        }
+        st.peak=db;st.fallStart=0;st.decayDb=0;st.decayMs=0;
+      }
+    }
+    st.prev=db;wfDecayState.bands.set(f,st);
+  }
+  for(const c of (wfResonance.candidates||[])){
+    const cf=c.hz||c.f||0;let best=null,dist=Infinity;
+    for(const [f,st] of wfDecayState.bands){const d=Math.abs(Math.log2(f/cf));if(d<dist){dist=d;best=st;}}
+    const maxDist=cf<500?.13:cf<4000?.09:.065;
+    c.decayEvidence=best&&dist<maxDist?best.score:0;c.decayEvents=best&&dist<maxDist?best.events:0;
+    c.decayRegion=best&&dist<maxDist?(best.region||(cf<200?'ROOM MODE':cf<2000?'RESONANCE':cf<8000?'REFLECTION / RING':'HF DECAY')):'';
+    c.validated=!!(c.decayEvents>=2&&c.decayEvidence>=.42);
+    c.resonanceConfidence=Math.max(0,Math.min(1,.68*(c.score||0)+.32*c.decayEvidence));
+  }
+}
+window.updateWaterfallDecayEvidence=updateWaterfallDecayEvidence;
+
+
+function waterfallIssueLabel(c){
+  const f=c.hz||c.f||0;
+  return c.decayRegion||(f<200?'ROOM MODE':f<2000?'RESONANCE':f<8000?'REFLECTION / RING':'HF DECAY');
+}
+function waterfallConfidence(c){
+  const raw=Number.isFinite(c.resonanceConfidence)?c.resonanceConfidence:(c.score||0);
+  const evidence=Math.min(1,(c.decayEvents||0)/3);
+  return Math.max(0,Math.min(1,raw*(.82+.18*evidence)));
+}
+function waterfallConfidenceTier(q){return q>=.78?'HIGH':q>=.58?'MEDIUM':'LOW';}
+window.waterfallConfidence=waterfallConfidence;
+
+function drawWaterfallResonanceOverlay(W,specH,xForFreq){
+  if(!wfResonance.enabled)return;
+  ctx.save();
+  wfResonance.candidates.forEach((r,i)=>{
+    const x=xForFreq(r.hz);if(x<0||x>W)return;
+    const strong=r.score>=.72&&r.prom>=4;
+    ctx.strokeStyle=strong?'rgba(255,105,97,.92)':'rgba(245,158,11,.90)';ctx.lineWidth=1.4;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(x,20);ctx.lineTo(x,specH-4);ctx.stroke();ctx.setLineDash([]);
+    const q=waterfallConfidence(r),hz=Math.round(r.hz)+' Hz',label=(r.validated?'◆ ':'')+hz+' · '+waterfallIssueLabel(r)+' · '+Math.round(q*100)+'%';
+    ctx.font='700 10px ui-monospace,SFMono-Regular,Menlo,monospace';
+    const tw=ctx.measureText(label).width+12,bx=Math.max(4,Math.min(W-tw-4,x-tw/2)),by=24+i*22;
+    ctx.fillStyle=strong?'rgba(55,18,20,.92)':'rgba(45,31,8,.92)';ctx.fillRect(bx,by,tw,17);
+    ctx.strokeStyle=strong?'rgba(255,105,97,.65)':'rgba(245,158,11,.65)';ctx.strokeRect(bx,by,tw,17);
+    ctx.fillStyle=strong?'#ff8b82':'#fbbf24';ctx.textAlign='center';ctx.fillText(label,bx+tw/2,by+12);
+  });
+  ctx.restore();
+  const metric=document.getElementById('uiCtxMetric');
+  if(metric&&mode==='spec')metric.textContent=wfResonance.candidates.length
+    ?'Resonance · '+wfResonance.candidates.slice(0,2).map(r=>Math.round(r.hz)+'Hz').join(' · ')
+    :(performance.now()-wfResonance.started<wfResonance.minAgeMs?'Analyzing resonances…':'No persistent resonance');
+}
+
+
+function wf3dColor(t,alpha=1){
+  t=Math.max(0,Math.min(1,t));
+  const stops=[[0,35,70,190],[.18,32,125,245],[.36,35,210,225],[.54,64,220,105],[.72,205,225,45],[.86,255,157,28],[1,239,72,86]];
+  let a=stops[0],b=stops[stops.length-1];
+  for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){a=stops[i-1];b=stops[i];break;}}
+  const u=(t-a[0])/Math.max(.0001,b[0]-a[0]);
+  return `rgba(${Math.round(a[1]+(b[1]-a[1])*u)},${Math.round(a[2]+(b[2]-a[2])*u)},${Math.round(a[3]+(b[3]-a[3])*u)},${alpha})`;
+}
+function captureWaterfall3dRow(nyquist){
+  if((++wf3d.frame)%3)return;
+  const N=112,row=[];
+  const f0=20,f1=Math.min(wf3d.maxHz,nyquist*.96);
+  for(let i=0;i<N;i++){
+    const u=i/(N-1),fc=f0*Math.pow(f1/f0,u),ratio=Math.pow(2,1/24);
+    const db=calibratedResponseDb(binOverlapPowerDb(floatData,fc/ratio,fc*ratio,nyquist),fc);
+    row.push(Math.max(0,Math.min(1,(db-floorDb)/Math.max(20,ceilDb-floorDb))));
+  }
+  wf3d.rows.unshift(row);if(wf3d.rows.length>wf3d.maxRows)wf3d.rows.length=wf3d.maxRows;
+}
+function drawWaterfall3d(W,H,nyquist,xForFreq){
+  captureWaterfall3dRow(nyquist);
+  const rows=wf3d.rows;
+  const top=34,bottom=H-28,depth=Math.min(H*.38,180),amp=Math.min(H*.30,150);
+  const left=18,right=W-12,base=bottom;
+  ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
+  // subtle perspective floor/grid
+  ctx.save();ctx.lineWidth=1;
+  for(let j=0;j<=5;j++){
+    const y=base-j*depth/5;
+    ctx.strokeStyle=sunMode?'rgba(15,23,42,.10)':'rgba(112,180,205,.12)';
+    ctx.beginPath();ctx.moveTo(left+j*5,y);ctx.lineTo(right-j*7,y);ctx.stroke();
+  }
+  [20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{
+    if(f>Math.min(20000,nyquist*.96))return;
+    const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left);
+    ctx.strokeStyle=sunMode?'rgba(15,23,42,.08)':'rgba(112,180,205,.08)';
+    ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(x,top);ctx.stroke();
+  });
+  // Oldest first so the newest ridge is visually in front.
+  for(let rr=rows.length-1;rr>=0;rr--){
+    const row=rows[rr],age=rr/Math.max(1,wf3d.maxRows-1),z=rr*depth/Math.max(1,wf3d.maxRows-1);
+    const inset=rr*7/Math.max(1,wf3d.maxRows-1);
+    const x0=left+inset,x1=right-inset,baseline=base-z;
+    // translucent body under each ridge
+    ctx.beginPath();ctx.moveTo(x0,baseline);
+    for(let i=0;i<row.length;i++){
+      const x=x0+i/(row.length-1)*(x1-x0),y=baseline-row[i]*amp*(1-age*.42);
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(x1,baseline);ctx.closePath();
+    ctx.fillStyle=sunMode?'rgba(70,130,180,.025)':'rgba(20,160,170,.025)';ctx.fill();
+    // segmented multicolor ridge: color is tied to frequency and intensity.
+    for(let i=1;i<row.length;i++){
+      const xa=x0+(i-1)/(row.length-1)*(x1-x0),xb=x0+i/(row.length-1)*(x1-x0);
+      const ya=baseline-row[i-1]*amp*(1-age*.42),yb=baseline-row[i]*amp*(1-age*.42);
+      const freqPos=i/(row.length-1),energy=(row[i]+row[i-1])*.5;
+      ctx.strokeStyle=wf3dColor(Math.min(1,freqPos*.82+energy*.30),Math.max(.20,1-age*.70));
+      ctx.lineWidth=rr===0?1.8:1.05;ctx.beginPath();ctx.moveTo(xa,ya);ctx.lineTo(xb,yb);ctx.stroke();
+    }
+  }
+  // Current spectrum gets a soft filled foreground silhouette.
+  if(rows[0]){
+    const row=rows[0];ctx.beginPath();ctx.moveTo(left,base);
+    for(let i=0;i<row.length;i++){const x=left+i/(row.length-1)*(right-left),y=base-row[i]*amp;ctx.lineTo(x,y);}
+    ctx.lineTo(right,base);ctx.closePath();
+    const g=ctx.createLinearGradient(left,0,right,0);
+    g.addColorStop(0,'rgba(30,100,230,.12)');g.addColorStop(.45,'rgba(20,210,170,.10)');g.addColorStop(.75,'rgba(225,220,45,.10)');g.addColorStop(1,'rgba(240,80,90,.08)');
+    ctx.fillStyle=g;ctx.fill();
+  }
+  ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font='10px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';
+  [20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{
+    if(f>Math.min(20000,nyquist*.96))return;
+    const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left);
+    ctx.fillText(f>=1000?(f/1000)+'k':f,x,H-9);
+  });
+  ctx.textAlign='right';ctx.fillStyle=sunMode?'#64748b':'#71808d';
+  ctx.fillText('NOW',W-8,base-2);ctx.fillText('HISTORY',W-8,Math.max(14,base-depth));
+  ctx.restore();
+}
+
 function drawSpec(W,H,nyquist,bins,xForFreq){
+  updateWaterfallResonances(nyquist);
   specCtx.drawImage(specCanvas,0,-1);
   const y=specCanvas.height-1;
   for(let px=0;px<specCanvas.width;px++){
@@ -3541,17 +3879,11 @@ function drawSpec(W,H,nyquist,bins,xForFreq){
   const meterH = (meterEl && meterEl.style.display!=='none') ? 40 : 6;
   const specH = H - meterH;
   ctx.clearRect(0,0,W,H);
-  ctx.drawImage(specCanvas,0,0,W,specH);
-  ctx.fillStyle=sunMode?'#0f172a':'#c2cbd6'; ctx.font='11px monospace'; ctx.textAlign='center';
-  const lo=ISO[0], hi=ISO[BANDS-1];
-  [20,31.5,50,100,200,500,1000,2000,5000,10000,20000].filter(f=>f>=lo&&f<=hi).forEach(f=>{
-    const x=xForFreq(f);
-    ctx.strokeStyle=sunMode?'rgba(0,0,0,.14)':'rgba(255,255,255,.14)';ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,specH);ctx.stroke();
-    ctx.fillText(fLabel(f)+'Hz',x,12);
-  });
+  drawWaterfall3d(W,specH,nyquist,xForFreq);
   let pk=-Infinity,pkf=0;
   for(let i=1;i<bins;i++){ if(floatData[i]>pk){pk=floatData[i]; pkf=i*nyquist/bins;} }
-  peakHzEl.textContent= pk>floorDb ? (pkf>=1000?(pkf/1000).toFixed(1)+' kHz':Math.round(pkf)+' Hz') : '—';
+  peakHzEl.textContent= pk>floorDb ? (pkf>=1000?(pkf/1000).toFixed(1)+' kHz':Math.round(pkf)+' Hz') : '—';  updateWaterfallDecayEvidence(nyquist);
+    drawWaterfallResonanceOverlay(W,specH,xForFreq);
 }
 
 const FB_MINDB=-50;
@@ -3655,6 +3987,37 @@ safeOn('tfCohGate','input',function(e){
 });
 
 // ---- יישור חיתוך סאב/טופ ----
+
+safeOn('alignProVerify','click',function(){
+  if(!alignRecommendation||!alignRecommendation.reliable){v3Toast('תחילה השלם מדידת סאב וטופ');return;}
+  const changed=alignRecommendation.delayTarget;
+  if(changed==='sub'){phaseSub=null;v3Toast('מדוד שוב את הסאב לאחר שינוי הדיליי');}
+  else if(changed==='top'){phaseTop=null;v3Toast('מדוד שוב את הטופ לאחר שינוי הדיליי');}
+  else {phaseSub=null;phaseTop=null;v3Toast('מדוד שוב סאב וטופ לאימות');}
+  alignRecommendation=null;showXover=true;updateAlignmentRecommendation();syncPhaseButtons();
+});
+
+
+const alignmentResultHistory=[];
+function alignmentReliabilityFromResult(r){
+  if(!r)return {score:0,label:'LOW',repeatability:0,reason:'No alignment result'};
+  const now=Date.now();
+  if(Number.isFinite(r.delayMs)&&Number.isFinite(r.confidence))alignmentResultHistory.push({t:now,delay:r.delayMs,polarity:r.polarity,confidence:r.confidence,coverage:r.coverage||0,coh:r.meanCoherence||0});
+  while(alignmentResultHistory.length>6||alignmentResultHistory[0]?.t<now-120000)alignmentResultHistory.shift();
+  let repeatability=.45;
+  if(alignmentResultHistory.length>=3){
+    const a=alignmentResultHistory.slice(-5),av=a.reduce((v,x)=>v+x.delay,0)/a.length;
+    const sd=Math.sqrt(a.reduce((v,x)=>v+(x.delay-av)**2,0)/a.length);
+    const pol=Math.max(...['normal','inverted'].map(p=>a.filter(x=>x.polarity===p).length))/a.length;
+    repeatability=Math.max(0,Math.min(1,(1-Math.min(1,sd/.35))*.7+pol*.3));
+  }
+  const score=Math.max(0,Math.min(1,.34*(r.confidence||0)+.26*(r.coverage||0)+.22*(r.meanCoherence||0)+.18*repeatability));
+  const label=score>=.72&&(r.coverage||0)>=.42&&(r.meanCoherence||0)>=.58&&repeatability>=.62?'HIGH':score>=.52&&(r.coverage||0)>=.30?'MEDIUM':'LOW';
+  const reason=label==='HIGH'?'Repeatable alignment':(r.meanCoherence||0)<.5?'Low coherence':(r.coverage||0)<.30?'Low crossover coverage':repeatability<.55?'Repeatability not confirmed':'Weak alignment evidence';
+  return {score,label,repeatability,reason,samples:alignmentResultHistory.length};
+}
+window.alignmentReliabilityFromResult=alignmentReliabilityFromResult;
+
 function optimizeSubTopAlignment(sub,top,sr,crossoverHz,coherenceGate,options){
   options=options||{};
   if(!sub||!top||!sub.ph||!top.ph||!sub.mag||!top.mag||!sub.coh||!top.coh)return {reliable:false,reason:'חסרות מדידות סאב או טופ'};
@@ -3736,6 +4099,8 @@ function updateAlignmentRecommendation(){
   el.classList.remove('ready','warn');
   if(!phaseSub||!phaseTop){
     alignRecommendation=null;
+    document.getElementById('alignProResult')?.classList.remove('show');
+    document.getElementById('alignProApply')?.classList.remove('show');
     if(!tfDelayReady) el.innerHTML='<strong>שלב 1:</strong><span>השאר טופ בלבד ובצע סנכרון TF</span>';
     else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר רעש ורוד פנימי או מקור חיצוני</span>';
     else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, לחץ מדוד טופ ובחר את אותו מקור אות</span>';
@@ -3745,8 +4110,28 @@ function updateAlignmentRecommendation(){
   const sr=(phaseSub.sr||phaseTop.sr||(audioCtx&&audioCtx.sampleRate)||48000);
   const rec=optimizeSubTopAlignment(phaseSub,phaseTop,sr,xoverF,tfCohGate,{maxDelayMs:20,stepMs:.02});
   alignRecommendation=rec;
+  // Alignment Pro summary cards: never apply DSP automatically; present the
+  // measured recommendation and require a re-measure after the engineer changes the system.
+  const pro=document.getElementById('alignProResult'),apply=document.getElementById('alignProApply');
+  if(pro)pro.classList.toggle('show',!!rec.reliable);
+  if(apply)apply.classList.toggle('show',!!rec.reliable);
+  if(rec.reliable){
+    const target=document.getElementById('alignProTarget'),delay=document.getElementById('alignProDelay'),phase=document.getElementById('alignProPhase'),conf=document.getElementById('alignProConfidence');
+    const action=document.getElementById('alignProAction'),meta=document.getElementById('alignProMeta');
+    if(target)target.textContent=rec.noChange?'NONE':(rec.delayTarget==='sub'?'SUB':rec.delayTarget==='top'?'TOP':'NONE');
+    if(delay)delay.textContent=rec.noChange?'0.00 ms':rec.delayMs.toFixed(2)+' ms';
+    if(phase)phase.textContent=(rec.beforeDeg>0?'+':'')+rec.beforeDeg.toFixed(0)+'° → '+(rec.afterDeg>0?'+':'')+rec.afterDeg.toFixed(0)+'°';
+    if(conf){conf.textContent=Math.round(rec.confidence*100)+'%';conf.parentElement?.classList.toggle('good',rec.confidence>=.7);conf.parentElement?.classList.toggle('warn',rec.confidence<.7);}
+    if(action){
+      if(rec.noChange)action.textContent='✓ אין צורך בשינוי';
+      else action.textContent=(rec.polarityInverted?'הפוך פולריות בסאב · ':'')+(rec.delayTarget?'הוסף '+rec.delayMs.toFixed(2)+' ms ל'+(rec.delayTarget==='sub'?'סאב':'טופ'):'ללא שינוי דיליי');
+    }
+    if(meta)meta.textContent='Expected improvement '+(rec.improvementDb>12?'>12':rec.improvementDb.toFixed(1))+' dB · '+Math.round(rec.band.lo)+'–'+Math.round(rec.band.hi)+' Hz';
+  }
   const range=Math.round(rec.band.lo)+'–'+Math.round(rec.band.hi)+'Hz';
   if(!rec.reliable){
+    document.getElementById('alignProResult')?.classList.remove('show');
+    document.getElementById('alignProApply')?.classList.remove('show');
     el.classList.add('warn');
     el.innerHTML='<strong>אין המלצה אמינה</strong><span>'+rec.reason+'</span><span class="phRecMeta">'+range+' · '+Math.round((rec.meanCoh||0)*100)+'% קוהרנטיות</span>';
     scheduleAlignBarResize();
@@ -3835,11 +4220,14 @@ function capturePhase(which){
     showXover=true;
     const N2=TF_FFT_N/2, nyq=(typeof audioCtx!=='undefined'&&audioCtx)?audioCtx.sampleRate/2:24000;
     const k=Math.min(N2-1, Math.round(xoverF/nyq*N2));
-    const c=snap.coh[k];
+    const ratio=Math.pow(2,1/6), lo=xoverF/ratio, hi=xoverF*ratio, cvals=[];
+    for(let j=1;j<N2;j++){const f=j*nyq/N2;if(f>=lo&&f<=hi&&Number.isFinite(snap.coh[j]))cvals.push(snap.coh[j]);}
+    const c=cvals.length?cvals.reduce((a,b)=>a+b,0)/cvals.length:snap.coh[k];
+    const coverage=cvals.length?cvals.filter(v=>v>=tfCohGate).length/cvals.length:0;
     if(btn){ btn.classList.add('on'); btn.textContent='✓ '+(which==='sub'?'2':'3')+' · '+label+' נלכד'; }
     if(st){
-      if(c>=0.5){ st.textContent='✓ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' — אמין'; st.style.color='#22c55e'; }
-      else { st.textContent='⚠ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' נמוכה — קרב מיק׳/העלה רמה ומדוד שוב'; st.style.color='#f59e0b'; }
+      if(c>=Math.max(.55,tfCohGate)&&coverage>=.55){ st.textContent='✓ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' · כיסוי '+Math.round(coverage*100)+'% — אמין'; st.style.color='#22c55e'; }
+      else { st.textContent='⚠ '+label+' · קוהרנטיות '+c.toFixed(2)+' · כיסוי '+Math.round(coverage*100)+'% — מדוד שוב לפני Alignment'; st.style.color='#f59e0b'; }
     }
     phMeasuring=false;
     syncSubTopWorkflowUi();
@@ -4008,7 +4396,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.1';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.3';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4067,9 +4455,27 @@ function v54SetSideRail(open){
 }
 function v54SetAnalysisView(view,event){
   if(event){event.preventDefault();event.stopImmediatePropagation();}
-  closeModals();setAlign(false);setTfOverlay(false);setMode(view);v5SetTab('analysis');
-  document.getElementById('v53AnalysisToggle')?.classList.toggle('on',view==='rta');
-  document.getElementById('v54WaterfallToggle')?.classList.toggle('on',view==='spec');
+  closeModals();
+  setAlign(false);
+  const rtaBtn=document.getElementById('v53AnalysisToggle');
+  const wfBtn=document.getElementById('v54WaterfallToggle');
+  const tfBtn=document.getElementById('v54TfGraphToggle');
+  rtaBtn?.classList.toggle('on',view==='rta');
+  wfBtn?.classList.toggle('on',view==='spec');
+  tfBtn?.classList.toggle('on',view==='tf');
+  if(view==='tf'){
+    v5SetTab('tf');
+    v5OpenTf();
+  }else{
+    setTfOverlay(false);
+    setMode(view);
+    v5SetTab('analysis');
+  }
+  const bottom=document.getElementById('uiBottomTools');
+  if(bottom){
+    const action=view==='spec'?'waterfall':view==='tf'?'tf':'analysis';
+    bottom.querySelectorAll('button[data-ui-action]').forEach(b=>b.classList.toggle('on',b.dataset.uiAction===action));
+  }
 }
 function v5OpenTf(extra){
   setMode('rta');

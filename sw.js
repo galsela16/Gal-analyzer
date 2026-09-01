@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-1-safe-sweep-delay-20260820';
+const CACHE = 'gal-analyzer-v5-5-2-ui-refresh-20260830';
 const ASSETS = [
   './',
   './index.html',

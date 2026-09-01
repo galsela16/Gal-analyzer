@@ -1239,13 +1239,916 @@
 
   .err{position:absolute;bottom:14px;inset-inline:14px;z-index:5;background:rgba(255,59,107,.12);border:1px solid var(--hot);
     color:var(--hot);padding:10px 14px;border-radius:4px;font-size:12px;line-height:1.6;display:none}
+
+
+  /* UI Refresh 2026-08-30 v2: professional tool drawer */
+  #uiMenuBtn{width:38px;height:34px;border:1px solid #263746;border-radius:9px;background:linear-gradient(180deg,#111c26,#0b151d);color:#dce8f0;font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+  #uiMenuBtn:hover,#uiMenuBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.11);box-shadow:0 0 0 1px rgba(62,166,255,.05),0 8px 24px rgba(0,0,0,.28)}
+  #uiMenuBackdrop,#uiTraceBackdrop{position:fixed;inset:0;z-index:89;display:none;background:rgba(0,5,10,.58);backdrop-filter:blur(2px)}
+  #uiMenuBackdrop.open,#uiTraceBackdrop.open{display:block}
+  #uiMenu{position:fixed;top:calc(env(safe-area-inset-top) + 61px);inset-inline-end:10px;z-index:100;width:min(92vw,360px);max-height:calc(100dvh - env(safe-area-inset-top) - 82px);overflow:auto;display:none;padding:12px;border:1px solid #253746;border-radius:16px;background:linear-gradient(180deg,rgba(13,22,30,.985),rgba(7,14,20,.985));box-shadow:0 24px 70px rgba(0,0,0,.62);backdrop-filter:blur(18px)}
+  body.sun-mode #uiMenu{background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(241,246,250,.99));border-color:#bfd0dc}
+  #uiMenu.open{display:block;animation:uiMenuIn .16s ease-out}
+  @keyframes uiMenuIn{from{opacity:0;transform:translateY(-5px) scale(.985)}to{opacity:1;transform:none}}
+  .uiMenuHead{display:flex;align-items:center;gap:10px;padding:3px 3px 11px;border-bottom:1px solid #1d2c37;margin-bottom:10px}
+  .uiMenuHeadIcon{width:34px;height:34px;border:1px solid rgba(62,166,255,.35);border-radius:10px;display:grid;place-items:center;background:rgba(62,166,255,.08);color:var(--accent);font-size:17px}
+  .uiMenuTitle{font-size:12px;color:#e8f0f6;font-weight:800;letter-spacing:.15px;padding:0}
+  .uiMenuSub{font-size:9px;color:#718493;margin-top:2px}
+  body.sun-mode .uiMenuTitle{color:#17212b}
+  .uiMenuSectionLabel{font-size:9px;color:#667988;letter-spacing:1.3px;text-transform:uppercase;padding:7px 4px 6px}
+  .uiMenuGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .uiMenuItem{min-height:62px;border:1px solid #20313e;border-radius:11px;background:linear-gradient(180deg,#0f1a23,#0b151d);color:#dce6ed;cursor:pointer;padding:10px;text-align:start;display:grid;grid-template-columns:28px 1fr;column-gap:8px;align-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+  .uiMenuItem:hover,.uiMenuItem:active{border-color:var(--accent);background:rgba(62,166,255,.09)}
+  .uiMenuItem .ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:#101f2a;color:var(--accent);font-size:14px}
+  .uiMenuItem .txt{font:700 11px inherit;line-height:1.1}
+  .uiMenuItem .meta{display:block;color:#6f8392;font:500 8px inherit;margin-top:4px;line-height:1.25}
+  body.sun-mode .uiMenuItem{background:#fff;color:#1f2b35;border-color:#d6e0e7}
+  body.sun-mode .uiMenuItem .ico{background:#edf5fb}
+  .uiMenuPanel{display:none;margin-top:10px;padding:10px;border:1px solid #20313e;border-radius:12px;background:#09131b}
+  .uiMenuPanel.open{display:block;animation:uiMenuIn .14s ease-out}
+  body.sun-mode .uiMenuPanel{background:#f7fafc;border-color:#d6e0e7}
+  .uiDisplayRow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px;padding:5px 2px;border-bottom:1px solid #172630;font-size:10px;color:#b8c6d0}
+  .uiDisplayRow:last-child{border-bottom:0}
+  .uiDisplayActions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .uiMiniBtn{border:1px solid #263846;border-radius:7px;background:#0d1922;color:#9fb1bf;padding:6px 8px;font:700 9px inherit;cursor:pointer}
+  .uiMiniBtn.on,.uiMiniBtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.1)}
+  .uiMenuColors{display:flex;gap:8px;align-items:center;padding:10px 3px 1px}
+  .uiMenuColors .sw{width:22px;height:22px}
+  .uiMenuFoot{margin-top:10px;padding-top:9px;border-top:1px solid #182733;color:#536878;font-size:8px;display:flex;justify-content:space-between;gap:8px}
+  header.uiRefreshed{padding:9px 12px;min-height:52px;gap:8px}
+  header.uiRefreshed h1{white-space:nowrap}
+  header.uiRefreshed .v5HeaderActions,header.uiRefreshed>#sunBtn,header.uiRefreshed>#helpBtn,header.uiRefreshed>#guideBtn,header.uiRefreshed>#swatches{display:none!important}
+  #uiTraceBackdrop{z-index:93}
+  #v5TraceClose{display:none}
+  @media(max-width:900px){
+    body.ui-traces-open #v5SideRail{display:flex!important;position:fixed!important;z-index:96!important;left:10px!important;top:calc(env(safe-area-inset-top) + 66px)!important;bottom:calc(env(safe-area-inset-bottom) + 38px)!important;width:min(82vw,300px)!important;border:1px solid #263846!important;border-radius:14px!important;box-shadow:0 24px 70px rgba(0,0,0,.65)!important;padding:12px!important;animation:uiTraceIn .18s ease-out;background:linear-gradient(180deg,#0b1720,#071017)!important}
+    body.ui-traces-open #v5TraceClose{display:grid}
+    #v5TraceClose{position:absolute;right:10px;top:9px;width:28px;height:28px;border:1px solid #2a3d4b;border-radius:8px;background:#0d1922;color:#9fb1bf;place-items:center;cursor:pointer}
+    #v5TraceClose:hover{border-color:var(--accent);color:var(--accent)}
+    @keyframes uiTraceIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:none}}
+  }
+  @media(max-width:760px){
+    header.uiRefreshed .modes{display:none}
+    header.uiRefreshed .v3Status{margin-inline-start:auto}
+    header.uiRefreshed #v3ResControl{display:none}
+    header.uiRefreshed #v3AudioChip{font-size:10px;padding:5px 7px}
+    #uiMenu{inset-inline:8px;width:auto;top:calc(env(safe-area-inset-top) + 59px)}
+  }
+
+
+  /* =========================================================
+     V5.5.3 — VISUAL WORKSPACE REFRESH
+     Large, obvious UI change: glass header, framed graph,
+     compact mode chips and mobile bottom tool dock.
+     Measurement/DSP behavior is unchanged.
+     ========================================================= */
+  :root{
+    --ui52-radius:16px;
+    --ui52-glass:rgba(8,17,25,.82);
+    --ui52-line:#223646;
+  }
+  body{
+    background:radial-gradient(120% 90% at 50% -10%,#163046 0%,#09131d 46%,#050a0f 100%)!important;
+  }
+  header.uiRefreshed{
+    min-height:64px!important;
+    padding:9px 12px!important;
+    background:linear-gradient(180deg,rgba(11,23,33,.96),rgba(7,15,23,.92))!important;
+    border-bottom:1px solid rgba(80,133,170,.22)!important;
+    box-shadow:0 8px 26px rgba(0,0,0,.28)!important;
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  }
+  header.uiRefreshed h1{
+    font-size:14px!important;letter-spacing:1.7px!important;font-weight:800!important;
+    display:flex;align-items:baseline;gap:6px;
+  }
+  header.uiRefreshed h1::before{
+    content:'GAL';color:var(--accent);font-weight:900;letter-spacing:2.2px;
+  }
+  header.uiRefreshed h1>span{display:none}
+  header.uiRefreshed #ver{font-size:9px!important;opacity:.55}
+  #uiMenuBtn{
+    width:40px!important;height:40px!important;border-radius:12px!important;
+    border:1px solid #2b4355!important;background:linear-gradient(180deg,#10202c,#0b1720)!important;
+    color:#dce8f1!important;font-size:18px!important;box-shadow:0 6px 18px rgba(0,0,0,.26)!important;
+  }
+  #uiMenuBtn.on{border-color:var(--accent)!important;color:var(--accent)!important;box-shadow:0 0 0 3px rgba(62,166,255,.09),0 8px 22px rgba(0,0,0,.35)!important}
+  #uiLivePill{
+    direction:ltr;display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;
+    border:1px solid rgba(69,212,123,.22);background:rgba(69,212,123,.065);color:#72e29a;
+    font:800 9px/1 inherit;letter-spacing:1.2px;
+  }
+  .uiLiveDot{width:7px;height:7px;border-radius:50%;background:#43d67a;box-shadow:0 0 10px rgba(67,214,122,.75)}
+  #stage{
+    margin:10px 10px 8px!important;border:1px solid rgba(69,104,128,.28)!important;border-radius:var(--ui52-radius)!important;
+    overflow:hidden!important;background:linear-gradient(180deg,#07121b,#050c12)!important;
+    box-shadow:0 20px 60px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.025)!important;
+  }
+  #v5ModeTabs{
+    height:48px!important;padding:7px 10px!important;align-items:center!important;gap:6px!important;
+    background:linear-gradient(180deg,rgba(10,24,34,.97),rgba(7,17,25,.95))!important;
+    border-bottom:1px solid rgba(65,103,129,.25)!important;
+  }
+  #v5ModeTabs button,.v53AnalysisGroup{
+    height:32px!important;border-radius:9px!important;border-color:#243b4c!important;background:#0b1822!important;
+  }
+  #v5ModeTabs button{padding:0 12px!important;min-width:72px!important;color:#8fa4b4!important}
+  #v5ModeTabs button.on,#v5ModeTabs .v53AnalysisGroup.on{
+    color:var(--accent)!important;border-color:rgba(62,166,255,.62)!important;
+    background:linear-gradient(180deg,rgba(62,166,255,.13),rgba(62,166,255,.055))!important;
+    box-shadow:inset 0 0 0 1px rgba(62,166,255,.08),0 5px 14px rgba(0,0,0,.18)!important;
+  }
+  #v5SideRail{
+    background:linear-gradient(180deg,#0b1720,#071018)!important;border-right:1px solid #223746!important;
+  }
+  .v5ReadCard{border-radius:10px!important;background:linear-gradient(180deg,#0d1b26,#09151e)!important;border-color:#223846!important}
+  #uiMenu{
+    border-radius:18px!important;background:linear-gradient(180deg,#0d1b25,#071119)!important;
+    border:1px solid #2a4355!important;box-shadow:0 28px 80px rgba(0,0,0,.62)!important;
+  }
+  .uiMenuItem{border-radius:12px!important;background:linear-gradient(180deg,#101e28,#0b1720)!important;border-color:#243b4b!important}
+  .uiMenuItem:hover,.uiMenuItem:active{border-color:var(--accent)!important;background:rgba(62,166,255,.08)!important}
+
+  #uiBottomTools{
+    display:none;direction:ltr;position:fixed;z-index:88;left:10px;right:10px;
+    bottom:calc(30px + env(safe-area-inset-bottom));height:64px;padding:6px;
+    border:1px solid rgba(67,103,128,.42);border-radius:18px;
+    background:linear-gradient(180deg,rgba(12,27,38,.94),rgba(7,17,25,.96));
+    box-shadow:0 16px 46px rgba(0,0,0,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  }
+  #uiBottomTools button{
+    appearance:none;border:0;background:transparent;color:#7f94a4;flex:1;min-width:0;border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:700 8.5px inherit;cursor:pointer;
+  }
+  #uiBottomTools button.on{color:var(--accent);background:rgba(62,166,255,.09);box-shadow:inset 0 0 0 1px rgba(62,166,255,.15)}
+  #uiBottomTools .uiToolIcon{font-size:17px;line-height:17px;font-weight:500}
+
+  @media(max-width:900px){
+    body{padding-bottom:calc(104px + env(safe-area-inset-bottom))!important}
+    header.uiRefreshed{min-height:58px!important}
+    header.uiRefreshed .v3Status{display:none!important}
+    #uiLivePill{margin-inline-start:auto}
+    #stage{margin:8px!important;border-radius:14px!important}
+    #v5ModeTabs{display:none!important}
+    #stage>canvas#cv,#stage.measure-open>canvas#cv,#stage.bar-open>canvas#cv{
+      top:0!important;left:0!important;width:100%!important;height:100%!important;
+    }
+    #stage.measure-open>canvas#cv{height:calc(100% - var(--measure-h,0px))!important}
+    #stage.bar-open>canvas#cv{height:calc(100% - var(--bar-h,0px))!important}
+    #stage.v52-io-open>canvas#cv{height:calc(100% - var(--v52-io-h,0px))!important}
+    #stage.v53-gen-open>canvas#cv{height:calc(100% - var(--v53-gen-h,190px))!important}
+    footer{display:none!important}
+    #uiBottomTools{display:flex}
+    #v5StatusBar{height:24px!important;padding:0 10px!important;font-size:8px!important}
+    #v5StatusBar>div:first-child,#v5StatusBar>div:last-child{display:none!important}
+    #v5StatusBar{justify-content:center!important}
+    #v5StatusBrand{font-size:9px!important;letter-spacing:.5px}
+    #v52IODock,#genPanel{position:fixed!important;left:8px!important;right:8px!important;bottom:calc(102px + env(safe-area-inset-bottom))!important;border:1px solid #294357!important;border-radius:16px!important;max-height:52vh!important;box-shadow:0 24px 64px rgba(0,0,0,.62)!important}
+    .measureDock{position:fixed!important;left:8px!important;right:8px!important;bottom:calc(102px + env(safe-area-inset-bottom))!important;border:1px solid #294357!important;border-radius:16px!important;max-height:52vh!important;box-shadow:0 24px 64px rgba(0,0,0,.62)!important}
+    .tfQuickBar{top:10px!important}
+  }
+  @media(min-width:901px){
+    #stage{margin-left:10px!important;margin-right:10px!important}
+  }
+  body.sun-mode #uiBottomTools{background:rgba(255,255,255,.95);border-color:#c8d6e0}
+  body.sun-mode #stage{background:#fff!important;border-color:#cbd5e1!important}
+
+
+/* V5.5.3 TF PRO workspace */
+#tfPanel.tfPro{
+  width:min(1040px,calc(100vw - 28px))!important;max-width:1040px!important;
+  border-radius:18px!important;padding:14px 16px 16px!important;
+  background:linear-gradient(180deg,rgba(18,24,32,.98),rgba(10,14,20,.98))!important;
+  border:1px solid rgba(148,163,184,.20)!important;
+  box-shadow:0 22px 70px rgba(0,0,0,.48)!important;
+}
+#tfPanel.tfPro h3{font-size:15px!important;letter-spacing:.02em;margin:0 0 2px!important}
+#tfPanel.tfPro>.sub:first-of-type{margin-bottom:10px!important;color:#8fa0b3!important}
+.tfProHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.tfProTitle{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--dim)}
+.tfProLive{display:inline-flex;align-items:center;gap:5px;color:#56df86;font-weight:800;font-size:10px;letter-spacing:.08em}
+.tfProLive:before{content:"";width:7px;height:7px;border-radius:50%;background:#56df86;box-shadow:0 0 10px rgba(86,223,134,.6)}
+.tfProCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:8px 0 10px}
+.tfProCard{padding:9px 10px;border:1px solid rgba(148,163,184,.16);border-radius:10px;background:rgba(255,255,255,.025);min-width:0}
+.tfProCard span{display:block;color:#75869a;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.tfProCard b{display:block;font:700 15px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e7eef7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tfProCard small{display:block;color:#7f91a5;font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tfProViewBar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border:1px solid rgba(148,163,184,.15);border-radius:10px;background:rgba(0,0,0,.16);margin:7px 0}
+.tfProViewBar .left,.tfProViewBar .right{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.tfProViewBar button{border:1px solid rgba(148,163,184,.18);background:#111923;color:#9eacba;border-radius:7px;padding:6px 9px;font-size:10px;font-weight:700}
+.tfProViewBar button.on{color:#fff;border-color:rgba(62,166,255,.6);background:rgba(62,166,255,.16);box-shadow:inset 0 0 0 1px rgba(62,166,255,.08)}
+#tfPanel.tfPro #tfCorrCard{border-radius:10px!important;background:rgba(255,255,255,.025)!important}
+#tfPanel.tfPro #tfWorkflowSteps{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:6px!important}
+#tfPanel.tfPro #tfWorkflowSteps button{min-height:34px!important;border-radius:8px!important}
+#tfPanel.tfPro #tfUtilityBtns{gap:5px!important}
+#tfPanel.tfPro #tfDelayInfo{border-radius:9px!important;padding:8px 10px!important}
+#tfPanel.tfPro #tfCanvas{border-radius:10px!important}
+body.sun-mode #tfPanel.tfPro{background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(245,248,252,.99))!important}
+body.sun-mode .tfProCard,body.sun-mode .tfProViewBar{background:rgba(15,23,42,.025)}
+body.sun-mode .tfProCard b{color:#172033}
+@media(max-width:700px){
+  #tfPanel.tfPro{width:100%!important;max-width:none!important;left:0!important;right:0!important;bottom:calc(58px + env(safe-area-inset-bottom))!important;top:auto!important;transform:none!important;border-radius:18px 18px 0 0!important;max-height:76vh!important;padding:12px 11px 14px!important}
+  .tfProCards{grid-template-columns:repeat(2,1fr)}
+  .tfProViewBar{align-items:flex-start;flex-direction:column}
+  #tfPanel.tfPro #tfWorkflowSteps{grid-template-columns:repeat(2,1fr)!important}
+  #tfPanel.tfPro .chBar{font-size:9px!important}
+}
+
+
+/* V5.5.3 Phase Pro */
+.tfPhaseTools{display:none;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 9px;margin:7px 0;border:1px solid rgba(34,197,94,.20);border-radius:10px;background:rgba(34,197,94,.035)}
+.tfPhaseTools.show{display:grid}
+.tfPhaseTools .phaseRead{display:flex;align-items:center;gap:10px;min-width:0}
+.tfPhaseBadge{min-width:82px;padding:7px 9px;border-radius:8px;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.25);text-align:center}
+.tfPhaseBadge span{display:block;color:#7f91a5;font-size:8px;letter-spacing:.08em}
+.tfPhaseBadge b{display:block;color:#56df86;font:800 14px ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:2px}
+.tfPhaseFreq{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.tfPhaseFreq label{font-size:9px;color:#8494a7;white-space:nowrap}
+.tfPhaseFreq input{width:100%;accent-color:#22c55e}
+.tfPhaseActions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.tfPhaseActions button{border:1px solid rgba(148,163,184,.18);background:#111923;color:#a8b4c1;border-radius:7px;padding:6px 8px;font-size:9px;font-weight:700}
+.tfPhaseActions button.on{color:#56df86;border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.10)}
+@media(max-width:700px){.tfPhaseTools{grid-template-columns:1fr}.tfPhaseActions{justify-content:flex-start}.tfPhaseBadge{min-width:72px}}
+
+
+/* V5.5.3 Alignment Pro */
+#alignProResult{display:none;flex:1 0 100%;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#alignProResult.show{display:grid}
+.alignProCard{border:1px solid rgba(148,163,184,.16);border-radius:8px;background:rgba(255,255,255,.025);padding:7px 9px;min-width:0}
+.alignProCard span{display:block;color:var(--dim);font-size:8px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
+.alignProCard b{display:block;color:var(--text);font:800 13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alignProCard.good b{color:#42d57b}.alignProCard.warn b{color:#f59e0b}
+#alignProApply{display:none;flex:1 0 100%;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border-radius:8px;border:1px solid rgba(62,166,255,.25);background:rgba(62,166,255,.055)}
+#alignProApply.show{display:flex}
+#alignProApply strong{color:var(--accent);font-size:11px}#alignProApply span{font-size:9px;color:var(--dim)}
+#alignProApply button{border-color:rgba(62,166,255,.4)!important;color:var(--accent)!important}
+@media(max-width:700px){#alignProResult{grid-template-columns:repeat(2,1fr)}#alignProApply{align-items:flex-start;flex-direction:column}}
+
+
+/* V5.5.3 Unified Workspace */
+#v5ModeTabs>button[data-v5mode="delay"],#v5ModeTabs>button[data-v5mode="rt60"],#v5ModeTabs>button[data-v5mode="spleq"],#v5ModeTabs>button[data-v5mode="align"]{display:none!important}
+#v5ModeTabs{justify-content:center!important}
+#v53AnalysisGroup{flex:0 1 460px!important;display:grid!important;grid-template-columns:repeat(3,1fr)!important}
+#v53AnalysisGroup button{min-width:0!important}
+#uiContextBar{
+ position:absolute;z-index:28;left:50%;transform:translateX(-50%);bottom:10px;
+ display:flex;align-items:center;gap:6px;padding:6px 7px;border:1px solid rgba(148,163,184,.18);
+ border-radius:11px;background:rgba(9,13,19,.88);backdrop-filter:blur(14px);box-shadow:0 8px 28px rgba(0,0,0,.28)
+}
+body.sun-mode #uiContextBar{background:rgba(255,255,255,.90)}
+#uiContextBar button{border:1px solid rgba(148,163,184,.18);background:#111923;color:#aab6c3;border-radius:7px;padding:6px 10px;font-size:9px;font-weight:750;white-space:nowrap}
+body.sun-mode #uiContextBar button{background:#f5f7fa;color:#334155}
+#uiContextBar button.primary{border-color:rgba(62,166,255,.5);color:var(--accent);background:rgba(62,166,255,.10)}
+#uiContextBar .ctxState{font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8291a3;padding:0 5px;white-space:nowrap}
+#uiToolsPanel{display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(148,163,184,.14)}
+#uiToolsPanel.open{display:block}
+.uiToolsGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.uiToolCard{display:flex!important;align-items:center!important;gap:9px!important;text-align:left!important;padding:10px!important;border-radius:9px!important}
+.uiToolCard .ico{font-size:16px!important}
+.uiToolCard .txt{display:block;font-size:11px;font-weight:750}.uiToolCard .meta{display:block;font-size:8px;color:var(--dim);margin-top:2px}
+#uiBottomTools button[data-ui-action="generator"],#uiBottomTools button[data-ui-action="traces"],#uiBottomTools button[data-ui-action="io"]{display:none}
+#uiBottomTools:after{content:"TOOLS";display:flex;align-items:center;justify-content:center;min-width:62px;font-size:9px;font-weight:800;color:var(--dim);border-left:1px solid var(--line)}
+@media(max-width:700px){
+ #uiContextBar{left:8px;right:8px;transform:none;bottom:8px;overflow-x:auto;justify-content:flex-start}
+ #uiContextBar .ctxState{display:none}
+ #v53AnalysisGroup{flex:1 1 auto!important}
+ .uiToolsGrid{grid-template-columns:1fr}
+}
+
+
+/* V5.5.3 Single Workspace Drawer */
+body.ui-workspace-drawer #v52IODock,
+body.ui-workspace-drawer #genPanel,
+body.ui-workspace-drawer #v5SideRail{
+ position:fixed!important;z-index:70!important;top:72px!important;right:12px!important;left:auto!important;
+ width:min(390px,calc(100vw - 24px))!important;max-width:390px!important;
+ max-height:calc(100vh - 142px)!important;overflow:auto!important;
+ border:1px solid rgba(148,163,184,.20)!important;border-radius:14px!important;
+ background:rgba(10,15,22,.97)!important;box-shadow:0 20px 60px rgba(0,0,0,.46)!important;
+ backdrop-filter:blur(18px)!important
+}
+body.sun-mode.ui-workspace-drawer #v52IODock,
+body.sun-mode.ui-workspace-drawer #genPanel,
+body.sun-mode.ui-workspace-drawer #v5SideRail{background:rgba(255,255,255,.98)!important}
+#uiWorkspaceBackdrop{display:none;position:fixed;inset:0;z-index:69;background:rgba(0,0,0,.20)}
+body.ui-workspace-drawer #uiWorkspaceBackdrop{display:block}
+#uiDrawerLabel{display:none;position:fixed;z-index:71;top:82px;right:56px;color:#7f91a5;font-size:9px;font-weight:800;letter-spacing:.08em;pointer-events:none}
+body.ui-workspace-drawer #uiDrawerLabel{display:block}
+#v5GenAction{display:none!important} /* Generator has one canonical entry point */
+@media(max-width:700px){
+ body.ui-workspace-drawer #v52IODock,body.ui-workspace-drawer #genPanel,body.ui-workspace-drawer #v5SideRail{
+   top:auto!important;bottom:calc(58px + env(safe-area-inset-bottom))!important;right:7px!important;left:7px!important;
+   width:auto!important;max-width:none!important;max-height:68vh!important;border-radius:16px 16px 10px 10px!important
+ }
+ #uiDrawerLabel{top:auto!important;bottom:calc(68vh + 24px + env(safe-area-inset-bottom))!important;right:22px!important}
+}
+
+
+/* V5.5.3 Unified Settings */
+#uiDisplay{display:none!important}
+#uiSettingsPanel{margin-top:8px;padding:10px;border:1px solid rgba(148,163,184,.15);border-radius:10px;background:rgba(255,255,255,.018)}
+.uiSettingsTabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:9px}
+.uiSettingsTabs button{border:1px solid rgba(148,163,184,.16);background:#111923;color:#8797a8;border-radius:7px;padding:6px;font-size:9px;font-weight:750}
+.uiSettingsTabs button.on{color:var(--accent);border-color:rgba(62,166,255,.45);background:rgba(62,166,255,.08)}
+.uiSettingsPage{display:none}.uiSettingsPage.on{display:block}
+.uiSettingsRow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;border-bottom:1px solid rgba(148,163,184,.09);font-size:9px;color:#8999aa}
+.uiSettingsRow:last-child{border-bottom:0}.uiSettingsRow strong{color:var(--text);font-size:9px}
+.uiSettingsRow button{border:1px solid rgba(148,163,184,.16);background:#111923;color:#a9b5c2;border-radius:6px;padding:5px 7px;font-size:8px;font-weight:700}
+body.sun-mode #uiSettingsPanel{background:#f8fafc}body.sun-mode .uiSettingsTabs button,body.sun-mode .uiSettingsRow button{background:#fff;color:#334155}
+
+
+/* V5.5.3 Graph Focus */
+header.uiRefreshed .modes{display:none!important} /* canonical graph switch is the in-stage RTA/Waterfall/TF group */
+header.uiRefreshed .v3Status{display:none!important} /* status/settings live elsewhere */
+header.uiRefreshed #sunBtn,header.uiRefreshed #helpBtn,header.uiRefreshed #guideBtn,header.uiRefreshed #swatches{display:none!important}
+header.uiRefreshed{min-height:48px!important;height:48px!important;padding:0 12px!important;gap:8px!important}
+header.uiRefreshed h1{font-size:13px!important;white-space:nowrap}
+#uiLivePill{margin-left:auto!important}
+#stage{top:48px!important}
+#v53AnalysisBar{min-height:40px!important;padding:5px 8px!important;background:rgba(8,12,18,.62)!important;backdrop-filter:blur(12px)}
+#v53AnalysisGroup{max-width:520px!important;margin:0 auto!important}
+#v53AnalysisGroup button{height:29px!important;padding:0 12px!important;font-size:9px!important}
+#v5TargetToggle{display:none!important} /* Target belongs to Settings */
+#uiContextBar{bottom:8px!important}
+#v5StatusBar{opacity:.82}
+@media(min-width:901px){
+ #stage{padding-top:0!important}
+ #graphWrap,#v5GraphWrap{border-radius:10px!important}
+}
+@media(max-width:700px){
+ header.uiRefreshed{height:44px!important;min-height:44px!important;padding:0 8px!important}
+ header.uiRefreshed h1{font-size:11px!important}
+ #stage{top:44px!important}
+ #v53AnalysisBar{padding:4px 6px!important}
+}
+
+
+#uiContextBar .ctxMetric{font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);padding:0 6px;white-space:nowrap;border-left:1px solid rgba(148,163,184,.14)}
+#uiContextBar button[data-ctx="modeAction"]{display:inline-flex}
+body.ctx-waterfall #uiContextBar{border-color:rgba(181,123,255,.28)}
+body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{display:inline-flex!important;border-color:rgba(245,158,11,.42);color:#fbbf24;background:rgba(245,158,11,.08)}
+body.ctx-waterfall #uiContextBar [data-ctx="resonance"].off{color:#7f8a98;border-color:rgba(148,163,184,.18);background:#111923}
+body.ctx-tf #uiContextBar{border-color:rgba(64,209,122,.28)}
+body.ctx-tool #uiContextBar{border-color:rgba(255,157,60,.32)}
+@media(max-width:700px){#uiContextBar .ctxMetric{font-size:8px;padding:0 4px}}
+
+
+/* =========================================================
+   V5.5.3 — APPROVED MOCKUP VISUAL LAYER
+   Brings the live workspace closer to the approved concept:
+   cyan instrument chrome, stronger graph framing, glass cards,
+   segmented navigation and tactile field controls.
+   ========================================================= */
+:root{
+  --mock-cyan:#16d9e8;
+  --mock-blue:#2f8cff;
+  --mock-panel:rgba(8,22,31,.92);
+  --mock-line:rgba(44,188,207,.22);
+  --mock-glow:0 0 24px rgba(22,217,232,.08);
+}
+body{
+  background:
+    radial-gradient(80% 45% at 50% 0%,rgba(18,90,110,.18),transparent 68%),
+    linear-gradient(180deg,#07131b 0%,#061019 48%,#040a10 100%)!important;
+}
+header.uiRefreshed{
+  background:linear-gradient(180deg,rgba(8,26,36,.98),rgba(5,17,25,.96))!important;
+  border-bottom-color:rgba(28,195,216,.20)!important;
+  box-shadow:0 10px 34px rgba(0,0,0,.42),inset 0 -1px 0 rgba(22,217,232,.035)!important;
+}
+header.uiRefreshed h1::before{color:var(--mock-cyan)!important;text-shadow:0 0 18px rgba(22,217,232,.18)}
+#uiMenuBtn{
+  border-color:rgba(34,171,193,.34)!important;
+  background:linear-gradient(180deg,#0d2632,#081923)!important;
+}
+#uiMenuBtn.on{border-color:var(--mock-cyan)!important;color:var(--mock-cyan)!important}
+#uiLivePill{
+  border-color:rgba(52,218,131,.28)!important;
+  background:linear-gradient(180deg,rgba(36,170,98,.10),rgba(23,95,62,.06))!important;
+  box-shadow:inset 0 0 18px rgba(50,220,130,.025);
+}
+#stage{
+  border-color:rgba(35,171,195,.25)!important;
+  background:linear-gradient(180deg,#06151d,#040b10)!important;
+  box-shadow:0 26px 74px rgba(0,0,0,.46),inset 0 0 0 1px rgba(255,255,255,.012),var(--mock-glow)!important;
+}
+#stage:before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(24,181,204,.025),transparent 18%,transparent 82%,rgba(22,217,232,.018));
+}
+#v53AnalysisBar{
+  border-bottom:1px solid rgba(34,176,198,.16)!important;
+  background:linear-gradient(180deg,rgba(9,29,39,.90),rgba(6,18,27,.84))!important;
+}
+#v53AnalysisGroup{
+  border:1px solid rgba(33,170,194,.16)!important;border-radius:12px!important;padding:3px!important;
+  background:rgba(2,11,17,.44)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.018)!important;
+}
+#v53AnalysisGroup button{
+  border:0!important;border-radius:8px!important;background:transparent!important;color:#718e9f!important;
+  transition:.15s ease!important;
+}
+#v53AnalysisGroup button.on{
+  color:#bdfaff!important;background:linear-gradient(180deg,rgba(19,205,225,.18),rgba(12,124,151,.10))!important;
+  box-shadow:inset 0 0 0 1px rgba(22,217,232,.30),0 0 18px rgba(22,217,232,.06)!important;
+}
+#uiContextBar{
+  border-color:rgba(33,173,194,.25)!important;
+  background:linear-gradient(180deg,rgba(8,25,34,.93),rgba(5,16,23,.94))!important;
+  box-shadow:0 12px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.025)!important;
+  border-radius:13px!important;
+}
+#uiContextBar .ctxMetric{color:#6ee9f2!important}
+#uiContextBar button{
+  border-color:rgba(50,123,145,.30)!important;background:linear-gradient(180deg,#102631,#0a1b24)!important;color:#91aebb!important;
+}
+#uiContextBar button.primary{
+  color:#c5fbff!important;border-color:rgba(22,217,232,.45)!important;
+  background:linear-gradient(180deg,rgba(22,217,232,.15),rgba(19,109,132,.08))!important;
+  box-shadow:inset 0 0 0 1px rgba(22,217,232,.06)!important;
+}
+body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{
+  border-color:rgba(255,181,58,.45)!important;color:#ffc75c!important;
+  background:linear-gradient(180deg,rgba(255,177,48,.12),rgba(108,70,15,.08))!important;
+}
+#uiMenu{
+  background:
+    radial-gradient(90% 40% at 50% 0%,rgba(23,120,145,.10),transparent 72%),
+    linear-gradient(180deg,rgba(8,26,36,.985),rgba(5,15,22,.99))!important;
+  border-color:rgba(39,171,194,.30)!important;
+}
+.uiMenuHeadIcon,.uiMenuItem .ico{color:var(--mock-cyan)!important}
+.uiMenuItem{
+  border-color:rgba(39,111,132,.30)!important;background:linear-gradient(180deg,#0c222d,#081821)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.02)!important;
+}
+.uiMenuItem:hover,.uiMenuItem:active{border-color:rgba(22,217,232,.55)!important;background:rgba(22,217,232,.07)!important}
+.uiMenuSectionLabel{color:#5f8d9d!important}
+.v5ReadCard,.tfProCard,.alignProCard{
+  border-color:rgba(40,132,153,.24)!important;background:linear-gradient(180deg,rgba(10,29,39,.94),rgba(7,19,27,.94))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.018)!important;
+}
+#uiBottomTools{
+  border-color:rgba(35,169,192,.30)!important;
+  background:linear-gradient(180deg,rgba(8,27,37,.96),rgba(5,16,23,.98))!important;
+}
+#uiBottomTools button{color:#688695!important}
+#uiBottomTools button.on{color:#bafaff!important;background:rgba(22,217,232,.08)!important;box-shadow:inset 0 0 0 1px rgba(22,217,232,.18)!important}
+#v5StatusBar{
+  background:linear-gradient(180deg,rgba(7,21,29,.94),rgba(4,13,19,.96))!important;
+  border-top-color:rgba(34,150,171,.16)!important;color:#648493!important;
+}
+#v5StatusBrand{color:#79a9b7!important}
+body.ui-workspace-drawer #v52IODock,body.ui-workspace-drawer #genPanel,body.ui-workspace-drawer #v5SideRail,
+.measureDock,#tfPanel.tfPro{
+  border-color:rgba(39,164,187,.28)!important;
+  background:
+    radial-gradient(80% 30% at 50% 0%,rgba(19,112,135,.08),transparent 75%),
+    linear-gradient(180deg,rgba(8,25,35,.985),rgba(5,15,22,.99))!important;
+}
+button:active{transform:translateY(1px)}
+@media(max-width:700px){
+  #stage{margin:6px!important;border-radius:16px!important}
+  #uiContextBar{border-radius:14px!important;padding:6px!important}
+  #uiContextBar button{min-height:34px!important;padding:0 11px!important}
+  #uiBottomTools{height:66px!important;border-radius:19px!important}
+}
+
+
+/* V5.5.3 RTA instrument finish */
+body:not(.ctx-waterfall):not(.ctx-tf) #uiContextBar{border-color:rgba(22,217,232,.30)!important}
+body:not(.ctx-waterfall):not(.ctx-tf) #uiCtxState{color:#72f0f2!important;letter-spacing:.075em!important;font-weight:800!important}
+body:not(.ctx-waterfall):not(.ctx-tf) #uiCtxMetric{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-weight:750!important}
+#canvas{filter:drop-shadow(0 0 12px rgba(22,217,232,.04))}
+
+
+/* =========================================================
+   V5.5.3 — FIELD CONTROLS / DRAWERS FINISH
+   Visual-only layer inspired by the approved instrument mockup.
+   ========================================================= */
+#genPanel,#v52IODock,#v5SideRail,.measureDock,#tfPanel.tfPro{
+  box-shadow:0 24px 70px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.025),0 0 0 1px rgba(22,217,232,.025)!important;
+  backdrop-filter:blur(18px) saturate(115%)!important;
+}
+#genPanel button,#v52IODock button,#v5SideRail button,.measureDock button,#tfPanel button{
+  border-radius:9px!important;
+  border-color:rgba(47,129,151,.34)!important;
+  background:linear-gradient(180deg,#102b37,#091b24)!important;
+  color:#9ab7c2!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+#genPanel button:hover,#genPanel button:active,#v52IODock button:active,#v5SideRail button:active,.measureDock button:active,#tfPanel button:active{
+  color:#c8fbff!important;border-color:rgba(22,217,232,.58)!important;background:linear-gradient(180deg,rgba(19,179,198,.17),rgba(9,72,88,.12))!important;
+}
+#genPanel button.on,#v52IODock button.on,#v5SideRail button.on,.measureDock button.on,#tfPanel button.on{
+  color:#c9fdff!important;border-color:rgba(22,217,232,.60)!important;
+  background:linear-gradient(180deg,rgba(22,217,232,.18),rgba(12,91,108,.13))!important;
+  box-shadow:inset 0 0 0 1px rgba(22,217,232,.08),0 0 20px rgba(22,217,232,.06)!important;
+}
+#genPanel input[type="range"],#v52IODock input[type="range"],#v5SideRail input[type="range"],.measureDock input[type="range"]{
+  accent-color:#18d6e4!important;
+}
+#genPanel input,#genPanel select,#v52IODock input,#v52IODock select,#v5SideRail input,#v5SideRail select,.measureDock input,.measureDock select{
+  border-color:rgba(45,126,147,.34)!important;background:#071820!important;color:#b9d2da!important;border-radius:8px!important;
+}
+#genPanel label,#v52IODock label,#v5SideRail label,.measureDock label,#tfPanel label{
+  color:#668b99!important;letter-spacing:.025em!important;
+}
+#uiDrawerLabel{
+  color:#aaf8fb!important;letter-spacing:.085em!important;text-transform:uppercase!important;font-weight:800!important;
+}
+#uiDrawerLabel:before{
+  content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;background:#20d8e5;
+  box-shadow:0 0 12px rgba(32,216,229,.6);
+}
+#uiWorkspaceBackdrop{background:rgba(0,5,9,.58)!important;backdrop-filter:blur(3px)!important}
+
+/* Bottom field dock: physical-console feeling */
+#uiBottomTools{
+  padding:5px!important;gap:4px!important;
+  box-shadow:0 -14px 42px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+#uiBottomTools button{
+  position:relative!important;border-radius:11px!important;border:1px solid transparent!important;
+  background:linear-gradient(180deg,rgba(14,36,47,.78),rgba(7,21,29,.80))!important;
+  font-weight:750!important;letter-spacing:.025em!important;
+}
+#uiBottomTools button:before{
+  content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:16px;height:2px;border-radius:4px;background:rgba(90,130,144,.30);
+}
+#uiBottomTools button.on{
+  border-color:rgba(22,217,232,.28)!important;
+  background:linear-gradient(180deg,rgba(18,146,165,.16),rgba(8,53,66,.12))!important;
+  box-shadow:inset 0 1px 0 rgba(123,247,250,.06),0 0 16px rgba(22,217,232,.04)!important;
+}
+#uiBottomTools button.on:before{background:#29dce6;box-shadow:0 0 9px rgba(41,220,230,.55)}
+
+/* Measurement cards / readouts */
+.v5ReadCard,.tfProCard,.alignProCard{
+  border-radius:12px!important;
+  background:linear-gradient(180deg,rgba(10,31,41,.95),rgba(6,19,27,.96))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.018),0 10px 30px rgba(0,0,0,.18)!important;
+}
+.v5ReadCard .value,.tfProCard .value,.alignProCard .value{
+  color:#d4fbfc!important;text-shadow:0 0 14px rgba(22,217,232,.07)!important;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;
+}
+.v5ReadCard .label,.tfProCard .label,.alignProCard .label{
+  color:#5e8593!important;text-transform:uppercase!important;letter-spacing:.07em!important;
+}
+
+/* Generator gets a warm identity for "signal active" controls */
+#genPanel .on,#genPanel [aria-pressed="true"]{
+  border-color:rgba(255,185,65,.48)!important;color:#ffd17c!important;
+  background:linear-gradient(180deg,rgba(190,122,25,.17),rgba(86,55,13,.12))!important;
+  box-shadow:0 0 18px rgba(255,179,54,.05)!important;
+}
+
+/* Context controls get small tactile caps */
+#uiContextBar button{
+  min-width:70px!important;font-weight:720!important;letter-spacing:.015em!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 4px 12px rgba(0,0,0,.12)!important;
+}
+#uiContextBar button:active{transform:translateY(1px)!important;box-shadow:inset 0 1px 4px rgba(0,0,0,.22)!important}
+
+@media(max-width:700px){
+  body.ui-workspace-drawer #v52IODock,body.ui-workspace-drawer #genPanel,body.ui-workspace-drawer #v5SideRail{
+    border-radius:20px 20px 0 0!important;
+    box-shadow:0 -24px 65px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.03)!important;
+  }
+  #uiBottomTools button{font-size:11px!important;min-height:50px!important}
+  #uiContextBar button{min-width:0!important}
+}
+
+
+/* =========================================================
+   V5.5.3 — PRODUCT FINISH PASS
+   Spacing, typography, hierarchy and touch polish.
+   ========================================================= */
+html{-webkit-text-size-adjust:100%;text-rendering:optimizeLegibility}
+body{letter-spacing:.002em}
+button,input,select{font:inherit}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+header.uiRefreshed{padding-inline:12px!important}
+header.uiRefreshed h1{font-weight:850!important;letter-spacing:.045em!important}
+#uiLivePill{font-size:10px!important;letter-spacing:.075em!important;font-weight:850!important}
+#v53AnalysisBar{padding:6px 9px!important}
+#v53AnalysisGroup{gap:3px!important}
+#v53AnalysisGroup button{
+  min-height:34px!important;padding:0 16px!important;
+  font-size:11px!important;font-weight:820!important;letter-spacing:.055em!important;text-transform:uppercase!important;
+}
+#uiContextBar{gap:6px!important;padding:7px 9px!important}
+#uiCtxState{font-size:10px!important;white-space:nowrap}
+#uiCtxMetric{font-size:11px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#uiContextBar button{
+  min-height:34px!important;padding:0 12px!important;font-size:10.5px!important;
+  white-space:nowrap!important;
+}
+#uiMenu{padding:10px!important}
+.uiMenuTitle{font-size:13px!important;font-weight:850!important;letter-spacing:.055em!important}
+.uiMenuSub{font-size:10px!important;line-height:1.35!important;color:#648493!important}
+.uiMenuSectionLabel{font-size:9px!important;font-weight:850!important;letter-spacing:.12em!important;margin:13px 4px 6px!important}
+.uiMenuItem{min-height:46px!important;padding:9px 11px!important;border-radius:11px!important}
+.uiMenuItem .ico{width:26px!important;min-width:26px!important;font-size:16px!important}
+.uiMenuItem .txt{font-size:11.5px!important;font-weight:740!important}
+.uiMenuItem .sub{font-size:9.5px!important;line-height:1.3!important;color:#648391!important}
+.v5ReadCard,.tfProCard,.alignProCard{padding:10px 11px!important}
+.v5ReadCard .label,.tfProCard .label,.alignProCard .label{font-size:8.5px!important}
+.v5ReadCard .value,.tfProCard .value,.alignProCard .value{font-size:14px!important;font-weight:800!important}
+#uiDrawerLabel{font-size:10px!important;padding:10px 12px!important}
+#uiBottomTools{padding-bottom:max(5px,env(safe-area-inset-bottom))!important}
+#uiBottomTools button{font-size:10px!important;font-weight:780!important;line-height:1.05!important}
+#v5StatusBar{font-size:9px!important;letter-spacing:.025em!important;padding-inline:10px!important}
+
+/* More breathing room around the central instrument */
+#stage{overflow:hidden!important}
+#canvas{border-radius:0 0 12px 12px}
+
+/* Accessibility / field-use focus */
+button:focus-visible,input:focus-visible,select:focus-visible{
+  outline:2px solid rgba(78,235,240,.75)!important;outline-offset:2px!important;
+}
+button[disabled]{opacity:.38!important;filter:saturate(.5)!important}
+
+/* Compact phone hierarchy */
+@media(max-width:700px){
+  header.uiRefreshed{padding-inline:8px!important}
+  header.uiRefreshed h1{font-size:12px!important}
+  #v53AnalysisBar{padding:5px 6px!important}
+  #v53AnalysisGroup button{min-height:32px!important;padding:0 10px!important;font-size:10px!important}
+  #uiContextBar{margin:5px 6px!important;padding:6px!important;gap:4px!important}
+  #uiCtxState{font-size:9px!important}
+  #uiCtxMetric{font-size:9.5px!important;max-width:112px!important}
+  #uiContextBar button{min-height:32px!important;padding:0 9px!important;font-size:9.5px!important}
+  #uiMenu{left:6px!important;right:6px!important;max-width:none!important;border-radius:16px!important}
+  .uiMenuItem{min-height:44px!important}
+  #uiBottomTools button{min-height:48px!important}
+}
+/* Very narrow phones: keep essential graph actions usable rather than wrapping */
+@media(max-width:390px){
+  #uiContextBar{overflow-x:auto!important;scrollbar-width:none!important}
+  #uiContextBar::-webkit-scrollbar{display:none}
+  #uiCtxMetric{min-width:88px!important}
+  #uiContextBar button{flex:0 0 auto!important}
+}
+
+
+/* V5.5.3 — TIGHTEN PASS: less chrome, more measurement */
+header.uiRefreshed{box-shadow:0 6px 20px rgba(0,0,0,.30)!important}
+#stage{box-shadow:0 18px 48px rgba(0,0,0,.38),inset 0 0 0 1px rgba(255,255,255,.01)!important}
+#v53AnalysisBar{min-height:42px!important}
+#v53AnalysisGroup{max-width:420px!important;margin-inline:auto!important;width:100%!important}
+#uiContextBar{min-height:44px!important}
+#uiContextBar .ctxState{flex:0 0 auto!important}
+#uiContextBar .ctxMetric{flex:1 1 auto!important;min-width:70px!important}
+#uiContextBar button{box-shadow:inset 0 1px 0 rgba(255,255,255,.018)!important}
+.uiMenuItem{box-shadow:none!important}
+.v5ReadCard,.tfProCard,.alignProCard{box-shadow:inset 0 1px 0 rgba(255,255,255,.015)!important}
+#uiBottomTools{box-shadow:0 -8px 26px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.02)!important}
+
+/* Stronger semantic hierarchy */
+#uiContextBar button.primary{font-weight:850!important}
+#uiContextBar [data-ctx="generator"],#uiContextBar [data-ctx="tools"]{color:#7895a1!important}
+body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!important}
+#v53AnalysisGroup button:not(.on){opacity:.78}
+#v53AnalysisGroup button.on{opacity:1}
+
+/* Avoid decorative noise in field use */
+#stage:before{opacity:.55!important}
+#canvas{filter:none!important}
+#uiDrawerLabel:before{width:6px!important;height:6px!important;box-shadow:0 0 7px rgba(32,216,229,.38)!important}
+
+/* Phone: maximize graph and keep only useful chrome */
+@media(max-width:700px){
+  header.uiRefreshed{height:42px!important;min-height:42px!important}
+  #stage{margin:4px!important;border-radius:13px!important}
+  #v53AnalysisBar{min-height:38px!important;padding:4px 5px!important}
+  #v53AnalysisGroup button{min-height:30px!important}
+  #uiContextBar{min-height:40px!important;margin:4px!important}
+  #uiBottomTools{height:60px!important;border-radius:16px!important}
+  #uiBottomTools button{min-height:44px!important}
+}
+/* Landscape field mode: aggressively prioritize the graph */
+@media(max-width:900px) and (orientation:landscape){
+  header.uiRefreshed{height:38px!important;min-height:38px!important}
+  #v53AnalysisBar{min-height:34px!important;padding:2px 5px!important}
+  #v53AnalysisGroup button{min-height:28px!important}
+  #uiContextBar{min-height:36px!important;padding:3px 5px!important}
+  #uiContextBar button{min-height:28px!important}
+  #uiBottomTools{height:52px!important}
+}
+
+
+/* V5.5.3 — persistent right quick-tools rail */
+#uiRightTools{
+  position:fixed;right:8px;top:96px;bottom:70px;width:92px;z-index:44;
+  display:flex;flex-direction:column;gap:6px;padding:8px;
+  border:1px solid rgba(38,161,183,.28);border-radius:15px;
+  background:linear-gradient(180deg,rgba(8,26,36,.95),rgba(5,15,22,.97));
+  box-shadow:0 18px 48px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.025);
+  backdrop-filter:blur(14px);
+}
+.uiRightToolsTitle{
+  height:22px;display:flex;align-items:center;justify-content:center;
+  color:#5f8d9d;font-size:9px;font-weight:850;letter-spacing:.14em;
+}
+#uiRightTools button{
+  flex:1 1 0;min-height:46px;border:1px solid rgba(47,129,151,.28);border-radius:10px;
+  background:linear-gradient(180deg,#102833,#091a23);color:#7998a5;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-size:9px;font-weight:760;letter-spacing:.02em;
+}
+#uiRightTools .rtIcon{font-size:17px;line-height:1;color:#6c9ead}
+#uiRightTools button:hover,#uiRightTools button:active{
+  color:#c7fbff;border-color:rgba(22,217,232,.50);background:rgba(22,217,232,.075);
+}
+#uiRightTools button.on{
+  color:#c8fdff;border-color:rgba(22,217,232,.58);
+  background:linear-gradient(180deg,rgba(22,217,232,.18),rgba(10,88,105,.12));
+  box-shadow:inset 0 0 0 1px rgba(22,217,232,.06),0 0 16px rgba(22,217,232,.055);
+}
+#uiRightTools button.on .rtIcon{color:#35e4eb;text-shadow:0 0 10px rgba(53,228,235,.28)}
+@media(min-width:901px){
+  #stage,#v53AnalysisBar,#uiContextBar{margin-right:108px!important}
+}
+@media(max-width:900px){
+  #uiRightTools{
+    position:fixed;left:6px;right:6px;top:auto;bottom:68px;width:auto;height:58px;
+    flex-direction:row;padding:5px;gap:4px;border-radius:14px;
+  }
+  .uiRightToolsTitle{display:none}
+  #uiRightTools button{min-height:46px;font-size:8px;padding:3px;min-width:0}
+  #uiRightTools .rtIcon{font-size:15px}
+  #uiBottomTools{display:none!important}
+}
+
+
+.tfConfidenceCard b.high{color:#43e38c!important}.tfConfidenceCard b.medium{color:#ffc75c!important}.tfConfidenceCard b.low{color:#ff7a72!important}
+
+
+#wfIssueStrip{display:none;gap:6px;align-items:center;overflow-x:auto;max-width:min(720px,78vw);scrollbar-width:none}
+#wfIssueStrip.show{display:flex}
+.wfIssueChip{flex:0 0 auto;padding:5px 8px;border-radius:8px;border:1px solid rgba(55,190,220,.25);background:rgba(5,20,28,.82);font:750 9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;color:#8db0bc}
+.wfIssueChip.high{color:#49e292;border-color:rgba(73,226,146,.35)}
+.wfIssueChip.medium{color:#ffc75c;border-color:rgba(255,199,92,.35)}
+.wfIssueChip.low{color:#8db0bc}
+
+
+/* V5.5.3 Field Reliability Suite */
+#measurementHealth{position:fixed;left:50%;top:52px;transform:translateX(-50%);z-index:35;display:flex;gap:5px;align-items:center;padding:5px 7px;border:1px solid rgba(56,173,200,.24);border-radius:10px;background:rgba(4,17,24,.88);backdrop-filter:blur(12px);font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace}
+.mhItem{padding:3px 5px;border-radius:5px;color:#7897a3}.mhItem.ok{color:#47df91}.mhItem.warn{color:#ffc75c}.mhItem.bad{color:#ff746e}.mhReady{padding:4px 7px;border-radius:6px;color:#ff746e}.mhReady.ok{color:#47df91}
+#traceSessionPanel{position:fixed;right:108px;bottom:72px;z-index:33;width:min(340px,calc(100vw - 24px));max-height:45vh;overflow:auto;display:none;padding:10px;border:1px solid rgba(54,170,198,.25);border-radius:12px;background:rgba(4,17,24,.94);backdrop-filter:blur(14px)}
+#traceSessionPanel.show{display:block}.tsHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font:800 10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8eb2be}.tsRow{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:6px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);font-size:10px}.tsBtn{border:1px solid rgba(55,190,220,.25);background:rgba(8,29,38,.8);color:#a9c8d2;border-radius:7px;padding:5px 7px}.tsInput{min-width:0;background:transparent;border:0;color:#d9edf2;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace}
+@media(max-width:900px){#measurementHealth{top:46px;max-width:96vw;overflow-x:auto;justify-content:flex-start}#traceSessionPanel{right:8px;bottom:118px}}
+
+
+#delayRepeatBadge{display:none;padding:5px 8px;border-radius:8px;border:1px solid rgba(55,190,220,.25);background:rgba(5,20,28,.82);font:750 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8db0bc}
+#delayRepeatBadge.show{display:inline-flex}#delayRepeatBadge.high{color:#47df91}#delayRepeatBadge.medium{color:#ffc75c}#delayRepeatBadge.low{color:#ff746e}
+
+
+/* V5.5.3 Measurement Health guidance */
+#mhGuide{display:none;position:fixed;left:50%;top:88px;transform:translateX(-50%);z-index:34;
+ max-width:min(620px,92vw);padding:7px 10px;border-radius:9px;border:1px solid rgba(255,199,92,.24);
+ background:rgba(5,18,25,.92);backdrop-filter:blur(12px);font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#b8d0d8}
+#mhGuide.show{display:block}#mhGuide strong{color:#ffc75c}
+@media(max-width:900px){#mhGuide{top:82px;font-size:9px}}
+
+/* V5.5.3 TARGET WORKSPACE */
+#targetCommandBar{display:none}
+@media(min-width:1100px){
+body{background:#030b10}
+#uiHeader{height:64px!important;padding:8px 14px!important;background:#061118!important}
+#uiTopModes{position:fixed!important;top:76px!important;left:272px!important;width:510px!important;z-index:30!important}
+#uiMain{margin-left:258px!important;margin-right:238px!important;padding-top:68px!important;padding-bottom:86px!important}
+#uiGraphWrap{border:1px solid rgba(100,166,187,.22)!important;border-radius:12px!important;background:#041117!important}
+#uiRightTools{top:76px!important;right:14px!important;bottom:78px!important;width:220px!important;display:grid!important;grid-template-columns:1fr 1fr!important;align-content:start!important;gap:7px!important;padding:8px!important;border-radius:12px!important;background:rgba(5,16,23,.96)!important}
+#uiRightTools .uiRightTool{min-height:64px!important;border:1px solid rgba(112,168,187,.2)!important;border-radius:9px!important}
+#uiBottomTools{position:fixed!important;left:14px!important;top:76px!important;bottom:78px!important;width:228px!important;height:auto!important;display:flex!important;flex-direction:column!important;gap:8px!important;padding:0!important;background:transparent!important;border:0!important}
+#uiBottomTools .uiTool{width:100%!important;min-height:54px!important;border:1px solid rgba(100,166,187,.2)!important;border-radius:10px!important;background:rgba(5,16,23,.96)!important}
+#uiWorkspaceDrawer{left:14px!important;right:auto!important;top:76px!important;bottom:78px!important;width:228px!important;max-width:228px!important}
+#uiContextBar{left:272px!important;right:248px!important;top:126px!important;margin:0!important;width:auto!important;transform:none!important}
+#measurementHealth{top:13px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important}
+#targetCommandBar{display:flex;position:fixed;left:14px;right:14px;bottom:10px;height:58px;z-index:40;gap:8px;padding:7px;border:1px solid rgba(101,169,190,.22);border-radius:12px;background:rgba(4,15,21,.97)}
+.tcb{border:1px solid rgba(110,171,190,.22);border-radius:8px;background:#081820;color:#c7d9df;min-width:100px;padding:0 14px;font:750 10px ui-monospace,monospace}.tcb.primary{border-color:#1bd8e5;color:#fff}.tcb.spacer{flex:1;border:0;background:transparent}
+}
+
+/* V5.5.3 TARGET WORKSPACE PASS 2 */
+@media(min-width:1100px){
+ #uiBottomTools{overflow:auto;scrollbar-width:none}
+ #uiBottomTools::-webkit-scrollbar{display:none}
+ #uiBottomTools .uiTool{justify-content:flex-start!important;padding:0 14px!important;text-align:left!important}
+ #uiBottomTools .uiTool::before{opacity:.9}
+ #uiRightTools::before{content:"TOOLS";grid-column:1/-1;color:#b9cbd2;font:800 11px ui-monospace,monospace;letter-spacing:.1em;padding:3px 4px 8px;border-bottom:1px solid rgba(120,170,190,.15)}
+ #uiRightTools .uiRightTool{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:6px!important}
+ #uiRightTools .uiRightTool svg{width:22px!important;height:22px!important}
+ #uiGraphWrap::before{content:"MEASUREMENT";position:absolute;top:10px;left:16px;z-index:4;color:#b9cbd2;font:800 10px ui-monospace,monospace;letter-spacing:.12em;pointer-events:none}
+ #uiGraphWrap{position:relative!important;padding-top:28px!important}
+ #uiGraphWrap canvas{border-radius:0 0 11px 11px}
+ #uiTopModes{border:1px solid rgba(105,169,190,.22)!important;border-radius:10px!important;overflow:hidden!important;background:#06141b!important}
+ #uiTopModes button{min-width:150px!important;height:42px!important}
+ #uiTopModes button.on{background:linear-gradient(90deg,rgba(10,180,195,.75),rgba(8,116,132,.55))!important}
+ #measurementHealth{height:36px!important;padding:4px 8px!important;background:rgba(5,16,23,.94)!important;border:1px solid rgba(102,169,190,.2)!important}
+ #targetCommandBar .tcb[data-tcb="capture"]{border-color:rgba(255,72,72,.45)}
+ #targetCommandBar .tcb[data-tcb="capture"]::before{content:"● ";color:#ff4545}
+}
+
+/* Target side cards: visual grouping without replacing canonical nodes */
+#targetLeftLabels{display:none}
+@media(min-width:1100px){
+ #targetLeftLabels{display:none!important;position:fixed;left:14px;top:76px;width:228px;z-index:24;pointer-events:none}
+ .tll{height:24px;margin-bottom:66px;padding:5px 10px;border-bottom:1px solid rgba(102,169,190,.13);color:#b9cbd2;font:800 10px ui-monospace,monospace;letter-spacing:.08em}
+}
+
+
+/* V5.5.3 TARGET WORKSPACE PASS 3 — instrument panels */
+@media(min-width:1100px){
+ #uiWorkspaceDrawer{background:linear-gradient(180deg,rgba(6,20,28,.99),rgba(3,13,19,.99))!important;border:1px solid rgba(105,169,190,.24)!important;box-shadow:0 18px 55px rgba(0,0,0,.34)!important;padding:12px!important}
+ #uiWorkspaceDrawer .drawerTitle,#uiWorkspaceDrawer h3,#uiWorkspaceDrawer h4{font:800 11px ui-monospace,monospace!important;letter-spacing:.09em!important;color:#d3e1e6!important}
+ #uiWorkspaceDrawer label,#uiWorkspaceDrawer .label{font:700 9px ui-monospace,monospace!important;letter-spacing:.06em!important;color:#8ca8b2!important;text-transform:uppercase}
+ #uiWorkspaceDrawer input,#uiWorkspaceDrawer select,#uiWorkspaceDrawer button{border-radius:8px!important;border-color:rgba(111,170,190,.22)!important;background:#071820!important}
+ #uiWorkspaceDrawer input[type=range]{accent-color:#16d6df!important}
+ #uiWorkspaceDrawer button.on,#uiWorkspaceDrawer button.active{border-color:#18d9e5!important;background:rgba(10,158,174,.22)!important}
+ #traceSessionPanel{width:340px!important;background:rgba(5,17,24,.98)!important;border:1px solid rgba(105,169,190,.24)!important;border-radius:12px!important}
+ #traceSessionPanel .tsRow{min-height:38px!important;border-bottom:1px solid rgba(110,170,190,.11)!important}
+ #traceSessionPanel .tsInput{background:#06151c!important;border:0!important;color:#d4e2e7!important}
+}
+
+/* Left instrument card shown when drawers are closed */
+#targetLeftStatus{display:none}
+@media(min-width:1100px){
+ #targetLeftStatus{display:flex;position:fixed;left:14px;top:102px;bottom:78px;width:228px;z-index:23;flex-direction:column;gap:8px;pointer-events:none}
+ .tlsCard{border:1px solid rgba(103,168,189,.20);border-radius:10px;background:rgba(5,16,23,.94);padding:10px 12px;min-height:94px}
+ .tlsHead{font:800 10px ui-monospace,monospace;color:#c7d9df;letter-spacing:.08em;margin-bottom:10px}
+ .tlsLine{display:flex;justify-content:space-between;gap:8px;margin:6px 0;font:700 9px ui-monospace,monospace;color:#829fa9}
+ .tlsLine strong{color:#d6e5e9;font-weight:750}.tlsDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3edb73;margin-right:6px;box-shadow:0 0 8px rgba(62,219,115,.45)}
+ .tlsMeter{height:5px;border-radius:5px;background:linear-gradient(90deg,#27d76f 0 64%,#e9cf43 64% 80%,#e64b46 80% 100%);opacity:.72;margin-top:10px}
+}
+
+
+/* V5.5.3 TARGET WORKSPACE PASS 4 — center graph + measurement panel */
+#targetMeasurementPanel,#targetPeakCard{display:none}
+@media(min-width:1100px){
+ #uiMain{margin-right:304px!important}
+ #uiRightTools{width:276px!important;top:318px!important}
+ #uiContextBar{right:318px!important}
+ #targetMeasurementPanel{display:block;position:fixed;right:14px;top:76px;width:276px;height:228px;z-index:29;
+ border:1px solid rgba(104,170,192,.24);border-radius:12px;background:rgba(5,16,23,.97);padding:12px 14px;box-sizing:border-box}
+ .tmpHead{display:flex;justify-content:space-between;align-items:center;padding-bottom:9px;border-bottom:1px solid rgba(110,170,190,.14);font:800 10px ui-monospace,monospace;letter-spacing:.1em;color:#c8d8de}
+ .tmpDot{width:7px;height:7px;border-radius:50%;background:#39dc6e;box-shadow:0 0 8px rgba(57,220,110,.5)}
+ .tmpValue{font:400 30px ui-monospace,monospace;color:#eef8fa;margin:14px 0 2px}.tmpValue small{font-size:14px;color:#a9bdc5}
+ .tmpSub{font:700 9px ui-monospace,monospace;color:#819da7}
+ .tmpGrid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:13px;border-top:1px solid rgba(110,170,190,.12)}
+ .tmpCell{padding:9px 4px;border-bottom:1px solid rgba(110,170,190,.1);font:700 9px ui-monospace,monospace;color:#78949f}
+ .tmpCell:nth-child(odd){border-right:1px solid rgba(110,170,190,.1)}.tmpCell strong{display:block;color:#d0e0e5;margin-top:3px;font-size:10px}
+ #targetPeakCard{display:block;position:absolute;right:14px;top:42px;z-index:8;min-width:154px;padding:9px 11px;border:1px solid rgba(106,171,191,.23);border-radius:9px;background:rgba(4,16,22,.91);pointer-events:none}
+ .tpkHz{font:750 12px ui-monospace,monospace;color:#e5f1f4}.tpkMeta{margin-top:5px;font:750 9px ui-monospace,monospace;color:#28d8df}
+ #uiGraphWrap{min-height:calc(100vh - 238px)!important}
+ #uiGraphWrap canvas{filter:contrast(1.04) saturate(1.06)}
+}
+
+
+/* V5.5.3 TARGET WORKSPACE PASS 5 — Waterfall */
+#wfTargetLegend{display:none}
+@media(min-width:1100px){
+ body:has(#v54WaterfallToggle.on) #uiGraphWrap{background:radial-gradient(circle at 50% 35%,rgba(6,35,44,.72),rgba(2,10,15,.98) 68%)!important}
+ body:has(#v54WaterfallToggle.on) #targetPeakCard{border-color:rgba(38,211,222,.32);background:rgba(3,19,25,.93)}
+ body:has(#v54WaterfallToggle.on) #wfTargetLegend{display:flex}
+ #wfTargetLegend{position:absolute;left:16px;bottom:14px;z-index:8;gap:7px;align-items:center;pointer-events:none}
+ .wftChip{padding:6px 8px;border:1px solid rgba(104,170,192,.20);border-radius:7px;background:rgba(3,15,21,.84);font:750 8px ui-monospace,monospace;color:#8ca8b2;letter-spacing:.04em}
+ .wftChip strong{color:#d7e6ea}.wftChip.hot{border-color:rgba(255,105,68,.30)}.wftChip.hot strong{color:#ff9d72}
+ #wfIssueStrip{border-radius:8px!important;background:rgba(3,16,22,.88)!important;border:1px solid rgba(99,169,190,.18)!important;padding:4px 6px!important}
+ #wfIssueStrip>*{border-radius:6px!important}
+}
+
+/* V5.5.3 COMPLETE TARGET */
+#rtaProStrip{display:none}
+@media(min-width:1100px){
+#v5ModeTabs>button[data-v5mode="delay"],#v5ModeTabs>button[data-v5mode="rt60"],#v5ModeTabs>button[data-v5mode="spleq"],#v5ModeTabs>button[data-v5mode="align"],#v5ModeTabs>#v5TargetToggle{display:none!important}
+#v5SideRail,#v54SideToggle{display:none!important}
+body:has(#v53AnalysisToggle.on) #rtaProStrip{display:flex}
+#rtaProStrip{position:fixed;left:274px;top:136px;z-index:34;gap:7px;pointer-events:none}
+.rpsChip{padding:6px 8px;border:1px solid rgba(105,169,190,.18);border-radius:7px;background:rgba(4,16,22,.88);font:750 8px ui-monospace,monospace;color:#819da7}.rpsChip strong{color:#d6e5e9}.rpsChip.target strong{color:#28d9e2}
+body:has(#v53AnalysisToggle.on) #uiGraphWrap{background:linear-gradient(180deg,rgba(4,19,26,.99),rgba(2,11,16,.99))!important}
+body:has(#v54TfGraphToggle.on) #uiGraphWrap{background:radial-gradient(circle at 50% 40%,rgba(5,31,39,.72),rgba(2,10,15,.99) 70%)!important}
+#tfPanel.tfPro button,#tfPhaseTools button,.tfQuickBar button{border-radius:7px!important;border-color:rgba(106,169,190,.22)!important;background:#071820!important}
+#tfPanel.tfPro button.on,#tfPhaseTools button.on,.tfQuickBar button.on{border-color:#20d8e4!important;background:rgba(12,158,174,.22)!important;color:#e9fbfc!important}
+#uiRightTools>.uiRightToolsTitle{display:none!important}
+#uiRightTools button{border:1px solid rgba(105,169,190,.18)!important;border-radius:9px!important;background:#071820!important;color:#9fb4bc!important}
+body:has(#v53AnalysisToggle.on) #uiRightTools button[data-tool="rta"],body:has(#v54WaterfallToggle.on) #uiRightTools button[data-tool="waterfall"],body:has(#v54TfGraphToggle.on) #uiRightTools button[data-tool="tf"]{border-color:#1fd8e3!important;background:rgba(11,151,166,.20)!important;color:#f0fcfd!important}
+}
+@media(min-width:701px) and (max-width:1099px){#targetMeasurementPanel{display:block;position:fixed;left:10px;right:10px;bottom:70px;z-index:30;background:rgba(4,15,21,.96);border:1px solid rgba(105,169,190,.22);border-radius:10px;padding:8px 12px}}
+@media(max-width:700px){#targetLeftStatus,#targetLeftLabels,#targetCommandBar,#wfTargetLegend,#rtaProStrip{display:none!important}#targetMeasurementPanel{display:block;position:fixed;left:8px;right:8px;bottom:62px;height:auto;z-index:27;background:rgba(4,15,21,.94);border:1px solid rgba(105,169,190,.20);border-radius:9px;padding:7px 10px}#targetMeasurementPanel .tmpHead,.tmpGrid{display:none!important}#targetMeasurementPanel .tmpValue{font-size:18px!important;margin:0!important;display:inline-block}}
+
 </style>
 </head>
 <body>
   <div id="sigTint"></div>
-  <header>
+  <header class="uiRefreshed">
     <div class="dot" id="dot"></div>
     <h1><span>גל</span> אנלייזר <small id="ver" style="font-size:10px;color:var(--dim);letter-spacing:1px"></small></h1>
+    <button id="uiMenuBtn" type="button" aria-label="כלים והגדרות" aria-expanded="false">☰</button>
+    <div id="uiLivePill" title="Audio status"><span class="uiLiveDot"></span><span id="uiReadyText">LIVE</span></div>
     <div class="modes">
       <button id="mRta" class="on">ספקטרום · RTA</button>
       <button id="mSpec">ווטרפול · Spectrograph</button>
@@ -1278,6 +2181,65 @@
     </div>
   </header>
 
+  <div id="uiMenuBackdrop"></div><div id="uiWorkspaceBackdrop"></div><div id="uiDrawerLabel">WORKSPACE</div>
+  <div id="uiTraceBackdrop"></div>
+  <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
+    <div class="uiMenuHead">
+      <div class="uiMenuHeadIcon">⌁</div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.3</div><div class="uiMenuSub">Field measurement workspace</div></div>
+    </div>
+
+    <div class="uiMenuSectionLabel">WORKSPACE</div>
+    <div class="uiMenuGrid">
+      <button class="uiMenuItem" id="uiIo"><span class="ico">↔</span><span><span class="txt">I/O & Audio</span><span class="meta">Input, reference, calibration</span></span></button>
+      <button class="uiMenuItem" id="uiGenerator"><span class="ico">∿</span><span><span class="txt">Generator</span><span class="meta">Pink, sine & sweep</span></span></button>
+      <button class="uiMenuItem" id="uiTraces"><span class="ico">≋</span><span><span class="txt">Traces</span><span class="meta">Capture & compare curves</span></span></button>
+      <button class="uiMenuItem" id="uiDisplay"><span class="ico">◐</span><span><span class="txt">Display</span><span class="meta">Theme, target & resolution</span></span></button>
+    </div>
+
+    <div class="uiMenuSectionLabel">SETTINGS</div>
+    <div id="uiSettingsPanel">
+      <div class="uiSettingsTabs"><button class="on" data-settings-page="display">Display</button><button data-settings-page="measurement">Measurement</button><button data-settings-page="audio">Audio</button></div>
+      <div class="uiSettingsPage on" data-settings-content="display">
+        <div class="uiSettingsRow"><span>Theme</span><button id="uiSetTheme">Day / Night</button></div>
+        <div class="uiSettingsRow"><span>Target curve</span><button id="uiSetTarget">Show / Hide</button></div>
+        <div class="uiSettingsRow"><span>RTA resolution</span><span><button data-set-bpo="3">1/3</button> <button data-set-bpo="6">1/6</button> <button data-set-bpo="12">1/12</button> <button data-set-bpo="24">1/24</button></span></div>
+      </div>
+      <div class="uiSettingsPage" data-settings-content="measurement">
+        <div class="uiSettingsRow"><span>TF coherence gate</span><strong id="uiSetCohState">Uses TF setting</strong></div>
+        <div class="uiSettingsRow"><span>TF smoothing</span><strong>Uses TF setting</strong></div>
+        <div class="uiSettingsRow"><span>Target / reference tools</span><strong>Contextual</strong></div>
+      </div>
+      <div class="uiSettingsPage" data-settings-content="audio">
+        <div class="uiSettingsRow"><span>Input / Reference / Calibration</span><button id="uiSetOpenIo">Open I/O</button></div>
+        <div class="uiSettingsRow"><span>Generator</span><button id="uiSetOpenGen">Open Generator</button></div>
+        <div class="uiSettingsRow"><span>Audio engine</span><strong id="uiSetAudioState">—</strong></div>
+      </div>
+    </div>
+    <div class="uiMenuPanel" id="uiDisplayPanel">
+      <div class="uiDisplayRow"><span>Day / Night</span><div class="uiDisplayActions"><button class="uiMiniBtn" id="uiThemeToggle">☀ / ☾</button></div></div>
+      <div class="uiDisplayRow"><span>Target curve</span><div class="uiDisplayActions"><button class="uiMiniBtn" id="uiTargetToggle">Target</button></div></div>
+      <div class="uiDisplayRow"><span>RTA resolution</span><div class="uiDisplayActions"><button class="uiMiniBtn" data-ui-bpo="3">1/3</button><button class="uiMiniBtn" data-ui-bpo="6">1/6</button><button class="uiMiniBtn" data-ui-bpo="12">1/12</button><button class="uiMiniBtn" data-ui-bpo="24">1/24</button></div></div>
+      <div class="uiDisplayRow"><span>Accent</span><div class="uiDisplayActions uiMenuColors" style="padding:0"><button class="sw" data-ui-color="#3ea6ff" style="background:#3ea6ff"></button><button class="sw" data-ui-color="#40d17a" style="background:#40d17a"></button><button class="sw" data-ui-color="#b57bff" style="background:#b57bff"></button><button class="sw" data-ui-color="#ff9d3c" style="background:#ff9d3c"></button></div></div>
+    </div>
+
+    <div class="uiMenuSectionLabel">MEASUREMENT TOOLS</div>
+    <div class="uiToolsGrid">
+      <button class="uiMenuItem uiToolCard" data-open-tool="delay"><span class="ico">⏱</span><span><span class="txt">Delay Finder</span><span class="meta">Arrival time & confidence</span></span></button>
+      <button class="uiMenuItem uiToolCard" data-open-tool="align"><span class="ico">↔</span><span><span class="txt">Sub / Top Alignment</span><span class="meta">Crossover phase alignment</span></span></button>
+      <button class="uiMenuItem uiToolCard" data-open-tool="rt60"><span class="ico">◫</span><span><span class="txt">RT60</span><span class="meta">Room decay measurement</span></span></button>
+      <button class="uiMenuItem uiToolCard" data-open-tool="spleq"><span class="ico">⌁</span><span><span class="txt">SPL / EQ</span><span class="meta">Level & EQ workflow</span></span></button>
+    </div>
+    <div class="uiMenuSectionLabel">SUPPORT & EXPORT</div>
+    <div class="uiMenuGrid">
+      <button class="uiMenuItem" id="uiGuide"><span class="ico">≡</span><span><span class="txt">Guide</span><span class="meta">Measurement workflow</span></span></button>
+      <button class="uiMenuItem" id="uiHelp"><span class="ico">?</span><span><span class="txt">Help</span><span class="meta">Context help mode</span></span></button>
+      <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
+      <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
+    </div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.3 UI</span><span id="uiMenuState">Ready</span></div>
+  </div>
+
   <div id="stage">
     <canvas id="cv"></canvas>
 
@@ -1285,16 +2247,27 @@
       <div class="v53AnalysisGroup on" id="v53AnalysisGroup" aria-label="Analysis view">
         <button id="v53AnalysisToggle" data-v5mode="analysis" type="button" class="on" onclick="v54SetAnalysisView('rta',event)">RTA</button>
         <button id="v54WaterfallToggle" type="button" onclick="v54SetAnalysisView('spec',event)">Waterfall</button>
+        <button id="v54TfGraphToggle" type="button" onclick="v54SetAnalysisView('tf',event)">TF</button>
       </div>
-      <button data-v5mode="tf">TF | Transfer Function</button>
       <button data-v5mode="delay">Delay</button>
       <button data-v5mode="rt60">RT60</button>
       <button data-v5mode="spleq">SPL / EQ</button>
       <button data-v5mode="align">Sub / Top</button>
       <button id="v5TargetToggle" class="v5GraphToggle on" type="button" title="הצג או הסתר את עקומת היעד">Target ✓</button>
     </div>
+    <div id="uiContextBar" aria-label="פעולות למצב הנוכחי">
+      <span class="ctxState" id="uiCtxState">RTA · LIVE</span>
+      <span class="ctxMetric" id="uiCtxMetric">Spectrum</span>
+      <button type="button" class="primary" data-ctx="capture">Capture Trace</button>
+      <button type="button" data-ctx="resonance" style="display:none">Resonance ✓</button>
+      <button type="button" data-ctx="modeAction">Peak Hold</button>
+      <button type="button" data-ctx="freeze">Freeze</button>
+      <button type="button" data-ctx="generator">Generator</button>
+      <button type="button" data-ctx="tools">Tools</button>
+    </div>
 
     <aside id="v5SideRail">
+      <button id="v5TraceClose" type="button" aria-label="סגור Traces">✕</button>
       <div class="v5ReadCard">
         <div class="v5CardLabel">PEAK</div>
         <div class="v5PeakValue" id="v5PeakValue">—</div>
@@ -1335,6 +2308,13 @@
       <span id="phStatus" style="font-size:11px;color:var(--dim);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis"></span>
       <button id="alignClose" title="סגור יישור">✕</button>
       <div id="phRecommendation" role="status"><strong>שלב 1:</strong> השאר טופ בלבד ובצע סנכרון TF</div>
+      <div id="alignProResult">
+        <div class="alignProCard"><span>ADD DELAY TO</span><b id="alignProTarget">—</b></div>
+        <div class="alignProCard"><span>DELAY</span><b id="alignProDelay">—</b></div>
+        <div class="alignProCard"><span>Δ PHASE</span><b id="alignProPhase">—</b></div>
+        <div class="alignProCard"><span>CONFIDENCE</span><b id="alignProConfidence">—</b></div>
+      </div>
+      <div id="alignProApply"><div><strong id="alignProAction">—</strong><br><span id="alignProMeta">Measure again after applying the change</span></div><button id="alignProVerify" type="button">מדוד שוב לאימות</button></div>
     </div>
 
     <!-- A/B Comparison Floating Widget -->
@@ -1532,8 +2512,27 @@
       <button id="calClose">סגור</button>
     </div>
     
-    <div id="tfPanel">
-      <h3>מדידת תגובה · דו־ערוצי (TF)</h3>
+    <div id="tfPanel" class="tfPro">
+      <div class="tfProHeader"><div><h3>Transfer Function · TF</h3><div class="tfProTitle">MIC 1 ↔ REF 2 · Magnitude / Phase / Coherence</div></div><div class="tfProLive">LIVE TF</div></div>
+      <div class="tfProCards" aria-label="TF status">
+        <div class="tfProCard"><span>TF DELAY</span><b id="tfProDelay">—</b><small id="tfProDelaySub">Sync required</small></div>
+        <div class="tfProCard"><span>COHERENCE</span><b id="tfProCoh">—</b><small id="tfProCohSub">200 Hz – 10 kHz</small></div>
+        <div class="tfProCard"><span>REFERENCE</span><b id="tfProRef">—</b><small id="tfProRefSub">Channel 2</small></div>
+        <div class="tfProCard"><span>TRACE</span><b id="tfProTrace">LIVE</b><small id="tfProTraceSub">No capture yet</small></div><div class="tfProCard tfConfidenceCard"><span>CONFIDENCE</span><b id="tfProConfidence">—</b><small id="tfProConfidenceSub">Waiting for TF</small></div>
+      </div>
+      <div class="tfProViewBar">
+        <div class="left"><button type="button" id="tfProMag" class="on">Magnitude</button><button type="button" id="tfProPhase">Phase</button><button type="button" id="tfProCohBtn">Coherence</button></div>
+        <div class="right"><button type="button" id="tfProFreeze">Freeze / Trace</button><button type="button" id="tfProSync">Auto Delay</button></div>
+      </div>
+      <div class="tfPhaseTools" id="tfPhaseTools">
+        <div class="phaseRead">
+          <div class="tfPhaseBadge"><span>PHASE @ CURSOR</span><b id="tfPhaseReadout">—°</b></div>
+          <div class="tfPhaseBadge"><span>COHERENCE</span><b id="tfPhaseCohReadout">—</b></div>
+          <div class="tfPhaseFreq"><label>Cursor <b id="tfPhaseFreqVal">1.00 kHz</b></label><input id="tfPhaseFreq" type="range" min="20" max="20000" value="1000" step="1"></div>
+        </div>
+        <div class="tfPhaseActions"><button type="button" id="tfPhaseGate">Coh Gate ✓</button><button type="button" id="tfPhaseUnwrap">Unwrap</button><button type="button" id="tfPhaseZero">0° Reference</button></div>
+      </div>
+      <div class="sub">ערוץ 1 = מיקרופון מדידה · ערוץ 2 = רפרנס מהמיקסר. שלח תוכן/רעש ורוד דרך המערכת, ומדוד.</div>
       <div class="sub">ערוץ 1 = מיקרופון מדידה · ערוץ 2 = רפרנס מהמיקסר. שלח תוכן/רעש ורוד דרך המערכת, ומדוד.</div>
       <div class="chBar"><span id="tfL1" style="min-width:96px">כניסה 1 → מיק'</span><div class="track"><div class="fill" id="tfMicFill"></div></div><span id="tfMicDb">—</span></div>
       <div class="chBar"><span id="tfL2" style="min-width:96px">כניסה 2 → רפרנס</span><div class="track"><div class="fill" id="tfRefFill"></div></div><span id="tfRefDb">—</span></div>
@@ -1935,12 +2934,591 @@
   </footer>
   <div id="shortcutToast"></div>
 
+  <nav id="uiBottomTools" aria-label="כלי עבודה מהירים">
+    <button type="button" data-ui-action="analysis" class="on"><span class="uiToolIcon">⌁</span><span>RTA</span></button>
+    <button type="button" data-ui-action="waterfall"><span class="uiToolIcon">▥</span><span>Waterfall</span></button>
+    <button type="button" data-ui-action="tf"><span class="uiToolIcon">∿</span><span>TF</span></button>
+    <button type="button" data-ui-action="generator"><span class="uiToolIcon">◌</span><span>Generator</span></button>
+    <button type="button" data-ui-action="traces"><span class="uiToolIcon">≋</span><span>Traces</span></button>
+    <button type="button" data-ui-action="io"><span class="uiToolIcon">↔</span><span>I/O</span></button>
+  </nav>
+
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.1</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.3</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
+
+<script>
+window.addEventListener('load', function(){
+  const menu=document.getElementById('uiMenu'), back=document.getElementById('uiMenuBackdrop'), btn=document.getElementById('uiMenuBtn');
+  const traceBack=document.getElementById('uiTraceBackdrop');
+  const close=()=>{menu.classList.remove('open');back.classList.remove('open');btn.classList.remove('on');btn.setAttribute('aria-expanded','false')};
+  const toggle=()=>{const open=!menu.classList.contains('open');menu.classList.toggle('open',open);back.classList.toggle('open',open);btn.classList.toggle('on',open);btn.setAttribute('aria-expanded',String(open))};
+  const click=(id)=>{const e=document.getElementById(id);if(e)e.click();};
+  const setState=(txt)=>{const e=document.getElementById('uiMenuState');if(e)e.textContent=txt;};
+  const closeTraces=()=>{document.body.classList.remove('ui-traces-open');traceBack?.classList.remove('open')};
+  btn.addEventListener('click',toggle);back.addEventListener('click',close);traceBack?.addEventListener('click',closeTraces);
+  document.getElementById('v5TraceClose')?.addEventListener('click',closeTraces);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){close();closeTraces();closeWorkspaceDrawer();}});
+
+  const drawerBack=document.getElementById('uiWorkspaceBackdrop'),drawerLabel=document.getElementById('uiDrawerLabel');
+  const closeWorkspaceDrawer=()=>{
+    document.body.classList.remove('ui-workspace-drawer','ui-traces-open');drawerBack?.classList.remove('open');traceBack?.classList.remove('open');
+    if(typeof window.v52SetIo==='function')window.v52SetIo(false);
+    if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(false);
+  };
+  const openWorkspaceDrawer=(kind)=>{
+    close();closeWorkspaceDrawer();
+    document.body.classList.add('ui-workspace-drawer');
+    if(drawerLabel)drawerLabel.textContent=kind==='io'?'I/O & AUDIO':kind==='generator'?'GENERATOR':'TRACES';
+    if(kind==='io'){if(typeof window.v52SetIo==='function')window.v52SetIo(true);else click('v52IoBtn');}
+    if(kind==='generator'){if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(true);else click('v52GenBtn');}
+    if(kind==='traces'){document.body.classList.remove('v54-rail-collapsed');document.body.classList.add('ui-traces-open');setTimeout(()=>document.getElementById('v5AddTrace')?.focus(),100);}
+  };
+  drawerBack?.addEventListener('click',closeWorkspaceDrawer);
+  document.getElementById('uiIo').onclick=()=>openWorkspaceDrawer('io');
+  document.getElementById('uiGenerator').onclick=()=>openWorkspaceDrawer('generator');
+  document.getElementById('uiTraces').onclick=()=>openWorkspaceDrawer('traces');
+
+  document.querySelectorAll('[data-settings-page]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-settings-page]').forEach(x=>x.classList.toggle('on',x===b));
+    document.querySelectorAll('[data-settings-content]').forEach(x=>x.classList.toggle('on',x.dataset.settingsContent===b.dataset.settingsPage));
+  }));
+  document.getElementById('uiSetTheme')?.addEventListener('click',()=>{click('sunBtn');setTimeout(syncStates,30)});
+  document.getElementById('uiSetTarget')?.addEventListener('click',()=>{click('v5TargetToggle');setTimeout(syncStates,30)});
+  document.querySelectorAll('[data-set-bpo]').forEach(b=>b.addEventListener('click',()=>{const src=document.querySelector('#v3ResMenu [data-bpo="'+b.dataset.setBpo+'"]');src?.click();}));
+  document.getElementById('uiSetOpenIo')?.addEventListener('click',()=>openWorkspaceDrawer('io'));
+  document.getElementById('uiSetOpenGen')?.addEventListener('click',()=>openWorkspaceDrawer('generator'));
+
+  setInterval(()=>{
+    const ready=document.getElementById('uiReadyText');if(!ready)return;
+    const audio=(document.getElementById('v52AudioState')?.textContent||document.getElementById('v3AudioChip')?.textContent||'').toLowerCase();
+    const running=/running|active|on|פעיל|פועל/.test(audio) && !/stopped|off|כבוי/.test(audio);
+    ready.textContent=running?'READY':'LIVE';
+    document.getElementById('uiLivePill')?.classList.toggle('ready',running);
+  },600);
+
+  setInterval(()=>{
+    const a=document.getElementById('v52AudioState')?.textContent||document.getElementById('v5LatencyStatus')?.textContent||'—';
+    const out=document.getElementById('uiSetAudioState');if(out)out.textContent=a;
+    const cg=document.getElementById('tfCohGateVal')?.textContent;const co=document.getElementById('uiSetCohState');if(co&&cg)co.textContent='Gate '+cg;
+  },700);
+
+  document.getElementById('uiDisplay').onclick=()=>{document.getElementById('uiDisplayPanel')?.classList.toggle('open')};
+  document.getElementById('uiThemeToggle').onclick=()=>{click('sunBtn');setTimeout(syncStates,30)};
+  document.getElementById('uiTargetToggle').onclick=()=>{click('v5TargetToggle');setTimeout(syncStates,30)};
+  document.querySelectorAll('[data-ui-bpo]').forEach(b=>b.addEventListener('click',()=>{const src=document.querySelector('#v3ResMenu [data-bpo="'+b.dataset.uiBpo+'"]');if(src)src.click();setTimeout(syncStates,30)}));
+  document.getElementById('uiGuide').onclick=()=>{close();click('guideBtn')};
+  document.getElementById('uiHelp').onclick=()=>{close();click('helpBtn')};
+  document.getElementById('uiPng').onclick=()=>{close();click('pngBtn')};
+  document.getElementById('uiCsv').onclick=()=>{close();click('csvBtn')};
+  document.querySelectorAll('[data-ui-color]').forEach(b=>b.addEventListener('click',()=>{const old=document.querySelector('#swatches .sw[data-c="'+b.dataset.uiColor+'"]');if(old)old.click();setTimeout(syncStates,30)}));
+
+  const bottomTools=document.getElementById('uiBottomTools');
+  function setBottomTool(name){bottomTools?.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.uiAction===name));}
+  bottomTools?.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-ui-action]'); if(!b)return;
+    const a=b.dataset.uiAction;
+    if(a==='analysis'){document.getElementById('v53AnalysisToggle')?.click();setBottomTool('analysis');}
+    if(a==='waterfall'){document.getElementById('v54WaterfallToggle')?.click();setBottomTool('waterfall');}
+    if(a==='tf'){document.getElementById('v54TfGraphToggle')?.click();setBottomTool('tf');}
+    if(a==='generator'){if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(!document.getElementById('genPanel')?.classList.contains('open'));setBottomTool('generator');}
+    if(a==='traces'){document.getElementById('uiTraces')?.click();setBottomTool('traces');}
+    if(a==='io'){if(typeof window.v52SetIo==='function')window.v52SetIo(true);setBottomTool('io');}
+  });
+
+
+  // Unified contextual workspace: one graph, actions change with the active mode.
+  const ctxBar=document.getElementById('uiContextBar'),ctxState=document.getElementById('uiCtxState');
+  function currentPrimaryMode(){
+    if(document.getElementById('v54TfGraphToggle')?.classList.contains('on'))return 'tf';
+    if(document.getElementById('v54WaterfallToggle')?.classList.contains('on'))return 'waterfall';
+    return 'rta';
+  }
+  function syncContextBar(){
+    const m=currentPrimaryMode(),metric=document.getElementById('uiCtxMetric');
+    document.body.classList.toggle('ctx-tf',m==='tf');
+    document.body.classList.toggle('ctx-waterfall',m==='waterfall');
+    const cap=ctxBar?.querySelector('[data-ctx="capture"]'),freeze=ctxBar?.querySelector('[data-ctx="freeze"]'),modeAction=ctxBar?.querySelector('[data-ctx="modeAction"]');
+    if(ctxState)ctxState.textContent=(m==='tf'?'TF':m==='waterfall'?'WATERFALL':'RTA')+' · LIVE';
+    if(m==='tf'){
+      if(metric){const d=document.getElementById('tfProDelay')?.textContent||'Delay —';const c=document.getElementById('tfProCoh')?.textContent||'Coh —';metric.textContent=d+' · '+c;}
+      if(cap)cap.textContent='Capture TF';
+      if(modeAction)modeAction.textContent='Auto Delay';
+    }else if(m==='waterfall'){
+      if(metric&&(!window.wfResonance||!window.wfResonance.enabled))metric.textContent='Time · Frequency';
+      if(cap)cap.textContent='Capture';
+      if(modeAction)modeAction.textContent='Clear';
+    }else{
+      const peak=document.getElementById('v5PeakValue')?.textContent||'—';
+      if(metric)metric.textContent='Peak '+peak;
+      if(cap)cap.textContent='Capture Trace';
+      if(modeAction)modeAction.textContent='Peak Hold';
+    }
+    if(freeze)freeze.textContent='Freeze';
+  }
+  ctxBar?.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-ctx]');if(!b)return;
+    const a=b.dataset.ctx,m=currentPrimaryMode();
+    if(a==='capture'){document.getElementById(m==='tf'?'tfTraceBtn':'v5AddTrace')?.click();}
+    if(a==='resonance'&&m==='waterfall'&&window.wfResonance){
+      window.wfResonance.enabled=!window.wfResonance.enabled;b.classList.toggle('off',!window.wfResonance.enabled);
+      b.textContent=window.wfResonance.enabled?'Resonance ✓':'Resonance';window.resetWaterfallResonances?.();
+    }
+    if(a==='modeAction'){
+      if(m==='tf'){(document.getElementById('tfProSync')||document.getElementById('tfAutoDelayBtn')||document.getElementById('tfSyncBtn'))?.click();}
+      else if(m==='waterfall'){window.resetWaterfallResonances?.();if(specCtx&&specCanvas){specCtx.fillStyle=sunMode?'#f8fafc':'#0d1117';specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);}}
+      else{(document.getElementById('peakHoldBtn')||document.getElementById('holdBtn'))?.click();}
+    }
+    if(a==='freeze'){const f=document.getElementById('freezeBtn')||document.getElementById('frzBtn');if(f)f.click();else document.getElementById('tfProFreeze')?.click();}
+    if(a==='generator'){openWorkspaceDrawer('generator');}
+    if(a==='tools'){toggle();setTimeout(()=>document.querySelector('[data-open-tool="delay"]')?.focus(),80);}
+  });
+  document.querySelectorAll('[data-open-tool]').forEach(b=>b.addEventListener('click',()=>{
+    const tool=b.dataset.openTool;close();
+    const legacy=document.querySelector('#v5ModeTabs [data-v5mode="'+tool+'"]');
+    if(legacy){setTimeout(()=>legacy.click(),20);}
+  }));
+  ['v53AnalysisToggle','v54WaterfallToggle','v54TfGraphToggle'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>setTimeout(syncContextBar,30)));
+  setTimeout(syncContextBar,700); setInterval(syncContextBar,900);
+
+  function syncStates(){
+    document.getElementById('uiThemeToggle')?.classList.toggle('on',document.body.classList.contains('sun-mode'));
+    const target=document.getElementById('v5TargetToggle');
+    document.getElementById('uiTargetToggle')?.classList.toggle('on',!!target?.classList.contains('on'));
+    const text=document.getElementById('v3ResChip')?.textContent||'';
+    document.querySelectorAll('[data-ui-bpo]').forEach(x=>x.classList.toggle('on',text.includes(x.dataset.uiBpo==='3'?'1/3':x.dataset.uiBpo==='6'?'1/6':x.dataset.uiBpo==='12'?'1/12':'1/24')));
+    setState(document.body.classList.contains('sun-mode')?'Day mode':'Night mode');
+  }
+  setTimeout(syncStates,600);
+
+
+  const phaseTools=document.getElementById('tfPhaseTools'),phaseFreq=document.getElementById('tfPhaseFreq');
+  let tfPhaseUnwrapUi=false,tfPhaseZeroUi=false;
+  function phaseFreqLabel(v){v=Number(v);return v>=1000?(v/1000).toFixed(v>=10000?1:2)+' kHz':Math.round(v)+' Hz'}
+  phaseFreq?.addEventListener('input',()=>{document.getElementById('tfPhaseFreqVal').textContent=phaseFreqLabel(phaseFreq.value);window.tfPhaseCursorHz=Number(phaseFreq.value)});
+  document.getElementById('tfPhaseUnwrap')?.addEventListener('click',function(){tfPhaseUnwrapUi=!tfPhaseUnwrapUi;this.classList.toggle('on',tfPhaseUnwrapUi);window.tfPhaseUnwrap=tfPhaseUnwrapUi});
+  document.getElementById('tfPhaseZero')?.addEventListener('click',function(){tfPhaseZeroUi=!tfPhaseZeroUi;this.classList.toggle('on',tfPhaseZeroUi);window.tfPhaseZeroAtCursor=tfPhaseZeroUi});
+  document.getElementById('tfPhaseGate')?.addEventListener('click',function(){window.tfPhaseGateEnabled=window.tfPhaseGateEnabled===false?true:false;this.classList.toggle('on',window.tfPhaseGateEnabled!==false)});
+  window.tfPhaseCursorHz=1000;window.tfPhaseGateEnabled=true;window.tfPhaseUnwrap=false;window.tfPhaseZeroAtCursor=false;
+  setInterval(()=>{
+    const phaseOn=!!document.getElementById('tfPhaseToggleBtn')?.classList.contains('on');
+    phaseTools?.classList.toggle('show',phaseOn);
+    if(typeof window.getTfPhaseCursorInfo==='function'){
+      const q=window.getTfPhaseCursorInfo(window.tfPhaseCursorHz||1000,window.tfPhaseUnwrap,window.tfPhaseZeroAtCursor);
+      if(q){
+        const pr=document.getElementById('tfPhaseReadout'),cr=document.getElementById('tfPhaseCohReadout');
+        if(pr)pr.textContent=Number.isFinite(q.phaseDeg)?(q.phaseDeg>0?'+':'')+q.phaseDeg.toFixed(0)+'°':'—°';
+        if(cr)cr.textContent=Number.isFinite(q.coh)?q.coh.toFixed(2):'—';
+      }
+    }
+  },160);
+
+  // TF Pro surface: mirrors the proven TF engine without duplicating DSP.
+  const tfProPhase=document.getElementById('tfProPhase'), tfProCohBtn=document.getElementById('tfProCohBtn');
+  document.getElementById('tfProSync')?.addEventListener('click',()=>document.getElementById('tfAutoDelayBtn')?.click());
+  tfProPhase?.addEventListener('click',()=>document.getElementById('tfPhaseToggleBtn')?.click());
+  tfProCohBtn?.addEventListener('click',()=>document.getElementById('tfCohToggleBtn')?.click());
+  document.getElementById('tfProFreeze')?.addEventListener('click',()=>document.getElementById('tfTraceBtn')?.click());
+  document.getElementById('tfProMag')?.addEventListener('click',()=>{ tfProPhase?.classList.remove('on');tfProCohBtn?.classList.remove('on'); if(document.getElementById('tfPhaseToggleBtn')?.classList.contains('on'))document.getElementById('tfPhaseToggleBtn').click(); if(document.getElementById('tfCohToggleBtn')?.classList.contains('on'))document.getElementById('tfCohToggleBtn').click();});
+  setInterval(()=>{
+    const d=document.getElementById('tfDelayInfo')?.textContent||'';
+    const dm=d.match(/([0-9]+(?:\.[0-9]+)?)\s*ms/i);
+    const de=document.getElementById('tfProDelay'); if(de)de.textContent=dm?dm[1]+' ms':'—';
+    const ds=document.getElementById('tfProDelaySub'); if(ds)ds.textContent=/מוכן|✓|ready/i.test(d)?'Synchronized':'Sync required';
+    const cv=document.getElementById('tfCorrVal')?.textContent||'—';
+    const ce=document.getElementById('tfProCoh'); if(ce)ce.textContent=cv;
+    const ref=document.getElementById('tfRefDb')?.textContent||'—';
+    const re=document.getElementById('tfProRef'); if(re)re.textContent=ref;
+    const leg=document.querySelectorAll('#tfTraceLegend span').length;
+    const te=document.getElementById('tfProTrace'); if(te)te.textContent=leg?leg+' SAVED':'LIVE';
+    const ts=document.getElementById('tfProTraceSub');if(ts)ts.textContent=leg?'Comparison ready':'No capture yet';
+    tfProPhase?.classList.toggle('on',!!document.getElementById('tfPhaseToggleBtn')?.classList.contains('on'));
+    tfProCohBtn?.classList.toggle('on',!!document.getElementById('tfCohToggleBtn')?.classList.contains('on'));
+  },500);
+
+});
+</script>
+
 <script src="app.js"></script>
+
+<aside id="uiRightTools" aria-label="Quick tools">
+  <div class="uiRightToolsTitle">TOOLS</div>
+  <button type="button" data-tool="rta"><span class="rtIcon">▥</span><span>RTA</span></button>
+  <button type="button" data-tool="waterfall"><span class="rtIcon">≋</span><span>Waterfall</span></button>
+  <button type="button" data-tool="tf"><span class="rtIcon">◎</span><span>TF</span></button>
+  <button type="button" data-tool="generator"><span class="rtIcon">∿</span><span>Generator</span></button>
+  <button type="button" data-tool="io"><span class="rtIcon">↔</span><span>I/O</span></button>
+  <button type="button" data-tool="traces"><span class="rtIcon">⌁</span><span>Traces</span></button>
+  <button type="button" data-tool="measure"><span class="rtIcon">⌖</span><span>Measure</span></button>
+  <button type="button" data-tool="settings"><span class="rtIcon">⚙</span><span>Settings</span></button>
+</aside>
+
+
+<script>
+(()=>{
+  const rail=document.getElementById('uiRightTools');
+  if(!rail)return;
+  const click=(sel)=>{const el=document.querySelector(sel);if(el)el.click();};
+  rail.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-tool]');if(!b)return;
+    const t=b.dataset.tool;
+    if(t==='rta') click('#v53AnalysisToggle');
+    else if(t==='waterfall') click('#v54WaterfallToggle');
+    else if(t==='tf') click('#v54TfGraphToggle');
+    else if(t==='generator'){
+      if(typeof window.openWorkspaceDrawer==='function') window.openWorkspaceDrawer('generator');
+      else click('#uiGenerator');
+    } else if(t==='io'){
+      if(typeof window.openWorkspaceDrawer==='function') window.openWorkspaceDrawer('io');
+      else click('#uiIo');
+    } else if(t==='traces'){
+      if(typeof window.openWorkspaceDrawer==='function') window.openWorkspaceDrawer('traces');
+      else click('#uiTraces');
+     } else if(t==='measure'){
+      const menu=document.getElementById('uiMenu');if(menu)menu.classList.add('open');
+      const back=document.getElementById('uiMenuBackdrop');if(back)back.classList.add('open');
+      setTimeout(()=>{const x=document.querySelector('[data-open-tool="delay"]');if(x)x.scrollIntoView({block:'center',behavior:'smooth'});},60);
+    } else if(t==='settings'){
+      const menu=document.getElementById('uiMenu');if(menu)menu.classList.add('open');
+      const back=document.getElementById('uiMenuBackdrop');if(back)back.classList.add('open');
+      setTimeout(()=>document.getElementById('uiSettingsPanel')?.scrollIntoView({block:'center',behavior:'smooth'}),60);
+    }
+  });
+  function sync(){
+    rail.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    let t='rta';
+    if(document.querySelector('#v54WaterfallToggle.on'))t='waterfall';
+    else if(document.querySelector('#v54TfGraphToggle.on'))t='tf';
+    const b=rail.querySelector(`[data-tool="${t}"]`);if(b)b.classList.add('on');
+  }
+  document.addEventListener('click',()=>setTimeout(sync,0));
+  setInterval(sync,900);sync();
+})();
+</script>
+
+
+<script>
+(()=>{
+  function updateTfConfidenceUi(){
+    if(typeof tfCurrentSnapshot!=='function')return;
+    const card=document.getElementById('tfProConfidence'),sub=document.getElementById('tfProConfidenceSub');
+    if(!card||!sub)return;
+    try{
+      const s=tfCurrentSnapshot();const q=s&&s.confidence;if(!q)return;
+      card.textContent=q.label+' '+Math.round(q.score*100)+'%';
+      card.className=q.label.toLowerCase();
+      sub.textContent='Coh '+q.meanCoh.toFixed(2)+' · Coverage '+Math.round(q.coverage*100)+'%';
+    }catch(_){}
+  }
+  setInterval(updateTfConfidenceUi,1200);
+})();
+</script>
+
+
+<script>
+(()=>{
+  function ensureWfStrip(){
+    const bar=document.getElementById('uiContextBar');if(!bar)return null;
+    let el=document.getElementById('wfIssueStrip');
+    if(!el){el=document.createElement('div');el.id='wfIssueStrip';bar.appendChild(el);}
+    return el;
+  }
+  function updateWfIssues(){
+    const el=ensureWfStrip();if(!el)return;
+    const active=document.querySelector('#v54WaterfallToggle.on');
+    if(!active||!window.wfResonance){el.className='';el.innerHTML='';return;}
+    const cs=(wfResonance.candidates||[]).slice().sort((a,b)=>(b.resonanceConfidence||b.score||0)-(a.resonanceConfidence||a.score||0)).slice(0,3);
+    el.innerHTML='';
+    for(const c of cs){
+      const q=window.waterfallConfidence?waterfallConfidence(c):(c.resonanceConfidence||c.score||0);
+      if(q<.45)continue;
+      const tier=q>=.78?'high':q>=.58?'medium':'low';
+      const region=c.decayRegion||((c.hz||c.f)<200?'ROOM MODE':(c.hz||c.f)<2000?'RESONANCE':(c.hz||c.f)<8000?'REFLECTION / RING':'HF DECAY');
+      const chip=document.createElement('div');chip.className='wfIssueChip '+tier;
+      chip.textContent=Math.round(c.hz||c.f)+' Hz · '+region+' · '+Math.round(q*100)+'%';
+      el.appendChild(chip);
+    }
+    el.className=el.children.length?'show':'';
+  }
+  setInterval(updateWfIssues,700);
+})();
+</script>
+
+
+<div id="measurementHealth" aria-label="Measurement health">
+ <span class="mhItem" id="mhMic">MIC —</span><span class="mhItem" id="mhRef">REF —</span>
+ <span class="mhItem" id="mhSnr">SNR —</span><span class="mhItem" id="mhNoise">NOISE —</span><span class="mhItem" id="mhHeadroom">HEADROOM —</span><span class="mhItem" id="mhCoh">COH —</span>
+ <span class="mhItem" id="mhClip">CLIP —</span><span class="mhItem" id="mhStable">STABLE —</span>
+ <strong class="mhReady" id="mhReady">NOT READY</strong>
+</div>
+<div id="mhGuide"></div>
+<div id="traceSessionPanel"><div class="tsHead"><span>MEASUREMENT SESSION</span><button class="tsBtn" id="tsClose">CLOSE</button></div>
+ <div style="display:flex;gap:6px;margin-bottom:8px"><button class="tsBtn" id="tsCapture">CAPTURE POSITION</button><button class="tsBtn" id="tsAverage">AVERAGE SELECTED</button><button class="tsBtn" id="tsAll">SELECT ALL</button></div>
+ <div id="tsRows"></div>
+</div>
+
+
+<script>
+(()=>{
+ const health={mic:false,ref:false,snr:0,coh:0,clip:false,stable:false,ready:false,reason:'START AUDIO',history:[],noiseFloorDb:-90,micDb:-120,refDb:-120,headroomDb:120,noiseHistory:[]};
+ window.measurementHealth=health;
+ function numText(id,t,cls){const e=document.getElementById(id);if(e){e.textContent=t;e.className='mhItem '+cls}}
+ function rms(a){if(!a||!a.length)return 0;let s=0;for(let i=0;i<a.length;i++)s+=a[i]*a[i];return Math.sqrt(s/a.length)}
+ function db(v){return 20*Math.log10(Math.max(1e-8,v))}
+ function updateHealth(){
+   let micDb=-120,refDb=-120,clip=false,coh=0,stable=false;
+   try{
+     let ma=null,ra=null;
+     if(typeof analyser!=='undefined'&&analyser){
+       if(!window.__mhMic||window.__mhMic.length!==analyser.fftSize)window.__mhMic=new Float32Array(analyser.fftSize);
+       analyser.getFloatTimeDomainData(window.__mhMic);ma=window.__mhMic;
+     }
+     if(typeof analyserRef!=='undefined'&&analyserRef){
+       if(!window.__mhRef||window.__mhRef.length!==analyserRef.fftSize)window.__mhRef=new Float32Array(analyserRef.fftSize);
+       analyserRef.getFloatTimeDomainData(window.__mhRef);ra=window.__mhRef;
+     }
+     if(ma?.length){micDb=db(rms(ma));for(let i=0;i<ma.length;i+=16)if(Math.abs(ma[i])>.985){clip=true;break}}
+     if(ra?.length){refDb=db(rms(ra));for(let i=0;i<ra.length;i+=16)if(Math.abs(ra[i])>.985){clip=true;break}}
+     if(typeof tfCurrentSnapshot==='function'){const s=tfCurrentSnapshot();if(s?.confidence)coh=s.confidence.meanCoh||0}
+   }catch(_){}
+   health.micDb=micDb;health.refDb=refDb;health.mic=micDb>-75;health.ref=refDb>-75;health.clip=clip;health.coh=coh;
+   health.headroomDb=Math.max(0,-micDb);
+   // Rolling measured noise-floor estimator: learn only from quiet/stable low-level windows.
+   if(micDb<-38&&!clip){health.noiseHistory.push(micDb);if(health.noiseHistory.length>45)health.noiseHistory.shift();}
+   if(health.noiseHistory.length>=6){
+     const q=health.noiseHistory.slice().sort((a,b)=>a-b);
+     health.noiseFloorDb=q[Math.floor(q.length*.35)];
+   }
+   health.snr=Math.max(0,Math.min(80,micDb-health.noiseFloorDb));
+   const now=Date.now();health.history.push({t:now,micDb,refDb,coh});while(health.history.length>8||health.history[0].t<now-5000)health.history.shift();
+   if(health.history.length>=3){const a=health.history.map(x=>x.micDb),av=a.reduce((x,y)=>x+y,0)/a.length,sd=Math.sqrt(a.reduce((x,y)=>x+(y-av)**2,0)/a.length);stable=sd<3.5}
+   health.stable=stable;
+   const tfOpen=!!document.querySelector('#v54TfGraphToggle.on');
+   const noiseReady=health.noiseHistory.length>=6, snrOk=!noiseReady||health.snr>=15, headroomOk=health.headroomDb>=4;
+   health.ready=health.mic&&!clip&&stable&&snrOk&&headroomOk&&(!tfOpen||(health.ref&&coh>=.5));
+   health.reason=!health.mic?'LOW MIC':clip?'CLIPPING':health.headroomDb<4?'LOW HEADROOM':noiseReady&&health.snr<15?'LOW SNR':!stable?'UNSTABLE':tfOpen&&!health.ref?'LOW REF':tfOpen&&coh<.5?'LOW COHERENCE':'READY TO MEASURE';
+   numText('mhMic','MIC '+(health.mic?'OK':'LOW'),health.mic?'ok':'bad');
+   numText('mhRef','REF '+(health.ref?'OK':'—'),health.ref?'ok':'warn');
+   numText('mhSnr','SNR '+Math.round(health.snr)+'dB',health.snr>=25?'ok':health.snr>=15?'warn':'bad');
+   numText('mhNoise','NOISE '+(health.noiseHistory.length>=6?Math.round(health.noiseFloorDb)+'dB':'LEARN'),health.noiseHistory.length>=6?'ok':'warn');
+   numText('mhHeadroom','HEADROOM '+Math.round(health.headroomDb)+'dB',health.headroomDb>=9?'ok':health.headroomDb>=4?'warn':'bad');
+   numText('mhCoh','COH '+(coh?coh.toFixed(2):'—'),coh>=.7?'ok':coh>=.5?'warn':'bad');
+   numText('mhClip','CLIP '+(clip?'YES':'NO'),clip?'bad':'ok');numText('mhStable','STABLE '+(stable?'YES':'NO'),stable?'ok':'warn');
+   const r=document.getElementById('mhReady');if(r){r.textContent=health.reason;r.className='mhReady '+(health.ready?'ok':'bad')}
+ }
+ setInterval(updateHealth,850);
+
+ // Delay repeatability layer, callable by current/future delay UI.
+ const dh=[];window.recordDelayReliability=function(ms,confidence=1){
+   const now=Date.now();dh.push({t:now,ms,confidence});while(dh.length>5)dh.shift();
+   if(dh.length<3)return {label:'PENDING',spread:null,count:dh.length};
+   const a=dh.map(x=>x.ms),av=a.reduce((x,y)=>x+y,0)/a.length,sd=Math.sqrt(a.reduce((x,y)=>x+(y-av)**2,0)/a.length);
+   const c=dh.reduce((x,y)=>x+y.confidence,0)/dh.length,label=sd<=.18&&c>=.7?'HIGH':sd<=.5&&c>=.55?'MEDIUM':'LOW';
+   return {label,spread:sd,mean:av,count:dh.length};
+ };
+
+ function mode(){return document.querySelector('#v54TfGraphToggle.on')?'TF':document.querySelector('#v54WaterfallToggle.on')?'WATERFALL':'RTA'}
+
+ function renderTraceManager(){
+   const box=document.getElementById('tsRows');if(!box||typeof v552GetTraces!=='function')return;
+   const traces=v552GetTraces();box.innerHTML='';
+   traces.forEach((t,i)=>{
+     const r=document.createElement('div');r.className='tsRow';
+     r.innerHTML='<input type="checkbox" data-ts-select="'+i+'"><input class="tsInput" value="'+String(t.name||'Trace').replace(/"/g,'&quot;')+'"><span>'+(t.type==='tf'?'TF':'RTA')+(t.spatialAverage?' · AVG':'')+'</span><button class="tsBtn" data-eye="'+i+'">'+(t.visible===false?'SHOW':'HIDE')+'</button><button class="tsBtn" data-del="'+i+'">DEL</button>';
+     r.querySelector('.tsInput').onchange=e=>v552RenameTrace(i,e.target.value);
+     r.querySelector('[data-eye]').onclick=()=>{v552ToggleTrace(i);renderTraceManager()};
+     r.querySelector('[data-del]').onclick=()=>{v552DeleteTrace(i);renderTraceManager()};
+     box.appendChild(r);
+   });
+ }
+
+ document.getElementById('tsCapture').onclick=()=>{
+   if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();
+   setTimeout(()=>{const tr=typeof v552GetTraces==='function'?v552GetTraces():[];if(tr.length){const t=tr[tr.length-1];t.name='Position '+tr.length+' · '+mode();if(typeof renderTfTraceLegend==='function')renderTfTraceLegend()}renderTraceManager()},30);
+ };
+ document.getElementById('tsAverage').onclick=()=>{
+   const checks=[...document.querySelectorAll('[data-ts-select]:checked')].map(x=>+x.dataset.tsSelect);
+   if(typeof v552SpatialAverage!=='function')return;
+   const r=v552SpatialAverage(checks);
+   if(!r.ok){alert(r.reason);return}
+   if(typeof v3Toast==='function')v3Toast('Spatial Average created from '+checks.length+' traces');
+   renderTraceManager();
+ };
+ document.getElementById('tsAll').onclick=()=>document.querySelectorAll('[data-ts-select]').forEach(x=>x.checked=true);
+ document.getElementById('tsClose').onclick=()=>document.getElementById('traceSessionPanel').classList.remove('show');
+ window.openMeasurementSession=()=>{document.getElementById('traceSessionPanel').classList.add('show');renderTraceManager()};
+
+})();
+</script>
+
+
+<script>
+(()=>{
+ function ensureDelayRepeat(){
+   const host=document.querySelector('#delayPanel,#v5DelayPanel,[data-tool-panel="delay"],.delayCard');
+   if(!host)return null;let b=document.getElementById('delayRepeatBadge');
+   if(!b){b=document.createElement('div');b.id='delayRepeatBadge';host.prepend(b)}return b;
+ }
+ setInterval(()=>{
+   const b=ensureDelayRepeat(),q=window.lastDelayRepeatability;if(!b||!q)return;
+   if(q.label==='PENDING'){b.className='show';b.textContent='REPEATABILITY '+q.count+'/3 · MORE SAMPLES';return}
+   b.className='show '+q.label.toLowerCase();b.textContent='REPEATABILITY '+q.label+' · ±'+q.spread.toFixed(2)+' ms · N='+q.count;
+ },700);
+})();
+</script>
+
+
+<script>
+(()=>{
+ const advice={
+  'LOW MIC':'Raise microphone/input level or move the measurement mic closer.',
+  'CLIPPING':'Reduce MIC/REF gain. Clipped samples cannot produce a trustworthy measurement.',
+  'LOW HEADROOM':'Reduce input gain slightly; keep at least ~4 dB digital headroom.',
+  'LOW SNR':'Increase test-signal level or reduce background noise, then let NOISE relearn.',
+  'UNSTABLE':'Hold the mic position and wait for the level to settle before capturing.',
+  'LOW REF':'Raise or reconnect the reference channel before TF / Phase / Alignment.',
+  'LOW COHERENCE':'Check delay/reference routing, improve SNR, and reduce reflections if possible.'
+ };
+ let last='';
+ function updateGuide(){
+   const h=window.measurementHealth,g=document.getElementById('mhGuide');if(!h||!g)return;
+   if(h.ready){g.className='';g.textContent='';last='';return}
+   const text=advice[h.reason]||'Wait for valid measurement conditions.';
+   g.innerHTML='<strong>'+h.reason+'</strong> · '+text;
+   g.className='show';last=h.reason;
+ }
+ setInterval(updateGuide,900);
+
+ // Guard capture actions when health is clearly invalid.
+ document.addEventListener('click',e=>{
+   const b=e.target.closest('[data-ctx="capture"],#tfTraceBtn,#v5AddTrace,#tsCapture');
+   if(!b)return;
+   const h=window.measurementHealth;
+   if(h&&!h.ready&&['CLIPPING','LOW HEADROOM','LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason)){
+     e.preventDefault();e.stopImmediatePropagation();
+     const msg=(advice[h.reason]||'Improve measurement conditions before capture.');
+     if(typeof v3Toast==='function')v3Toast(h.reason+' · '+msg);else alert(h.reason+' — '+msg);
+   }
+ },true);
+})();
+</script>
+
+
+<script>
+(()=>{
+ const map={abBtnA:'A',abBtnB:'B',abBtnDelta:'delta',abBtnOff:'off'};
+ for(const [id,v] of Object.entries(map)){
+   const b=document.getElementById(id);if(!b)continue;
+   b.addEventListener('click',()=>{
+     const target=document.querySelector('#abViewSeg button[data-v="'+v+'"]');
+     if(target)target.click();
+     document.querySelectorAll('#abWidget button').forEach(x=>x.classList.remove('on'));
+     if(v!=='off')b.classList.add('on');
+   });
+ }
+})();
+</script>
+
+
+<aside id="targetMeasurementPanel" aria-hidden="true">
+ <div class="tmpHead"><span>MEASUREMENT</span><i class="tmpDot"></i></div>
+ <div class="tmpValue"><span id="tmpMain">—</span> <small>dBFS</small></div>
+ <div class="tmpSub" id="tmpSecondary">LIVE INPUT</div>
+ <div class="tmpGrid"><div class="tmpCell">PEAK<strong id="tmpPeak">—</strong></div><div class="tmpCell">SNR<strong id="tmpSnr">—</strong></div><div class="tmpCell">COHERENCE<strong id="tmpCoh">—</strong></div><div class="tmpCell">HEADROOM<strong id="tmpHeadroom">—</strong></div></div>
+</aside>
+<div id="targetLeftStatus" aria-hidden="true">
+ <section class="tlsCard"><div class="tlsHead">GENERATOR</div><div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div></section>
+ <section class="tlsCard"><div class="tlsHead"><span class="tlsDot"></span>I / O</div><div class="tlsLine"><span>MIC</span><strong id="tlsMic">—</strong></div><div class="tlsLine"><span>REF</span><strong id="tlsRef">—</strong></div><div class="tlsMeter"></div></section>
+ <section class="tlsCard"><div class="tlsHead">TRACES</div><div class="tlsLine"><span>CAPTURED</span><strong id="tlsTraces">0</strong></div><div class="tlsLine"><span>VISIBLE</span><strong id="tlsVisible">0</strong></div></section>
+</div>
+
+<div id="targetLeftLabels" aria-hidden="true"><div class="tll">GENERATOR</div><div class="tll">I / O</div><div class="tll">TRACES</div></div>
+<div id="targetCommandBar"><button class="tcb primary" data-tcb="startstop">START / STOP</button><button class="tcb" data-tcb="freeze">PAUSE</button><button class="tcb" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="average">AVG</button><button class="tcb" data-tcb="smooth">SMOOTH</button><button class="tcb" data-tcb="hold">HOLD</button><button class="tcb" data-tcb="peak">PEAK HOLD</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button></div>
+<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='startstop')ca(['#uiStartStop','#startStopBtn','#startBtn','#audioBtn']);if(a==='freeze')ca(['#freezeBtn','#tfProFreeze','#frzBtn']);if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='average')ca(['#avgSelect','#avgBtn','[data-avg]']);if(a==='smooth')ca(['#smoothSelect','#smoothBtn','[data-smooth]']);if(a==='hold')ca(['#holdBtn','#peakHoldBtn']);if(a==='peak')ca(['#peakHoldBtn','#holdBtn']);if(a==='traces'){if(typeof openWorkspaceDrawer==='function')openWorkspaceDrawer('traces');else window.openMeasurementSession?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
+
+<script>
+(()=>{
+ const bar=document.getElementById('targetCommandBar');if(!bar)return;
+ function syncTargetBar(){
+   const start=bar.querySelector('[data-tcb="startstop"]');
+   const live=document.querySelector('#uiLivePill,.measuring,.ready');
+   const running=!!(live&&/MEASUR|RUNNING|STOP/i.test(live.textContent||''));
+   if(start)start.textContent=running?'STOP':'START';
+   const mode=document.querySelector('#uiTopModes .on,#v54RtaGraphToggle.on,#v54WaterfallToggle.on,#v54TfGraphToggle.on');
+   bar.dataset.mode=(mode?.textContent||'RTA').trim().toUpperCase();
+ }
+ setInterval(syncTargetBar,700);syncTargetBar();
+})();
+</script>
+
+
+<script>
+(()=>{
+ function textOf(sel,fallback='—'){const x=document.querySelector(sel);return (x?.selectedOptions?.[0]?.textContent||x?.textContent||x?.value||fallback).trim()}
+ function syncLeftInstrument(){
+   const sig=document.getElementById('tlsSignal'),lev=document.getElementById('tlsLevel'),mi=document.getElementById('tlsMic'),rf=document.getElementById('tlsRef');
+   if(sig)sig.textContent=textOf('#genType,#generatorType,#signalType','Pink Noise').slice(0,18);
+   const level=document.querySelector('#genLevel,#generatorLevel,input[data-generator-level]');
+   if(lev)lev.textContent=level?String(level.value)+(String(level.value).includes('dB')?'':' dB'):'—';
+   const h=window.measurementHealth;
+   if(mi)mi.textContent=h&&Number.isFinite(h.micDb)?Math.round(h.micDb)+' dBFS':'—';
+   if(rf)rf.textContent=h&&Number.isFinite(h.refDb)?Math.round(h.refDb)+' dBFS':'—';
+   const tr=typeof v552GetTraces==='function'?v552GetTraces():[];
+   const a=document.getElementById('tlsTraces'),v=document.getElementById('tlsVisible');
+   if(a)a.textContent=tr.length;if(v)v.textContent=tr.filter(t=>t.visible!==false).length;
+ }
+ setInterval(syncLeftInstrument,800);syncLeftInstrument();
+})();
+</script>
+
+
+<script>
+(()=>{
+ let peak=-Infinity;
+ function syncMeasurementTarget(){
+   const h=window.measurementHealth;if(!h)return;
+   const main=document.getElementById('tmpMain'),pk=document.getElementById('tmpPeak'),sn=document.getElementById('tmpSnr'),co=document.getElementById('tmpCoh'),hr=document.getElementById('tmpHeadroom');
+   if(main&&Number.isFinite(h.micDb))main.textContent=h.micDb.toFixed(1);
+   if(Number.isFinite(h.micDb))peak=Math.max(peak,h.micDb);
+   if(pk&&Number.isFinite(peak))pk.textContent=peak.toFixed(1)+' dBFS';
+   if(sn)sn.textContent=Number.isFinite(h.snr)?Math.round(h.snr)+' dB':'—';
+   if(co)co.textContent=Number.isFinite(h.coh)?h.coh.toFixed(2):'—';
+   if(hr)hr.textContent=Number.isFinite(h.headroomDb)?Math.round(h.headroomDb)+' dB':'—';
+   const sec=document.getElementById('tmpSecondary');if(sec)sec.textContent=h.reason||'LIVE INPUT';
+   // Mirror existing RTA peak/cursor text if present; do not invent spectral values.
+   const source=document.querySelector('#peakInfo,#rtaPeak,#peakReadout,.peakReadout,[data-peak-readout]');
+   const hz=document.getElementById('tpkHz'),meta=document.getElementById('tpkMeta');
+   if(source&&hz){hz.textContent=(source.textContent||'PEAK —').trim().slice(0,34);if(meta)meta.textContent='PEAK / HOLD';}
+ }
+ setInterval(syncMeasurementTarget,650);syncMeasurementTarget();
+})();
+</script>
+
+<script>
+(()=>{
+ function syncWaterfallTarget(){
+   const wf=!!document.querySelector('#v54WaterfallToggle.on');
+   if(!wf)return;
+   const sec=document.getElementById('tmpSecondary');
+   const cand=(window.wfResonance?.candidates||[]).slice().sort((a,b)=>(b.resonanceConfidence||b.score||0)-(a.resonanceConfidence||a.score||0));
+   if(sec){
+     if(cand[0])sec.textContent='TOP ISSUE · '+Math.round(cand[0].hz||0)+' Hz · '+waterfallIssueLabel(cand[0]);
+     else sec.textContent='WATERFALL · ANALYZING DECAY';
+   }
+   const hz=document.getElementById('tpkHz'),meta=document.getElementById('tpkMeta');
+   if(hz&&cand[0]){
+     const q=typeof waterfallConfidence==='function'?waterfallConfidence(cand[0]):(cand[0].score||0);
+     hz.textContent=Math.round(cand[0].hz)+' Hz · '+Math.round(q*100)+'%';
+     if(meta)meta.textContent=(cand[0].validated?'DECAY VALIDATED · ':'')+waterfallIssueLabel(cand[0]);
+   }
+ }
+ setInterval(syncWaterfallTarget,700);
+})();
+</script>
+<div id="rtaProStrip" aria-hidden="true"><span class="rpsChip">RES <strong id="rpsRes">—</strong></span><span class="rpsChip">AVG <strong id="rpsAvg">—</strong></span><span class="rpsChip">SMOOTH <strong id="rpsSmooth">—</strong></span><span class="rpsChip target">TARGET <strong id="rpsTarget">ON</strong></span></div>
+<script>(()=>{function t(q,f='—'){const x=document.querySelector(q);return(x?.selectedOptions?.[0]?.textContent||x?.textContent||x?.value||f).trim()}function sync(){const a=document.getElementById('rpsRes'),b=document.getElementById('rpsAvg'),c=document.getElementById('rpsSmooth'),d=document.getElementById('rpsTarget');if(a)a.textContent=(document.getElementById('v3ResChip')?.textContent||'—').replace('RES ','');if(b)b.textContent=document.getElementById('avgBtn')?.classList.contains('on')?t('#avgSpeedSeg .on','ON'):'OFF';if(c)c.textContent=t('#smoothVal',t('#smooth','—'));if(d)d.textContent=document.getElementById('v5TargetToggle')?.classList.contains('on')?'ON':'OFF'}setInterval(sync,500);sync()})();</script>
 </body>
 </html>
