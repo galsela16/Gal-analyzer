@@ -144,7 +144,7 @@ const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
 // V5.5.3 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
-const wf3d={rows:[],frame:0,maxRows:48,maxHz:20000};window.wf3d=wf3d;
+const wf3d={rows:[],frame:0,maxRows:48,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.3-ui-refresh',
+    version: 'v5.5.4-waterfall-layout',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3793,7 +3793,9 @@ function wf3dColor(t,alpha=1){
   return `rgba(${Math.round(a[1]+(b[1]-a[1])*u)},${Math.round(a[2]+(b[2]-a[2])*u)},${Math.round(a[3]+(b[3]-a[3])*u)},${alpha})`;
 }
 function captureWaterfall3dRow(nyquist){
-  if((++wf3d.frame)%2)return;
+  const now=performance.now();
+  if(now-wf3d.lastCapture<wf3d.intervalMs)return;
+  wf3d.lastCapture=now;
   const N=256,row=[];
   const f0=20,f1=Math.min(wf3d.maxHz,nyquist*.96);
   for(let i=0;i<N;i++){
@@ -4397,7 +4399,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.3';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.4';
   v3UpdateStatus();
 })();
 (function initAccent(){

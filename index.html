@@ -2014,8 +2014,8 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
 #targetCommandBar,#targetLeftStatus,#targetMeasurementPanel,#targetLeftLabels,
 #targetPeakCard,#wfTargetLegend,#rtaProStrip{display:none}
 
-@media(min-width:1100px){
-  :root{--v5-side:0px;--desktop-left:214px;--desktop-right:194px;--desktop-bottom:66px}
+@media(min-width:901px){
+  :root{--v5-side:0px;--desktop-left:clamp(176px,15vw,214px);--desktop-right:clamp(148px,13.5vw,194px);--desktop-bottom:66px}
   body{background:#030b10!important;padding-bottom:0!important}
   header.uiRefreshed{position:relative!important;top:auto!important;flex:0 0 48px!important}
   #measurementHealth{top:7px!important;max-width:58vw;height:34px!important;overflow-x:auto;white-space:nowrap}
@@ -2026,10 +2026,12 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     margin:8px calc(var(--desktop-right) + 12px) calc(var(--desktop-bottom) + 8px) calc(var(--desktop-left) + 12px)!important;
     border-radius:11px!important;overflow:hidden!important
   }
-  #stage>canvas#cv,#stage.measure-open>canvas#cv,#stage.bar-open>canvas#cv{
+  #stage>canvas#cv{
     left:0!important;right:0!important;top:48px!important;bottom:0!important;
     width:100%!important;height:calc(100% - 48px)!important
   }
+  #stage.measure-open>canvas#cv{height:calc(100% - 48px - var(--measure-h,0px))!important}
+  #stage.bar-open>canvas#cv{height:calc(100% - 48px - var(--bar-h,0px))!important}
   #v5ModeTabs{
     left:0!important;right:0!important;top:0!important;height:48px!important;
     padding:6px 12px!important;align-items:center!important;justify-content:center!important
@@ -2097,19 +2099,26 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   }
   #uiDrawerLabel{left:28px!important;right:auto!important;top:68px!important}
   #traceSessionPanel{right:calc(var(--desktop-right) + 20px)!important;bottom:calc(var(--desktop-bottom) + 16px)!important}
+  #tfPanel.tfPro{
+    left:0!important;right:0!important;bottom:0!important;top:auto!important;
+    width:100%!important;max-width:none!important;transform:none!important;border-radius:12px 12px 0 0!important
+  }
 }
 
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
-@media(max-width:1099px){
+@media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip{display:none!important}
 }
-@media(min-width:701px) and (max-width:1099px){
+@media(min-width:701px) and (max-width:900px){
   #stage{margin-bottom:72px!important}
 }
 @media(min-width:901px) and (max-width:1099px){
-  #uiRightTools button{display:none!important}
-  #uiRightTools button[data-tool="measure"],#uiRightTools button[data-tool="settings"]{display:flex!important}
-  #uiRightTools{bottom:106px!important}
+  .tcb{min-width:0!important;flex:1 1 0!important;padding-inline:5px!important;font-size:7.5px!important}
+  .tcb.spacer{display:none!important}
+  #targetMeasurementPanel{height:176px!important}
+  #uiRightTools{top:244px!important}
+  #tfPanel.measureDock{overflow:auto!important;max-height:min(48vh,360px)!important}
+  #tfPanel.measureDock .tfProSummary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 
 </style>
@@ -2158,7 +2167,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.3</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.4</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">WORKSPACE</div>
@@ -2180,6 +2189,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
       <div class="uiSettingsPage" data-settings-content="measurement">
         <div class="uiSettingsRow"><span>TF coherence gate</span><strong id="uiSetCohState">Uses TF setting</strong></div>
         <div class="uiSettingsRow"><span>TF smoothing</span><strong>Uses TF setting</strong></div>
+        <div class="uiSettingsRow"><span>Waterfall speed</span><span><button data-wf-speed="350">Slow</button> <button class="on" data-wf-speed="220">Normal</button> <button data-wf-speed="120">Fast</button></span></div>
         <div class="uiSettingsRow"><span>Target / reference tools</span><strong>Contextual</strong></div>
       </div>
       <div class="uiSettingsPage" data-settings-content="audio">
@@ -2209,7 +2219,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.3 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.4 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2917,7 +2927,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.3</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.4</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -2958,6 +2968,16 @@ window.addEventListener('load', function(){
     document.querySelectorAll('[data-settings-page]').forEach(x=>x.classList.toggle('on',x===b));
     document.querySelectorAll('[data-settings-content]').forEach(x=>x.classList.toggle('on',x.dataset.settingsContent===b.dataset.settingsPage));
   }));
+  const wfSpeedButtons=[...document.querySelectorAll('[data-wf-speed]')];
+  function setWaterfallSpeed(ms,persist=true){
+    ms=Math.max(100,Math.min(500,Number(ms)||220));
+    if(window.wf3d){window.wf3d.intervalMs=ms;window.wf3d.lastCapture=0;}
+    wfSpeedButtons.forEach(b=>b.classList.toggle('on',Number(b.dataset.wfSpeed)===ms));
+    if(persist)try{localStorage.setItem('rta_wf_interval',String(ms));}catch(_){}
+  }
+  wfSpeedButtons.forEach(b=>b.addEventListener('click',()=>setWaterfallSpeed(b.dataset.wfSpeed)));
+  let savedWfSpeed=220;try{savedWfSpeed=Number(localStorage.getItem('rta_wf_interval'))||220}catch(_){}
+  setTimeout(()=>setWaterfallSpeed(savedWfSpeed,false),0);
   document.getElementById('uiSetTheme')?.addEventListener('click',()=>{click('sunBtn');setTimeout(syncStates,30)});
   document.getElementById('uiSetTarget')?.addEventListener('click',()=>{click('v5TargetToggle');setTimeout(syncStates,30)});
   document.querySelectorAll('[data-set-bpo]').forEach(b=>b.addEventListener('click',()=>{const src=document.querySelector('#v3ResMenu [data-bpo="'+b.dataset.setBpo+'"]');src?.click();}));
@@ -3114,7 +3134,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js"></script>
+<script src="app.js?v=5.5.4"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
