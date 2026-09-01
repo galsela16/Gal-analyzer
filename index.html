@@ -2008,11 +2008,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
 
 
 /* V5.5.3 Measurement Health guidance */
-#mhGuide{display:none;position:fixed;left:50%;top:88px;transform:translateX(-50%);z-index:34;
- max-width:min(620px,92vw);padding:7px 10px;border-radius:9px;border:1px solid rgba(255,199,92,.24);
- background:rgba(5,18,25,.92);backdrop-filter:blur(12px);font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#b8d0d8}
-#mhGuide.show{display:block}#mhGuide strong{color:#ffc75c}
-@media(max-width:900px){#mhGuide{top:82px;font-size:9px}}
+#mhGuide{display:none!important}
 
 /* V5.5.3 DESKTOP LAYOUT — single canonical layout, no cumulative passes */
 #targetCommandBar,#targetLeftStatus,#targetMeasurementPanel,#targetLeftLabels,
@@ -3361,10 +3357,12 @@ window.addEventListener('load', function(){
  let last='';
  function updateGuide(){
    const h=window.measurementHealth,g=document.getElementById('mhGuide');if(!h||!g)return;
-   if(h.ready){g.className='';g.textContent='';last='';return}
+   const status=document.getElementById('mhReady');
+   if(h.ready){g.textContent='';if(status)status.title='Measurement conditions are ready.';last='';return}
    const text=advice[h.reason]||'Wait for valid measurement conditions.';
-   g.innerHTML='<strong>'+h.reason+'</strong> · '+text;
-   g.className='show';last=h.reason;
+   g.textContent=h.reason+' · '+text;
+   if(status)status.title=text;
+   last=h.reason;
  }
  setInterval(updateGuide,900);
 
@@ -3486,15 +3484,19 @@ window.addEventListener('load', function(){
    if(!wf)return;
    const sec=document.getElementById('tmpSecondary');
    const cand=(window.wfResonance?.candidates||[]).slice().sort((a,b)=>(b.resonanceConfidence||b.score||0)-(a.resonanceConfidence||a.score||0));
+   const top=cand.find(c=>{
+     const q=typeof waterfallConfidence==='function'?waterfallConfidence(c):(c.resonanceConfidence||c.score||0);
+     return c.validated||((c.score||0)>=.72&&(c.prom||0)>=4&&q>=.62);
+   });
    if(sec){
-     if(cand[0])sec.textContent='TOP ISSUE · '+Math.round(cand[0].hz||0)+' Hz · '+waterfallIssueLabel(cand[0]);
+     if(top)sec.textContent=(top.validated?'DECAY VERIFIED':'PERSISTENT PEAK')+' · '+Math.round(top.hz||0)+' Hz · '+waterfallIssueLabel(top);
      else sec.textContent='WATERFALL · ANALYZING DECAY';
    }
    const hz=document.getElementById('tpkHz'),meta=document.getElementById('tpkMeta');
-   if(hz&&cand[0]){
-     const q=typeof waterfallConfidence==='function'?waterfallConfidence(cand[0]):(cand[0].score||0);
-     hz.textContent=Math.round(cand[0].hz)+' Hz · '+Math.round(q*100)+'%';
-     if(meta)meta.textContent=(cand[0].validated?'DECAY VALIDATED · ':'')+waterfallIssueLabel(cand[0]);
+   if(hz&&top){
+     const q=typeof waterfallConfidence==='function'?waterfallConfidence(top):(top.score||0);
+     hz.textContent=Math.round(top.hz)+' Hz · '+Math.round(q*100)+'%';
+     if(meta)meta.textContent=(top.validated?'DECAY VALIDATED · ':'PERSISTENT · ')+waterfallIssueLabel(top);
    }
  }
  setInterval(syncWaterfallTarget,700);

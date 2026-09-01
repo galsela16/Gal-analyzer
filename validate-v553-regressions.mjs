@@ -5,7 +5,7 @@ const checks=[
  ['no undefined isoBands dependency',!core.includes('isoBands')],
  ['waterfall decay uses canonical FFT data',core.includes('binOverlapPowerDb(floatData,f/R,f*R,nyquist)')],
  ['waterfall confidence uses hz',core.includes('const f=c.hz||c.f||0')],
- ['waterfall label has confidence',core.includes("waterfallIssueLabel(r)+' · '+Math.round(q*100)+'%'")],
+ ['waterfall marker has confidence',core.includes("hz+' · '+Math.round(q*100)+'%'")],
  ['delay repeatability wired to capture',core.includes('delayResult.repeatability=window.recordDelayReliability')],
  ['health reads analyser samples',html.includes('analyser.getFloatTimeDomainData(window.__mhMic)')],
  ['health reads reference samples',html.includes('analyserRef.getFloatTimeDomainData(window.__mhRef)')],

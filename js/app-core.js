@@ -144,7 +144,7 @@ const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
 // V5.5.3 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
-const wf3d={rows:[],frame:0,maxRows:34,maxHz:20000};window.wf3d=wf3d;
+const wf3d={rows:[],frame:0,maxRows:48,maxHz:20000};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -3665,7 +3665,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
 
 
 // V5.5.3 Waterfall Resonance Finder — integrated into Waterfall.
-const wfResonance={enabled:true,frame:0,started:0,tracks:new Map(),candidates:[],maxHz:20000,minPromDb:2.5,minAgeMs:1800};
+const wfResonance={enabled:true,frame:0,started:0,tracks:new Map(),candidates:[],maxHz:20000,minPromDb:3,minAgeMs:2400};
 window.wfResonance=wfResonance;
 function resetWaterfallResonances(){
   if(typeof wfDecayState!=='undefined'){wfDecayState.bands.clear();wfDecayState.lastT=0;}
@@ -3695,10 +3695,10 @@ function updateWaterfallResonances(nyquist){
     wfResonance.tracks.set(b,t);
   }
   if(now-wfResonance.started<wfResonance.minAgeMs){wfResonance.candidates=[];return;}
-  const ranked=[...wfResonance.tracks.values()].filter(t=>t.total>=10&&t.score>=.48&&t.prom>=wfResonance.minPromDb)
+  const ranked=[...wfResonance.tracks.values()].filter(t=>t.total>=14&&t.score>=.58&&t.prom>=wfResonance.minPromDb)
     .sort((a,b)=>(b.score*b.prom)-(a.score*a.prom));
   const chosen=[];
-  for(const t of ranked){if(chosen.some(c=>Math.abs(Math.log2(c.hz/t.hz))<.11))continue;chosen.push(t);if(chosen.length>=4)break;}
+  for(const t of ranked){if(chosen.some(c=>Math.abs(Math.log2(c.hz/t.hz))<.12))continue;chosen.push(t);if(chosen.length>=3)break;}
   wfResonance.candidates=chosen;
 }
 
@@ -3763,22 +3763,23 @@ window.waterfallConfidence=waterfallConfidence;
 function drawWaterfallResonanceOverlay(W,specH,xForFreq){
   if(!wfResonance.enabled)return;
   ctx.save();
-  wfResonance.candidates.forEach((r,i)=>{
+  const visible=wfResonance.candidates.filter(r=>{
+    const q=waterfallConfidence(r);
+    return r.validated||((r.score||0)>=.72&&(r.prom||0)>=4&&q>=.62);
+  }).slice(0,3);
+  visible.forEach((r,i)=>{
     const x=xForFreq(r.hz);if(x<0||x>W)return;
-    const strong=r.score>=.72&&r.prom>=4;
-    ctx.strokeStyle=strong?'rgba(255,105,97,.92)':'rgba(245,158,11,.90)';ctx.lineWidth=1.4;ctx.setLineDash([5,4]);
-    ctx.beginPath();ctx.moveTo(x,20);ctx.lineTo(x,specH-4);ctx.stroke();ctx.setLineDash([]);
-    const q=waterfallConfidence(r),hz=Math.round(r.hz)+' Hz',label=(r.validated?'◆ ':'')+hz+' · '+waterfallIssueLabel(r)+' · '+Math.round(q*100)+'%';
-    ctx.font='700 10px ui-monospace,SFMono-Regular,Menlo,monospace';
-    const tw=ctx.measureText(label).width+12,bx=Math.max(4,Math.min(W-tw-4,x-tw/2)),by=24+i*22;
-    ctx.fillStyle=strong?'rgba(55,18,20,.92)':'rgba(45,31,8,.92)';ctx.fillRect(bx,by,tw,17);
-    ctx.strokeStyle=strong?'rgba(255,105,97,.65)':'rgba(245,158,11,.65)';ctx.strokeRect(bx,by,tw,17);
-    ctx.fillStyle=strong?'#ff8b82':'#fbbf24';ctx.textAlign='center';ctx.fillText(label,bx+tw/2,by+12);
+    const q=waterfallConfidence(r),hz=Math.round(r.hz)+' Hz';
+    ctx.strokeStyle=r.validated?'rgba(60,224,177,.34)':'rgba(245,190,70,.26)';ctx.lineWidth=1;ctx.setLineDash([3,7]);
+    ctx.beginPath();ctx.moveTo(x,22);ctx.lineTo(x,specH-25);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(x,20,3.5,0,Math.PI*2);ctx.fillStyle=r.validated?'#48dfb4':'#e8bd55';ctx.fill();
+    ctx.font='700 9px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';ctx.fillStyle=r.validated?'#8be8cd':'#d7bd78';
+    ctx.fillText(hz+' · '+Math.round(q*100)+'%',x,11);
   });
   ctx.restore();
   const metric=document.getElementById('uiCtxMetric');
-  if(metric&&mode==='spec')metric.textContent=wfResonance.candidates.length
-    ?'Resonance · '+wfResonance.candidates.slice(0,2).map(r=>Math.round(r.hz)+'Hz').join(' · ')
+  if(metric&&mode==='spec')metric.textContent=visible.length
+    ?'Resonance · '+visible.slice(0,2).map(r=>Math.round(r.hz)+'Hz').join(' · ')
     :(performance.now()-wfResonance.started<wfResonance.minAgeMs?'Analyzing resonances…':'No persistent resonance');
 }
 
@@ -3792,11 +3793,11 @@ function wf3dColor(t,alpha=1){
   return `rgba(${Math.round(a[1]+(b[1]-a[1])*u)},${Math.round(a[2]+(b[2]-a[2])*u)},${Math.round(a[3]+(b[3]-a[3])*u)},${alpha})`;
 }
 function captureWaterfall3dRow(nyquist){
-  if((++wf3d.frame)%3)return;
-  const N=112,row=[];
+  if((++wf3d.frame)%2)return;
+  const N=256,row=[];
   const f0=20,f1=Math.min(wf3d.maxHz,nyquist*.96);
   for(let i=0;i<N;i++){
-    const u=i/(N-1),fc=f0*Math.pow(f1/f0,u),ratio=Math.pow(2,1/24);
+    const u=i/(N-1),fc=f0*Math.pow(f1/f0,u),ratio=Math.pow(2,1/48);
     const db=calibratedResponseDb(binOverlapPowerDb(floatData,fc/ratio,fc*ratio,nyquist),fc);
     row.push(Math.max(0,Math.min(1,(db-floorDb)/Math.max(20,ceilDb-floorDb))));
   }
@@ -3805,7 +3806,7 @@ function captureWaterfall3dRow(nyquist){
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const top=34,bottom=H-28,depth=Math.min(H*.38,180),amp=Math.min(H*.30,150);
+  const top=18,bottom=H-28,span=Math.max(120,bottom-top),depth=span*.70,amp=span*.58;
   const left=18,right=W-12,base=bottom;
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
   // subtle perspective floor/grid
