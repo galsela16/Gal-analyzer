@@ -142,7 +142,7 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.12 visual Waterfall history. Each row is a frequency slice;
+// V5.5.13 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
 const wf3d={rows:[],frame:0,maxRows:40,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
 
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.12-waterfall-smooth-motion',
+    version: 'v5.5.13-generator-compact-dual-meter',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -593,6 +593,13 @@ function v53SetGeneratorDock(open){
   if(open){
     if(typeof v52SetIo==='function'&&v52IoOpen)v52SetIo(false);
     requestAnimationFrame(()=>stage.style.setProperty('--v53-gen-h',Math.ceil(genPanel.getBoundingClientRect().height)+'px'));
+  }else{
+    stage.style.removeProperty('--v53-gen-h');
+    const label=document.getElementById('uiDrawerLabel');
+    if(document.body.classList.contains('ui-workspace-drawer')&&(!label||label.textContent.trim()==='GENERATOR')){
+      document.body.classList.remove('ui-workspace-drawer');
+      document.getElementById('uiWorkspaceBackdrop')?.classList.remove('open');
+    }
   }
   setTimeout(()=>{resize();},0);
 }
@@ -3083,6 +3090,14 @@ function draw(){
     analyser.getFloatTimeDomainData(timeData);
     const micDb=levelDb(timeData,2048);
     setGainEl(document.getElementById('gainMicFill'), document.getElementById('gainMicGain'), micDb);
+    if(analyserRef){
+      if(!timeDataRef||timeDataRef.length!==analyserRef.fftSize)timeDataRef=new Float32Array(analyserRef.fftSize);
+      analyserRef.getFloatTimeDomainData(timeDataRef);
+      setGainEl(document.getElementById('gainRefFill'),document.getElementById('gainRefGain'),levelDb(timeDataRef,2048));
+    }else{
+      const refFill=document.getElementById('gainRefFill'),refGain=document.getElementById('gainRefGain');
+      if(refFill)refFill.style.width='0%';if(refGain)refGain.textContent='—';
+    }
     const tip=document.getElementById('gainTip');
     if(tip){
       let msg, col='var(--dim)';
@@ -4477,7 +4492,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.12';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.13';
   v3UpdateStatus();
 })();
 (function initAccent(){
