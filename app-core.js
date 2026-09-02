@@ -142,7 +142,7 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.11 visual Waterfall history. Each row is a frequency slice;
+// V5.5.12 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
 const wf3d={rows:[],frame:0,maxRows:40,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
 
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.11-waterfall-ultra-dense',
+    version: 'v5.5.12-waterfall-smooth-motion',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3879,34 +3879,35 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
   // Draw an interpolated ridge between captures: denser decay without changing capture speed.
   const visualSubdivisions=4;
   const renderLast=Math.max(0,(rows.length-1)*visualSubdivisions);
+  const motionPhase=Math.max(0,Math.min(1,(performance.now()-wf3d.lastCapture)/Math.max(1,wf3d.intervalMs)));
   for(let renderRow=renderLast;renderRow>=0;renderRow--){
     const sourcePos=renderRow/visualSubdivisions,rr=Math.floor(sourcePos),mix=sourcePos-rr;
     const rowA=rows[rr],rowB=rows[Math.min(rows.length-1,rr+1)];
-    const row=rowA.map((v,i)=>v+(rowB[i]-v)*mix);
-    const age=sourcePos/Math.max(1,wf3d.maxRows-1),z=age*depth;
+    const age=(sourcePos+motionPhase)/Math.max(1,wf3d.maxRows-1);if(age>1)continue;
+    const z=age*depth;
     const x0=left+(backLeft-left)*age,x1=right+(backRight-right)*age,baseline=base-z;
     const ridgeAmp=Math.min(amp*(1-age*.38),Math.max(span*.22,baseline-top-4));
     // translucent body under each ridge
     ctx.beginPath();ctx.moveTo(x0,baseline);
-    for(let i=0;i<row.length;i++){
-      const x=x0+i/(row.length-1)*(x1-x0),y=baseline-row[i]*ridgeAmp;
+    let rowMin=1,rowMax=0;
+    for(let i=0;i<rowA.length;i++){
+      const v=rowA[i]+(rowB[i]-rowA[i])*mix;if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;
+      const x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
       ctx.lineTo(x,y);
     }
     ctx.lineTo(x1,baseline);ctx.closePath();
     ctx.fillStyle=sunMode?'rgba(70,130,180,.014)':'rgba(20,160,170,.018)';ctx.fill();
-    let rowMin=1,rowMax=0;for(const v of row){if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;}
-    // Reference palette: warm lows, green mids and cool highs; level controls brightness.
-    for(let i=1;i<row.length;i+=4){
-      const end=Math.min(row.length-1,i+3),mid=Math.floor((i+end)/2);
-      const xa=x0+(i-1)/(row.length-1)*(x1-x0),ya=baseline-row[i-1]*ridgeAmp;
-      const level=row[mid];
-      const energy=Math.pow(Math.max(0,Math.min(1,(level-rowMin)/Math.max(.08,rowMax-rowMin))),.72);
-      const freqPos=mid/(row.length-1);
-      ctx.strokeStyle=wf3dColor(1-freqPos,Math.max(.28,1-age*.58)*(.52+.48*energy));
-      ctx.lineWidth=renderRow===0?1.7:.72;ctx.beginPath();ctx.moveTo(xa,ya);
-      for(let j=i;j<=end;j++)ctx.lineTo(x0+j/(row.length-1)*(x1-x0),baseline-row[j]*ridgeAmp);
-      ctx.stroke();
+    // One continuous gradient path per ridge avoids thousands of stroke operations per frame.
+    const contrast=Math.max(0,Math.min(1,(rowMax-rowMin)/.32));
+    const alpha=Math.max(.24,1-age*.56)*(.64+.36*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
+    ridgeGradient.addColorStop(0,wf3dColor(1,alpha));ridgeGradient.addColorStop(.28,wf3dColor(.72,alpha));
+    ridgeGradient.addColorStop(.52,wf3dColor(.48,alpha));ridgeGradient.addColorStop(.75,wf3dColor(.25,alpha));ridgeGradient.addColorStop(1,wf3dColor(0,alpha));
+    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=renderRow===0?1.7:.72;ctx.beginPath();
+    for(let i=0;i<rowA.length;i++){
+      const v=rowA[i]+(rowB[i]-rowA[i])*mix,x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
     }
+    ctx.stroke();
   }
   // Current spectrum gets a soft filled foreground silhouette.
   if(rows[0]){
@@ -4476,7 +4477,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.11';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.12';
   v3UpdateStatus();
 })();
 (function initAccent(){
