@@ -2070,14 +2070,15 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   .tmpCell{padding:7px 3px;border-bottom:1px solid rgba(110,170,190,.1);font:700 8px ui-monospace,monospace;color:#78949f}
   .tmpCell:nth-child(odd){border-right:1px solid rgba(110,170,190,.1)}.tmpCell strong{display:block;color:#d0e0e5;margin-top:2px;font-size:9px}
   #uiRightTools{
-    display:flex!important;position:fixed!important;right:12px!important;top:260px!important;
+    display:grid!important;position:fixed!important;right:12px!important;top:260px!important;
     bottom:calc(var(--desktop-bottom) + 12px)!important;width:var(--desktop-right)!important;height:auto!important;
-    padding:9px!important;gap:7px!important;border-radius:10px!important;z-index:23!important
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:22px repeat(2,minmax(68px,82px))!important;
+    align-content:start!important;padding:9px!important;gap:7px!important;border-radius:10px!important;z-index:23!important
   }
-  #uiRightTools .uiRightToolsTitle{display:flex!important;flex:0 0 22px!important}
-  #uiRightTools button{display:none!important}
-  #uiRightTools button[data-tool="measure"],#uiRightTools button[data-tool="settings"]{
-    display:flex!important;flex:0 0 58px!important;min-height:58px!important;flex-direction:row!important;gap:9px!important;font-size:9px!important
+  #uiRightTools .uiRightToolsTitle{display:flex!important;grid-column:1/-1!important;height:22px!important}
+  #uiRightTools button{
+    display:flex!important;min-width:0!important;min-height:68px!important;height:auto!important;
+    flex-direction:column!important;gap:6px!important;padding:7px 4px!important;font-size:8.5px!important;text-align:center!important
   }
   #uiRightTools .rtIcon{font-size:16px!important}
 
@@ -2108,6 +2109,23 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   body.ui-workspace-drawer #genPanel #genType button{min-width:0!important;padding-inline:5px!important}
   body.ui-workspace-drawer #genPanel .ctrl{flex:1 1 100%!important;width:100%!important;min-width:0!important}
   body.ui-workspace-drawer #genPanel #genOnBtn{width:100%!important}
+  /* I/O needs enough width for its channel selectors, but remains a compact overlay. */
+  body.ui-workspace-drawer #v52IODock{display:none!important}
+  body.ui-workspace-drawer.ui-drawer-io #v52IODock{
+    display:block!important;left:12px!important;right:auto!important;top:72px!important;bottom:auto!important;
+    width:min(580px,calc(100vw - 24px))!important;max-width:580px!important;height:auto!important;
+    max-height:calc(100vh - var(--desktop-bottom) - 96px)!important;overflow:auto!important;
+    padding:12px!important
+  }
+  body.ui-workspace-drawer #v52IODock .v52IOGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  body.ui-workspace-drawer #v52IODock .v52IOCard:first-child{grid-column:1/-1!important}
+  body.ui-workspace-drawer #v52IODock .v52Field{grid-template-columns:96px minmax(0,1fr)!important}
+  /* The canonical desktop rule hides the legacy rail; Traces explicitly opts it back in as a drawer. */
+  body.ui-workspace-drawer.ui-traces-open #v5SideRail{
+    display:flex!important;left:12px!important;right:auto!important;top:72px!important;
+    bottom:calc(var(--desktop-bottom) + 12px)!important;width:min(330px,calc(100vw - 24px))!important;
+    max-width:330px!important;padding:12px!important;overflow:auto!important
+  }
   #uiDrawerLabel{left:28px!important;right:auto!important;top:68px!important}
   #traceSessionPanel{right:calc(var(--desktop-right) + 20px)!important;bottom:calc(var(--desktop-bottom) + 16px)!important}
   #tfPanel.tfPro{
@@ -2119,6 +2137,8 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip{display:none!important}
+  body.ui-workspace-drawer #v52IODock .v52IOGrid{grid-template-columns:1fr!important}
+  body.ui-workspace-drawer #v52IODock .v52IOCard:first-child{grid-column:auto!important}
 }
 @media(min-width:701px) and (max-width:900px){
   #stage{margin-bottom:72px!important}
@@ -2178,15 +2198,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.13</div><div class="uiMenuSub">Field measurement workspace</div></div>
-    </div>
-
-    <div class="uiMenuSectionLabel">WORKSPACE</div>
-    <div class="uiMenuGrid">
-      <button class="uiMenuItem" id="uiIo"><span class="ico">↔</span><span><span class="txt">I/O & Audio</span><span class="meta">Input, reference, calibration</span></span></button>
-      <button class="uiMenuItem" id="uiGenerator"><span class="ico">∿</span><span><span class="txt">Generator</span><span class="meta">Pink, sine & sweep</span></span></button>
-      <button class="uiMenuItem" id="uiTraces"><span class="ico">≋</span><span><span class="txt">Traces</span><span class="meta">Capture & compare curves</span></span></button>
-      <button class="uiMenuItem" id="uiDisplay"><span class="ico">◐</span><span><span class="txt">Display</span><span class="meta">Theme, target & resolution</span></span></button>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.20</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2200,7 +2212,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
       <div class="uiSettingsPage" data-settings-content="measurement">
         <div class="uiSettingsRow"><span>TF coherence gate</span><strong id="uiSetCohState">Uses TF setting</strong></div>
         <div class="uiSettingsRow"><span>TF smoothing</span><strong>Uses TF setting</strong></div>
-        <div class="uiSettingsRow"><span>Waterfall speed</span><span><button data-wf-speed="350">Slow</button> <button class="on" data-wf-speed="220">Normal</button> <button data-wf-speed="120">Fast</button></span></div>
+        <div class="uiSettingsRow"><span>Waterfall speed</span><span><button data-wf-speed="220">Slow</button> <button class="on" data-wf-speed="120">Normal</button> <button data-wf-speed="70">Fast</button></span></div>
         <div class="uiSettingsRow"><span>Target / reference tools</span><strong>Contextual</strong></div>
       </div>
       <div class="uiSettingsPage" data-settings-content="audio">
@@ -2209,20 +2221,6 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
         <div class="uiSettingsRow"><span>Audio engine</span><strong id="uiSetAudioState">—</strong></div>
       </div>
     </div>
-    <div class="uiMenuPanel" id="uiDisplayPanel">
-      <div class="uiDisplayRow"><span>Day / Night</span><div class="uiDisplayActions"><button class="uiMiniBtn" id="uiThemeToggle">☀ / ☾</button></div></div>
-      <div class="uiDisplayRow"><span>Target curve</span><div class="uiDisplayActions"><button class="uiMiniBtn" id="uiTargetToggle">Target</button></div></div>
-      <div class="uiDisplayRow"><span>RTA resolution</span><div class="uiDisplayActions"><button class="uiMiniBtn" data-ui-bpo="3">1/3</button><button class="uiMiniBtn" data-ui-bpo="6">1/6</button><button class="uiMiniBtn" data-ui-bpo="12">1/12</button><button class="uiMiniBtn" data-ui-bpo="24">1/24</button></div></div>
-      <div class="uiDisplayRow"><span>Accent</span><div class="uiDisplayActions uiMenuColors" style="padding:0"><button class="sw" data-ui-color="#3ea6ff" style="background:#3ea6ff"></button><button class="sw" data-ui-color="#40d17a" style="background:#40d17a"></button><button class="sw" data-ui-color="#b57bff" style="background:#b57bff"></button><button class="sw" data-ui-color="#ff9d3c" style="background:#ff9d3c"></button></div></div>
-    </div>
-
-    <div class="uiMenuSectionLabel">MEASUREMENT TOOLS</div>
-    <div class="uiToolsGrid">
-      <button class="uiMenuItem uiToolCard" data-open-tool="delay"><span class="ico">⏱</span><span><span class="txt">Delay Finder</span><span class="meta">Arrival time & confidence</span></span></button>
-      <button class="uiMenuItem uiToolCard" data-open-tool="align"><span class="ico">↔</span><span><span class="txt">Sub / Top Alignment</span><span class="meta">Crossover phase alignment</span></span></button>
-      <button class="uiMenuItem uiToolCard" data-open-tool="rt60"><span class="ico">◫</span><span><span class="txt">RT60</span><span class="meta">Room decay measurement</span></span></button>
-      <button class="uiMenuItem uiToolCard" data-open-tool="spleq"><span class="ico">⌁</span><span><span class="txt">SPL / EQ</span><span class="meta">Level & EQ workflow</span></span></button>
-    </div>
     <div class="uiMenuSectionLabel">SUPPORT & EXPORT</div>
     <div class="uiMenuGrid">
       <button class="uiMenuItem" id="uiGuide"><span class="ico">≡</span><span><span class="txt">Guide</span><span class="meta">Measurement workflow</span></span></button>
@@ -2230,7 +2228,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.13 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.20 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2939,7 +2937,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.13</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.20</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -2952,29 +2950,28 @@ window.addEventListener('load', function(){
   const toggle=()=>{const open=!menu.classList.contains('open');menu.classList.toggle('open',open);back.classList.toggle('open',open);btn.classList.toggle('on',open);btn.setAttribute('aria-expanded',String(open))};
   const click=(id)=>{const e=document.getElementById(id);if(e)e.click();};
   const setState=(txt)=>{const e=document.getElementById('uiMenuState');if(e)e.textContent=txt;};
-  const closeTraces=()=>{document.body.classList.remove('ui-traces-open');traceBack?.classList.remove('open')};
+  const closeTraces=()=>{document.body.classList.remove('ui-traces-open','ui-workspace-drawer');traceBack?.classList.remove('open');document.getElementById('uiWorkspaceBackdrop')?.classList.remove('open')};
   btn.addEventListener('click',toggle);back.addEventListener('click',close);traceBack?.addEventListener('click',closeTraces);
   document.getElementById('v5TraceClose')?.addEventListener('click',closeTraces);
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){close();closeTraces();closeWorkspaceDrawer();}});
 
   const drawerBack=document.getElementById('uiWorkspaceBackdrop'),drawerLabel=document.getElementById('uiDrawerLabel');
   const closeWorkspaceDrawer=()=>{
-    document.body.classList.remove('ui-workspace-drawer','ui-traces-open');drawerBack?.classList.remove('open');traceBack?.classList.remove('open');
+    document.body.classList.remove('ui-workspace-drawer','ui-traces-open','ui-drawer-io','ui-drawer-generator','ui-drawer-traces');drawerBack?.classList.remove('open');traceBack?.classList.remove('open');
     if(typeof window.v52SetIo==='function')window.v52SetIo(false);
     if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(false);
   };
   const openWorkspaceDrawer=(kind)=>{
     close();closeWorkspaceDrawer();
-    document.body.classList.add('ui-workspace-drawer');
+    document.body.classList.add('ui-workspace-drawer','ui-drawer-'+kind);
     if(drawerLabel)drawerLabel.textContent=kind==='io'?'I/O & AUDIO':kind==='generator'?'GENERATOR':'TRACES';
     if(kind==='io'){if(typeof window.v52SetIo==='function')window.v52SetIo(true);else click('v52IoBtn');}
     if(kind==='generator'){if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(true);else click('v52GenBtn');}
     if(kind==='traces'){document.body.classList.remove('v54-rail-collapsed');document.body.classList.add('ui-traces-open');setTimeout(()=>document.getElementById('v5AddTrace')?.focus(),100);}
   };
+  window.openWorkspaceDrawer=openWorkspaceDrawer;
+  window.closeWorkspaceDrawer=closeWorkspaceDrawer;
   drawerBack?.addEventListener('click',closeWorkspaceDrawer);
-  document.getElementById('uiIo').onclick=()=>openWorkspaceDrawer('io');
-  document.getElementById('uiGenerator').onclick=()=>openWorkspaceDrawer('generator');
-  document.getElementById('uiTraces').onclick=()=>openWorkspaceDrawer('traces');
 
   document.querySelectorAll('[data-settings-page]').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('[data-settings-page]').forEach(x=>x.classList.toggle('on',x===b));
@@ -2982,13 +2979,13 @@ window.addEventListener('load', function(){
   }));
   const wfSpeedButtons=[...document.querySelectorAll('[data-wf-speed]')];
   function setWaterfallSpeed(ms,persist=true){
-    ms=Math.max(100,Math.min(500,Number(ms)||220));
+    ms=Math.max(60,Math.min(500,Number(ms)||120));
     if(window.wf3d){window.wf3d.intervalMs=ms;window.wf3d.lastCapture=0;}
     wfSpeedButtons.forEach(b=>b.classList.toggle('on',Number(b.dataset.wfSpeed)===ms));
-    if(persist)try{localStorage.setItem('rta_wf_interval',String(ms));}catch(_){}
+    if(persist)try{localStorage.setItem('rta_wf_interval_v2',String(ms));}catch(_){}
   }
   wfSpeedButtons.forEach(b=>b.addEventListener('click',()=>setWaterfallSpeed(b.dataset.wfSpeed)));
-  let savedWfSpeed=220;try{savedWfSpeed=Number(localStorage.getItem('rta_wf_interval'))||220}catch(_){}
+  let savedWfSpeed=120;try{savedWfSpeed=Number(localStorage.getItem('rta_wf_interval_v2'))||120}catch(_){}
   setTimeout(()=>setWaterfallSpeed(savedWfSpeed,false),0);
   document.getElementById('uiSetTheme')?.addEventListener('click',()=>{click('sunBtn');setTimeout(syncStates,30)});
   document.getElementById('uiSetTarget')?.addEventListener('click',()=>{click('v5TargetToggle');setTimeout(syncStates,30)});
@@ -3010,10 +3007,6 @@ window.addEventListener('load', function(){
     const cg=document.getElementById('tfCohGateVal')?.textContent;const co=document.getElementById('uiSetCohState');if(co&&cg)co.textContent='Gate '+cg;
   },700);
 
-  document.getElementById('uiDisplay').onclick=()=>{document.getElementById('uiDisplayPanel')?.classList.toggle('open')};
-  document.getElementById('uiThemeToggle').onclick=()=>{click('sunBtn');setTimeout(syncStates,30)};
-  document.getElementById('uiTargetToggle').onclick=()=>{click('v5TargetToggle');setTimeout(syncStates,30)};
-  document.querySelectorAll('[data-ui-bpo]').forEach(b=>b.addEventListener('click',()=>{const src=document.querySelector('#v3ResMenu [data-bpo="'+b.dataset.uiBpo+'"]');if(src)src.click();setTimeout(syncStates,30)}));
   document.getElementById('uiGuide').onclick=()=>{close();click('guideBtn')};
   document.getElementById('uiHelp').onclick=()=>{close();click('helpBtn')};
   document.getElementById('uiPng').onclick=()=>{close();click('pngBtn')};
@@ -3029,8 +3022,8 @@ window.addEventListener('load', function(){
     if(a==='waterfall'){document.getElementById('v54WaterfallToggle')?.click();setBottomTool('waterfall');}
     if(a==='tf'){document.getElementById('v54TfGraphToggle')?.click();setBottomTool('tf');}
     if(a==='generator'){if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(!document.getElementById('genPanel')?.classList.contains('open'));setBottomTool('generator');}
-    if(a==='traces'){document.getElementById('uiTraces')?.click();setBottomTool('traces');}
-    if(a==='io'){if(typeof window.v52SetIo==='function')window.v52SetIo(true);setBottomTool('io');}
+    if(a==='traces'){openWorkspaceDrawer('traces');setBottomTool('traces');}
+    if(a==='io'){openWorkspaceDrawer('io');setBottomTool('io');}
   });
 
 
@@ -3078,13 +3071,8 @@ window.addEventListener('load', function(){
     }
     if(a==='freeze'){const f=document.getElementById('freezeBtn')||document.getElementById('frzBtn');if(f)f.click();else document.getElementById('tfProFreeze')?.click();}
     if(a==='generator'){openWorkspaceDrawer('generator');}
-    if(a==='tools'){toggle();setTimeout(()=>document.querySelector('[data-open-tool="delay"]')?.focus(),80);}
+    if(a==='tools'){close();setTimeout(()=>document.querySelector('#uiRightTools [data-tool="delay"]')?.focus(),80);}
   });
-  document.querySelectorAll('[data-open-tool]').forEach(b=>b.addEventListener('click',()=>{
-    const tool=b.dataset.openTool;close();
-    const legacy=document.querySelector('#v5ModeTabs [data-v5mode="'+tool+'"]');
-    if(legacy){setTimeout(()=>legacy.click(),20);}
-  }));
   ['v53AnalysisToggle','v54WaterfallToggle','v54TfGraphToggle'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>setTimeout(syncContextBar,30)));
   setTimeout(syncContextBar,700); setInterval(syncContextBar,900);
 
@@ -3146,18 +3134,14 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.13"></script>
+<script src="app.js?v=5.5.20"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
-  <button type="button" data-tool="rta"><span class="rtIcon">▥</span><span>RTA</span></button>
-  <button type="button" data-tool="waterfall"><span class="rtIcon">≋</span><span>Waterfall</span></button>
-  <button type="button" data-tool="tf"><span class="rtIcon">◎</span><span>TF</span></button>
-  <button type="button" data-tool="generator"><span class="rtIcon">∿</span><span>Generator</span></button>
-  <button type="button" data-tool="io"><span class="rtIcon">↔</span><span>I/O</span></button>
-  <button type="button" data-tool="traces"><span class="rtIcon">⌁</span><span>Traces</span></button>
-  <button type="button" data-tool="measure"><span class="rtIcon">⌖</span><span>Measure</span></button>
-  <button type="button" data-tool="settings"><span class="rtIcon">⚙</span><span>Settings</span></button>
+  <button type="button" data-tool="delay"><span class="rtIcon">⏱</span><span>Delay</span></button>
+  <button type="button" data-tool="rt60"><span class="rtIcon">◫</span><span>RT60</span></button>
+  <button type="button" data-tool="spleq"><span class="rtIcon">⌁</span><span>SPL / EQ</span></button>
+  <button type="button" data-tool="align"><span class="rtIcon">↔</span><span>Sub / Top</span></button>
 </aside>
 
 
@@ -3169,33 +3153,15 @@ window.addEventListener('load', function(){
   rail.addEventListener('click',e=>{
     const b=e.target.closest('button[data-tool]');if(!b)return;
     const t=b.dataset.tool;
-    if(t==='rta') click('#v53AnalysisToggle');
-    else if(t==='waterfall') click('#v54WaterfallToggle');
-    else if(t==='tf') click('#v54TfGraphToggle');
-    else if(t==='generator'){
-      if(typeof window.openWorkspaceDrawer==='function') window.openWorkspaceDrawer('generator');
-      else click('#uiGenerator');
-    } else if(t==='io'){
-      if(typeof window.openWorkspaceDrawer==='function') window.openWorkspaceDrawer('io');
-      else click('#uiIo');
-    } else if(t==='traces'){
-      if(typeof window.openWorkspaceDrawer==='function') window.openWorkspaceDrawer('traces');
-      else click('#uiTraces');
-     } else if(t==='measure'){
-      const menu=document.getElementById('uiMenu');if(menu)menu.classList.add('open');
-      const back=document.getElementById('uiMenuBackdrop');if(back)back.classList.add('open');
-      setTimeout(()=>{const x=document.querySelector('[data-open-tool="delay"]');if(x)x.scrollIntoView({block:'center',behavior:'smooth'});},60);
-    } else if(t==='settings'){
-      const menu=document.getElementById('uiMenu');if(menu)menu.classList.add('open');
-      const back=document.getElementById('uiMenuBackdrop');if(back)back.classList.add('open');
-      setTimeout(()=>document.getElementById('uiSettingsPanel')?.scrollIntoView({block:'center',behavior:'smooth'}),60);
-    }
+    if(['delay','rt60','spleq','align'].includes(t))click('#v5ModeTabs [data-v5mode="'+t+'"]');
   });
   function sync(){
     rail.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-    let t='rta';
-    if(document.querySelector('#v54WaterfallToggle.on'))t='waterfall';
-    else if(document.querySelector('#v54TfGraphToggle.on'))t='tf';
+    let t='';
+    if(document.getElementById('dlyPanel')?.classList.contains('open'))t='delay';
+    else if(document.getElementById('rtPanel')?.classList.contains('open'))t='rt60';
+    else if(document.getElementById('eqPanel')?.classList.contains('open'))t='spleq';
+    else if(document.getElementById('alignBar')?.classList.contains('show'))t='align';
     const b=rail.querySelector(`[data-tool="${t}"]`);if(b)b.classList.add('on');
   }
   document.addEventListener('click',()=>setTimeout(sync,0));
@@ -3442,17 +3408,13 @@ window.addEventListener('load', function(){
 </div>
 
 <div id="targetLeftLabels" aria-hidden="true"><div class="tll">GENERATOR</div><div class="tll">I / O</div><div class="tll">TRACES</div></div>
-<div id="targetCommandBar"><button class="tcb primary" data-tcb="startstop">START / STOP</button><button class="tcb" data-tcb="freeze">PAUSE</button><button class="tcb" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="average">AVG</button><button class="tcb" data-tcb="smooth">SMOOTH</button><button class="tcb" data-tcb="hold">HOLD</button><button class="tcb" data-tcb="peak">PEAK HOLD</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button></div>
-<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='startstop')ca(['#uiStartStop','#startStopBtn','#startBtn','#audioBtn']);if(a==='freeze')ca(['#freezeBtn','#tfProFreeze','#frzBtn']);if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='average')ca(['#avgSelect','#avgBtn','[data-avg]']);if(a==='smooth')ca(['#smoothSelect','#smoothBtn','[data-smooth]']);if(a==='hold')ca(['#holdBtn','#peakHoldBtn']);if(a==='peak')ca(['#peakHoldBtn','#holdBtn']);if(a==='traces'){if(typeof openWorkspaceDrawer==='function')openWorkspaceDrawer('traces');else window.openMeasurementSession?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
+<div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button></div>
+<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='traces'){if(typeof openWorkspaceDrawer==='function')openWorkspaceDrawer('traces');else window.openMeasurementSession?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
 
 <script>
 (()=>{
  const bar=document.getElementById('targetCommandBar');if(!bar)return;
  function syncTargetBar(){
-   const start=bar.querySelector('[data-tcb="startstop"]');
-   const live=document.querySelector('#uiLivePill,.measuring,.ready');
-   const running=!!(live&&/MEASUR|RUNNING|STOP/i.test(live.textContent||''));
-   if(start)start.textContent=running?'STOP':'START';
    const mode=document.querySelector('#uiTopModes .on,#v54RtaGraphToggle.on,#v54WaterfallToggle.on,#v54TfGraphToggle.on');
    bar.dataset.mode=(mode?.textContent||'RTA').trim().toUpperCase();
  }
@@ -3466,8 +3428,7 @@ window.addEventListener('load', function(){
  document.getElementById('targetLeftStatus')?.addEventListener('click',e=>{
    const b=e.target.closest('[data-tls-open]');if(!b)return;
    const kind=b.dataset.tlsOpen;
-   const canonical=document.getElementById(kind==='generator'?'uiGenerator':kind==='io'?'uiIo':'uiTraces');
-   canonical?.click();
+   window.openWorkspaceDrawer?.(kind);
  });
  function textOf(sel,fallback='—'){const x=document.querySelector(sel);return (x?.selectedOptions?.[0]?.textContent||x?.textContent||x?.value||fallback).trim()}
  function syncLeftInstrument(){

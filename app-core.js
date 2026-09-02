@@ -142,9 +142,9 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.13 visual Waterfall history. Each row is a frequency slice;
+// V5.5.20 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
-const wf3d={rows:[],frame:0,maxRows:40,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
+const wf3d={rows:[],frame:0,maxRows:52,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.13-generator-compact-dual-meter',
+    version: 'v5.5.20-waterfall-surface',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3862,20 +3862,22 @@ function captureWaterfall3dRow(nyquist){
   const now=performance.now();
   if(now-wf3d.lastCapture<wf3d.intervalMs)return;
   wf3d.lastCapture=now;
-  const N=256,row=[];
+  const N=320,raw=[];
   const f0=20,f1=Math.min(wf3d.maxHz,nyquist*.96);
   for(let i=0;i<N;i++){
     const u=i/(N-1),fc=f0*Math.pow(f1/f0,u),ratio=Math.pow(2,1/48);
     const db=calibratedResponseDb(binOverlapPowerDb(floatData,fc/ratio,fc*ratio,nyquist),fc);
-    row.push(Math.max(0,Math.min(1,(db-floorDb)/Math.max(20,ceilDb-floorDb))));
+    raw.push(Math.max(0,Math.min(1,(db-floorDb)/Math.max(20,ceilDb-floorDb))));
   }
+  // A short symmetric display filter removes pixel-scale FFT chatter while preserving real peaks.
+  const row=raw.map((v,i)=>(raw[Math.max(0,i-2)]+2*raw[Math.max(0,i-1)]+3*v+2*raw[Math.min(N-1,i+1)]+raw[Math.min(N-1,i+2)])/9);
   wf3d.rows.unshift(row);if(wf3d.rows.length>wf3d.maxRows)wf3d.rows.length=wf3d.maxRows;
 }
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const top=2,bottom=H-20,span=Math.max(120,bottom-top),depth=span*.82,amp=span*.80;
-  const left=5,right=W-44,base=bottom,backLeft=left+18,backRight=right-28;
+  const top=2,bottom=H-20,span=Math.max(120,bottom-top),depth=span*.55,amp=span*.29;
+  const left=5,right=W-44,base=bottom,backLeft=left+34,backRight=right-54;
   const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000);
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
   // Perspective floor: frequency runs left-to-right, time recedes toward the horizon.
@@ -3891,35 +3893,38 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     ctx.strokeStyle=sunMode?'rgba(15,23,42,.08)':'rgba(112,180,205,.08)';
     ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(xb,base-depth);ctx.stroke();
   });
-  // Draw an interpolated ridge between captures: denser decay without changing capture speed.
-  const visualSubdivisions=4;
-  const renderLast=Math.max(0,(rows.length-1)*visualSubdivisions);
-  const motionPhase=Math.max(0,Math.min(1,(performance.now()-wf3d.lastCapture)/Math.max(1,wf3d.intervalMs)));
-  for(let renderRow=renderLast;renderRow>=0;renderRow--){
-    const sourcePos=renderRow/visualSubdivisions,rr=Math.floor(sourcePos),mix=sourcePos-rr;
-    const rowA=rows[rr],rowB=rows[Math.min(rows.length-1,rr+1)];
-    const age=(sourcePos+motionPhase)/Math.max(1,wf3d.maxRows-1);if(age>1)continue;
+  // Draw each measured slice once. This keeps the ridges crisp and avoids synthetic in-between frames.
+  for(let rr=rows.length-1;rr>=0;rr--){
+    const rowA=rows[rr];
+    const age=rr/Math.max(1,wf3d.maxRows-1);if(age>1)continue;
     const z=age*depth;
     const x0=left+(backLeft-left)*age,x1=right+(backRight-right)*age,baseline=base-z;
     const ridgeAmp=Math.min(amp*(1-age*.38),Math.max(span*.22,baseline-top-4));
-    // translucent body under each ridge
-    ctx.beginPath();ctx.moveTo(x0,baseline);
     let rowMin=1,rowMax=0;
     for(let i=0;i<rowA.length;i++){
-      const v=rowA[i]+(rowB[i]-rowA[i])*mix;if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;
-      const x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
-      ctx.lineTo(x,y);
+      const v=rowA[i];if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;
     }
-    ctx.lineTo(x1,baseline);ctx.closePath();
-    ctx.fillStyle=sunMode?'rgba(70,130,180,.014)':'rgba(20,160,170,.018)';ctx.fill();
-    // One continuous gradient path per ridge avoids thousands of stroke operations per frame.
+    // One measured ridge and one stroke: predictable work and clean line separation.
     const contrast=Math.max(0,Math.min(1,(rowMax-rowMin)/.32));
     const alpha=Math.max(.24,1-age*.56)*(.64+.36*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
     ridgeGradient.addColorStop(0,wf3dColor(1,alpha));ridgeGradient.addColorStop(.28,wf3dColor(.72,alpha));
     ridgeGradient.addColorStop(.52,wf3dColor(.48,alpha));ridgeGradient.addColorStop(.75,wf3dColor(.25,alpha));ridgeGradient.addColorStop(1,wf3dColor(0,alpha));
-    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=renderRow===0?1.7:.72;ctx.beginPath();
+    // Join adjacent measurements into a translucent 3D surface; the ridge stays as a crisp outline above it.
+    if(rr<rows.length-1){
+      const rowB=rows[rr+1],ageB=(rr+1)/Math.max(1,wf3d.maxRows-1),zB=ageB*depth;
+      const bx0=left+(backLeft-left)*ageB,bx1=right+(backRight-right)*ageB,baseB=base-zB;
+      const ampB=Math.min(amp*(1-ageB*.38),Math.max(span*.22,baseB-top-4));
+      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=sunMode?.09:.14;
+      fillGradient.addColorStop(0,wf3dColor(1,fillAlpha));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha));
+      fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha));
+      ctx.beginPath();
+      for(let i=0;i<rowA.length;i++){const x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-rowA[i]*ridgeAmp;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+      for(let i=rowB.length-1;i>=0;i--){const x=bx0+i/(rowB.length-1)*(bx1-bx0),y=baseB-rowB[i]*ampB;ctx.lineTo(x,y);}
+      ctx.closePath();ctx.fillStyle=fillGradient;ctx.fill();
+    }
+    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?1.65:.82;ctx.beginPath();
     for(let i=0;i<rowA.length;i++){
-      const v=rowA[i]+(rowB[i]-rowA[i])*mix,x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
+      const v=rowA[i],x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
       if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
     }
     ctx.stroke();
@@ -4492,7 +4497,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.13';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.20';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4719,6 +4724,12 @@ function v52SetIo(open){
     closeModals();
     setAlign(false);
     v52RefreshDevices();
+  }else{
+    const label=document.getElementById('uiDrawerLabel');
+    if(document.body.classList.contains('ui-workspace-drawer')&&(!label||label.textContent.trim()==='I/O & AUDIO')){
+      document.body.classList.remove('ui-workspace-drawer');
+      document.getElementById('uiWorkspaceBackdrop')?.classList.remove('open');
+    }
   }
 }
 
