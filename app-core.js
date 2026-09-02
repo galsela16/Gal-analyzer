@@ -142,7 +142,7 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.10 visual Waterfall history. Each row is a frequency slice;
+// V5.5.11 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
 const wf3d={rows:[],frame:0,maxRows:40,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
 
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.10-waterfall-frequency-cursor',
+    version: 'v5.5.11-waterfall-ultra-dense',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3877,9 +3877,10 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(xb,base-depth);ctx.stroke();
   });
   // Draw an interpolated ridge between captures: denser decay without changing capture speed.
-  const renderLast=Math.max(0,(rows.length-1)*2);
+  const visualSubdivisions=4;
+  const renderLast=Math.max(0,(rows.length-1)*visualSubdivisions);
   for(let renderRow=renderLast;renderRow>=0;renderRow--){
-    const sourcePos=renderRow/2,rr=Math.floor(sourcePos),mix=sourcePos-rr;
+    const sourcePos=renderRow/visualSubdivisions,rr=Math.floor(sourcePos),mix=sourcePos-rr;
     const rowA=rows[rr],rowB=rows[Math.min(rows.length-1,rr+1)];
     const row=rowA.map((v,i)=>v+(rowB[i]-v)*mix);
     const age=sourcePos/Math.max(1,wf3d.maxRows-1),z=age*depth;
@@ -3895,14 +3896,16 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     ctx.fillStyle=sunMode?'rgba(70,130,180,.014)':'rgba(20,160,170,.018)';ctx.fill();
     let rowMin=1,rowMax=0;for(const v of row){if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;}
     // Reference palette: warm lows, green mids and cool highs; level controls brightness.
-    for(let i=1;i<row.length;i++){
-      const xa=x0+(i-1)/(row.length-1)*(x1-x0),xb=x0+i/(row.length-1)*(x1-x0);
-      const ya=baseline-row[i-1]*ridgeAmp,yb=baseline-row[i]*ridgeAmp;
-      const level=(row[i]+row[i-1])*.5;
+    for(let i=1;i<row.length;i+=4){
+      const end=Math.min(row.length-1,i+3),mid=Math.floor((i+end)/2);
+      const xa=x0+(i-1)/(row.length-1)*(x1-x0),ya=baseline-row[i-1]*ridgeAmp;
+      const level=row[mid];
       const energy=Math.pow(Math.max(0,Math.min(1,(level-rowMin)/Math.max(.08,rowMax-rowMin))),.72);
-      const freqPos=i/(row.length-1);
+      const freqPos=mid/(row.length-1);
       ctx.strokeStyle=wf3dColor(1-freqPos,Math.max(.28,1-age*.58)*(.52+.48*energy));
-      ctx.lineWidth=renderRow===0?1.9:.9;ctx.beginPath();ctx.moveTo(xa,ya);ctx.lineTo(xb,yb);ctx.stroke();
+      ctx.lineWidth=renderRow===0?1.7:.72;ctx.beginPath();ctx.moveTo(xa,ya);
+      for(let j=i;j<=end;j++)ctx.lineTo(x0+j/(row.length-1)*(x1-x0),baseline-row[j]*ridgeAmp);
+      ctx.stroke();
     }
   }
   // Current spectrum gets a soft filled foreground silhouette.
@@ -4473,7 +4476,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.10';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.11';
   v3UpdateStatus();
 })();
 (function initAccent(){
