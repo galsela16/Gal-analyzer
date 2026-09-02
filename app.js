@@ -3,7 +3,7 @@
  * diagnostics are active, and makes the migration from the legacy core safe.
  */
 (function bootGAL(){
-  const files=['js/core/config.js?v=5.5.8','js/core/diagnostics.js?v=5.5.8','js/app-core.js?v=5.5.8'];
+  const files=['js/core/config.js?v=5.5.10','js/core/diagnostics.js?v=5.5.10','js/app-core.js?v=5.5.10'];
   let index=0;
   function loadNext(){
     if(index>=files.length) return;
