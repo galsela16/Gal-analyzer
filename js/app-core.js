@@ -142,9 +142,9 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.20 visual Waterfall history. Each row is a frequency slice;
+// V5.5.21 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
-const wf3d={rows:[],frame:0,maxRows:52,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
+const wf3d={rows:[],frame:0,maxRows:84,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.20-waterfall-surface',
+    version: 'v5.5.21-waterfall-10s-angle',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3862,7 +3862,7 @@ function captureWaterfall3dRow(nyquist){
   const now=performance.now();
   if(now-wf3d.lastCapture<wf3d.intervalMs)return;
   wf3d.lastCapture=now;
-  const N=320,raw=[];
+  const N=240,raw=[];
   const f0=20,f1=Math.min(wf3d.maxHz,nyquist*.96);
   for(let i=0;i<N;i++){
     const u=i/(N-1),fc=f0*Math.pow(f1/f0,u),ratio=Math.pow(2,1/48);
@@ -3876,8 +3876,8 @@ function captureWaterfall3dRow(nyquist){
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const top=2,bottom=H-20,span=Math.max(120,bottom-top),depth=span*.55,amp=span*.29;
-  const left=5,right=W-44,base=bottom,backLeft=left+34,backRight=right-54;
+  const top=2,bottom=H-20,span=Math.max(120,bottom-top),depth=span*.63,amp=span*.27;
+  const left=5,right=W-44,base=bottom,backLeft=left+58,backRight=right-88;
   const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000);
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
   // Perspective floor: frequency runs left-to-right, time recedes toward the horizon.
@@ -4497,7 +4497,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.20';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.21';
   v3UpdateStatus();
 })();
 (function initAccent(){

@@ -10,10 +10,11 @@ const checks=[
  ['narrow tone can pass resonance display gate',core.includes('(r.narrowProm||0)>=8')],
  ['waterfall draws only measured slices',core.includes('Draw each measured slice once')&&!core.includes('visualSubdivisions')&&!core.includes('motionPhase')],
  ['waterfall display filter preserves peaks without blur frames',core.includes('short symmetric display filter')&&core.includes('3*v+2*raw')],
- ['waterfall renderer has bounded ridge workload',core.includes('maxRows:52')&&core.includes('for(let rr=rows.length-1;rr>=0;rr--)')],
+ ['waterfall renderer has bounded ridge workload',core.includes('maxRows:84')&&core.includes('const N=240,raw=[]')&&core.includes('for(let rr=rows.length-1;rr>=0;rr--)')],
  ['waterfall default motion is faster',core.includes('intervalMs:120')&&html.includes('data-wf-speed="70"')&&html.includes("rta_wf_interval_v2")],
  ['waterfall builds a continuous surface between measured slices',core.includes('Join adjacent measurements into a translucent 3D surface')&&core.includes('if(rr<rows.length-1)')&&core.includes('for(let i=rowB.length-1;i>=0;i--)')],
- ['waterfall perspective matches reference geometry',core.includes('depth=span*.55,amp=span*.29')&&core.includes('backLeft=left+34,backRight=right-54')],
+ ['waterfall perspective matches reference geometry',core.includes('depth=span*.63,amp=span*.27')&&core.includes('backLeft=left+58,backRight=right-88')],
+ ['waterfall history reaches ten seconds',core.includes('maxRows:84')&&core.includes('intervalMs:120')&&core.includes('const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000)')],
  ['waterfall exposes frequency cursor',core.includes('drawWaterfallFrequencyCursor(W,specH,nyquist)')&&core.includes("hz.toFixed(1)+' Hz'")],
  ['generator close clears workspace drawer',core.includes("label.textContent.trim()==='GENERATOR'")&&core.includes("document.body.classList.remove('ui-workspace-drawer')")],
  ['generator has dual-channel meters',html.includes('id="gainMicFill"')&&html.includes('id="gainRefFill"')&&core.includes("document.getElementById('gainRefGain')")],
@@ -41,4 +42,4 @@ const checks=[
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.20 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.21 regression validation passed (${checks.length} checks).`);
