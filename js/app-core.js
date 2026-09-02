@@ -142,7 +142,7 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.23 visual Waterfall history. Each row is a frequency slice;
+// V5.5.24 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
 const wf3d={rows:[],frame:0,maxRows:84,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
 
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.23-tf-input-compare',
+    version: 'v5.5.24-tf-detailed-spectrum',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1530,9 +1530,11 @@ function tfHasReferenceSignal(){
   return peak>-85;
 }
 let tfDisplaySnapshot=null;
+const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
+function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
 function tfDrawMagnitudeView(W,plotH,nyquist){
   const live=tfCurrentSnapshot();if(!live)return;tfDisplaySnapshot=live;
-  const inputTop=28,inputBottom=Math.max(110,Math.floor(plotH*.62)),deltaTop=inputBottom+24,deltaBottom=plotH-18;
+  const inputTop=28,inputBottom=Math.max(105,Math.floor(plotH*.52)),deltaTop=inputBottom+25,deltaBottom=plotH-18;
   const inputY=db=>inputTop+(12-Math.max(-36,Math.min(12,db)))/48*(inputBottom-inputTop);
   const deltaY=db=>deltaTop+(12-Math.max(-12,Math.min(12,db)))/24*(deltaBottom-deltaTop);
   ctx.save();ctx.direction='ltr';ctx.font='9px ui-monospace,monospace';ctx.textAlign='left';
@@ -1543,9 +1545,14 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){prev=null;continue;}const p={x:px,ref:inputY(live.refDb[k]-live.refOffset),mic:inputY(live.micDb[k]-live.refOffset),delta:live.mag[k]};if(prev){ctx.beginPath();ctx.moveTo(prev.x,prev.ref);ctx.lineTo(p.x,p.ref);ctx.lineTo(p.x,p.mic);ctx.lineTo(prev.x,prev.mic);ctx.closePath();ctx.fillStyle=p.delta>=0?'rgba(239,82,104,.15)':'rgba(51,198,222,.15)';ctx.fill();}prev=p;}
   const drawInput=(field,color,width,dash=[])=>{ctx.beginPath();let pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=inputY(live[field][k]-live.refOffset);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();ctx.setLineDash([]);};
   drawInput('refDb','#f59e0b',1.8,[6,4]);drawInput('micDb','#38bdf8',2.5);
-  ctx.beginPath();let pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#d8f5e5';ctx.lineWidth=2;ctx.stroke();
+  // Dense deviation columns expose narrow peaks, cancellations and comb filtering at field resolution.
+  const zeroY=deltaY(0);ctx.beginPath();let pen=false;
+  const deviationBars=TF_DELTA_COLORS.map(()=>new Path2D());
+  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N))),c=live.coh[k];if(c<tfCohGate){pen=false;continue;}const db=live.mag[k],y=deltaY(db),path=deviationBars[tfDeltaBucket(db)];path.moveTo(px,zeroY);path.lineTo(px,y);}
+  ctx.lineWidth=1.7;deviationBars.forEach((path,i)=>{ctx.strokeStyle=TF_DELTA_COLORS[i];ctx.stroke(path);});
+  ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#b7f34a';ctx.lineWidth=1.8;ctx.lineJoin='round';ctx.stroke();
   tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
-  ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('INPUT COMPARISON',8,14);ctx.fillText('SYSTEM DIFFERENCE · MIC − REF',8,deltaTop-9);
+  ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('INPUT COMPARISON',8,14);ctx.fillText('DETAILED SYSTEM DIFFERENCE · MIC − REF',8,deltaTop-9);
   ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#d8f5e5';ctx.fillText('━ Δ',410,14);
   ctx.restore();
 }
@@ -4495,7 +4502,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.23';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.24';
   v3UpdateStatus();
 })();
 (function initAccent(){

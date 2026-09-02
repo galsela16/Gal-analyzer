@@ -1,4 +1,6 @@
-# GAL Analyzer V5.5.23 — Field TF Input Comparison
+# GAL Analyzer V5.5.24 — Detailed Spectrum TF
+
+V5.5.24 turns the TF system-difference view into a dense field-analysis display. Every two horizontal pixels now carry a coherence-qualified deviation column, colored by direction and severity, while a bright detailed contour keeps narrow peaks, cancellations and comb filtering easy to follow. Reference and microphone remain visible together in the upper comparison area. The dense columns are grouped into seven render paths so the added detail does not require hundreds of separate canvas strokes per frame.
 
 V5.5.1 makes the swept-sine delay path safe at every supported sample rate and sweep duration. Long 96 kHz captures are analysed in bounded, zero-padded windows instead of overflowing the FFT buffer; narrow-band sub sweeps use a bandwidth-aware peak guard and stability tolerance; and unknown external audio can no longer fall through to the sweep-only estimator. The delay preflight now includes long 96 kHz, inverted-polarity, sub-band and strong-reflection cases (30 accepted delay cases in total).
 

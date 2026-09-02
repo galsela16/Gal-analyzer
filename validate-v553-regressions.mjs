@@ -45,10 +45,14 @@ const checks=[
  ['visual issue chips use hz',html.includes("Math.round(c.hz||c.f)+' Hz")],
  ['TF confidence does not depend on window.audioCtx',!html.includes('!window.audioCtx')]
  ,['TF snapshot retains reference and microphone spectra',core.includes('refDb=new Float32Array(n),micDb=new Float32Array(n)')&&core.includes('refDb,micDb,refOffset')]
- ,['TF graph separates input comparison and system difference',core.includes('INPUT COMPARISON')&&core.includes('SYSTEM DIFFERENCE · MIC − REF')&&core.includes('drawInput(\'refDb\'')&&core.includes('drawInput(\'micDb\'')]
+ ,['TF graph separates input comparison and system difference',core.includes('INPUT COMPARISON')&&core.includes('DETAILED SYSTEM DIFFERENCE · MIC − REF')&&core.includes('drawInput(\'refDb\'')&&core.includes('drawInput(\'micDb\'')]
  ,['TF graph shades the live input gap',core.includes('audible system difference between mixer reference and microphone')&&core.includes("p.delta>=0?'rgba(239,82,104,.15)':'rgba(51,198,222,.15)'")]
  ,['TF cursor reports both inputs and delta',core.includes("'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+s.mag[k].toFixed(1)+' dB'")]
+ ,['TF difference uses dense frequency columns',core.includes('Dense deviation columns expose narrow peaks')&&core.includes('for(let px=0;px<=W;px+=2)')&&core.includes('path.moveTo(px,zeroY);path.lineTo(px,y)')]
+ ,['TF difference colors show direction and severity',core.includes('TF_DELTA_COLORS')&&core.includes('function tfDeltaBucket')&&core.includes('rgba(239,68,68,.82)')&&core.includes('rgba(37,99,235,.82)')]
+ ,['TF dense columns are batched for smooth rendering',core.includes('TF_DELTA_COLORS.map(()=>new Path2D())')&&core.includes('deviationBars.forEach')]
+ ,['TF detailed contour remains clearly visible',core.includes("ctx.strokeStyle='#b7f34a'")&&core.includes('Math.floor(plotH*.52)')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.23 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.24 regression validation passed (${checks.length} checks).`);
