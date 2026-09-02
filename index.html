@@ -2018,7 +2018,11 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   :root{--v5-side:0px;--desktop-left:clamp(176px,15vw,214px);--desktop-right:clamp(148px,13.5vw,194px);--desktop-bottom:66px}
   body{background:#030b10!important;padding-bottom:0!important}
   header.uiRefreshed{position:relative!important;top:auto!important;flex:0 0 48px!important}
-  #measurementHealth{top:7px!important;max-width:58vw;height:34px!important;overflow-x:auto;white-space:nowrap}
+  header.uiRefreshed #measurementHealth{
+    position:static!important;transform:none!important;flex:1 1 auto!important;min-width:0!important;max-width:none!important;
+    height:34px!important;overflow-x:auto;white-space:nowrap;justify-content:center!important;
+    background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important
+  }
 
   /* The stage owns the center column. Side panels reserve real space. */
   #stage{
@@ -2072,13 +2076,13 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   #uiRightTools{
     display:grid!important;position:fixed!important;right:12px!important;top:260px!important;
     bottom:calc(var(--desktop-bottom) + 12px)!important;width:var(--desktop-right)!important;height:auto!important;
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:22px repeat(2,minmax(68px,82px))!important;
-    align-content:start!important;padding:9px!important;gap:7px!important;border-radius:10px!important;z-index:23!important
+    grid-template-columns:1fr!important;grid-template-rows:22px repeat(4,minmax(0,1fr))!important;
+    align-content:stretch!important;padding:9px!important;gap:7px!important;border-radius:10px!important;z-index:23!important
   }
   #uiRightTools .uiRightToolsTitle{display:flex!important;grid-column:1/-1!important;height:22px!important}
   #uiRightTools button{
-    display:flex!important;min-width:0!important;min-height:68px!important;height:auto!important;
-    flex-direction:column!important;gap:6px!important;padding:7px 4px!important;font-size:8.5px!important;text-align:center!important
+    display:flex!important;min-width:0!important;min-height:54px!important;height:auto!important;
+    flex-direction:row!important;gap:9px!important;padding:8px 12px!important;font-size:9px!important;text-align:start!important;justify-content:flex-start!important
   }
   #uiRightTools .rtIcon{font-size:16px!important}
 
@@ -2089,6 +2093,8 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   }
   .tcb{border:1px solid rgba(110,171,190,.22);border-radius:7px;background:#081820;color:#c7d9df;min-width:82px;padding:0 10px;font:750 9px ui-monospace,monospace}
   .tcb.primary{border-color:#1bd8e5;color:#fff}.tcb.spacer{flex:1;min-width:8px;border:0;background:transparent}
+  .tcb.danger{border-color:rgba(255,90,120,.34);color:#e7a1b0;background:rgba(255,90,120,.055)}
+  .tcb.danger:hover{border-color:#ff5a78;color:#ffd4dc}
   #targetCommandBar .tcb[data-tcb="capture"]{border-color:rgba(255,72,72,.45)}
   #targetCommandBar .tcb[data-tcb="capture"]::before{content:"● ";color:#ff4545}
   #v5StatusBar{display:none!important}
@@ -2134,6 +2140,32 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   }
 }
 
+/* Complete daylight palette: the final workspace layer must switch as one system. */
+body.sun-mode{background:#eef3f7!important;color:#17212b!important}
+body.sun-mode header.uiRefreshed{background:#fff!important;border-color:#cbd8e1!important}
+body.sun-mode #measurementHealth{background:transparent!important;border:0!important}
+body.sun-mode #stage,body.sun-mode #targetLeftStatus .tlsCard,body.sun-mode #targetMeasurementPanel,
+body.sun-mode #uiRightTools,body.sun-mode #targetCommandBar{
+  background:#fff!important;border-color:#c7d6df!important;color:#243541!important;box-shadow:none!important
+}
+body.sun-mode .tlsHead,body.sun-mode .tlsLine strong,body.sun-mode .tmpHead,body.sun-mode .tmpValue,
+body.sun-mode .tmpCell strong{color:#172b38!important}
+body.sun-mode .tlsLine,body.sun-mode .tmpSub,body.sun-mode .tmpCell,body.sun-mode .uiRightToolsTitle{color:#5d7886!important}
+body.sun-mode .tlsOpen,body.sun-mode #uiRightTools button,body.sun-mode .tcb{
+  background:#f5f9fb!important;border-color:#c8d8e1!important;color:#36515f!important
+}
+body.sun-mode #uiRightTools button.on{background:#e8f8fa!important;border-color:#13a9b7!important;color:#087983!important}
+body.sun-mode .tcb.danger{background:#fff5f7!important;border-color:#e8a3b0!important;color:#a92e48!important}
+body.sun-mode #uiMenu{background:#fff!important;border-color:#c7d6df!important;color:#17212b!important}
+body.sun-mode #uiSettingsPanel{background:#f6f9fb!important;border-color:#d2dee6!important}
+body.sun-mode .uiSettingsRow{color:#536d7a!important;border-color:#dce5ea!important}
+body.sun-mode .uiSettingsTabs button,body.sun-mode .uiSettingsRow button{background:#fff!important;color:#334b58!important;border-color:#cbd8e1!important}
+body.sun-mode .uiSettingsTabs button.on{background:#e9f6fb!important;color:#087eb5!important;border-color:#6bb8d6!important}
+body.sun-mode.ui-workspace-drawer #v52IODock,body.sun-mode.ui-workspace-drawer #genPanel,
+body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.sun-mode #tfPanel.tfPro{
+  background:#fff!important;border-color:#c7d6df!important;color:#17212b!important
+}
+
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip{display:none!important}
@@ -2160,6 +2192,12 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     <div class="dot" id="dot"></div>
     <h1><span>גל</span> אנלייזר <small id="ver" style="font-size:10px;color:var(--dim);letter-spacing:1px"></small></h1>
     <button id="uiMenuBtn" type="button" aria-label="כלים והגדרות" aria-expanded="false">☰</button>
+    <div id="measurementHealth" aria-label="Measurement health">
+      <span class="mhItem" id="mhMic">MIC —</span><span class="mhItem" id="mhRef">REF —</span>
+      <span class="mhItem" id="mhSnr">SNR —</span><span class="mhItem" id="mhNoise">NOISE —</span><span class="mhItem" id="mhHeadroom">HEADROOM —</span><span class="mhItem" id="mhCoh">COH —</span>
+      <span class="mhItem" id="mhClip">CLIP —</span><span class="mhItem" id="mhStable">STABLE —</span>
+      <strong class="mhReady" id="mhReady">NOT READY</strong>
+    </div>
     <div id="uiLivePill" title="Audio status"><span class="uiLiveDot"></span><span id="uiReadyText">LIVE</span></div>
     <div class="modes">
       <button id="mRta" class="on">ספקטרום · RTA</button>
@@ -2198,7 +2236,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.21</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.23</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2206,6 +2244,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
       <div class="uiSettingsTabs"><button class="on" data-settings-page="display">Display</button><button data-settings-page="measurement">Measurement</button><button data-settings-page="audio">Audio</button></div>
       <div class="uiSettingsPage on" data-settings-content="display">
         <div class="uiSettingsRow"><span>Theme</span><button id="uiSetTheme">Day / Night</button></div>
+        <div class="uiSettingsRow"><span>Accent color</span><span class="uiMenuColors"><button class="sw" data-ui-color="#3ea6ff" style="background:#3ea6ff" aria-label="Blue"></button><button class="sw" data-ui-color="#40d17a" style="background:#40d17a" aria-label="Green"></button><button class="sw" data-ui-color="#b57bff" style="background:#b57bff" aria-label="Purple"></button><button class="sw" data-ui-color="#ff9d3c" style="background:#ff9d3c" aria-label="Orange"></button></span></div>
         <div class="uiSettingsRow"><span>Target curve</span><button id="uiSetTarget">Show / Hide</button></div>
         <div class="uiSettingsRow"><span>RTA resolution</span><span><button data-set-bpo="3">1/3</button> <button data-set-bpo="6">1/6</button> <button data-set-bpo="12">1/12</button> <button data-set-bpo="24">1/24</button></span></div>
       </div>
@@ -2228,7 +2267,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.21 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.23 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2273,7 +2312,6 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
       <div id="v5TraceList"></div>
       <button id="v5AddTrace">＋ Capture Trace</button>
       <button id="v5EqWorkspace" class="v5RailTool" type="button" onclick="return window.openLatestEqWorkspaceFromRail(event)">EQ · תצוגת תיקונים</button>
-      <button id="v5ResetSession" class="v5RailTool">↺ איפוס סשן</button>
       <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
     </aside>
     <button id="v54SideToggle" type="button" title="הסתר/הצג סרגל צד" aria-label="הסתר או הצג סרגל צד">‹</button>
@@ -2937,7 +2975,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.21</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.23</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3134,7 +3172,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.21"></script>
+<script src="app.js?v=5.5.23"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3218,12 +3256,6 @@ window.addEventListener('load', function(){
 </script>
 
 
-<div id="measurementHealth" aria-label="Measurement health">
- <span class="mhItem" id="mhMic">MIC —</span><span class="mhItem" id="mhRef">REF —</span>
- <span class="mhItem" id="mhSnr">SNR —</span><span class="mhItem" id="mhNoise">NOISE —</span><span class="mhItem" id="mhHeadroom">HEADROOM —</span><span class="mhItem" id="mhCoh">COH —</span>
- <span class="mhItem" id="mhClip">CLIP —</span><span class="mhItem" id="mhStable">STABLE —</span>
- <strong class="mhReady" id="mhReady">NOT READY</strong>
-</div>
 <div id="mhGuide"></div>
 <div id="traceSessionPanel"><div class="tsHead"><span>MEASUREMENT SESSION</span><button class="tsBtn" id="tsClose">CLOSE</button></div>
  <div style="display:flex;gap:6px;margin-bottom:8px"><button class="tsBtn" id="tsCapture">CAPTURE POSITION</button><button class="tsBtn" id="tsAverage">AVERAGE SELECTED</button><button class="tsBtn" id="tsAll">SELECT ALL</button></div>
@@ -3408,7 +3440,7 @@ window.addEventListener('load', function(){
 </div>
 
 <div id="targetLeftLabels" aria-hidden="true"><div class="tll">GENERATOR</div><div class="tll">I / O</div><div class="tll">TRACES</div></div>
-<div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button></div>
+<div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button><button class="tcb danger" id="v5ResetSession" type="button">↺ RESET SESSION</button></div>
 <script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='traces'){if(typeof openWorkspaceDrawer==='function')openWorkspaceDrawer('traces');else window.openMeasurementSession?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
 
 <script>

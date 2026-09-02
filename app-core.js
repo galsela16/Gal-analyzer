@@ -142,7 +142,7 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.21 visual Waterfall history. Each row is a frequency slice;
+// V5.5.23 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
 const wf3d={rows:[],frame:0,maxRows:84,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
 
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.21-waterfall-10s-angle',
+    version: 'v5.5.23-tf-input-compare',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1433,19 +1433,21 @@ window.tfBandConfidence=tfBandConfidence;
 function tfCurrentSnapshot(){
   if(!analyserRef || !audioCtx) return null;
   computeComplexTf();
-  const n=TF_FFT_N/2, mag=new Float32Array(n), ph=new Float32Array(n), coh=new Float32Array(n);
-  const vals=[];
+  const n=TF_FFT_N/2, mag=new Float32Array(n), ph=new Float32Array(n), coh=new Float32Array(n),refDb=new Float32Array(n),micDb=new Float32Array(n);
+  const vals=[],refVals=[];
   for(let k=1;k<n;k++){
     const pxx=tfPxx[k], pyy=tfPyy[k], ps=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
     const c=Math.max(0,Math.min(1,ps/(pxx*pyy+1e-20)));
     const m=10*Math.log10((pyy+1e-20)/(pxx+1e-20));
+    refDb[k]=10*Math.log10(pxx+1e-20);micDb[k]=10*Math.log10(pyy+1e-20);
     mag[k]=m; ph[k]=Math.atan2(tfPxyIm[k],tfPxyRe[k]); coh[k]=c;
     const f=k*audioCtx.sampleRate/TF_FFT_N;
-    if(c>=Math.max(.55,tfCohGate) && f>=200 && f<=5000 && Number.isFinite(m)) vals.push(m);
+    if(c>=Math.max(.55,tfCohGate) && f>=200 && f<=5000 && Number.isFinite(m)){vals.push(m);refVals.push(refDb[k]);}
   }
-  vals.sort((a,b)=>a-b);
+  vals.sort((a,b)=>a-b);refVals.sort((a,b)=>a-b);
   const offset=vals.length?vals[Math.floor(vals.length/2)]:0;
-  const snap={mag,ph,coh,offset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()}; snap.confidence=tfBandConfidence(snap); return snap;
+  const refOffset=refVals.length?refVals[Math.floor(refVals.length/2)]:0;
+  const snap={mag,ph,coh,offset,refDb,micDb,refOffset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()}; snap.confidence=tfBandConfidence(snap); return snap;
 }
 
 // V5.5.3 Trace Manager + Spatial Average
@@ -1527,29 +1529,24 @@ function tfHasReferenceSignal(){
   for(let i=0;i<floatDataRef.length;i+=8) if(floatDataRef[i]>peak) peak=floatDataRef[i];
   return peak>-85;
 }
+let tfDisplaySnapshot=null;
 function tfDrawMagnitudeView(W,plotH,nyquist){
-  const live=tfCurrentSnapshot(); if(!live) return;
-  // TF grid: 0 dB center, ±6/12/18 dB
-  ctx.save();
-  ctx.font='10px monospace'; ctx.textAlign='left';
-  [-18,-12,-6,0,6,12,18].forEach(db=>{
-    const y=tfMagY(db,plotH); ctx.strokeStyle=db===0?'rgba(62,166,255,.50)':'rgba(120,135,155,.18)';
-    ctx.lineWidth=db===0?1.4:1; ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
-    ctx.fillStyle=sunMode?'#475569':'#8b97a5'; ctx.fillText((db>0?'+':'')+db+'dB',4,y-3);
-  });
-  const drawSnap=(snap,color,width,alpha)=>{
-    ctx.beginPath(); let pen=false;
-    for(let px=0;px<=W;px+=2){
-      const f=freqForX(px), k=Math.min(snap.mag.length-1,Math.max(1,Math.round(f/snap.sr*TF_FFT_N)));
-      const c=snap.coh[k]; if(c<tfCohGate){pen=false;continue;}
-      const y=tfMagY(snap.mag[k]-snap.offset,plotH);
-      pen?ctx.lineTo(px,y):ctx.moveTo(px,y); pen=true;
-    }
-    ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
-  };
-  tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>drawSnap(t,t.color,1.4,.72));
-  drawSnap(live,'rgb('+accentRgb.join(',')+')',2.3,1);
-  ctx.fillStyle=sunMode?'#0f172a':'#e6edf3';ctx.font='600 11px monospace';ctx.fillText('TF MAG · relative',8,14);
+  const live=tfCurrentSnapshot();if(!live)return;tfDisplaySnapshot=live;
+  const inputTop=28,inputBottom=Math.max(110,Math.floor(plotH*.62)),deltaTop=inputBottom+24,deltaBottom=plotH-18;
+  const inputY=db=>inputTop+(12-Math.max(-36,Math.min(12,db)))/48*(inputBottom-inputTop);
+  const deltaY=db=>deltaTop+(12-Math.max(-12,Math.min(12,db)))/24*(deltaBottom-deltaTop);
+  ctx.save();ctx.direction='ltr';ctx.font='9px ui-monospace,monospace';ctx.textAlign='left';
+  [-36,-24,-12,0,12].forEach(db=>{const y=inputY(db);ctx.strokeStyle=db===0?'rgba(245,158,11,.42)':'rgba(120,145,160,.14)';ctx.lineWidth=db===0?1.2:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillStyle=sunMode?'#536b78':'#78909d';ctx.fillText((db>0?'+':'')+db,4,y-3);});
+  [-12,0,12].forEach(db=>{const y=deltaY(db);ctx.strokeStyle=db===0?'rgba(231,238,242,.55)':'rgba(120,145,160,.14)';ctx.lineWidth=db===0?1.3:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillStyle=sunMode?'#536b78':'#78909d';ctx.fillText((db>0?'+':'')+db,4,y-3);});
+  // The colored band is the audible system difference between mixer reference and microphone.
+  let prev=null;
+  for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){prev=null;continue;}const p={x:px,ref:inputY(live.refDb[k]-live.refOffset),mic:inputY(live.micDb[k]-live.refOffset),delta:live.mag[k]};if(prev){ctx.beginPath();ctx.moveTo(prev.x,prev.ref);ctx.lineTo(p.x,p.ref);ctx.lineTo(p.x,p.mic);ctx.lineTo(prev.x,prev.mic);ctx.closePath();ctx.fillStyle=p.delta>=0?'rgba(239,82,104,.15)':'rgba(51,198,222,.15)';ctx.fill();}prev=p;}
+  const drawInput=(field,color,width,dash=[])=>{ctx.beginPath();let pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=inputY(live[field][k]-live.refOffset);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();ctx.setLineDash([]);};
+  drawInput('refDb','#f59e0b',1.8,[6,4]);drawInput('micDb','#38bdf8',2.5);
+  ctx.beginPath();let pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#d8f5e5';ctx.lineWidth=2;ctx.stroke();
+  tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
+  ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('INPUT COMPARISON',8,14);ctx.fillText('SYSTEM DIFFERENCE · MIC − REF',8,deltaTop-9);
+  ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#d8f5e5';ctx.fillText('━ Δ',410,14);
   ctx.restore();
 }
 
@@ -3615,8 +3612,9 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.strokeStyle=sunMode?'rgba(0,0,0,.55)':'rgba(255,255,255,.55)'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(cursorX,0);ctx.lineTo(cursorX,plotH);ctx.stroke(); ctx.setLineDash([]);
     const fl=cf>=1000?(cf/1000).toFixed(2)+'kHz':Math.round(cf)+'Hz';
-    const lvl=(lastBandDb[bi]!=null&&lastBandDb[bi]>-119)?('  '+Math.round(lastBandDb[bi])+'dB'):'';
-    const label=fl+lvl;
+    let label;
+    if(tfOpen&&tfDisplaySnapshot){const s=tfDisplaySnapshot,k=Math.min(s.mag.length-1,Math.max(1,Math.round(cf/s.sr*TF_FFT_N))),rd=s.refDb[k]-s.refOffset,md=s.micDb[k]-s.refOffset;label=fl+'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+s.mag[k].toFixed(1)+' dB';}
+    else{const lvl=(lastBandDb[bi]!=null&&lastBandDb[bi]>-119)?('  '+Math.round(lastBandDb[bi])+'dB'):'';label=fl+lvl;}
     ctx.font='12px monospace'; ctx.textAlign='left';
     const tw=ctx.measureText(label).width+12;
     let tx=Math.max(2,Math.min(W-tw-2, cursorX-tw/2));
@@ -3876,7 +3874,7 @@ function captureWaterfall3dRow(nyquist){
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const top=2,bottom=H-20,span=Math.max(120,bottom-top),depth=span*.63,amp=span*.27;
+  const top=2,bottom=H-20,span=Math.max(120,bottom-top),depth=span*.72,amp=span*.20;
   const left=5,right=W-44,base=bottom,backLeft=left+58,backRight=right-88;
   const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000);
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
@@ -4497,7 +4495,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.21';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.23';
   v3UpdateStatus();
 })();
 (function initAccent(){
