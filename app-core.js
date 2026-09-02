@@ -142,9 +142,9 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.3 visual Waterfall history. Each row is a frequency slice;
+// V5.5.5 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
-const wf3d={rows:[],frame:0,maxRows:48,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
+const wf3d={rows:[],frame:0,maxRows:28,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.4-waterfall-layout',
+    version: 'v5.5.5-waterfall-perspective',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3808,42 +3808,42 @@ function captureWaterfall3dRow(nyquist){
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const top=18,bottom=H-28,span=Math.max(120,bottom-top),depth=span*.70,amp=span*.58;
-  const left=18,right=W-12,base=bottom;
+  const top=22,bottom=H-30,span=Math.max(120,bottom-top),depth=span*.56,amp=span*.43;
+  const left=18,right=W-54,base=bottom,backLeft=left+28,backRight=right-42;
+  const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000);
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
-  // subtle perspective floor/grid
+  // Perspective floor: frequency runs left-to-right, time recedes toward the horizon.
   ctx.save();ctx.lineWidth=1;
-  for(let j=0;j<=5;j++){
-    const y=base-j*depth/5;
-    ctx.strokeStyle=sunMode?'rgba(15,23,42,.10)':'rgba(112,180,205,.12)';
-    ctx.beginPath();ctx.moveTo(left+j*5,y);ctx.lineTo(right-j*7,y);ctx.stroke();
+  for(let j=0;j<=4;j++){
+    const p=j/4,y=base-p*depth,x0=left+(backLeft-left)*p,x1=right+(backRight-right)*p;
+    ctx.strokeStyle=sunMode?'rgba(15,23,42,.12)':'rgba(112,180,205,.15)';
+    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
   }
   [20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{
     if(f>Math.min(20000,nyquist*.96))return;
-    const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left);
+    const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left),xb=backLeft+u*(backRight-backLeft);
     ctx.strokeStyle=sunMode?'rgba(15,23,42,.08)':'rgba(112,180,205,.08)';
-    ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(x,top);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,base);ctx.lineTo(xb,base-depth);ctx.stroke();
   });
   // Oldest first so the newest ridge is visually in front.
   for(let rr=rows.length-1;rr>=0;rr--){
-    const row=rows[rr],age=rr/Math.max(1,wf3d.maxRows-1),z=rr*depth/Math.max(1,wf3d.maxRows-1);
-    const inset=rr*7/Math.max(1,wf3d.maxRows-1);
-    const x0=left+inset,x1=right-inset,baseline=base-z;
+    const row=rows[rr],age=rr/Math.max(1,wf3d.maxRows-1),z=age*depth;
+    const x0=left+(backLeft-left)*age,x1=right+(backRight-right)*age,baseline=base-z;
     // translucent body under each ridge
     ctx.beginPath();ctx.moveTo(x0,baseline);
     for(let i=0;i<row.length;i++){
-      const x=x0+i/(row.length-1)*(x1-x0),y=baseline-row[i]*amp*(1-age*.42);
+      const x=x0+i/(row.length-1)*(x1-x0),y=baseline-row[i]*amp*(1-age*.48);
       ctx.lineTo(x,y);
     }
     ctx.lineTo(x1,baseline);ctx.closePath();
-    ctx.fillStyle=sunMode?'rgba(70,130,180,.025)':'rgba(20,160,170,.025)';ctx.fill();
-    // segmented multicolor ridge: color is tied to frequency and intensity.
+    ctx.fillStyle=sunMode?'rgba(70,130,180,.018)':'rgba(20,160,170,.022)';ctx.fill();
+    // Colour describes level, not frequency: blue is quiet, red is strongest.
     for(let i=1;i<row.length;i++){
       const xa=x0+(i-1)/(row.length-1)*(x1-x0),xb=x0+i/(row.length-1)*(x1-x0);
-      const ya=baseline-row[i-1]*amp*(1-age*.42),yb=baseline-row[i]*amp*(1-age*.42);
-      const freqPos=i/(row.length-1),energy=(row[i]+row[i-1])*.5;
-      ctx.strokeStyle=wf3dColor(Math.min(1,freqPos*.82+energy*.30),Math.max(.20,1-age*.70));
-      ctx.lineWidth=rr===0?1.8:1.05;ctx.beginPath();ctx.moveTo(xa,ya);ctx.lineTo(xb,yb);ctx.stroke();
+      const ya=baseline-row[i-1]*amp*(1-age*.48),yb=baseline-row[i]*amp*(1-age*.48);
+      const energy=Math.max(0,Math.min(1,((row[i]+row[i-1])*.5-.08)/.82));
+      ctx.strokeStyle=wf3dColor(energy,Math.max(.34,1-age*.62));
+      ctx.lineWidth=rr===0?1.9:1.15;ctx.beginPath();ctx.moveTo(xa,ya);ctx.lineTo(xb,yb);ctx.stroke();
     }
   }
   // Current spectrum gets a soft filled foreground silhouette.
@@ -3851,8 +3851,8 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     const row=rows[0];ctx.beginPath();ctx.moveTo(left,base);
     for(let i=0;i<row.length;i++){const x=left+i/(row.length-1)*(right-left),y=base-row[i]*amp;ctx.lineTo(x,y);}
     ctx.lineTo(right,base);ctx.closePath();
-    const g=ctx.createLinearGradient(left,0,right,0);
-    g.addColorStop(0,'rgba(30,100,230,.12)');g.addColorStop(.45,'rgba(20,210,170,.10)');g.addColorStop(.75,'rgba(225,220,45,.10)');g.addColorStop(1,'rgba(240,80,90,.08)');
+    const g=ctx.createLinearGradient(0,base-amp,0,base);
+    g.addColorStop(0,'rgba(239,72,86,.11)');g.addColorStop(.28,'rgba(235,205,45,.09)');g.addColorStop(.56,'rgba(30,210,165,.07)');g.addColorStop(1,'rgba(35,90,215,.04)');
     ctx.fillStyle=g;ctx.fill();
   }
   ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font='10px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';
@@ -3861,8 +3861,14 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left);
     ctx.fillText(f>=1000?(f/1000)+'k':f,x,H-9);
   });
+  // A real time/depth axis, derived from the selected Waterfall speed.
+  ctx.textAlign='left';ctx.fillStyle=sunMode?'#64748b':'#8795a1';
+  for(let j=0;j<=4;j++){
+    const p=j/4,y=base-p*depth,x=right+(backRight-right)*p+7;
+    const sec=p*timeSpan;ctx.fillText(j===0?'0 s':sec.toFixed(sec<1?2:1)+' s',x,y+3);
+  }
   ctx.textAlign='right';ctx.fillStyle=sunMode?'#64748b':'#71808d';
-  ctx.fillText('NOW',W-8,base-2);ctx.fillText('HISTORY',W-8,Math.max(14,base-depth));
+  ctx.fillText('TIME / DECAY',W-7,Math.max(13,base-depth-9));
   ctx.restore();
 }
 
@@ -4399,7 +4405,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.4';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.5';
   v3UpdateStatus();
 })();
 (function initAccent(){
