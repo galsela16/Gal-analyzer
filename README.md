@@ -1,4 +1,4 @@
-# GAL Analyzer V5.5.5 — Precision 3D Waterfall
+# GAL Analyzer V5.5.8 — Precision Resonance Frequency
 
 V5.5.1 makes the swept-sine delay path safe at every supported sample rate and sweep duration. Long 96 kHz captures are analysed in bounded, zero-padded windows instead of overflowing the FFT buffer; narrow-band sub sweeps use a bandwidth-aware peak guard and stability tolerance; and unknown external audio can no longer fall through to the sweep-only estimator. The delay preflight now includes long 96 kHz, inverted-polarity, sub-band and strong-reflection cases (30 accepted delay cases in total).
 

@@ -142,9 +142,9 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.5 visual Waterfall history. Each row is a frequency slice;
+// V5.5.8 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
-const wf3d={rows:[],frame:0,maxRows:28,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
+const wf3d={rows:[],frame:0,maxRows:40,maxHz:20000,intervalMs:220,lastCapture:0};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.5-waterfall-perspective',
+    version: 'v5.5.8-waterfall-frequency-precision',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3673,6 +3673,24 @@ function resetWaterfallResonances(){
   if(window.wf3d)window.wf3d.rows=[];
 }
 window.resetWaterfallResonances=resetWaterfallResonances;
+function interpolatedSpectrumHz(data,index,nyquist){
+  if(!data?.length)return 0;
+  let offset=0;
+  if(index>0&&index<data.length-1){
+    const a=data[index-1],b=data[index],c=data[index+1],curve=a-2*b+c;
+    if(Number.isFinite(curve)&&Math.abs(curve)>1e-7)offset=Math.max(-.5,Math.min(.5,.5*(a-c)/curve));
+  }
+  return (index+offset)*nyquist/data.length;
+}
+function preciseSpectrumPeakHz(data,centerHz,nyquist){
+  const bins=data?.length||0;if(!bins||!centerHz)return centerHz||0;
+  const radius=Math.pow(2,1/12);
+  const lo=Math.max(1,Math.floor(centerHz/radius/nyquist*bins));
+  const hi=Math.min(bins-2,Math.ceil(centerHz*radius/nyquist*bins));
+  let peak=lo;
+  for(let i=lo+1;i<=hi;i++)if(data[i]>data[peak])peak=i;
+  return interpolatedSpectrumHz(data,peak,nyquist);
+}
 function updateWaterfallResonances(nyquist){
   if(!wfResonance.enabled||frozen||!floatData?.length)return;
   if((++wfResonance.frame)%4)return;
@@ -3688,7 +3706,9 @@ function updateWaterfallResonances(nyquist){
     for(let k=Math.max(0,b-3);k<=Math.min(BANDS-1,b+3);k++)if(Math.abs(k-b)>1&&vals[k]!=null)neigh.push(vals[k]);
     if(!neigh.length)continue;
     const local=neigh.reduce((a,v)=>a+v,0)/neigh.length,prom=db-local;
-    let t=wfResonance.tracks.get(b)||{hz:fc,ema:db,var:0,prom,score:0,hits:0,total:0};
+    const measuredHz=prom>=wfResonance.minPromDb*.65?preciseSpectrumPeakHz(floatData,fc,nyquist):fc;
+    let t=wfResonance.tracks.get(b)||{hz:measuredHz,ema:db,var:0,prom,score:0,hits:0,total:0};
+    t.hz+=.38*(measuredHz-t.hz);
     const d=db-t.ema;t.ema+=.16*d;t.var=.86*t.var+.14*d*d;t.prom=.78*t.prom+.22*prom;t.total++;
     if(t.prom>=wfResonance.minPromDb&&Math.sqrt(Math.max(0,t.var))<3.2){t.hits++;t.score=Math.min(1,t.score+.075);}
     else t.score=Math.max(0,t.score-.045);
@@ -3808,12 +3828,12 @@ function captureWaterfall3dRow(nyquist){
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const top=22,bottom=H-30,span=Math.max(120,bottom-top),depth=span*.56,amp=span*.43;
-  const left=18,right=W-54,base=bottom,backLeft=left+28,backRight=right-42;
+  const top=10,bottom=H-26,span=Math.max(120,bottom-top),depth=span*.70,amp=span*.68;
+  const left=12,right=W-50,base=bottom,backLeft=left+24,backRight=right-36;
   const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000);
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
   // Perspective floor: frequency runs left-to-right, time recedes toward the horizon.
-  ctx.save();ctx.lineWidth=1;
+  ctx.save();ctx.direction='ltr';ctx.lineWidth=1;
   for(let j=0;j<=4;j++){
     const p=j/4,y=base-p*depth,x0=left+(backLeft-left)*p,x1=right+(backRight-right)*p;
     ctx.strokeStyle=sunMode?'rgba(15,23,42,.12)':'rgba(112,180,205,.15)';
@@ -3829,10 +3849,11 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
   for(let rr=rows.length-1;rr>=0;rr--){
     const row=rows[rr],age=rr/Math.max(1,wf3d.maxRows-1),z=age*depth;
     const x0=left+(backLeft-left)*age,x1=right+(backRight-right)*age,baseline=base-z;
+    const ridgeAmp=Math.min(amp*(1-age*.38),Math.max(span*.22,baseline-top-4));
     // translucent body under each ridge
     ctx.beginPath();ctx.moveTo(x0,baseline);
     for(let i=0;i<row.length;i++){
-      const x=x0+i/(row.length-1)*(x1-x0),y=baseline-row[i]*amp*(1-age*.48);
+      const x=x0+i/(row.length-1)*(x1-x0),y=baseline-row[i]*ridgeAmp;
       ctx.lineTo(x,y);
     }
     ctx.lineTo(x1,baseline);ctx.closePath();
@@ -3840,7 +3861,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     // Colour describes level, not frequency: blue is quiet, red is strongest.
     for(let i=1;i<row.length;i++){
       const xa=x0+(i-1)/(row.length-1)*(x1-x0),xb=x0+i/(row.length-1)*(x1-x0);
-      const ya=baseline-row[i-1]*amp*(1-age*.48),yb=baseline-row[i]*amp*(1-age*.48);
+      const ya=baseline-row[i-1]*ridgeAmp,yb=baseline-row[i]*ridgeAmp;
       const energy=Math.max(0,Math.min(1,((row[i]+row[i-1])*.5-.08)/.82));
       ctx.strokeStyle=wf3dColor(energy,Math.max(.34,1-age*.62));
       ctx.lineWidth=rr===0?1.9:1.15;ctx.beginPath();ctx.moveTo(xa,ya);ctx.lineTo(xb,yb);ctx.stroke();
@@ -3890,7 +3911,9 @@ function drawSpec(W,H,nyquist,bins,xForFreq){
   ctx.clearRect(0,0,W,H);
   drawWaterfall3d(W,specH,nyquist,xForFreq);
   let pk=-Infinity,pkf=0;
-  for(let i=1;i<bins;i++){ if(floatData[i]>pk){pk=floatData[i]; pkf=i*nyquist/bins;} }
+  let peakBin=1;
+  for(let i=1;i<bins-1;i++){ if(floatData[i]>pk){pk=floatData[i];peakBin=i;} }
+  pkf=interpolatedSpectrumHz(floatData,peakBin,nyquist);
   peakHzEl.textContent= pk>floorDb ? (pkf>=1000?(pkf/1000).toFixed(1)+' kHz':Math.round(pkf)+' Hz') : '—';  updateWaterfallDecayEvidence(nyquist);
     drawWaterfallResonanceOverlay(W,specH,xForFreq);
 }
@@ -4405,7 +4428,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.5';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.8';
   v3UpdateStatus();
 })();
 (function initAccent(){

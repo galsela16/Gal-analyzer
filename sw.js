@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-5-waterfall-perspective-20260902';
+const CACHE = 'gal-analyzer-v5-5-8-waterfall-frequency-precision-20260902';
 const ASSETS = [
   './',
   './index.html',
