@@ -383,7 +383,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.33-elegant-workspace-navigation',
+    version: 'v5.5.42-subtle-resolution-strip',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1364,7 +1364,9 @@ function syncTfWorkflowUi(message,tone){
   const info=document.getElementById('tfDelayInfo');
   if(sync){sync.classList.toggle('on',tfDelayReady);sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':'1 · סנכרון TF';sync.disabled=busy;}
   if(verify){verify.classList.toggle('on',tfWorkflowVerified);verify.textContent=tfWorkflowVerifying?'2 · מאמת…':tfWorkflowVerified?'✓ 2 · TF אומת':'2 · אימות TF';verify.disabled=busy||!tfDelayReady;}
-  if(trace)trace.disabled=busy||!tfWorkflowVerified;
+  // Trace capture is intentionally independent of sync/verification. The
+  // resulting trace carries its trust state instead of silently blocking.
+  if(trace)trace.disabled=busy;
   if(eq)eq.disabled=busy||!tfWorkflowVerified;
   if(info){
     info.classList.remove('ready','warn');
@@ -1501,7 +1503,8 @@ function v552SpatialAverage(indices){
       }
       mag[k]=m/w;coh[k]=c/selected.length;ph[k]=Math.atan2(ci,cr);
     }
-    const out={type:'tf',visible:true,name:'AVG TF '+selected.length,color,mag,coh,ph,offset:selected.reduce((a,t)=>a+(t.offset||0),0)/selected.length,sr:selected[0].sr,delayMs:selected.reduce((a,t)=>a+(t.delayMs||0),0)/selected.length,t:Date.now(),spatialAverage:true,sourceCount:selected.length};
+    const verified=selected.every(t=>t.verified===true);
+    const out={type:'tf',visible:true,name:'AVG TF '+selected.length+(verified?' · Verified':' · Unverified'),color,mag,coh,ph,offset:selected.reduce((a,t)=>a+(t.offset||0),0)/selected.length,sr:selected[0].sr,delayMs:selected.reduce((a,t)=>a+(t.delayMs||0),0)/selected.length,t:Date.now(),spatialAverage:true,sourceCount:selected.length,verified,status:verified?'Verified':'Unverified'};
     out.confidence=typeof tfBandConfidence==='function'?tfBandConfidence(out):null;
     tfTraces.push(out);renderTfTraceLegend();return {ok:true,trace:out};
   }
@@ -1515,24 +1518,36 @@ window.v552DeleteTrace=i=>{if(!tfTraces[i])return false;tfTraces.splice(i,1);ren
 
 function renderTfTraceLegend(){
   const el=document.getElementById('tfTraceLegend');
-  if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map((t,i)=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+'</span>').join('');
+  if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map(t=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+' <b class="tfTraceStatus '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</b></span>').join('');
   if(typeof v5RenderTraceRail==='function') v5RenderTraceRail();
 }
+function tfMicOnlySnapshot(){
+  if(!audioCtx||!floatData||!floatData.length)return null;
+  const n=TF_FFT_N/2,mag=new Float32Array(n),ph=new Float32Array(n),coh=new Float32Array(n);
+  const srcN=floatData.length,nyq=audioCtx.sampleRate/2,values=[];
+  for(let k=1;k<n;k++){
+    const f=k*audioCtx.sampleRate/TF_FFT_N;
+    const src=Math.max(1,Math.min(srcN-1,Math.round(f/nyq*(srcN-1))));
+    const v=Number.isFinite(floatData[src])?floatData[src]:-120;
+    mag[k]=v;coh[k]=1;if(f>=200&&f<=5000)values.push(v);
+  }
+  values.sort((a,b)=>a-b);
+  return {mag,ph,coh,offset:values.length?values[Math.floor(values.length/2)]:0,sr:audioCtx.sampleRate,delayMs:0,t:Date.now(),captureKind:'mic-spectrum'};
+}
 function captureTfTrace(){
-  if(!running||!analyserRef){ alert('הפעל כרטיס קול סטריאו (מיק + רפרנס).'); return; }
-  if(!tfDelayReady||!tfWorkflowVerified){ alert('תחילה השלם סנכרון ואימות TF.'); return; }
+  if(!running){ alert('הפעל Audio קודם.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
-  const s=tfCurrentSnapshot(); if(!s) return;
-  if(s.confidence&&s.confidence.label==='LOW'){ alert('TF confidence is LOW: '+s.confidence.reason+'. Improve reference level/coherence and try again.'); return; }
+  const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified);
+  const s=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot(); if(!s) return;
   const idx=tfTraces.length+1;
-  s.type='tf'; s.visible=true; s.name='TF '+idx; s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  s.type='tf';s.visible=true;s.verified=verified;s.status=verified?'Verified':'Unverified';
+  s.name='TF '+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
   tfTraces.push(s); if(tfTraces.length>24) tfTraces.shift();
-  renderTfTraceLegend(); v3Toast('נלכד '+s.name);
+  renderTfTraceLegend(); v3Toast(verified?'נלכד TF מאומת':'נלכד TF לא מאומת · Unverified');
 }
 function captureWorkspaceTrace(){
   if(!running){v3Toast('הפעל Audio קודם');return;}
   if(v5WorkspaceMode==='tf'){
-    if(!analyserRef){v3Toast('לכידת TF דורשת ערוץ Reference פעיל');return;}
     captureTfTrace();return;
   }
   const idx=tfTraces.length+1;
@@ -1556,6 +1571,13 @@ let tfDisplaySnapshot=null;
 let tfLiveVisualDb=[];
 const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
 function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
+function tfDrawTrustGuide(W,plotH,verified,reason){
+  const boxW=Math.min(360,W-24),boxH=verified?34:54,x=W-boxW-12,y=32;
+  ctx.save();ctx.fillStyle=verified?'rgba(10,68,46,.88)':'rgba(70,42,8,.92)';ctx.strokeStyle=verified?'#45d47b':'#f5b942';ctx.lineWidth=1;ctx.fillRect(x,y,boxW,boxH);ctx.strokeRect(x+.5,y+.5,boxW-1,boxH-1);
+  ctx.fillStyle=verified?'#8ff0b9':'#ffd783';ctx.font='800 10px ui-monospace,monospace';ctx.fillText(verified?'VERIFIED TF · safe to compare and tune':'UNVERIFIED LIVE VIEW · do not tune from this yet',x+10,y+16);
+  if(!verified){ctx.fillStyle=sunMode?'#273843':'#d4e1e5';ctx.font='9px ui-monospace,monospace';ctx.fillText(reason||'Next: raise signal, connect REF, run Delay Sync, then Verify.',x+10,y+35);}
+  ctx.restore();
+}
 function tfDrawMagnitudeView(W,plotH,nyquist){
   const live=tfCurrentSnapshot();if(!live)return;tfDisplaySnapshot=live;
   const inputTop=28,inputBottom=Math.max(105,Math.floor(plotH*.52)),deltaTop=inputBottom+25,deltaBottom=plotH-18;
@@ -1576,8 +1598,10 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   ctx.lineWidth=1.7;deviationBars.forEach((path,i)=>{ctx.strokeStyle=TF_DELTA_COLORS[i];ctx.stroke(path);});
   ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#b7f34a';ctx.lineWidth=1.8;ctx.lineJoin='round';ctx.stroke();
   tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
-  ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('INPUT COMPARISON',8,14);ctx.fillText('DETAILED SYSTEM DIFFERENCE · MIC − REF',8,deltaTop-9);
+  ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('TOP · INPUTS — REF (source) vs MIC (system)',8,14);ctx.fillText('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE',8,deltaTop-9);
   ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#d8f5e5';ctx.fillText('━ Δ',410,14);
+  const trustworthy=!!(tfDelayReady&&tfWorkflowVerified&&(!live.confidence||live.confidence.label!=='LOW'));
+  tfDrawTrustGuide(W,plotH,trustworthy,live.confidence?.reason==='Low coherence'?'Next: improve REF/SNR, run Delay Sync, then Verify.':null);
   ctx.restore();
 }
 
@@ -1598,6 +1622,8 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.beginPath();ctx.moveTo(0,plotH);mic.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=.26;ctx.fillStyle=spectrumGradient;ctx.fill();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>{ctx.moveTo(p.x,plotH);ctx.lineTo(p.x,p.y);});ctx.strokeStyle=spectrumGradient;ctx.globalAlpha=.48;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#b7f34a';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',8,16);ctx.restore();
+  tfDrawTrustGuide(W,plotH,false,'Next: connect a Reference channel, run Delay Sync, then Verify.');
   const drawCurve=(values,color,dash=[])=>{const bw=W/BANDS;ctx.beginPath();values.forEach((v,b)=>{const x=b*bw+bw/2,y=plotH-Math.max(0,Math.min(1,v))*plotH;b?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);};
   ctx.save();
   drawCurve(lastRefV,'#f59e0b',[6,4]);
@@ -1612,6 +1638,27 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.textAlign='right';ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8193a2';
   ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
+}
+
+// V5.5.36 — one canonical RTA plot for both physical inputs.
+let mrMicSmooth=[],mrRefSmooth=[];
+function drawDualInputRta(W,plotH,nyquist){
+  if(!analyserRef||!floatData?.length||!floatDataRef?.length)return false;
+  if(!frozen)analyserRef.getFloatFrequencyData(floatDataRef);
+  const yForDb=db=>plotH-Math.max(0,Math.min(1,(db-floorDb)/(ceilDb-floorDb)))*plotH;
+  const bandPoints=(data,history,isMic)=>ISO.slice(0,BANDS).map((fc,i)=>{
+    let raw=binOverlapPowerDb(data,fc/R,fc*R,nyquist);
+    if(isMic)raw=calibratedResponseDb(raw,fc);
+    const old=history[i],db=Number.isFinite(old)?old*tfSmoothA+raw*(1-tfSmoothA):raw;
+    history[i]=db;return {x:(i+.5)*W/BANDS,y:yForDb(db)};
+  });
+  const ref=bandPoints(floatDataRef,mrRefSmooth,false),mic=bandPoints(floatData,mrMicSmooth,true);
+  const fill=(pts,color,alpha)=>{ctx.beginPath();ctx.moveTo(0,plotH);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;};
+  const stroke=(pts,color,width)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();};
+  fill(ref,'#ff4d5e',.32);fill(mic,'#258dff',.50);stroke(ref,'#ff4d5e',2.1);stroke(mic,'#45a5ff',2.1);
+  ctx.save();ctx.font='800 10px ui-monospace,monospace';ctx.fillStyle='rgba(3,13,19,.78)';ctx.fillRect(10,10,232,27);ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',20,28);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',112,28);ctx.fillStyle=sunMode?'#334b58':'#b6c8cf';ctx.fillText('M/R',202,28);ctx.restore();
+  if(!tfHasReferenceSignal()){ctx.save();ctx.fillStyle='rgba(70,22,27,.92)';ctx.fillRect(W-244,10,232,36);ctx.strokeStyle='#ff4d5e';ctx.strokeRect(W-243.5,10.5,231,35);ctx.fillStyle='#ff9aa4';ctx.font='800 10px ui-monospace,monospace';ctx.fillText('REF 2 · NO SIGNAL',W-232,26);ctx.fillStyle='#d9e5ea';ctx.font='9px ui-monospace,monospace';ctx.fillText('Check routing / input channel',W-232,39);ctx.restore();}
+  return true;
 }
 
 function detectComb(){
@@ -2702,8 +2749,10 @@ function setRtaResolution(value){
   v3UpdateStatus();
   const ioSelect=document.getElementById('v52ResSelect');if(ioSelect)ioSelect.value=String(bpo);
   document.querySelectorAll('#v3ResMenu button').forEach(btn=>btn.classList.toggle('on',parseInt(btn.dataset.bpo,10)===bpo));
+  document.querySelectorAll('[data-display-bpo]').forEach(btn=>{const on=parseInt(btn.dataset.displayBpo,10)===bpo;btn.classList.toggle('on',on);btn.setAttribute('aria-pressed',String(on));});
   return bpo;
 }
+document.querySelectorAll('[data-display-bpo]').forEach(btn=>btn.addEventListener('click',()=>{setRtaResolution(btn.dataset.displayBpo);v3Toast('רזולוציה: 1/'+curBpo+' אוקטבה');}));
 safeOn('res', 'input',e=>{
   setRtaResolution(e.target.value);
 });
@@ -3293,7 +3342,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     lastV[b]=v;
     if(v>peakVal){peakVal=v;peakBand=b;}
     
-    if(!tfRequested && !abCompare){
+    if(!tfRequested && !abCompare && !(v5WorkspaceMode==='mr'&&analyserRef)){
       const x=b*bw+gap/2, barW=bw-gap;
       const barH=v*plotH, y=plotH-barH;
       let col= v<0.85?'rgba('+accentRgb[0]+','+accentRgb[1]+','+accentRgb[2]+','+(0.4+v).toFixed(2)+')' : 'var(--hot)';
@@ -3305,6 +3354,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       }
     }
   }
+
+  if(!tfRequested&&!abCompare&&v5WorkspaceMode==='mr'&&analyserRef)drawDualInputRta(W,plotH,nyquist);
   
   if(tfRequested){
     const alignView = alignOn;
@@ -4535,7 +4586,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.33';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.42';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4580,7 +4631,7 @@ function v5SetTab(mode){
   // Only workspace buttons belong to this state. The three graph segments are
   // controlled by v54SetAnalysisView/setMode and must remain mutually exclusive.
   document.querySelectorAll('#v5ModeTabs > button[data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
-  const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis');
+  const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis'||mode==='mr');
 }
 function v54SetSideRail(open){
   const isOpen=!!open;
@@ -4599,9 +4650,11 @@ function v54SetAnalysisView(view,event){
   closeModals();
   setAlign(false);
   const rtaBtn=document.getElementById('v53AnalysisToggle');
+  const mrBtn=document.getElementById('v54MrToggle');
   const wfBtn=document.getElementById('v54WaterfallToggle');
   const tfBtn=document.getElementById('v54TfGraphToggle');
   rtaBtn?.classList.toggle('on',view==='rta');
+  mrBtn?.classList.toggle('on',view==='mr');
   wfBtn?.classList.toggle('on',view==='spec');
   tfBtn?.classList.toggle('on',view==='tf');
   if(view==='tf'){
@@ -4609,12 +4662,13 @@ function v54SetAnalysisView(view,event){
     setMode('rta');setTfOverlay(true);
   }else{
     setTfOverlay(false);
-    setMode(view);
-    v5SetTab('analysis');
+    setMode(view==='spec'?'spec':'rta');
+    v5SetTab(view==='mr'?'mr':'analysis');
   }
   // setMode('rta') supplies TF's underlying frequency canvas; restore the
   // visible selector state afterwards so TF alone remains highlighted.
   rtaBtn?.classList.toggle('on',view==='rta');
+  mrBtn?.classList.toggle('on',view==='mr');
   wfBtn?.classList.toggle('on',view==='spec');
   tfBtn?.classList.toggle('on',view==='tf');
   const bottom=document.getElementById('uiBottomTools');
@@ -4685,7 +4739,7 @@ function v5RenderTraceRail(){
   box.innerHTML=tfTraces.map((t,i)=>
     '<div class="v5TraceRow" data-trace="'+i+'">'+
       '<span class="v5TraceNum">'+(i+1)+'</span>'+
-      '<span class="v5TraceName" title="לחץ פעמיים לשינוי שם" style="color:'+t.color+'">'+escapeHtml(t.name)+'</span>'+
+      '<span class="v5TraceName" title="לחץ פעמיים לשינוי שם" style="color:'+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+ 
       '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" title="הצג/הסתר">◉</button>'+
       '<button class="v5TraceAction" data-trace-del="'+i+'" title="מחק">×</button>'+
     '</div>').join('');

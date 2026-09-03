@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 const core=fs.readFileSync('app-core.js','utf8'), html=fs.readFileSync('index.html','utf8');
+const captureFn=core.slice(core.indexOf('function captureTfTrace()'),core.indexOf('function captureWorkspaceTrace()'));
 const checks=[
  ['runtime core copies match',core===fs.readFileSync('js/app-core.js','utf8')],
  ['no undefined isoBands dependency',!core.includes('isoBands')],
@@ -45,7 +46,7 @@ const checks=[
  ['visual issue chips use hz',html.includes("Math.round(c.hz||c.f)+' Hz")],
  ['TF confidence does not depend on window.audioCtx',!html.includes('!window.audioCtx')]
  ,['TF snapshot retains reference and microphone spectra',core.includes('refDb=new Float32Array(n),micDb=new Float32Array(n)')&&core.includes('refDb,micDb,refOffset')]
- ,['TF graph separates input comparison and system difference',core.includes('INPUT COMPARISON')&&core.includes('DETAILED SYSTEM DIFFERENCE · MIC − REF')&&core.includes('drawInput(\'refDb\'')&&core.includes('drawInput(\'micDb\'')]
+ ,['TF graph separates input comparison and system difference',core.includes('TOP · INPUTS — REF (source) vs MIC (system)')&&core.includes('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE')&&core.includes('drawInput(\'refDb\'')&&core.includes('drawInput(\'micDb\'')]
  ,['TF graph shades the live input gap',core.includes('audible system difference between mixer reference and microphone')&&core.includes("p.delta>=0?'rgba(239,82,104,.15)':'rgba(51,198,222,.15)'")]
  ,['TF cursor reports both inputs and delta',core.includes("'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+s.mag[k].toFixed(1)+' dB'")]
  ,['TF difference uses dense frequency columns',core.includes('Dense deviation columns expose narrow peaks')&&core.includes('for(let px=0;px<=W;px+=2)')&&core.includes('path.moveTo(px,zeroY);path.lineTo(px,y)')]
@@ -65,16 +66,34 @@ const checks=[
  ,['traces are permanently embedded in the left rail',html.includes('id="targetTraceCard"')&&html.includes('id="persistentTraceHost"')&&html.includes('host.append(list,add)')&&!html.includes('data-tls-open="traces"')]
  ,['bottom traces action focuses and reopens the persistent rail',html.includes("if(a==='traces'){window.focusPersistentTraces?.()}")&&html.includes("setRail('left',true)")]
  ,['tool cards place centered icon below label',html.includes('flex-direction:column!important;gap:8px!important')&&html.includes('<span>TF Measurement</span><span class="rtIcon">◎</span>')&&html.includes('text-align:center!important;justify-content:center!important')]
- ,['desktop generator and I/O cannot resize the canvas',html.includes('#stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv')&&html.includes('height:calc(100% - 48px)!important')&&html.includes('#stage.v52-io-open .meter,#stage.v53-gen-open .meter{bottom:8px!important}')]
+ ,['desktop generator and I/O cannot resize the canvas',html.includes('#stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv')&&html.includes('height:calc(100% - 76px)!important')&&html.includes('#stage.v52-io-open .meter,#stage.v53-gen-open .meter{bottom:8px!important}')]
  ,['all traces entry points focus the persistent rail',html.includes("if(kind==='traces'){")&&html.includes('window.focusPersistentTraces?.()')]
  ,['desktop rails have independent collapse controls',html.includes('id="leftRailToggle"')&&html.includes('id="rightRailToggle"')&&html.includes("side+'-rail-collapsed'")]
  ,['collapsed rails release canvas space',html.includes('body.left-rail-collapsed #stage{margin-left:12px!important}')&&html.includes('body.right-rail-collapsed #stage{margin-right:12px!important}')]
  ,['rail collapse preferences persist',html.includes("gal_'+side+'_rail_open")&&html.includes("setAttribute('aria-expanded'")]
- ,['TF trace capture cannot silently fall back to RTA',core.includes("if(v5WorkspaceMode==='tf')")&&core.includes('לכידת TF דורשת ערוץ Reference פעיל')]
- ,['analysis selector uses compact single-surface styling',html.includes('width:min(390px,48vw)!important')&&html.includes('#v53AnalysisGroup button.on::after')&&html.includes('background:rgba(31,183,201,.11)')]
+ ,['TF trace capture cannot silently fall back to RTA',core.includes("if(v5WorkspaceMode==='tf')")&&core.includes('captureTfTrace();return;')]
+ ,['TF capture is available without sync or verification',core.includes('if(trace)trace.disabled=busy;')&&!captureFn.includes('tfDelayReady||!tfWorkflowVerified')]
+ ,['TF captures carry explicit trust state',core.includes("s.verified=verified;s.status=verified?'Verified':'Unverified'")&&core.includes("captureKind:'mic-spectrum'")]
+ ,['TF trace rail preserves controls and trust badge',core.includes('data-trace-eye')&&core.includes('data-trace-del')&&core.includes('v5TraceTrust')&&core.includes("addEventListener('dblclick'")]
+ ,['legacy health guard permits unverified TF capture',html.includes("!(tfCapture&&['LOW REF','LOW COHERENCE'].includes(h.reason))")]
+ ,['M/R overlays blue microphone and red reference',core.includes('function drawDualInputRta(W,plotH,nyquist)')&&core.includes("fill(ref,'#ff4d5e',.32)")&&core.includes("fill(mic,'#258dff',.50)")]
+ ,['M/R reads the live reference analyser only in its own mode',core.includes('analyserRef.getFloatFrequencyData(floatDataRef)')&&core.includes("v5WorkspaceMode==='mr'&&analyserRef)drawDualInputRta")]
+ ,['RTA retains its original presentation',core.includes("!(v5WorkspaceMode==='mr'&&analyserRef)")&&html.includes("v54SetAnalysisView('mr',event)")]
+ ,['M/R has explicit input legend',core.includes("ctx.fillText('━ MIC 1'")&&core.includes("ctx.fillText('━ REF 2'")&&core.includes("ctx.fillText('M/R'")]
+ ,['M/R uses canonical RTA band power',core.includes('const bandPoints=(data,history,isMic)')&&core.includes('binOverlapPowerDb(data,fc/R,fc*R,nyquist)')]
+ ,['M/R and TF share the same speed coefficient',core.includes('old*tfSmoothA+raw*(1-tfSmoothA)')&&core.includes('const alpha = tfSmoothA')]
+ ,['M/R reports a disconnected reference',core.includes('REF 2 · NO SIGNAL')&&core.includes('Check routing / input channel')]
+ ,['responsive layout removes the legacy context bar',html.includes('@media(max-width:900px){')&&html.includes('.workspaceRailToggle,#uiContextBar{display:none!important}')]
+ ,['responsive mode selector stays visible above graph',html.includes('#v5ModeTabs{display:flex!important;left:0!important;right:0!important;top:0!important;height:48px!important')&&html.includes('#stage>canvas#cv,#stage.measure-open>canvas#cv,#stage.bar-open>canvas#cv{top:76px!important;height:calc(100% - 76px)!important}')]
+ ,['resolution strip exposes all canonical choices',html.includes('id="displayResolutionBar"')&&[3,6,12,24].every(n=>html.includes('data-display-bpo="'+n+'"'))]
+ ,['resolution strip drives and follows canonical engine',core.includes("document.querySelectorAll('[data-display-bpo]')")&&core.includes('setRtaResolution(btn.dataset.displayBpo)')&&core.includes("btn.classList.toggle('on',on)")]
+ ,['resolution strip and graph have separate layout space',html.includes('#displayResolutionBar{position:absolute')&&html.includes('top:76px!important')&&html.includes('height:calc(100% - 76px)!important')]
+ ,['resolution strip uses subtle active styling',html.includes('height:24px;display:flex')&&html.includes('button.on::after{content:""')&&html.includes('width:13px;height:1px')&&html.includes('background:transparent!important;box-shadow:none!important')]
+ ,['I/O card has no decorative fake meter',!html.includes('class="tlsMeter"')&&!html.includes('.tlsMeter{')]
+ ,['analysis selector uses compact single-surface styling',html.includes('width:min(480px,58vw)!important')&&html.includes('grid-template-columns:repeat(4,1fr)!important')&&html.includes('#v53AnalysisGroup button.on::after')&&html.includes('background:rgba(31,183,201,.11)')]
  ,['rail controls are slim attached edge handles',html.includes('top:50%;width:22px;height:52px')&&html.includes('border-radius:0 11px 11px 0')&&html.includes('border-radius:11px 0 0 11px')]
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.33 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.42 regression validation passed (${checks.length} checks).`);

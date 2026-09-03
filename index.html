@@ -448,6 +448,9 @@
   .tfTraceLegend{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:10px;color:var(--dim)}
   .tfTraceLegend span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2)}
   .tfTraceLegend i{width:12px;height:2px;display:inline-block;border-radius:2px}
+  .tfTraceStatus,.v5TraceTrust{font:800 8px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}
+  .tfTraceStatus.verified,.v5TraceTrust.verified{color:#45d47b}
+  .tfTraceStatus.unverified,.v5TraceTrust.unverified{color:#f5b942}
   @media(max-width:760px){
     .measureDock{justify-content:flex-start!important;max-height:50vh!important;padding:7px 8px!important}
     .measureDock h3{width:100%}
@@ -615,7 +618,8 @@
     min-height:28px;padding:3px 4px;border-bottom:1px solid #17242f;font-size:10px;
   }
   .v5TraceNum{color:#6f8090}
-  .v5TraceName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .v5TraceName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;gap:5px;align-items:center}
+  .v5TraceTrust{margin-left:auto}
   .v5TraceAction{border:0;background:transparent;color:#90a1af;cursor:pointer;padding:4px;border-radius:4px}
   .v5TraceAction:hover{color:var(--accent);background:rgba(62,166,255,.1)}
   .v5TraceAction.off{opacity:.35}
@@ -1488,8 +1492,15 @@ body.sun-mode .tfProCard b{color:#172033}
 /* V5.5.3 Unified Workspace */
 #v5ModeTabs>button[data-v5mode="delay"],#v5ModeTabs>button[data-v5mode="rt60"],#v5ModeTabs>button[data-v5mode="spleq"],#v5ModeTabs>button[data-v5mode="align"]{display:none!important}
 #v5ModeTabs{justify-content:center!important}
-#v53AnalysisGroup{flex:0 1 460px!important;display:grid!important;grid-template-columns:repeat(3,1fr)!important}
+#v53AnalysisGroup{flex:0 1 520px!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important}
 #v53AnalysisGroup button{min-width:0!important}
+#displayResolutionBar{position:absolute;z-index:29;top:48px;left:50%;transform:translateX(-50%);height:24px;display:flex;align-items:center;gap:2px;padding:0 6px;border:0;border-radius:0;background:transparent;box-shadow:none}
+#displayResolutionBar .drLabel{padding:0 7px 0 2px;color:#536c77;font:750 7px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.13em;white-space:nowrap}
+#v5ModeTabs #displayResolutionBar button{position:relative;height:20px;min-width:38px!important;padding:0 7px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#607b87!important;font:750 8px ui-monospace,SFMono-Regular,Menlo,monospace!important;letter-spacing:.02em!important;cursor:pointer;box-shadow:none!important;opacity:.82}
+#v5ModeTabs #displayResolutionBar button:hover{color:#a9c5ce!important;opacity:1}
+#v5ModeTabs #displayResolutionBar button.on{color:#bceff2!important;background:transparent!important;box-shadow:none!important;opacity:1}
+#v5ModeTabs #displayResolutionBar button.on::after{content:"";position:absolute;left:50%;bottom:0;width:13px;height:1px;transform:translateX(-50%);background:rgba(60,215,224,.8);box-shadow:none}
+body.sun-mode #displayResolutionBar{background:transparent}body.sun-mode #v5ModeTabs #displayResolutionBar button.on{color:#087783!important}
 #uiContextBar{
  position:absolute;z-index:28;left:50%;transform:translateX(-50%);bottom:10px;
  display:flex;align-items:center;gap:6px;padding:6px 7px;border:1px solid rgba(148,163,184,.18);
@@ -2031,22 +2042,22 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     border-radius:11px!important;overflow:hidden!important
   }
   #stage>canvas#cv{
-    left:0!important;right:0!important;top:48px!important;bottom:0!important;
-    width:100%!important;height:calc(100% - 48px)!important
+    left:0!important;right:0!important;top:76px!important;bottom:0!important;
+    width:100%!important;height:calc(100% - 76px)!important
   }
   #stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv{
-    left:0!important;right:0!important;top:48px!important;bottom:0!important;
-    width:100%!important;height:calc(100% - 48px)!important
+    left:0!important;right:0!important;top:76px!important;bottom:0!important;
+    width:100%!important;height:calc(100% - 76px)!important
   }
   #stage.v52-io-open .meter,#stage.v53-gen-open .meter{bottom:8px!important}
-  #stage.measure-open>canvas#cv{height:calc(100% - 48px - var(--measure-h,0px))!important}
-  #stage.bar-open>canvas#cv{height:calc(100% - 48px - var(--bar-h,0px))!important}
+  #stage.measure-open>canvas#cv{height:calc(100% - 76px - var(--measure-h,0px))!important}
+  #stage.bar-open>canvas#cv{height:calc(100% - 76px - var(--bar-h,0px))!important}
   #v5ModeTabs{
     left:0!important;right:0!important;top:0!important;height:48px!important;
     padding:6px 12px!important;align-items:center!important;justify-content:center!important
   }
   #v53AnalysisGroup{
-    width:min(390px,48vw)!important;max-width:390px!important;height:34px!important;padding:3px!important;gap:3px!important;
+    width:min(480px,58vw)!important;max-width:480px!important;height:34px!important;padding:3px!important;gap:3px!important;
     border:1px solid rgba(116,165,181,.20)!important;border-radius:18px!important;
     background:rgba(2,10,15,.72)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 5px 16px rgba(0,0,0,.18)!important
   }
@@ -2076,7 +2087,6 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   .tlsHead{font:800 10px ui-monospace,monospace;color:#c7d9df;letter-spacing:.08em;margin-bottom:8px}
   .tlsLine{display:flex;justify-content:space-between;gap:8px;margin:5px 0;font:700 9px ui-monospace,monospace;color:#829fa9}
   .tlsLine strong{color:#d6e5e9;font-weight:750}.tlsDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3edb73;margin-right:6px;box-shadow:0 0 8px rgba(62,219,115,.45)}
-  .tlsMeter{height:5px;border-radius:5px;background:linear-gradient(90deg,#27d76f 0 64%,#e9cf43 64% 80%,#e64b46 80% 100%);opacity:.72;margin-top:8px}
   .tlsOpen{margin-top:auto;min-height:28px;border:1px solid rgba(105,169,190,.24);border-radius:7px;background:#071820;color:#9fb4bc;font:750 9px ui-monospace,monospace;cursor:pointer}
   .tlsOpen:hover{border-color:#1fd8e3;color:#effdff}
   #targetTraceCard{flex:1 1 auto!important;min-height:150px!important;overflow:hidden!important}
@@ -2216,7 +2226,13 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
-  #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle{display:none!important}
+  #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle,#uiContextBar{display:none!important}
+  #v5ModeTabs{display:flex!important;left:0!important;right:0!important;top:0!important;height:48px!important;padding:6px 10px!important;justify-content:center!important;overflow:visible!important}
+  #displayResolutionBar{display:flex!important;top:48px!important;max-width:calc(100vw - 28px)!important}
+  #v53AnalysisGroup{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;width:min(480px,calc(100vw - 36px))!important;max-width:480px!important;height:36px!important;margin:0 auto!important}
+  #v53AnalysisGroup button{min-width:0!important;padding:0 5px!important;font-size:9px!important;white-space:nowrap!important}
+  #stage>canvas#cv,#stage.measure-open>canvas#cv,#stage.bar-open>canvas#cv{top:76px!important;height:calc(100% - 76px)!important}
+  #stage.measure-open>canvas#cv{height:calc(100% - 76px - var(--measure-h,0px))!important}
   body.ui-workspace-drawer #v52IODock .v52IOGrid{grid-template-columns:1fr!important}
   body.ui-workspace-drawer #v52IODock .v52IOCard:first-child{grid-column:auto!important}
 }
@@ -2284,7 +2300,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.33</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.42</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2314,7 +2330,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.33 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.42 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2323,8 +2339,16 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
     <div id="v5ModeTabs" aria-label="Measurement modes">
       <div class="v53AnalysisGroup on" id="v53AnalysisGroup" aria-label="Analysis view">
         <button id="v53AnalysisToggle" data-v5mode="analysis" type="button" class="on" onclick="v54SetAnalysisView('rta',event)">RTA</button>
+        <button id="v54MrToggle" type="button" onclick="v54SetAnalysisView('mr',event)" title="Microphone / Reference comparison">M/R</button>
         <button id="v54WaterfallToggle" type="button" onclick="v54SetAnalysisView('spec',event)">Waterfall</button>
         <button id="v54TfGraphToggle" type="button" onclick="v54SetAnalysisView('tf',event)">TF</button>
+      </div>
+      <div id="displayResolutionBar" aria-label="RTA resolution">
+        <span class="drLabel">RES</span>
+        <button type="button" data-display-bpo="3" aria-pressed="false">1/3</button>
+        <button type="button" data-display-bpo="6" class="on" aria-pressed="true">1/6</button>
+        <button type="button" data-display-bpo="12" aria-pressed="false">1/12</button>
+        <button type="button" data-display-bpo="24" aria-pressed="false">1/24</button>
       </div>
       <button data-v5mode="delay">Delay</button>
       <button data-v5mode="rt60">RT60</button>
@@ -3022,7 +3046,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.33</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.42</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3075,7 +3099,7 @@ window.addEventListener('load', function(){
     const ready=document.getElementById('uiReadyText');if(!ready)return;
     const audio=(document.getElementById('v52AudioState')?.textContent||document.getElementById('v3AudioChip')?.textContent||'').toLowerCase();
     const running=/running|active|on|פעיל|פועל/.test(audio) && !/stopped|off|כבוי/.test(audio);
-    ready.textContent=running?'READY':'LIVE';
+    ready.textContent=running?'AUDIO LIVE':'AUDIO OFF';
     document.getElementById('uiLivePill')?.classList.toggle('ready',running);
   },600);
 
@@ -3110,6 +3134,7 @@ window.addEventListener('load', function(){
   function currentPrimaryMode(){
     if(document.getElementById('v54TfGraphToggle')?.classList.contains('on'))return 'tf';
     if(document.getElementById('v54WaterfallToggle')?.classList.contains('on'))return 'waterfall';
+    if(document.getElementById('v54MrToggle')?.classList.contains('on'))return 'mr';
     return 'rta';
   }
   function syncContextBar(){
@@ -3117,7 +3142,7 @@ window.addEventListener('load', function(){
     document.body.classList.toggle('ctx-tf',m==='tf');
     document.body.classList.toggle('ctx-waterfall',m==='waterfall');
     const cap=ctxBar?.querySelector('[data-ctx="capture"]'),freeze=ctxBar?.querySelector('[data-ctx="freeze"]'),modeAction=ctxBar?.querySelector('[data-ctx="modeAction"]');
-    if(ctxState)ctxState.textContent=(m==='tf'?'TF':m==='waterfall'?'WATERFALL':'RTA')+' · LIVE';
+    if(ctxState)ctxState.textContent=(m==='tf'?'TF':m==='waterfall'?'WATERFALL':m==='mr'?'M/R':'RTA')+' · LIVE';
     if(m==='tf'){
       if(metric){const d=document.getElementById('tfProDelay')?.textContent||'Delay —';const c=document.getElementById('tfProCoh')?.textContent||'Coh —';metric.textContent=d+' · '+c;}
       if(cap)cap.textContent='Capture TF';
@@ -3126,6 +3151,10 @@ window.addEventListener('load', function(){
       if(metric&&(!window.wfResonance||!window.wfResonance.enabled))metric.textContent='Time · Frequency';
       if(cap)cap.textContent='Capture';
       if(modeAction)modeAction.textContent='Clear';
+    }else if(m==='mr'){
+      if(metric)metric.textContent='MIC 1 + REF 2';
+      if(cap)cap.textContent='Capture M/R';
+      if(modeAction)modeAction.textContent='Peak Hold';
     }else{
       const peak=document.getElementById('v5PeakValue')?.textContent||'—';
       if(metric)metric.textContent='Peak '+peak;
@@ -3151,7 +3180,7 @@ window.addEventListener('load', function(){
     if(a==='generator'){openWorkspaceDrawer('generator');}
     if(a==='tools'){close();setTimeout(()=>document.querySelector('#uiRightTools [data-tool="delay"]')?.focus(),80);}
   });
-  ['v53AnalysisToggle','v54WaterfallToggle','v54TfGraphToggle'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>setTimeout(syncContextBar,30)));
+  ['v53AnalysisToggle','v54MrToggle','v54WaterfallToggle','v54TfGraphToggle'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>setTimeout(syncContextBar,30)));
   setTimeout(syncContextBar,700); setInterval(syncContextBar,900);
 
   function syncStates(){
@@ -3212,7 +3241,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.33"></script>
+<script src="app.js?v=5.5.42"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3365,14 +3394,14 @@ window.addEventListener('load', function(){
    return {label,spread:sd,mean:av,count:dh.length};
  };
 
- function mode(){return document.querySelector('#v54TfGraphToggle.on')?'TF':document.querySelector('#v54WaterfallToggle.on')?'WATERFALL':'RTA'}
+ function mode(){return document.querySelector('#v54TfGraphToggle.on')?'TF':document.querySelector('#v54WaterfallToggle.on')?'WATERFALL':document.querySelector('#v54MrToggle.on')?'M/R':'RTA'}
 
  function renderTraceManager(){
    const box=document.getElementById('tsRows');if(!box||typeof v552GetTraces!=='function')return;
    const traces=v552GetTraces();box.innerHTML='';
    traces.forEach((t,i)=>{
      const r=document.createElement('div');r.className='tsRow';
-     r.innerHTML='<input type="checkbox" data-ts-select="'+i+'"><input class="tsInput" value="'+String(t.name||'Trace').replace(/"/g,'&quot;')+'"><span>'+(t.type==='tf'?'TF':'RTA')+(t.spatialAverage?' · AVG':'')+'</span><button class="tsBtn" data-eye="'+i+'">'+(t.visible===false?'SHOW':'HIDE')+'</button><button class="tsBtn" data-del="'+i+'">DEL</button>';
+     r.innerHTML='<input type="checkbox" data-ts-select="'+i+'"><input class="tsInput" value="'+String(t.name||'Trace').replace(/"/g,'&quot;')+'"><span>'+(t.type==='tf'?('TF · '+(t.verified===true?'Verified':'Unverified')):'RTA')+(t.spatialAverage?' · AVG':'')+'</span><button class="tsBtn" data-eye="'+i+'">'+(t.visible===false?'SHOW':'HIDE')+'</button><button class="tsBtn" data-del="'+i+'">DEL</button>';
      r.querySelector('.tsInput').onchange=e=>v552RenameTrace(i,e.target.value);
      r.querySelector('[data-eye]').onclick=()=>{v552ToggleTrace(i);renderTraceManager()};
      r.querySelector('[data-del]').onclick=()=>{v552DeleteTrace(i);renderTraceManager()};
@@ -3444,7 +3473,8 @@ window.addEventListener('load', function(){
    const b=e.target.closest('[data-ctx="capture"],#tfTraceBtn,#v5AddTrace,#tsCapture');
    if(!b)return;
    const h=window.measurementHealth;
-   if(h&&!h.ready&&['CLIPPING','LOW HEADROOM','LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason)){
+   const tfCapture=b.id==='tfTraceBtn'||document.body.classList.contains('ctx-tf')||!!document.querySelector('#v54TfGraphToggle.on');
+   if(h&&!h.ready&&['CLIPPING','LOW HEADROOM','LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason)&&!(tfCapture&&['LOW REF','LOW COHERENCE'].includes(h.reason))){
      e.preventDefault();e.stopImmediatePropagation();
      const msg=(advice[h.reason]||'Improve measurement conditions before capture.');
      if(typeof v3Toast==='function')v3Toast(h.reason+' · '+msg);else alert(h.reason+' — '+msg);
@@ -3479,7 +3509,7 @@ window.addEventListener('load', function(){
 <button id="rightRailToggle" class="workspaceRailToggle" type="button" aria-label="קפל סרגל ימני" aria-expanded="true">›</button>
 <div id="targetLeftStatus" aria-hidden="true">
  <section class="tlsCard"><div class="tlsHead">GENERATOR</div><div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div><button class="tlsOpen" type="button" data-tls-open="generator">OPEN GENERATOR</button></section>
- <section class="tlsCard"><div class="tlsHead"><span class="tlsDot"></span>I / O</div><div class="tlsLine"><span>MIC</span><strong id="tlsMic">—</strong></div><div class="tlsLine"><span>REF</span><strong id="tlsRef">—</strong></div><div class="tlsMeter"></div><button class="tlsOpen" type="button" data-tls-open="io">OPEN I / O</button></section>
+ <section class="tlsCard"><div class="tlsHead"><span class="tlsDot"></span>I / O</div><div class="tlsLine"><span>MIC</span><strong id="tlsMic">—</strong></div><div class="tlsLine"><span>REF</span><strong id="tlsRef">—</strong></div><button class="tlsOpen" type="button" data-tls-open="io">OPEN I / O</button></section>
  <section class="tlsCard" id="targetTraceCard" tabindex="-1"><div class="tlsHead">TRACES</div><div class="tlsLine"><span>CAPTURED</span><strong id="tlsTraces">0</strong></div><div class="tlsLine"><span>VISIBLE</span><strong id="tlsVisible">0</strong></div><div id="persistentTraceHost"></div></section>
 </div>
 <button id="leftRailToggle" class="workspaceRailToggle" type="button" aria-label="קפל סרגל שמאלי" aria-expanded="true">‹</button>
@@ -3517,7 +3547,7 @@ window.addEventListener('load', function(){
 (()=>{
  const bar=document.getElementById('targetCommandBar');if(!bar)return;
  function syncTargetBar(){
-   const mode=document.querySelector('#uiTopModes .on,#v54RtaGraphToggle.on,#v54WaterfallToggle.on,#v54TfGraphToggle.on');
+   const mode=document.querySelector('#uiTopModes .on,#v54RtaGraphToggle.on,#v54MrToggle.on,#v54WaterfallToggle.on,#v54TfGraphToggle.on');
    bar.dataset.mode=(mode?.textContent||'RTA').trim().toUpperCase();
  }
  setInterval(syncTargetBar,700);syncTargetBar();

@@ -1,4 +1,20 @@
-# GAL Analyzer V5.5.33 — Elegant Workspace Navigation
+# GAL Analyzer V5.5.42 — Subtle Resolution Strip
+
+V5.5.42 refines the resolution selector into a quiet secondary control: transparent background, compact typography, no button capsules and only a thin underline for the active value. Its height is reduced from 32 to 24 pixels to return more space to the graph.
+
+V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
+
+V5.5.40 keeps the RTA / M/R / Waterfall / TF display selector visible at the top of the graph in narrow-window, tablet and phone layouts. The graph is positioned below the compact selector while the obsolete contextual action bar remains removed.
+
+V5.5.39 removes the legacy contextual action bar from tablet, phone and narrow-window layouts. Peak Hold, Tools, Generator, Freeze and duplicate Capture controls no longer cover the graph when the window is reduced; the canonical navigation and command surfaces remain available.
+
+V5.5.38 calculates M/R through the same canonical band-power engine used by RTA rather than through a separate raw-FFT renderer. Both M/R channels now use the exact TF smoothing coefficient selected by Analysis Speed, so M/R and TF move at the same rate in Fast, Normal and Slow. Missing Reference audio is shown explicitly instead of appearing as a valid flat red measurement.
+
+V5.5.37 restores the original RTA presentation and moves the two-input comparison into a dedicated `M/R` graph tab. M/R overlays a temporally and spatially smoothed blue microphone spectrum with a red Reference spectrum, keeping the display stable enough for direct visual comparison without changing RTA behavior.
+
+V5.5.36 shows microphone Input 1 and Reference Input 2 together on one canonical RTA graph. The microphone uses a magenta filled spectrum and the Reference uses a green filled spectrum, with clear outlines and an on-graph legend. The existing RTA band calculations and trace capture remain active beneath the new presentation.
+
+V5.5.35 lets TF Capture save the current trace without Delay Sync or verification. Every TF trace now carries an explicit Verified or Unverified status in its name, graph legend, permanent Traces rail and measurement-session list. A verified Reference path still stores the complete magnitude, phase, coherence and delay snapshot; a mic-only TF view is stored as an Unverified spectrum. Show/hide, delete and rename continue to operate on both trust states, and legacy context/health guards no longer block an Unverified TF capture solely because Reference or coherence is unavailable.
 
 V5.5.33 redesigns the RTA / Waterfall / TF selector as a compact segmented control with a restrained active indicator and no nested bright outline. The left and right collapse buttons are now slim, centered edge handles that stay visually attached to their rails.
 

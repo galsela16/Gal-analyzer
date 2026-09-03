@@ -15,7 +15,7 @@ for(const file of ['app.js','js/app-core.js','js/core/config.js','js/core/diagno
 const html=await readFile('index.html','utf8');
 const worker=await readFile('sw.js','utf8');
 const config=await readFile('js/core/config.js','utf8');
-for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','v5TraceList','tfWorkflowSteps','tfAutoDelayBtn','tfVerifyBtn','tfUtilityBtns','dlyLoopbackBtn','dlyUnitSeg','dlyKnownDistance','dlyDistanceCalBtn','phWorkflowSteps','phSyncBtn','phRecommendation']){
+for(const id of ['cv','v52IODock','v52OpenMicCal','v53AnalysisToggle','displayResolutionBar','v5TraceList','tfWorkflowSteps','tfAutoDelayBtn','tfVerifyBtn','tfUtilityBtns','dlyLoopbackBtn','dlyUnitSeg','dlyKnownDistance','dlyDistanceCalBtn','phWorkflowSteps','phSyncBtn','phRecommendation']){
   if(!html.includes(`id="${id}"`)) throw new Error(`Missing UI anchor: ${id}`);
 }
 for(const asset of ['app.js','js/app-core.js','js/core/config.js','js/core/diagnostics.js']){
@@ -33,7 +33,7 @@ const core=await readFile('js/app-core.js','utf8');
 for(const workflowCheck of [
   "safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000))",
   "verify.disabled=busy||!tfDelayReady",
-  "trace.disabled=busy||!tfWorkflowVerified",
+  "trace.disabled=busy",
   "eq.disabled=busy||!tfWorkflowVerified",
   "tfWorkflowVerifyTimer=setTimeout",
   "st.dataset.delayResult==='path'",
@@ -61,7 +61,7 @@ for(const delaySafetyCheck of [
   if(!core.includes(delaySafetyCheck)) throw new Error(`Sweep-delay safety guard missing: ${delaySafetyCheck}`);
 }
 if(core.includes("signalType!=='noise')sweepResult=computeSweepDelay")) throw new Error('Unknown external audio can still fall through to the sweep estimator');
-if(!html.includes('GAL Analyzer V5.5.33')||!config.includes("version:'5.5.33-elegant-workspace-navigation'")||!worker.includes('v5-5-33-elegant-workspace-navigation')) throw new Error('V5.5.33 release identifiers are inconsistent');
+if(!html.includes('GAL Analyzer V5.5.42')||!config.includes("version:'5.5.42-subtle-resolution-strip'")||!worker.includes('v5-5-42-subtle-resolution-strip')) throw new Error('V5.5.42 release identifiers are inconsistent');
 const recorder=await readFile('recorder-worklet.js','utf8');
 if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
 if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');
