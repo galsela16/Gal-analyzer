@@ -52,7 +52,10 @@ const checks=[
  ,['TF difference colors show direction and severity',core.includes('TF_DELTA_COLORS')&&core.includes('function tfDeltaBucket')&&core.includes('rgba(239,68,68,.82)')&&core.includes('rgba(37,99,235,.82)')]
  ,['TF dense columns are batched for smooth rendering',core.includes('TF_DELTA_COLORS.map(()=>new Path2D())')&&core.includes('deviationBars.forEach')]
  ,['TF detailed contour remains clearly visible',core.includes("ctx.strokeStyle='#b7f34a'")&&core.includes('Math.floor(plotH*.52)')]
+ ,['TF tab is not gated by hidden workflow state',core.includes('if(tfHasReferenceSignal()) tfDrawMagnitudeView(W,plotH,nyquist)')&&!core.includes('if(tfOpen && tfDelayReady) tfDrawMagnitudeView')]
+ ,['TF mic-only fallback uses dense FFT detail',core.includes('A dense FFT silhouette stays useful')&&core.includes('for(let x=0;x<=W;x+=2)')&&core.includes('ctx.createLinearGradient(0,0,W,0)')]
+ ,['TF mic-only fallback has frequency colors and contour',Array.from(['#ef4444','#f97316','#facc15','#84cc16','#22d3ee','#0ea5e9','#2563eb']).every(color=>core.includes(color))&&core.includes("ctx.strokeStyle='#b7f34a'")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.24 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.25 regression validation passed (${checks.length} checks).`);

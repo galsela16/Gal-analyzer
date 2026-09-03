@@ -142,7 +142,7 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.24 visual Waterfall history. Each row is a frequency slice;
+// V5.5.25 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
 const wf3d={rows:[],frame:0,maxRows:84,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
 
@@ -363,7 +363,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.24-tf-detailed-spectrum',
+    version: 'v5.5.25-tf-visible-detailed-spectrum',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1557,18 +1557,20 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   ctx.restore();
 }
 
-function tfDrawDualLiveView(W,plotH){
-  if(!lastV.length || !lastRefV.length) return;
-  const bw=W/BANDS;
-  const drawCurve=(values,color,fill)=>{
-    const points=values.map((v,b)=>({x:b*bw+bw/2,y:plotH-Math.max(0,Math.min(1,v))*plotH}));
-    if(!points.length)return;
-    ctx.beginPath();ctx.moveTo(points[0].x,plotH);points.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(points[points.length-1].x,plotH);ctx.closePath();ctx.fillStyle=fill;ctx.fill();
-    ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=2.4;ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
-  };
+function tfDrawDualLiveView(W,plotH,nyquist){
+  if(!floatData?.length || !lastV.length || !lastRefV.length) return;
+  const sample=(data,x)=>{const f=freqForX(x),p=Math.max(0,Math.min(data.length-1,f/nyquist*(data.length-1))),i=Math.floor(p),t=p-i;return data[i]+((data[Math.min(data.length-1,i+1)]||data[i])-data[i])*t;};
+  const yForDb=db=>plotH-Math.max(0,Math.min(1,(db-floorDb)/(ceilDb-floorDb)))*plotH;
+  const mic=[];for(let x=0;x<=W;x+=2)mic.push({x,y:yForDb(sample(floatData,x))});
+  const spectrumGradient=ctx.createLinearGradient(0,0,W,0);
+  [['#ef4444',0],['#f97316',.12],['#facc15',.28],['#84cc16',.43],['#22d3ee',.65],['#0ea5e9',.82],['#2563eb',1]].forEach(([color,stop])=>spectrumGradient.addColorStop(stop,color));
+  // A dense FFT silhouette stays useful even before a valid reference is connected.
+  ctx.beginPath();ctx.moveTo(0,plotH);mic.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=.26;ctx.fillStyle=spectrumGradient;ctx.fill();ctx.globalAlpha=1;
+  ctx.beginPath();mic.forEach((p,i)=>{ctx.moveTo(p.x,plotH);ctx.lineTo(p.x,p.y);});ctx.strokeStyle=spectrumGradient;ctx.globalAlpha=.48;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
+  ctx.beginPath();mic.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#b7f34a';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+  const drawCurve=(values,color,dash=[])=>{const bw=W/BANDS;ctx.beginPath();values.forEach((v,b)=>{const x=b*bw+bw/2,y=plotH-Math.max(0,Math.min(1,v))*plotH;b?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);};
   ctx.save();
-  drawCurve(lastRefV,'#f59e0b','rgba(245,158,11,.075)');
-  drawCurve(lastV,'#38bdf8','rgba(56,189,248,.11)');
+  drawCurve(lastRefV,'#f59e0b',[6,4]);
   ctx.font='700 11px monospace';ctx.textAlign='left';
   const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
   const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
@@ -3287,8 +3289,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     // V5.5.3 TF Pro: when TF is selected, the main graph is the transfer
     // magnitude response. Raw MIC/REF curves remain available before TF opens.
     if(!alignView){
-      if(tfOpen && tfDelayReady) tfDrawMagnitudeView(W,plotH,nyquist);
-      else tfDrawDualLiveView(W,plotH);
+      if(tfHasReferenceSignal()) tfDrawMagnitudeView(W,plotH,nyquist);
+      else tfDrawDualLiveView(W,plotH,nyquist);
     }
 
     if(tfOpen && showTfCoh && !alignView){
@@ -3512,7 +3514,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       t.values.forEach((v,b)=>{const x=b*bw+bw/2,yy=plotH-v*plotH;b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);});
       ctx.stroke();ctx.globalAlpha=1;
     });
-    if(tfRequested && !alignOn){
+    if(tfRequested && !alignOn && !tfHasReferenceSignal()){
       ctx.save();ctx.font='600 10px monospace';ctx.textAlign='right';
       const message='Reference low · MIC 1 + REF 2 remain live';
       const w=ctx.measureText(message).width+16;
@@ -4502,7 +4504,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.24';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.25';
   v3UpdateStatus();
 })();
 (function initAccent(){
