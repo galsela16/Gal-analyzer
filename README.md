@@ -1,14 +1,24 @@
-# GAL Analyzer V5.5.28 — TF Global Speed Fix
+# GAL Analyzer V5.5.33 — Elegant Workspace Navigation
 
-V5.5.28 connects the Mic-only TF spectrum to the shared Analysis Speed control. Its dense FFT silhouette now uses the selected TF temporal response instead of drawing raw microphone frames directly, so Fast, Normal and Slow produce visibly different motion with or without a valid Reference input.
+V5.5.33 redesigns the RTA / Waterfall / TF selector as a compact segmented control with a restrained active indicator and no nested bright outline. The left and right collapse buttons are now slim, centered edge handles that stay visually attached to their rails.
 
-V5.5.28 replaces the separate graph-speed settings with one persistent Analysis Speed control. Fast, Normal and Slow now coordinate the RTA response time, Waterfall history cadence and TF temporal smoothing as a single workspace behavior. FFT size, frequency resolution and measurement calculations remain unchanged.
+V5.5.33 adds independent persistent collapse controls for the left and right desktop rails. The measurement canvas expands into the released space immediately. The bottom Traces action now reopens and focuses the permanent trace rail, and TF capture always uses the canonical two-channel TF trace path instead of silently creating an RTA trace.
 
-V5.5.28 adds a persistent Fast/Normal/Slow RTA response selector, with Normal tuned to 420 ms for a steadier field display. The top TF tab is now a graph-only action and no longer opens the measurement workflow panel. The full TF workflow is available as its own first-class item in the right Tools rail, whose icons are enlarged to match the visual reference.
+V5.5.33 disconnects the desktop canvas geometry from the legacy Generator and I/O open-state classes. Opening either floating panel can no longer subtract its height from the graph or move the level meter. Every Traces entry point now focuses the permanent left-rail list and cannot reactivate the old drawer layout.
 
-V5.5.28 fixes the TF presentation path itself. Selecting TF now activates the new display directly instead of waiting for the hidden TF workflow state. With no usable Reference, the microphone is still rendered as a dense full-resolution, frequency-colored FFT silhouette; when Reference becomes valid, the canvas automatically switches to the detailed Reference/Mic/system-difference comparison.
+V5.5.33 embeds the canonical Trace list directly in the left desktop rail. Traces remain open at all times, use every remaining pixel down to the bottom command bar, and expose capture, visibility and deletion without opening a drawer. The bottom Traces action now focuses this persistent section instead of launching an overlay.
 
-V5.5.28 turns the TF system-difference view into a dense field-analysis display. Every two horizontal pixels now carry a coherence-qualified deviation column, colored by direction and severity, while a bright detailed contour keeps narrow peaks, cancellations and comb filtering easy to follow. Reference and microphone remain visible together in the upper comparison area. The dense columns are grouped into seven render paths so the added detail does not require hundreds of separate canvas strokes per frame.
+V5.5.33 makes Generator, Traces and I/O non-modal workspace panels: opening them no longer darkens or blurs the measurement canvas, so the live graph remains visible and interactive throughout the workflow. The I/O panel is reduced to a balanced 500px desktop width with tighter cards, fields and spacing.
+
+V5.5.33 connects the Mic-only TF spectrum to the shared Analysis Speed control. Its dense FFT silhouette now uses the selected TF temporal response instead of drawing raw microphone frames directly, so Fast, Normal and Slow produce visibly different motion with or without a valid Reference input.
+
+V5.5.33 replaces the separate graph-speed settings with one persistent Analysis Speed control. Fast, Normal and Slow now coordinate the RTA response time, Waterfall history cadence and TF temporal smoothing as a single workspace behavior. FFT size, frequency resolution and measurement calculations remain unchanged.
+
+V5.5.33 adds a persistent Fast/Normal/Slow RTA response selector, with Normal tuned to 420 ms for a steadier field display. The top TF tab is now a graph-only action and no longer opens the measurement workflow panel. The full TF workflow is available as its own first-class item in the right Tools rail, whose icons are enlarged to match the visual reference.
+
+V5.5.33 fixes the TF presentation path itself. Selecting TF now activates the new display directly instead of waiting for the hidden TF workflow state. With no usable Reference, the microphone is still rendered as a dense full-resolution, frequency-colored FFT silhouette; when Reference becomes valid, the canvas automatically switches to the detailed Reference/Mic/system-difference comparison.
+
+V5.5.33 turns the TF system-difference view into a dense field-analysis display. Every two horizontal pixels now carry a coherence-qualified deviation column, colored by direction and severity, while a bright detailed contour keeps narrow peaks, cancellations and comb filtering easy to follow. Reference and microphone remain visible together in the upper comparison area. The dense columns are grouped into seven render paths so the added detail does not require hundreds of separate canvas strokes per frame.
 
 V5.5.1 makes the swept-sine delay path safe at every supported sample rate and sweep duration. Long 96 kHz captures are analysed in bounded, zero-padded windows instead of overflowing the FFT buffer; narrow-band sub sweeps use a bandwidth-aware peak guard and stability tolerance; and unknown external audio can no longer fall through to the sweep-only estimator. The delay preflight now includes long 96 kHz, inverted-polarity, sub-band and strong-reflection cases (30 accepted delay cases in total).
 

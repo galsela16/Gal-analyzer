@@ -2034,14 +2034,33 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     left:0!important;right:0!important;top:48px!important;bottom:0!important;
     width:100%!important;height:calc(100% - 48px)!important
   }
+  #stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv{
+    left:0!important;right:0!important;top:48px!important;bottom:0!important;
+    width:100%!important;height:calc(100% - 48px)!important
+  }
+  #stage.v52-io-open .meter,#stage.v53-gen-open .meter{bottom:8px!important}
   #stage.measure-open>canvas#cv{height:calc(100% - 48px - var(--measure-h,0px))!important}
   #stage.bar-open>canvas#cv{height:calc(100% - 48px - var(--bar-h,0px))!important}
   #v5ModeTabs{
     left:0!important;right:0!important;top:0!important;height:48px!important;
     padding:6px 12px!important;align-items:center!important;justify-content:center!important
   }
-  #v53AnalysisGroup{width:min(560px,70%)!important;max-width:560px!important;height:34px!important}
-  #v53AnalysisGroup button{height:32px!important;font-size:10px!important}
+  #v53AnalysisGroup{
+    width:min(390px,48vw)!important;max-width:390px!important;height:34px!important;padding:3px!important;gap:3px!important;
+    border:1px solid rgba(116,165,181,.20)!important;border-radius:18px!important;
+    background:rgba(2,10,15,.72)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 5px 16px rgba(0,0,0,.18)!important
+  }
+  #v53AnalysisGroup button{
+    position:relative;height:26px!important;border:0!important;border-radius:14px!important;background:transparent!important;
+    color:#6f8995!important;font-size:9px!important;font-weight:800!important;letter-spacing:.11em!important;
+    transition:background .18s ease,color .18s ease!important
+  }
+  #v53AnalysisGroup button:hover{color:#b9d1d9!important;background:rgba(116,165,181,.06)!important}
+  #v53AnalysisGroup button.on{color:#e9fdff!important;background:rgba(31,183,201,.11)!important;box-shadow:none!important}
+  #v53AnalysisGroup button.on::after{
+    content:"";position:absolute;left:50%;bottom:2px;width:22px;height:2px;border-radius:2px;
+    transform:translateX(-50%);background:var(--accent);box-shadow:0 0 7px color-mix(in srgb,var(--accent) 55%,transparent)
+  }
   #v5ModeTabs>button,#v5TargetToggle,#v5SideRail,#v54SideToggle{display:none!important}
 
   /* No controls or readout cards float over the graph. */
@@ -2060,12 +2079,31 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   .tlsMeter{height:5px;border-radius:5px;background:linear-gradient(90deg,#27d76f 0 64%,#e9cf43 64% 80%,#e64b46 80% 100%);opacity:.72;margin-top:8px}
   .tlsOpen{margin-top:auto;min-height:28px;border:1px solid rgba(105,169,190,.24);border-radius:7px;background:#071820;color:#9fb4bc;font:750 9px ui-monospace,monospace;cursor:pointer}
   .tlsOpen:hover{border-color:#1fd8e3;color:#effdff}
+  #targetTraceCard{flex:1 1 auto!important;min-height:150px!important;overflow:hidden!important}
+  #persistentTraceHost{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px}
+  #persistentTraceHost #v5TraceList{flex:1 1 auto;max-height:none!important;min-height:52px;border-top:1px solid rgba(105,169,190,.13);padding-top:5px}
+  #persistentTraceHost #v5AddTrace{flex:0 0 auto;margin-top:auto!important;min-height:30px}
 
   /* Compact right column: Measurement first, then Tools only. */
   #targetMeasurementPanel{
     display:block;position:fixed;right:12px;top:60px;width:var(--desktop-right);height:192px;z-index:29;
     border:1px solid rgba(104,170,192,.24);border-radius:10px;background:rgba(5,16,23,.97);padding:11px 12px
   }
+  .workspaceRailToggle{
+    display:grid;position:fixed;z-index:46;top:50%;width:22px;height:52px;place-items:center;
+    transform:translateY(-50%);border:1px solid rgba(77,167,190,.24);background:rgba(6,22,29,.94);color:#7fa2ad;
+    font:800 15px ui-monospace,monospace;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.24);
+    transition:left .2s ease,right .2s ease,color .16s ease,border-color .16s ease,background .16s ease
+  }
+  .workspaceRailToggle:hover,.workspaceRailToggle:focus-visible{border-color:rgba(32,216,229,.62);background:#092630;color:#efffff;outline:none}
+  #leftRailToggle{left:calc(12px + var(--desktop-left) - 11px);border-radius:0 11px 11px 0}
+  #rightRailToggle{right:calc(12px + var(--desktop-right) - 11px);border-radius:11px 0 0 11px}
+  body.left-rail-collapsed #targetLeftStatus{display:none!important}
+  body.left-rail-collapsed #stage{margin-left:12px!important}
+  body.left-rail-collapsed #leftRailToggle{left:0}
+  body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{display:none!important}
+  body.right-rail-collapsed #stage{margin-right:12px!important}
+  body.right-rail-collapsed #rightRailToggle{right:0}
   .tmpHead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid rgba(110,170,190,.14);font:800 9px ui-monospace,monospace;letter-spacing:.1em;color:#c8d8de}
   .tmpDot{width:7px;height:7px;border-radius:50%;background:#39dc6e;box-shadow:0 0 8px rgba(57,220,110,.5)}
   .tmpValue{font:400 25px ui-monospace,monospace;color:#eef8fa;margin:10px 0 2px}.tmpValue small{font-size:11px;color:#a9bdc5}
@@ -2082,7 +2120,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   #uiRightTools .uiRightToolsTitle{display:flex!important;grid-column:1/-1!important;height:22px!important}
   #uiRightTools button{
     display:flex!important;min-width:0!important;min-height:54px!important;height:auto!important;
-    flex-direction:row!important;gap:9px!important;padding:8px 12px!important;font-size:9px!important;text-align:start!important;justify-content:flex-start!important
+    flex-direction:column!important;gap:8px!important;padding:9px 8px!important;font-size:9px!important;text-align:center!important;justify-content:center!important
   }
   #uiRightTools .rtIcon{font-size:30px!important;min-width:36px!important;text-align:center!important}
 
@@ -2119,13 +2157,15 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   body.ui-workspace-drawer #v52IODock{display:none!important}
   body.ui-workspace-drawer.ui-drawer-io #v52IODock{
     display:block!important;left:12px!important;right:auto!important;top:72px!important;bottom:auto!important;
-    width:min(580px,calc(100vw - 24px))!important;max-width:580px!important;height:auto!important;
+    width:min(500px,calc(100vw - 24px))!important;max-width:500px!important;height:auto!important;
     max-height:calc(100vh - var(--desktop-bottom) - 96px)!important;overflow:auto!important;
-    padding:12px!important
+    padding:10px!important
   }
-  body.ui-workspace-drawer #v52IODock .v52IOGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  body.ui-workspace-drawer #v52IODock .v52IOGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
   body.ui-workspace-drawer #v52IODock .v52IOCard:first-child{grid-column:1/-1!important}
-  body.ui-workspace-drawer #v52IODock .v52Field{grid-template-columns:96px minmax(0,1fr)!important}
+  body.ui-workspace-drawer #v52IODock .v52IOCard{padding:8px!important}
+  body.ui-workspace-drawer #v52IODock .v52Field{grid-template-columns:88px minmax(0,1fr)!important;margin:5px 0!important}
+  body.ui-workspace-drawer #v52IODock .v52Field select,body.ui-workspace-drawer #v52IODock .v52Field input{padding:6px!important}
   /* The canonical desktop rule hides the legacy rail; Traces explicitly opts it back in as a drawer. */
   body.ui-workspace-drawer.ui-traces-open #v5SideRail{
     display:flex!important;left:12px!important;right:auto!important;top:72px!important;
@@ -2139,6 +2179,9 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     width:100%!important;max-width:none!important;transform:none!important;border-radius:12px 12px 0 0!important
   }
 }
+
+/* Workspace drawers are non-modal: the live graph stays visible and interactive. */
+body.ui-workspace-drawer #uiWorkspaceBackdrop,body.ui-workspace-drawer #uiTraceBackdrop{display:none!important;backdrop-filter:none!important;background:transparent!important;pointer-events:none!important}
 
 /* Complete daylight palette: the final workspace layer must switch as one system. */
 body.sun-mode{background:#eef3f7!important;color:#17212b!important}
@@ -2154,6 +2197,11 @@ body.sun-mode .tlsLine,body.sun-mode .tmpSub,body.sun-mode .tmpCell,body.sun-mod
 body.sun-mode .tlsOpen,body.sun-mode #uiRightTools button,body.sun-mode .tcb{
   background:#f5f9fb!important;border-color:#c8d8e1!important;color:#36515f!important
 }
+body.sun-mode .workspaceRailToggle{background:#fff!important;color:#36515f!important;border-color:#c8d8e1!important}
+body.sun-mode #v53AnalysisGroup{background:#eef4f7!important;border-color:#cad8df!important;box-shadow:inset 0 1px 0 #fff,0 4px 12px rgba(30,55,70,.08)!important}
+body.sun-mode #v53AnalysisGroup button{color:#69818d!important}
+body.sun-mode #v53AnalysisGroup button:hover{color:#294653!important;background:rgba(32,151,170,.07)!important}
+body.sun-mode #v53AnalysisGroup button.on{color:#076f7d!important;background:#fff!important}
 body.sun-mode #uiRightTools button.on{background:#e8f8fa!important;border-color:#13a9b7!important;color:#087983!important}
 body.sun-mode .tcb.danger{background:#fff5f7!important;border-color:#e8a3b0!important;color:#a92e48!important}
 body.sun-mode #uiMenu{background:#fff!important;border-color:#c7d6df!important;color:#17212b!important}
@@ -2168,7 +2216,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
-  #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip{display:none!important}
+  #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle{display:none!important}
   body.ui-workspace-drawer #v52IODock .v52IOGrid{grid-template-columns:1fr!important}
   body.ui-workspace-drawer #v52IODock .v52IOCard:first-child{grid-column:auto!important}
 }
@@ -2236,7 +2284,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.28</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.33</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2266,7 +2314,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.28 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.33 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2974,7 +3022,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.28</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.33</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3000,11 +3048,14 @@ window.addEventListener('load', function(){
   };
   const openWorkspaceDrawer=(kind)=>{
     close();closeWorkspaceDrawer();
+    if(kind==='traces'){
+      window.focusPersistentTraces?.();
+      return;
+    }
     document.body.classList.add('ui-workspace-drawer','ui-drawer-'+kind);
     if(drawerLabel)drawerLabel.textContent=kind==='io'?'I/O & AUDIO':kind==='generator'?'GENERATOR':'TRACES';
     if(kind==='io'){if(typeof window.v52SetIo==='function')window.v52SetIo(true);else click('v52IoBtn');}
     if(kind==='generator'){if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(true);else click('v52GenBtn');}
-    if(kind==='traces'){document.body.classList.remove('v54-rail-collapsed');document.body.classList.add('ui-traces-open');setTimeout(()=>document.getElementById('v5AddTrace')?.focus(),100);}
   };
   window.openWorkspaceDrawer=openWorkspaceDrawer;
   window.closeWorkspaceDrawer=closeWorkspaceDrawer;
@@ -3161,15 +3212,15 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.28"></script>
+<script src="app.js?v=5.5.33"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
-  <button type="button" data-tool="tf"><span class="rtIcon">◎</span><span>TF Measurement</span></button>
-  <button type="button" data-tool="delay"><span class="rtIcon">⏱</span><span>Delay</span></button>
-  <button type="button" data-tool="rt60"><span class="rtIcon">◫</span><span>RT60</span></button>
-  <button type="button" data-tool="spleq"><span class="rtIcon">⌁</span><span>SPL / EQ</span></button>
-  <button type="button" data-tool="align"><span class="rtIcon">↔</span><span>Sub / Top</span></button>
+  <button type="button" data-tool="tf"><span>TF Measurement</span><span class="rtIcon">◎</span></button>
+  <button type="button" data-tool="delay"><span>Delay</span><span class="rtIcon">⏱</span></button>
+  <button type="button" data-tool="rt60"><span>RT60</span><span class="rtIcon">◫</span></button>
+  <button type="button" data-tool="spleq"><span>SPL / EQ</span><span class="rtIcon">⌁</span></button>
+  <button type="button" data-tool="align"><span>Sub / Top</span><span class="rtIcon">↔</span></button>
 </aside>
 
 
@@ -3425,15 +3476,42 @@ window.addEventListener('load', function(){
  <div class="tmpSub" id="tmpSecondary">LIVE INPUT</div>
  <div class="tmpGrid"><div class="tmpCell">PEAK<strong id="tmpPeak">—</strong></div><div class="tmpCell">SNR<strong id="tmpSnr">—</strong></div><div class="tmpCell">COHERENCE<strong id="tmpCoh">—</strong></div><div class="tmpCell">HEADROOM<strong id="tmpHeadroom">—</strong></div></div>
 </aside>
+<button id="rightRailToggle" class="workspaceRailToggle" type="button" aria-label="קפל סרגל ימני" aria-expanded="true">›</button>
 <div id="targetLeftStatus" aria-hidden="true">
  <section class="tlsCard"><div class="tlsHead">GENERATOR</div><div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div><button class="tlsOpen" type="button" data-tls-open="generator">OPEN GENERATOR</button></section>
  <section class="tlsCard"><div class="tlsHead"><span class="tlsDot"></span>I / O</div><div class="tlsLine"><span>MIC</span><strong id="tlsMic">—</strong></div><div class="tlsLine"><span>REF</span><strong id="tlsRef">—</strong></div><div class="tlsMeter"></div><button class="tlsOpen" type="button" data-tls-open="io">OPEN I / O</button></section>
- <section class="tlsCard"><div class="tlsHead">TRACES</div><div class="tlsLine"><span>CAPTURED</span><strong id="tlsTraces">0</strong></div><div class="tlsLine"><span>VISIBLE</span><strong id="tlsVisible">0</strong></div><button class="tlsOpen" type="button" data-tls-open="traces">OPEN TRACES</button></section>
+ <section class="tlsCard" id="targetTraceCard" tabindex="-1"><div class="tlsHead">TRACES</div><div class="tlsLine"><span>CAPTURED</span><strong id="tlsTraces">0</strong></div><div class="tlsLine"><span>VISIBLE</span><strong id="tlsVisible">0</strong></div><div id="persistentTraceHost"></div></section>
 </div>
+<button id="leftRailToggle" class="workspaceRailToggle" type="button" aria-label="קפל סרגל שמאלי" aria-expanded="true">‹</button>
+
+<script>
+(()=>{
+ const buttons={left:document.getElementById('leftRailToggle'),right:document.getElementById('rightRailToggle')};
+ function setRail(side,open,persist=true){
+   document.body.classList.toggle(side+'-rail-collapsed',!open);
+   const b=buttons[side];
+   if(b){b.textContent=side==='left'?(open?'‹':'›'):(open?'›':'‹');b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',(open?'קפל ':'פתח ')+(side==='left'?'סרגל שמאלי':'סרגל ימני'));}
+   if(persist)try{localStorage.setItem('gal_'+side+'_rail_open',open?'1':'0')}catch(_){ }
+   requestAnimationFrame(()=>{if(typeof resize==='function')resize()});
+ }
+ for(const side of ['left','right']){
+   let open=true;try{open=localStorage.getItem('gal_'+side+'_rail_open')!=='0'}catch(_){ }
+   setRail(side,open,false);
+   buttons[side]?.addEventListener('click',()=>setRail(side,document.body.classList.contains(side+'-rail-collapsed')));
+ }
+ window.setWorkspaceRail=setRail;
+ window.focusPersistentTraces=()=>{
+   setRail('left',true);
+   requestAnimationFrame(()=>{const card=document.getElementById('targetTraceCard');card?.scrollIntoView({block:'nearest'});card?.focus({preventScroll:true});});
+ };
+})();
+</script>
+
+<script>(()=>{const host=document.getElementById('persistentTraceHost'),list=document.getElementById('v5TraceList'),add=document.getElementById('v5AddTrace');if(host&&list&&add){host.append(list,add);document.body.classList.remove('ui-traces-open','ui-drawer-traces');}})();</script>
 
 <div id="targetLeftLabels" aria-hidden="true"><div class="tll">GENERATOR</div><div class="tll">I / O</div><div class="tll">TRACES</div></div>
 <div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button><button class="tcb danger" id="v5ResetSession" type="button">↺ RESET SESSION</button></div>
-<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='traces'){if(typeof openWorkspaceDrawer==='function')openWorkspaceDrawer('traces');else window.openMeasurementSession?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
+<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='traces'){window.focusPersistentTraces?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
 
 <script>
 (()=>{

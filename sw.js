@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-28-tf-global-speed-fix-20260902';
+const CACHE = 'gal-analyzer-v5-5-33-elegant-workspace-navigation-20260903';
 const ASSETS = [
   './',
   './index.html',

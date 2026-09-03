@@ -143,9 +143,9 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.28 visual Waterfall history. Each row is a frequency slice;
+// V5.5.33 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
-const wf3d={rows:[],frame:0,maxRows:84,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
+const wf3d={rows:[],frame:0,maxRows:85,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
@@ -339,7 +339,12 @@ function setAnalysisSpeed(name,persist=true){
   const preset={fast:{rta:140,wf:70,tf:.82,label:'Fast'},normal:{rta:420,wf:120,tf:.93,label:'Normal'},slow:{rta:700,wf:220,tf:.97,label:'Slow'}}[key];
   rtaResponseMs=preset.rta;tfSmoothA=preset.tf;
   tfLiveVisualDb=[];
-  if(window.wf3d){window.wf3d.intervalMs=preset.wf;window.wf3d.lastCapture=0;}
+  if(window.wf3d){
+    window.wf3d.intervalMs=preset.wf;
+    window.wf3d.maxRows=Math.ceil(10000/preset.wf)+1;
+    if(window.wf3d.rows.length>window.wf3d.maxRows)window.wf3d.rows.length=window.wf3d.maxRows;
+    window.wf3d.lastCapture=0;
+  }
   document.querySelectorAll('[data-analysis-speed]').forEach(x=>x.classList.toggle('on',x.dataset.analysisSpeed===key));
   const out=document.getElementById('analysisSpeedValue');if(out)out.textContent=preset.label;
   const tfSlider=document.getElementById('tfSmooth');if(tfSlider){tfSlider.value=String(Math.round(tfSmoothA*100));tfSlider.dispatchEvent(new Event('input'));}
@@ -378,7 +383,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.28-tf-global-speed-fix',
+    version: 'v5.5.33-elegant-workspace-navigation',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1526,7 +1531,10 @@ function captureTfTrace(){
 }
 function captureWorkspaceTrace(){
   if(!running){v3Toast('הפעל Audio קודם');return;}
-  if(v5WorkspaceMode==='tf'&&analyserRef){captureTfTrace();return;}
+  if(v5WorkspaceMode==='tf'){
+    if(!analyserRef){v3Toast('לכידת TF דורשת ערוץ Reference פעיל');return;}
+    captureTfTrace();return;
+  }
   const idx=tfTraces.length+1;
   tfTraces.push({type:'rta',visible:true,name:(mode==='spec'?'Waterfall ':'RTA ')+idx,color:TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length],values:lastV.slice(),bands:BANDS,t:Date.now()});
   if(tfTraces.length>24)tfTraces.shift();
@@ -4527,7 +4535,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.28';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.33';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4569,7 +4577,9 @@ function v5SyncTargetToggle(){
 
 function v5SetTab(mode){
   v5WorkspaceMode=mode;
-  document.querySelectorAll('#v5ModeTabs [data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
+  // Only workspace buttons belong to this state. The three graph segments are
+  // controlled by v54SetAnalysisView/setMode and must remain mutually exclusive.
+  document.querySelectorAll('#v5ModeTabs > button[data-v5mode]').forEach(b=>b.classList.toggle('on',b.dataset.v5mode===mode));
   const ag=document.getElementById('v53AnalysisGroup');if(ag)ag.classList.toggle('on',mode==='analysis');
 }
 function v54SetSideRail(open){
@@ -4602,6 +4612,11 @@ function v54SetAnalysisView(view,event){
     setMode(view);
     v5SetTab('analysis');
   }
+  // setMode('rta') supplies TF's underlying frequency canvas; restore the
+  // visible selector state afterwards so TF alone remains highlighted.
+  rtaBtn?.classList.toggle('on',view==='rta');
+  wfBtn?.classList.toggle('on',view==='spec');
+  tfBtn?.classList.toggle('on',view==='tf');
   const bottom=document.getElementById('uiBottomTools');
   if(bottom){
     const action=view==='spec'?'waterfall':view==='tf'?'tf':'analysis';
