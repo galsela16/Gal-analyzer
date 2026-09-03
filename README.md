@@ -1,8 +1,14 @@
-# GAL Analyzer V5.5.25 — Visible Detailed TF
+# GAL Analyzer V5.5.28 — TF Global Speed Fix
 
-V5.5.25 fixes the TF presentation path itself. Selecting TF now activates the new display directly instead of waiting for the hidden TF workflow state. With no usable Reference, the microphone is still rendered as a dense full-resolution, frequency-colored FFT silhouette; when Reference becomes valid, the canvas automatically switches to the detailed Reference/Mic/system-difference comparison.
+V5.5.28 connects the Mic-only TF spectrum to the shared Analysis Speed control. Its dense FFT silhouette now uses the selected TF temporal response instead of drawing raw microphone frames directly, so Fast, Normal and Slow produce visibly different motion with or without a valid Reference input.
 
-V5.5.25 turns the TF system-difference view into a dense field-analysis display. Every two horizontal pixels now carry a coherence-qualified deviation column, colored by direction and severity, while a bright detailed contour keeps narrow peaks, cancellations and comb filtering easy to follow. Reference and microphone remain visible together in the upper comparison area. The dense columns are grouped into seven render paths so the added detail does not require hundreds of separate canvas strokes per frame.
+V5.5.28 replaces the separate graph-speed settings with one persistent Analysis Speed control. Fast, Normal and Slow now coordinate the RTA response time, Waterfall history cadence and TF temporal smoothing as a single workspace behavior. FFT size, frequency resolution and measurement calculations remain unchanged.
+
+V5.5.28 adds a persistent Fast/Normal/Slow RTA response selector, with Normal tuned to 420 ms for a steadier field display. The top TF tab is now a graph-only action and no longer opens the measurement workflow panel. The full TF workflow is available as its own first-class item in the right Tools rail, whose icons are enlarged to match the visual reference.
+
+V5.5.28 fixes the TF presentation path itself. Selecting TF now activates the new display directly instead of waiting for the hidden TF workflow state. With no usable Reference, the microphone is still rendered as a dense full-resolution, frequency-colored FFT silhouette; when Reference becomes valid, the canvas automatically switches to the detailed Reference/Mic/system-difference comparison.
+
+V5.5.28 turns the TF system-difference view into a dense field-analysis display. Every two horizontal pixels now carry a coherence-qualified deviation column, colored by direction and severity, while a bright detailed contour keeps narrow peaks, cancellations and comb filtering easy to follow. Reference and microphone remain visible together in the upper comparison area. The dense columns are grouped into seven render paths so the added detail does not require hundreds of separate canvas strokes per frame.
 
 V5.5.1 makes the swept-sine delay path safe at every supported sample rate and sweep duration. Long 96 kHz captures are analysed in bounded, zero-padded windows instead of overflowing the FFT buffer; narrow-band sub sweeps use a bandwidth-aware peak guard and stability tolerance; and unknown external audio can no longer fall through to the sweep-only estimator. The delay preflight now includes long 96 kHz, inverted-polarity, sub-band and strong-reflection cases (30 accepted delay cases in total).
 

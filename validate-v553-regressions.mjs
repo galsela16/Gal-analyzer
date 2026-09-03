@@ -11,18 +11,18 @@ const checks=[
  ['waterfall draws only measured slices',core.includes('Draw each measured slice once')&&!core.includes('visualSubdivisions')&&!core.includes('motionPhase')],
  ['waterfall display filter preserves peaks without blur frames',core.includes('short symmetric display filter')&&core.includes('3*v+2*raw')],
  ['waterfall renderer has bounded ridge workload',core.includes('maxRows:84')&&core.includes('const N=240,raw=[]')&&core.includes('for(let rr=rows.length-1;rr>=0;rr--)')],
- ['waterfall default motion is faster',core.includes('intervalMs:120')&&html.includes('data-wf-speed="70"')&&html.includes("rta_wf_interval_v2")],
+ ['waterfall default motion follows global normal speed',core.includes('intervalMs:120')&&core.includes("normal:{rta:420,wf:120,tf:.93")],
  ['waterfall builds a continuous surface between measured slices',core.includes('Join adjacent measurements into a translucent 3D surface')&&core.includes('if(rr<rows.length-1)')&&core.includes('for(let i=rowB.length-1;i>=0;i--)')],
  ['waterfall uses about eighty percent of canvas height',core.includes('depth=span*.72,amp=span*.20')&&core.includes('backLeft=left+58,backRight=right-88')],
  ['waterfall history reaches ten seconds',core.includes('maxRows:84')&&core.includes('intervalMs:120')&&core.includes('const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000)')],
  ['waterfall exposes frequency cursor',core.includes('drawWaterfallFrequencyCursor(W,specH,nyquist)')&&core.includes("hz.toFixed(1)+' Hz'")],
  ['generator close clears workspace drawer',core.includes("label.textContent.trim()==='GENERATOR'")&&core.includes("document.body.classList.remove('ui-workspace-drawer')")],
  ['generator has dual-channel meters',html.includes('id="gainMicFill"')&&html.includes('id="gainRefFill"')&&core.includes("document.getElementById('gainRefGain')")],
- ['right tools exposes every auxiliary measurement',Array.from(['delay','rt60','spleq','align']).every(t=>html.includes('data-tool="'+t+'"'))],
+ ['right tools exposes every auxiliary measurement',Array.from(['tf','delay','rt60','spleq','align']).every(t=>html.includes('data-tool="'+t+'"'))],
  ['right tools has no duplicate settings',!html.includes('data-tool="settings"')],
  ['bottom bar contains only canonical actions',Array.from(['capture','traces','settings']).every(t=>html.includes('data-tcb="'+t+'"'))],
  ['session reset is accessible in bottom bar',html.includes('class="tcb danger" id="v5ResetSession"')&&!html.includes('id="v5ResetSession" class="v5RailTool"')],
- ['right tools fill the rail in measurement order',html.includes('grid-template-columns:1fr!important;grid-template-rows:22px repeat(4,minmax(0,1fr))')&&html.indexOf('data-tool="delay"')<html.indexOf('data-tool="rt60"')&&html.indexOf('data-tool="rt60"')<html.indexOf('data-tool="spleq"')&&html.indexOf('data-tool="spleq"')<html.indexOf('data-tool="align"')],
+ ['right tools fill the rail in measurement order',(()=>{const rail=html.slice(html.indexOf('<aside id="uiRightTools"'),html.indexOf('</aside>',html.indexOf('<aside id="uiRightTools"')));return html.includes('grid-template-columns:1fr!important;grid-template-rows:22px repeat(5,minmax(0,1fr))')&&rail.indexOf('data-tool="tf"')<rail.indexOf('data-tool="delay"')&&rail.indexOf('data-tool="delay"')<rail.indexOf('data-tool="rt60"')&&rail.indexOf('data-tool="rt60"')<rail.indexOf('data-tool="spleq"')&&rail.indexOf('data-tool="spleq"')<rail.indexOf('data-tool="align"')})()],
  ['measurement health is embedded in header',html.indexOf('id="measurementHealth"')<html.indexOf('</header>')&&html.includes('header.uiRefreshed #measurementHealth')],
  ['accent colors are available in settings',Array.from(['#3ea6ff','#40d17a','#b57bff','#ff9d3c']).every(c=>html.includes('data-ui-color="'+c+'"'))],
  ['day theme covers canonical workspace surfaces',html.includes('Complete daylight palette')&&html.includes('body.sun-mode #targetMeasurementPanel')&&html.includes('body.sun-mode #targetCommandBar')&&html.includes('body.sun-mode #uiMenu')],
@@ -53,9 +53,15 @@ const checks=[
  ,['TF dense columns are batched for smooth rendering',core.includes('TF_DELTA_COLORS.map(()=>new Path2D())')&&core.includes('deviationBars.forEach')]
  ,['TF detailed contour remains clearly visible',core.includes("ctx.strokeStyle='#b7f34a'")&&core.includes('Math.floor(plotH*.52)')]
  ,['TF tab is not gated by hidden workflow state',core.includes('if(tfHasReferenceSignal()) tfDrawMagnitudeView(W,plotH,nyquist)')&&!core.includes('if(tfOpen && tfDelayReady) tfDrawMagnitudeView')]
- ,['TF mic-only fallback uses dense FFT detail',core.includes('A dense FFT silhouette stays useful')&&core.includes('for(let x=0;x<=W;x+=2)')&&core.includes('ctx.createLinearGradient(0,0,W,0)')]
+ ,['TF mic-only fallback uses dense FFT detail',core.includes('A dense FFT silhouette stays useful')&&core.includes('for(let x=0;x<=W;x+=2,visualIndex++)')&&core.includes('ctx.createLinearGradient(0,0,W,0)')]
  ,['TF mic-only fallback has frequency colors and contour',Array.from(['#ef4444','#f97316','#facc15','#84cc16','#22d3ee','#0ea5e9','#2563eb']).every(color=>core.includes(color))&&core.includes("ctx.strokeStyle='#b7f34a'")]
+ ,['one global speed control replaces per-graph controls',Array.from(['data-analysis-speed="slow"','data-analysis-speed="normal"','data-analysis-speed="fast"']).every(x=>html.includes(x))&&!html.includes('data-rta-speed=')&&!html.includes('data-wf-speed=')]
+ ,['global speed persists and drives every graph',core.includes("prefSet('analysis_speed',key)")&&core.includes('rtaResponseMs=preset.rta')&&core.includes('window.wf3d.intervalMs=preset.wf')&&core.includes('tfSmoothA=preset.tf')]
+ ,['global speed affects TF mic-only rendering',core.includes('let tfLiveVisualDb=[]')&&core.includes('previous*tfSmoothA+raw*(1-tfSmoothA)')&&core.includes('tfLiveVisualDb=[];')]
+ ,['TF graph tab does not open measurement panel',core.includes("setMode('rta');setTfOverlay(true)")&&!core.includes("v5SetTab('tf');\n    v5OpenTf();")]
+ ,['TF measurement panel is available from tools',html.includes('data-tool="tf"')&&html.includes("if(t==='tf'&&typeof v5OpenTf==='function')v5OpenTf()")]
+ ,['right tool icons use reference-scale sizing',html.includes('#uiRightTools .rtIcon{font-size:30px!important')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.25 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.28 regression validation passed (${checks.length} checks).`);

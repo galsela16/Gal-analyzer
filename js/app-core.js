@@ -96,6 +96,7 @@ let tfState='idle', tfSwap=false, tfMic=null, tfRef=null, tfFrames=0, tfResult=n
 let running=false, mode='rta';
 let peakHold=true, fbOn=true, avgOn=false;
 let avgAlpha=0.90;
+let rtaResponseMs=420;
 let _v3ToastTimer=null;
 let floorDb=-85, ceilDb=-15;
 let calib=0;
@@ -142,7 +143,7 @@ let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
 let specCanvas, specCtx;
-// V5.5.25 visual Waterfall history. Each row is a frequency slice;
+// V5.5.28 visual Waterfall history. Each row is a frequency slice;
 // rendering uses perspective ridges while the existing analyzer stays untouched.
 const wf3d={rows:[],frame:0,maxRows:84,maxHz:20000,intervalMs:120,lastCapture:0};window.wf3d=wf3d;
 
@@ -333,6 +334,20 @@ document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.addEventListener('
   avgBuf.fill(NaN); _lastRtaSmoothTime=0;
   v3Toast('מהירות מיצוע עודכנה');
 }));
+function setAnalysisSpeed(name,persist=true){
+  const key=['fast','normal','slow'].includes(name)?name:'normal';
+  const preset={fast:{rta:140,wf:70,tf:.82,label:'Fast'},normal:{rta:420,wf:120,tf:.93,label:'Normal'},slow:{rta:700,wf:220,tf:.97,label:'Slow'}}[key];
+  rtaResponseMs=preset.rta;tfSmoothA=preset.tf;
+  tfLiveVisualDb=[];
+  if(window.wf3d){window.wf3d.intervalMs=preset.wf;window.wf3d.lastCapture=0;}
+  document.querySelectorAll('[data-analysis-speed]').forEach(x=>x.classList.toggle('on',x.dataset.analysisSpeed===key));
+  const out=document.getElementById('analysisSpeedValue');if(out)out.textContent=preset.label;
+  const tfSlider=document.getElementById('tfSmooth');if(tfSlider){tfSlider.value=String(Math.round(tfSmoothA*100));tfSlider.dispatchEvent(new Event('input'));}
+  avgBuf.fill(NaN);_lastRtaSmoothTime=0;
+  if(persist){prefSet('analysis_speed',key);v3Toast('מהירות ניתוח: '+preset.label);}
+}
+window.setAnalysisSpeed=setAnalysisSpeed;
+document.querySelectorAll('[data-analysis-speed]').forEach(b=>b.addEventListener('click',()=>setAnalysisSpeed(b.dataset.analysisSpeed)));
 safeOn('pngBtn', 'click',exportPNG);
 safeOn('csvBtn', 'click',exportCSV);
 
@@ -363,7 +378,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.25-tf-visible-detailed-spectrum',
+    version: 'v5.5.28-tf-global-speed-fix',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1530,6 +1545,7 @@ function tfHasReferenceSignal(){
   return peak>-85;
 }
 let tfDisplaySnapshot=null;
+let tfLiveVisualDb=[];
 const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
 function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
 function tfDrawMagnitudeView(W,plotH,nyquist){
@@ -1561,7 +1577,13 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   if(!floatData?.length || !lastV.length || !lastRefV.length) return;
   const sample=(data,x)=>{const f=freqForX(x),p=Math.max(0,Math.min(data.length-1,f/nyquist*(data.length-1))),i=Math.floor(p),t=p-i;return data[i]+((data[Math.min(data.length-1,i+1)]||data[i])-data[i])*t;};
   const yForDb=db=>plotH-Math.max(0,Math.min(1,(db-floorDb)/(ceilDb-floorDb)))*plotH;
-  const mic=[];for(let x=0;x<=W;x+=2)mic.push({x,y:yForDb(sample(floatData,x))});
+  const mic=[];let visualIndex=0;
+  for(let x=0;x<=W;x+=2,visualIndex++){
+    const raw=sample(floatData,x),previous=tfLiveVisualDb[visualIndex];
+    const display=Number.isFinite(previous)?previous*tfSmoothA+raw*(1-tfSmoothA):raw;
+    tfLiveVisualDb[visualIndex]=display;mic.push({x,y:yForDb(display)});
+  }
+  tfLiveVisualDb.length=visualIndex;
   const spectrumGradient=ctx.createLinearGradient(0,0,W,0);
   [['#ef4444',0],['#f97316',.12],['#facc15',.28],['#84cc16',.43],['#22d3ee',.65],['#0ea5e9',.82],['#2563eb',1]].forEach(([color,stop])=>spectrumGradient.addColorStop(stop,color));
   // A dense FFT silhouette stays useful even before a valid reference is connected.
@@ -2989,10 +3011,10 @@ function calibratedResponseDb(db,f){ return db-(micCal?micCalAt(f):0); }
 function rtaTimeConstant(){
   const s=Math.max(0,Math.min(.98,parseFloat(document.getElementById('smooth')?.value)||0));
   const base=s<=0?0:(.02+.60*s*s);
-  if(!avgOn) return base;
+  if(!avgOn) return Math.max(base,rtaResponseMs/1000);
   const preset=Math.max(.5,Math.min(.995,avgAlpha));
   const extra=-1/30/Math.log(preset);
-  return Math.max(base,extra);
+  return Math.max(base,rtaResponseMs/1000,extra);
 }
 function smoothBandDb(index,nextDb,alpha){
   const nextPower=db2lin(nextDb), previous=avgBuf[index];
@@ -4501,10 +4523,11 @@ document.addEventListener('keydown',e=>{
     avgAlpha=Math.max(0.5,Math.min(0.995,aa));
     document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.classList.toggle('on', Math.abs(parseFloat(b.dataset.a)-avgAlpha)<0.001));
   }
+  setAnalysisSpeed(lsGet('analysis_speed')||'normal',false);
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.25';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.28';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4573,7 +4596,7 @@ function v54SetAnalysisView(view,event){
   tfBtn?.classList.toggle('on',view==='tf');
   if(view==='tf'){
     v5SetTab('tf');
-    v5OpenTf();
+    setMode('rta');setTfOverlay(true);
   }else{
     setTfOverlay(false);
     setMode(view);

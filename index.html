@@ -2076,7 +2076,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   #uiRightTools{
     display:grid!important;position:fixed!important;right:12px!important;top:260px!important;
     bottom:calc(var(--desktop-bottom) + 12px)!important;width:var(--desktop-right)!important;height:auto!important;
-    grid-template-columns:1fr!important;grid-template-rows:22px repeat(4,minmax(0,1fr))!important;
+    grid-template-columns:1fr!important;grid-template-rows:22px repeat(5,minmax(0,1fr))!important;
     align-content:stretch!important;padding:9px!important;gap:7px!important;border-radius:10px!important;z-index:23!important
   }
   #uiRightTools .uiRightToolsTitle{display:flex!important;grid-column:1/-1!important;height:22px!important}
@@ -2084,7 +2084,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     display:flex!important;min-width:0!important;min-height:54px!important;height:auto!important;
     flex-direction:row!important;gap:9px!important;padding:8px 12px!important;font-size:9px!important;text-align:start!important;justify-content:flex-start!important
   }
-  #uiRightTools .rtIcon{font-size:16px!important}
+  #uiRightTools .rtIcon{font-size:30px!important;min-width:36px!important;text-align:center!important}
 
   /* One bottom control bar, mapped to the existing canonical controls. */
   #targetCommandBar{
@@ -2236,7 +2236,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.25</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.28</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2249,9 +2249,8 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
         <div class="uiSettingsRow"><span>RTA resolution</span><span><button data-set-bpo="3">1/3</button> <button data-set-bpo="6">1/6</button> <button data-set-bpo="12">1/12</button> <button data-set-bpo="24">1/24</button></span></div>
       </div>
       <div class="uiSettingsPage" data-settings-content="measurement">
+        <div class="uiSettingsRow"><span>Analysis speed · All graphs</span><span><button data-analysis-speed="slow">Slow</button> <button class="on" data-analysis-speed="normal">Normal</button> <button data-analysis-speed="fast">Fast</button></span><strong id="analysisSpeedValue">Normal</strong></div>
         <div class="uiSettingsRow"><span>TF coherence gate</span><strong id="uiSetCohState">Uses TF setting</strong></div>
-        <div class="uiSettingsRow"><span>TF smoothing</span><strong>Uses TF setting</strong></div>
-        <div class="uiSettingsRow"><span>Waterfall speed</span><span><button data-wf-speed="220">Slow</button> <button class="on" data-wf-speed="120">Normal</button> <button data-wf-speed="70">Fast</button></span></div>
         <div class="uiSettingsRow"><span>Target / reference tools</span><strong>Contextual</strong></div>
       </div>
       <div class="uiSettingsPage" data-settings-content="audio">
@@ -2267,7 +2266,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.25 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.28 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2975,7 +2974,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.25</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.28</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3015,16 +3014,6 @@ window.addEventListener('load', function(){
     document.querySelectorAll('[data-settings-page]').forEach(x=>x.classList.toggle('on',x===b));
     document.querySelectorAll('[data-settings-content]').forEach(x=>x.classList.toggle('on',x.dataset.settingsContent===b.dataset.settingsPage));
   }));
-  const wfSpeedButtons=[...document.querySelectorAll('[data-wf-speed]')];
-  function setWaterfallSpeed(ms,persist=true){
-    ms=Math.max(60,Math.min(500,Number(ms)||120));
-    if(window.wf3d){window.wf3d.intervalMs=ms;window.wf3d.lastCapture=0;}
-    wfSpeedButtons.forEach(b=>b.classList.toggle('on',Number(b.dataset.wfSpeed)===ms));
-    if(persist)try{localStorage.setItem('rta_wf_interval_v2',String(ms));}catch(_){}
-  }
-  wfSpeedButtons.forEach(b=>b.addEventListener('click',()=>setWaterfallSpeed(b.dataset.wfSpeed)));
-  let savedWfSpeed=120;try{savedWfSpeed=Number(localStorage.getItem('rta_wf_interval_v2'))||120}catch(_){}
-  setTimeout(()=>setWaterfallSpeed(savedWfSpeed,false),0);
   document.getElementById('uiSetTheme')?.addEventListener('click',()=>{click('sunBtn');setTimeout(syncStates,30)});
   document.getElementById('uiSetTarget')?.addEventListener('click',()=>{click('v5TargetToggle');setTimeout(syncStates,30)});
   document.querySelectorAll('[data-set-bpo]').forEach(b=>b.addEventListener('click',()=>{const src=document.querySelector('#v3ResMenu [data-bpo="'+b.dataset.setBpo+'"]');src?.click();}));
@@ -3172,10 +3161,11 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.25"></script>
+<script src="app.js?v=5.5.28"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
+  <button type="button" data-tool="tf"><span class="rtIcon">◎</span><span>TF Measurement</span></button>
   <button type="button" data-tool="delay"><span class="rtIcon">⏱</span><span>Delay</span></button>
   <button type="button" data-tool="rt60"><span class="rtIcon">◫</span><span>RT60</span></button>
   <button type="button" data-tool="spleq"><span class="rtIcon">⌁</span><span>SPL / EQ</span></button>
@@ -3191,12 +3181,14 @@ window.addEventListener('load', function(){
   rail.addEventListener('click',e=>{
     const b=e.target.closest('button[data-tool]');if(!b)return;
     const t=b.dataset.tool;
-    if(['delay','rt60','spleq','align'].includes(t))click('#v5ModeTabs [data-v5mode="'+t+'"]');
+    if(t==='tf'&&typeof v5OpenTf==='function')v5OpenTf();
+    else if(['delay','rt60','spleq','align'].includes(t))click('#v5ModeTabs [data-v5mode="'+t+'"]');
   });
   function sync(){
     rail.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
     let t='';
-    if(document.getElementById('dlyPanel')?.classList.contains('open'))t='delay';
+    if(document.getElementById('tfPanel')?.classList.contains('open'))t='tf';
+    else if(document.getElementById('dlyPanel')?.classList.contains('open'))t='delay';
     else if(document.getElementById('rtPanel')?.classList.contains('open'))t='rt60';
     else if(document.getElementById('eqPanel')?.classList.contains('open'))t='spleq';
     else if(document.getElementById('alignBar')?.classList.contains('show'))t='align';
