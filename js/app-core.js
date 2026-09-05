@@ -383,7 +383,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.45-professional-finish',
+    version: 'v5.5.46-vivid-waterfall',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3940,7 +3940,7 @@ function drawWaterfallFrequencyCursor(W,H,nyquist){
 
 function wf3dColor(t,alpha=1){
   t=Math.max(0,Math.min(1,t));
-  const stops=[[0,35,70,190],[.18,32,125,245],[.36,35,210,225],[.54,64,220,105],[.72,205,225,45],[.86,255,157,28],[1,239,72,86]];
+  const stops=[[0,42,62,255],[.18,20,132,255],[.36,0,218,255],[.54,0,232,151],[.72,171,239,24],[.86,255,184,0],[1,255,45,82]];
   let a=stops[0],b=stops[stops.length-1];
   for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){a=stops[i-1];b=stops[i];break;}}
   const u=(t-a[0])/Math.max(.0001,b[0]-a[0]);
@@ -3994,7 +3994,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     }
     // One measured ridge and one stroke: predictable work and clean line separation.
     const contrast=Math.max(0,Math.min(1,(rowMax-rowMin)/.32));
-    const alpha=Math.max(.24,1-age*.56)*(.64+.36*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
+    const alpha=Math.max(.34,1-age*.48)*(.76+.24*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
     ridgeGradient.addColorStop(0,wf3dColor(1,alpha));ridgeGradient.addColorStop(.28,wf3dColor(.72,alpha));
     ridgeGradient.addColorStop(.52,wf3dColor(.48,alpha));ridgeGradient.addColorStop(.75,wf3dColor(.25,alpha));ridgeGradient.addColorStop(1,wf3dColor(0,alpha));
     // Join adjacent measurements into a translucent 3D surface; the ridge stays as a crisp outline above it.
@@ -4002,7 +4002,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
       const rowB=rows[rr+1],ageB=(rr+1)/Math.max(1,wf3d.maxRows-1),zB=ageB*depth;
       const bx0=left+(backLeft-left)*ageB,bx1=right+(backRight-right)*ageB,baseB=base-zB;
       const ampB=Math.min(amp*(1-ageB*.38),Math.max(span*.22,baseB-top-4));
-      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=sunMode?.09:.14;
+      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=sunMode?.12:.19;
       fillGradient.addColorStop(0,wf3dColor(1,fillAlpha));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha));
       fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha));
       ctx.beginPath();
@@ -4010,7 +4010,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
       for(let i=rowB.length-1;i>=0;i--){const x=bx0+i/(rowB.length-1)*(bx1-bx0),y=baseB-rowB[i]*ampB;ctx.lineTo(x,y);}
       ctx.closePath();ctx.fillStyle=fillGradient;ctx.fill();
     }
-    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?1.65:.82;ctx.beginPath();
+    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2:1.05;ctx.beginPath();
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i],x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
       if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
@@ -4023,7 +4023,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     for(let i=0;i<row.length;i++){const x=left+i/(row.length-1)*(right-left),y=base-row[i]*amp;ctx.lineTo(x,y);}
     ctx.lineTo(right,base);ctx.closePath();
     const g=ctx.createLinearGradient(0,base-amp,0,base);
-    g.addColorStop(0,'rgba(239,72,86,.11)');g.addColorStop(.28,'rgba(235,205,45,.09)');g.addColorStop(.56,'rgba(30,210,165,.07)');g.addColorStop(1,'rgba(35,90,215,.04)');
+    g.addColorStop(0,'rgba(255,45,82,.19)');g.addColorStop(.28,'rgba(255,194,0,.16)');g.addColorStop(.56,'rgba(0,232,151,.13)');g.addColorStop(1,'rgba(42,62,255,.09)');
     ctx.fillStyle=g;ctx.fill();
   }
   ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font='10px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';
@@ -4586,7 +4586,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.45';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.46';
   v3UpdateStatus();
 })();
 (function initAccent(){

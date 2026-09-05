@@ -1,6 +1,6 @@
 window.GAL=window.GAL||{};
 window.GAL.config=Object.freeze({
-  version:'5.5.45-professional-finish',
+  version:'5.5.46-vivid-waterfall',
   appName:'GAL Analyzer',
   maxTraces:6,
   supportedFft:[8192,16384,32768]
