@@ -2302,6 +2302,37 @@ body.sun-mode header.uiRefreshed,body.sun-mode #stage,body.sun-mode #targetComma
 body.sun-mode .measureDock,body.sun-mode #tfPanel.tfPro{box-shadow:0 5px 18px rgba(35,63,78,.10)!important}
 body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{color:#45616e!important}
 
+/* V5.5.50 — compact measurement docks: preserve the graph as the primary surface. */
+@media(min-width:901px){
+  .measureDock{
+    min-height:0!important;max-height:min(30vh,210px)!important;
+    padding:7px 10px!important;gap:5px!important;
+  }
+  .measureDock.expanded{max-height:min(42vh,340px)!important}
+  .measureDock h3{font-size:10px!important;line-height:1.2!important;padding:0 116px 5px 3px!important;margin:0!important}
+  .measureDock .chBar{min-width:210px!important;max-width:280px!important;padding:5px 7px!important}
+  .measureDock .ctrl{min-height:42px!important;padding:5px 7px!important}
+  .measureDock .toggle{min-height:28px!important;padding:4px 8px!important;font-size:9px!important}
+  .measureDock .dockMoreBtn,.measureDock .dockClose{top:6px!important;height:28px!important;min-height:28px!important}
+  .measureDock #tfBtns{gap:4px!important;padding-top:4px!important}
+  #tfPanel.measureDock:not(.expanded){min-height:0!important;max-height:min(25vh,190px)!important;overflow:auto!important}
+  #tfPanel.measureDock>.dockMoreBtn{right:48px!important;min-width:60px!important;padding:3px 8px!important}
+  #tfPanel.measureDock>.dockClose{right:9px!important;width:31px!important;min-width:31px!important;padding:3px!important}
+  #tfPanel.measureDock h3{padding-right:112px!important}
+  #tfPanel.measureDock #tfCorrCard{min-height:36px!important;gap:6px!important;padding:4px 7px!important}
+  #tfPanel.measureDock #tfDelayInfo{padding:4px 6px!important;min-width:125px!important}
+  #tfPanel.measureDock #tfGeqList .tfGrid{padding:5px!important;max-height:130px!important}
+  #tfPanel.measureDock #tfGeqList .tfItem{min-height:25px!important;padding:4px 6px!important}
+  #dlyPanel.measureDock{min-height:0!important;max-height:min(32vh,230px)!important;padding:7px 10px!important;gap:5px!important}
+  #dlyPanel.measureDock .dlyInputs{gap:4px!important}
+  #dlyPanel.measureDock .dlyMeasureCard{gap:4px!important;padding:6px!important}
+  #dlyPanel.measureDock #dlyStatus{min-height:20px!important;padding:4px 6px!important;font-size:10px!important}
+  #dlyPanel.measureDock .dlyAlignment{padding-top:5px!important;gap:6px!important}
+  #dlyPanel.measureDock .dlyAlignmentHead{gap:4px!important}
+  #dlyPanel.measureDock .dlyActions{gap:5px!important;padding-top:4px!important}
+  #dlyPanel.measureDock>.dockMoreBtn,#dlyPanel.measureDock>.dockClose{top:6px!important}
+}
+
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle,#uiContextBar{display:none!important}
@@ -2378,7 +2409,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.49</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.50</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2408,7 +2439,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.49 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.50 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3124,7 +3155,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.49</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.50</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3319,7 +3350,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.49"></script>
+<script src="app.js?v=5.5.50"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

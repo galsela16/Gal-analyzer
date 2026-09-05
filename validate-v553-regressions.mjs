@@ -98,7 +98,8 @@ const checks=[
  ,['waterfall palette is vivid but depth-aware',core.includes('const stops=[[0,42,62,255]')&&core.includes('Math.max(.34,1-age*.48)')&&core.includes('fillAlpha=sunMode?.12:.19')&&core.includes('rr===0?2:1.05')]
  ,['canvas click toggles both rails and closes overlays',html.includes("canvas?.addEventListener('pointerdown'")&&html.includes("const bothCollapsed=document.body.classList.contains('left-rail-collapsed')")&&html.includes("setRail('left',bothCollapsed);setRail('right',bothCollapsed)")&&html.includes("document.querySelectorAll('.measureDock.open,#tfPanel.open,#alignBar.show')")]
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
+ ,['measurement docks preserve canvas with compact limits',html.includes('V5.5.50 — compact measurement docks')&&html.includes('max-height:min(30vh,210px)')&&html.includes('max-height:min(25vh,190px)')&&html.includes('max-height:min(32vh,230px)')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.49 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.50 regression validation passed (${checks.length} checks).`);
