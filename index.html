@@ -2257,6 +2257,43 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
   background:#fff!important;border-color:#c7d6df!important;color:#17212b!important
 }
 
+/* V5.5.45 — professional finish: one restrained visual system across the workspace. */
+:root{--pro-radius:8px;--pro-line:rgba(115,164,181,.22);--pro-surface:#07151c;--pro-raised:#0a1b23;--pro-muted:#78919c}
+body.sun-mode{--pro-line:#cbd9e1;--pro-surface:#fff;--pro-raised:#f6f9fb;--pro-muted:#637b87}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;-webkit-font-smoothing:antialiased}
+header.uiRefreshed{border-bottom-color:var(--pro-line)!important;box-shadow:0 2px 10px rgba(0,0,0,.18)!important}
+header.uiRefreshed h1{font-weight:720!important;letter-spacing:.13em!important}
+#stage{border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;box-shadow:0 10px 30px rgba(0,0,0,.24)!important}
+#targetLeftStatus{gap:10px!important}
+.tlsCard,#targetMeasurementPanel,#uiRightTools,#targetCommandBar{
+  border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;background:var(--pro-surface)!important
+}
+.tlsCard{padding:12px!important}
+.tlsHead,.tmpHead,.uiRightToolsTitle{font-weight:760!important;letter-spacing:.11em!important;color:#aec1c9!important}
+.tlsLine,.tmpCell{font-weight:600!important;letter-spacing:.015em!important}
+.tlsOpen,.tcb,#uiRightTools button{
+  border-radius:6px!important;border-color:var(--pro-line)!important;background:var(--pro-raised)!important;
+  transition:background .15s ease,border-color .15s ease,color .15s ease,transform .12s ease!important
+}
+.tlsOpen:hover,.tcb:hover,#uiRightTools button:hover{border-color:rgba(31,190,204,.55)!important;background:rgba(31,190,204,.07)!important}
+#uiRightTools{gap:6px!important;padding:10px!important}
+#uiRightTools button{gap:5px!important;padding:8px!important;font-weight:680!important;letter-spacing:.035em!important}
+#uiRightTools .rtIcon{font-size:24px!important;line-height:1!important;opacity:.88}
+#targetCommandBar{height:52px!important;padding:6px!important;box-shadow:0 -4px 18px rgba(0,0,0,.16)!important}
+.tcb{font-weight:700!important;letter-spacing:.045em!important}
+#v53AnalysisGroup{border-radius:9px!important;box-shadow:none!important}
+#v53AnalysisGroup button{border-radius:6px!important;letter-spacing:.075em!important}
+#v53AnalysisGroup button.on::after{box-shadow:none!important;height:1px!important}
+#uiMenu{border-radius:12px!important;box-shadow:0 24px 70px rgba(0,0,0,.34)!important}
+.uiMenuSectionLabel{letter-spacing:.14em!important;color:var(--pro-muted)!important}
+#uiSettingsPanel{border-radius:8px!important}
+.uiSettingsTabs button,.uiSettingsRow button{border-radius:6px!important}
+.measureDock,#tfPanel.tfPro{border-radius:10px 10px 0 0!important;box-shadow:0 -14px 38px rgba(0,0,0,.24)!important}
+.measureDock .tfProCard,.measureDock .alignProCard,.measureDock .v5ReadCard{border-radius:7px!important;box-shadow:none!important}
+body.sun-mode header.uiRefreshed,body.sun-mode #stage,body.sun-mode #targetCommandBar,body.sun-mode #uiMenu,
+body.sun-mode .measureDock,body.sun-mode #tfPanel.tfPro{box-shadow:0 5px 18px rgba(35,63,78,.10)!important}
+body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{color:#45616e!important}
+
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle,#uiContextBar{display:none!important}
@@ -2333,7 +2370,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.44</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.45</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2363,7 +2400,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.44 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.45 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3079,7 +3116,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.44</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.45</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3274,7 +3311,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.44"></script>
+<script src="app.js?v=5.5.45"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

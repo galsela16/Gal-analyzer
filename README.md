@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.44 — Compact Support & Complete Day Mode
+# GAL Analyzer V5.5.45 — Professional Finish
 
-V5.5.44 turns Support & Export into compact secondary actions and completes the daylight palette inside all measurement panels, including cards, controls, status rows and active states.
+V5.5.45 applies one restrained professional visual system across the workspace: consistent typography, spacing, radii, borders, surfaces, interaction states and shadows in both Night and Day modes.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 
