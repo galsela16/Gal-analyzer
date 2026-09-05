@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.47 — Subtle Rails & Canvas Focus
+# GAL Analyzer V5.5.48 — Canvas Rail Toggle
 
-V5.5.47 replaces the prominent rail arrows with subtle low-profile handles and makes a main-canvas press enter focus mode by collapsing both rails and closing open workspaces and measurement panels.
+V5.5.48 makes the main canvas alternate both rails as one focus control: the first press closes both sides and the next press opens both. Open workspaces and measurement panels still close on every canvas press.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 

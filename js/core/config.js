@@ -1,6 +1,6 @@
 window.GAL=window.GAL||{};
 window.GAL.config=Object.freeze({
-  version:'5.5.47-subtle-rail-handles',
+  version:'5.5.48-canvas-rail-toggle',
   appName:'GAL Analyzer',
   maxTraces:6,
   supportedFft:[8192,16384,32768]
