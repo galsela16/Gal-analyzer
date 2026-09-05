@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.50 — Compact Measurement Panels
+# GAL Analyzer V5.5.51 — Compact TF Status Strip
 
-V5.5.50 makes every measurement dock substantially more compact so the live graph remains the primary workspace. Important readings stay visible, controls use a consistent low-profile rhythm, and advanced content remains available through the existing More action.
+V5.5.51 turns the five large TF status tiles into a slim instrument strip and further reduces the default TF panel height. All primary values and actions remain visible, while secondary descriptions stay available in the expanded view.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 

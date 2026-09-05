@@ -2333,6 +2333,33 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   #dlyPanel.measureDock>.dockMoreBtn,#dlyPanel.measureDock>.dockClose{top:6px!important}
 }
 
+/* V5.5.51 — TF status is a slim instrument strip, not a row of dashboard tiles. */
+@media(min-width:901px){
+  #tfPanel.measureDock:not(.expanded){max-height:min(21vh,158px)!important;padding:5px 9px!important;gap:3px!important}
+  #tfPanel.measureDock .tfProHeader{margin:0 0 2px!important;min-height:25px!important}
+  #tfPanel.measureDock .tfProHeader h3{font-size:11px!important;margin:0!important;padding:0!important;border:0!important}
+  #tfPanel.measureDock .tfProTitle{font-size:9px!important;line-height:1.15!important}
+  #tfPanel.measureDock .tfProLive{font-size:8px!important}
+  #tfPanel.measureDock .tfProCards{
+    display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:4px!important;margin:1px 0 3px!important;width:100%!important;
+  }
+  #tfPanel.measureDock .tfProCard{
+    min-height:30px!important;padding:3px 6px!important;border-radius:5px!important;
+    display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;
+    align-items:center!important;column-gap:6px!important;
+  }
+  #tfPanel.measureDock .tfProCard span{font-size:7px!important;line-height:1!important;margin:0!important}
+  #tfPanel.measureDock .tfProCard b{font-size:11px!important;line-height:1!important;text-align:right!important}
+  #tfPanel.measureDock .tfProCard small{display:none!important}
+  #tfPanel.measureDock .tfProViewBar{min-height:28px!important;padding:3px 5px!important;margin:2px 0!important;gap:4px!important;border-radius:5px!important}
+  #tfPanel.measureDock .tfProViewBar .left,#tfPanel.measureDock .tfProViewBar .right{gap:3px!important;flex-wrap:nowrap!important}
+  #tfPanel.measureDock .tfProViewBar button{min-height:24px!important;padding:3px 6px!important;font-size:8px!important;border-radius:4px!important}
+  #tfPanel.measureDock:not(.expanded) .chBar{padding:3px 5px!important;font-size:9px!important}
+  #tfPanel.measureDock:not(.expanded) #tfCorrCard{min-height:28px!important;padding:3px 5px!important}
+  #tfPanel.measureDock:not(.expanded) #tfWorkflowSteps button{min-height:24px!important;padding:3px 5px!important;font-size:8px!important}
+}
+
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle,#uiContextBar{display:none!important}
@@ -2409,7 +2436,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.50</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.51</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2439,7 +2466,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.50 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.51 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3155,7 +3182,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.50</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.51</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3350,7 +3377,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.50"></script>
+<script src="app.js?v=5.5.51"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
