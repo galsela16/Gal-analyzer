@@ -24,7 +24,7 @@ const checks=[
  ['bottom bar contains only canonical actions',Array.from(['capture','traces','settings']).every(t=>html.includes('data-tcb="'+t+'"'))],
  ['session reset is accessible in bottom bar',html.includes('class="tcb danger" id="v5ResetSession"')&&!html.includes('id="v5ResetSession" class="v5RailTool"')],
  ['right tools fill the rail in measurement order',(()=>{const rail=html.slice(html.indexOf('<aside id="uiRightTools"'),html.indexOf('</aside>',html.indexOf('<aside id="uiRightTools"')));return html.includes('grid-template-columns:1fr!important;grid-template-rows:22px repeat(5,minmax(0,1fr))')&&rail.indexOf('data-tool="tf"')<rail.indexOf('data-tool="delay"')&&rail.indexOf('data-tool="delay"')<rail.indexOf('data-tool="rt60"')&&rail.indexOf('data-tool="rt60"')<rail.indexOf('data-tool="spleq"')&&rail.indexOf('data-tool="spleq"')<rail.indexOf('data-tool="align"')})()],
- ['measurement health is embedded in header',html.indexOf('id="measurementHealth"')<html.indexOf('</header>')&&html.includes('header.uiRefreshed #measurementHealth')],
+ ['redundant measurement health row is hidden from header',html.indexOf('id="measurementHealth"')<html.indexOf('</header>')&&html.includes('header.uiRefreshed #measurementHealth{display:none!important}')],
  ['accent colors are available in settings',Array.from(['#3ea6ff','#40d17a','#b57bff','#ff9d3c']).every(c=>html.includes('data-ui-color="'+c+'"'))],
  ['day theme covers canonical workspace surfaces',html.includes('Complete daylight palette')&&html.includes('body.sun-mode #targetMeasurementPanel')&&html.includes('body.sun-mode #targetCommandBar')&&html.includes('body.sun-mode #uiMenu')],
  ['bottom bar removes dead display controls',Array.from(['startstop','freeze','average','smooth','hold','peak']).every(t=>!html.includes('data-tcb="'+t+'"'))],
@@ -101,4 +101,4 @@ const checks=[
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.48 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.49 regression validation passed (${checks.length} checks).`);
