@@ -100,7 +100,10 @@ const checks=[
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
  ,['measurement docks preserve canvas with compact limits',html.includes('V5.5.50 — compact measurement docks')&&html.includes('max-height:min(30vh,210px)')&&html.includes('max-height:min(25vh,190px)')&&html.includes('max-height:min(32vh,230px)')]
  ,['TF status cards form a compact instrument strip',html.includes('V5.5.51 — TF status is a slim instrument strip')&&html.includes('grid-template-columns:repeat(5,minmax(0,1fr))')&&html.includes('max-height:min(21vh,158px)')&&html.includes('.tfProCard small{display:none!important}')]
+ ,['Delay defaults to a compact measurement strip',html.includes('V5.5.52 — Delay opens as a focused measurement strip')&&html.includes('max-height:min(20vh,148px)')&&html.includes('#dlyPanel.measureDock:not(.expanded) .dlyAlignment{display:none!important}')]
+ ,['graph plot meets the SPL meter without dead space',core.includes("?28:6,plotH=H-meterH-6")&&core.includes("? 28 : 6;\n  const plotH = H - meterH - 6;")]
+ ,['Delay controls use the full dock width',html.includes('V5.5.53 — use the full dock width')&&html.includes('grid-template-columns:repeat(2,minmax(0,1fr))')&&html.includes('max-height:min(15vh,112px)')&&html.includes('#dlyPanel.measureDock:not(.expanded) #dlyInfo')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.51 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.53 regression validation passed (${checks.length} checks).`);

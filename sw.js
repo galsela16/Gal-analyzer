@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-51-compact-tf-strip-20260905';
+const CACHE = 'gal-analyzer-v5-5-53-wide-delay-strip-20260905';
 const ASSETS = [
   './',
   './index.html',

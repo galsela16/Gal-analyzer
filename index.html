@@ -2360,6 +2360,53 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   #tfPanel.measureDock:not(.expanded) #tfWorkflowSteps button{min-height:24px!important;padding:3px 5px!important;font-size:8px!important}
 }
 
+/* V5.5.52 — Delay opens as a focused measurement strip; speaker alignment lives under More. */
+@media(min-width:901px){
+  #dlyPanel.measureDock:not(.expanded){
+    grid-template-columns:minmax(190px,.8fr) minmax(320px,1.4fr)!important;
+    grid-template-areas:"title title" "inputs measure" "actions actions"!important;
+    min-height:0!important;max-height:min(20vh,148px)!important;
+    padding:5px 9px!important;gap:4px 7px!important;overflow:auto!important;
+  }
+  #dlyPanel.measureDock:not(.expanded) h3{font-size:10px!important;padding:0 3px 4px!important;margin:0!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyAlignment{display:none!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyInputs{gap:3px!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyInputs .chBar{min-height:27px!important;padding:3px 5px!important;font-size:9px!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard{
+    display:grid!important;grid-template-columns:auto minmax(120px,1fr) auto auto!important;
+    align-items:center!important;gap:5px!important;padding:4px 6px!important;min-height:0!important;
+  }
+  #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard>.sub{display:none!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard .toggle{min-height:27px!important;padding:3px 7px!important}
+  #dlyPanel.measureDock:not(.expanded) #dlyStatus{min-height:18px!important;padding:3px 5px!important;font-size:9px!important}
+  #dlyPanel.measureDock:not(.expanded) .delayRangeControl,
+  #dlyPanel.measureDock:not(.expanded) .dlyUnitControl{gap:4px!important;font-size:8px!important;flex-wrap:nowrap!important}
+  #dlyPanel.measureDock:not(.expanded) .delayRangeControl .seg button,
+  #dlyPanel.measureDock:not(.expanded) .dlyUnitControl .seg button{min-height:23px!important;padding:2px 5px!important;font-size:8px!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyActions{min-height:26px!important;padding:2px 0 0!important;border-top:0!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyActions>:not(.dockMoreBtn):not(.dockClose){display:none!important}
+  #dlyPanel.measureDock.expanded{max-height:min(42vh,340px)!important}
+}
+
+/* V5.5.53 — use the full dock width instead of wrapping Delay controls in narrow columns. */
+@media(min-width:901px){
+  #dlyPanel.measureDock:not(.expanded){
+    grid-template-columns:1fr!important;
+    grid-template-areas:"title" "inputs" "measure"!important;
+    max-height:min(15vh,112px)!important;padding:4px 9px!important;gap:3px!important;
+  }
+  #dlyPanel.measureDock:not(.expanded) h3{position:absolute!important;top:7px!important;right:12px!important;width:auto!important;border:0!important;padding:0!important;z-index:2}
+  #dlyPanel.measureDock:not(.expanded) .dlyInputs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;padding:0 122px 0 0!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard{
+    width:100%!important;box-sizing:border-box!important;
+    grid-template-columns:minmax(150px,1.25fr) minmax(130px,1fr) auto auto!important;
+    gap:7px!important;padding:3px 5px!important;
+  }
+  #dlyPanel.measureDock:not(.expanded) #dlyInfo,
+  #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard>.sub{display:none!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyActions{position:absolute!important;left:8px!important;top:4px!important;width:auto!important;padding:0!important;margin:0!important}
+}
+
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle,#uiContextBar{display:none!important}
@@ -2436,7 +2483,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.51</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.53</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2466,7 +2513,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.51 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.53 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3182,7 +3229,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.51</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.53</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3377,7 +3424,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.51"></script>
+<script src="app.js?v=5.5.53"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

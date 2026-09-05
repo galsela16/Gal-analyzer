@@ -383,7 +383,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.51-compact-tf-strip',
+    version: 'v5.5.53-wide-delay-strip',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3264,7 +3264,7 @@ function applyDelayPhaseToCross(re,im,k,n,delaySamples){
 }
 
 function drawRtaEqRange(W,H,xForFreq){
-  const meterH=(meterEl&&meterEl.style.display!=='none')?40:6,plotH=H-meterH-16;
+  const meterH=(meterEl&&meterEl.style.display!=='none')?28:6,plotH=H-meterH-6;
   const xLo=xForFreq(eqMinFreq),xHi=xForFreq(eqMaxFreq);
   ctx.save();ctx.setLineDash([]);
   const handle=(x,label,side,color)=>{
@@ -3285,7 +3285,7 @@ function drawRtaEqRange(W,H,xForFreq){
 
 function drawRtaEqCorrection(W,H,xForFreq){
   if(!eqCorrectionVisible||!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return;
-  const meterH=(meterEl&&meterEl.style.display!=='none')?40:6,plotH=H-meterH-16;
+  const meterH=(meterEl&&meterEl.style.display!=='none')?28:6,plotH=H-meterH-6;
   const ribbonH=Math.min(82,Math.max(58,plotH*.18)),top=plotH-ribbonH-5,mid=top+ribbonH/2,scale=(ribbonH*.38)/6;
   const pts=[];for(let i=0;i<eqCurveData.freqs.length;i++){const f=eqCurveData.freqs[i],v=eqCurveData.corr[i];if(v!=null&&Number.isFinite(v))pts.push({x:xForFreq(f),y:mid-v*scale,v});}
   if(!pts.length)return;
@@ -3309,8 +3309,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   _lastRtaSmoothTime=now;
   const tau=rtaTimeConstant();
   const smoothAlpha=tau>0?Math.exp(-dt/tau):0;
-  const meterH = (meterEl && meterEl.style.display!=='none') ? 40 : 6;
-  const plotH = H - meterH - 16;
+  const meterH = (meterEl && meterEl.style.display!=='none') ? 28 : 6;
+  const plotH = H - meterH - 6;
   const labelY = H - meterH - 4;
   ctx.strokeStyle=sunMode ? '#cbd5e1' : '#2b3646'; 
   ctx.fillStyle=sunMode ? '#475569' : '#aeb9c7'; 
@@ -4062,7 +4062,7 @@ function drawSpec(W,H,nyquist,bins,xForFreq){
     specCtx.fillStyle=heat(norm(db));
     specCtx.fillRect(px,y,1,1);
   }
-  const meterH = (meterEl && meterEl.style.display!=='none') ? 40 : 6;
+  const meterH = (meterEl && meterEl.style.display!=='none') ? 28 : 6;
   const specH = H - meterH;
   ctx.clearRect(0,0,W,H);
   drawWaterfall3d(W,specH,nyquist,xForFreq);
@@ -4586,7 +4586,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.51';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.53';
   v3UpdateStatus();
 })();
 (function initAccent(){
