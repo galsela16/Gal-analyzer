@@ -2100,22 +2100,27 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     border:1px solid rgba(104,170,192,.24);border-radius:10px;background:rgba(5,16,23,.97);padding:11px 12px
   }
   .workspaceRailToggle{
-    display:grid;position:fixed;z-index:46;top:50%;width:34px;height:72px;place-items:center;
-    transform:translateY(-50%);border:1px solid rgba(77,167,190,.24);background:rgba(6,22,29,.94);color:#7fa2ad;
-    font:800 19px ui-monospace,monospace;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.24);
+    display:grid;position:fixed;z-index:46;top:50%;width:28px;height:56px;place-items:center;
+    transform:translateY(-50%);border:0;background:transparent;color:#8aa3ad;opacity:.46;
+    font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;box-shadow:none;
     touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent;
-    transition:left .2s ease,right .2s ease,color .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease
+    transition:left .2s ease,right .2s ease,color .16s ease,opacity .16s ease,transform .12s ease
   }
-  .workspaceRailToggle:hover,.workspaceRailToggle:focus-visible{border-color:rgba(32,216,229,.72);background:#092630;color:#efffff;outline:none;box-shadow:0 0 0 3px rgba(32,216,229,.10),0 8px 22px rgba(0,0,0,.32)}
-  .workspaceRailToggle:active{background:#0d3340;transform:translateY(-50%) scale(.96)}
-  #leftRailToggle{left:calc(12px + var(--desktop-left) - 1px);border-radius:0 14px 14px 0;border-left-color:rgba(32,216,229,.38)}
-  #rightRailToggle{right:calc(12px + var(--desktop-right) - 1px);border-radius:14px 0 0 14px;border-right-color:rgba(32,216,229,.38)}
+  .workspaceRailToggle::before{
+    content:"";position:absolute;inset:8px 5px;border:1px solid rgba(106,157,173,.18);border-radius:8px;
+    background:rgba(6,22,29,.58);backdrop-filter:blur(5px);transition:border-color .16s ease,background .16s ease
+  }
+  .workspaceRailToggle:hover,.workspaceRailToggle:focus-visible{color:#d9edf2;opacity:.9;outline:none}
+  .workspaceRailToggle:hover::before,.workspaceRailToggle:focus-visible::before{border-color:rgba(44,190,204,.38);background:rgba(8,31,40,.82)}
+  .workspaceRailToggle:active{transform:translateY(-50%) scale(.94)}
+  #leftRailToggle{left:calc(12px + var(--desktop-left) - 7px)}
+  #rightRailToggle{right:calc(12px + var(--desktop-right) - 7px)}
   body.left-rail-collapsed #targetLeftStatus{display:none!important}
   body.left-rail-collapsed #stage{margin-left:12px!important}
-  body.left-rail-collapsed #leftRailToggle{left:0;border-left-color:rgba(77,167,190,.24)}
+  body.left-rail-collapsed #leftRailToggle{left:-4px;opacity:.68}
   body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{display:none!important}
   body.right-rail-collapsed #stage{margin-right:12px!important}
-  body.right-rail-collapsed #rightRailToggle{right:0;border-right-color:rgba(77,167,190,.24)}
+  body.right-rail-collapsed #rightRailToggle{right:-4px;opacity:.68}
   .tmpHead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid rgba(110,170,190,.14);font:800 9px ui-monospace,monospace;letter-spacing:.1em;color:#c8d8de}
   .tmpDot{width:7px;height:7px;border-radius:50%;background:#39dc6e;box-shadow:0 0 8px rgba(57,220,110,.5)}
   .tmpValue{font:400 25px ui-monospace,monospace;color:#eef8fa;margin:10px 0 2px}.tmpValue small{font-size:11px;color:#a9bdc5}
@@ -2209,7 +2214,9 @@ body.sun-mode .tlsLine,body.sun-mode .tmpSub,body.sun-mode .tmpCell,body.sun-mod
 body.sun-mode .tlsOpen,body.sun-mode #uiRightTools button,body.sun-mode .tcb{
   background:#f5f9fb!important;border-color:#c8d8e1!important;color:#36515f!important
 }
-body.sun-mode .workspaceRailToggle{background:#fff!important;color:#36515f!important;border-color:#c8d8e1!important}
+body.sun-mode .workspaceRailToggle{background:transparent!important;color:#607984!important;border:0!important}
+body.sun-mode .workspaceRailToggle::before{background:rgba(255,255,255,.68)!important;border-color:rgba(91,128,143,.20)!important}
+body.sun-mode .workspaceRailToggle:hover::before,body.sun-mode .workspaceRailToggle:focus-visible::before{background:rgba(255,255,255,.94)!important;border-color:rgba(15,140,157,.36)!important}
 /* Support and export are secondary actions: compact rows, not feature cards. */
 #uiMenu .uiMenuGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
 #uiMenu .uiMenuItem{
@@ -2370,7 +2377,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.46</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.47</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2400,7 +2407,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.46 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.47 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3116,7 +3123,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.46</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.47</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3311,7 +3318,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.46"></script>
+<script src="app.js?v=5.5.47"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3615,6 +3622,22 @@ window.addEventListener('load', function(){
    setRail('left',true);
    requestAnimationFrame(()=>{const card=document.getElementById('targetTraceCard');card?.scrollIntoView({block:'nearest'});card?.focus({preventScroll:true});});
  };
+ const canvas=document.getElementById('cv');
+ canvas?.addEventListener('pointerdown',e=>{
+   if(e.button!==undefined&&e.button!==0)return;
+   setRail('left',false);setRail('right',false);
+   if(typeof window.closeWorkspaceDrawer==='function')window.closeWorkspaceDrawer();
+   else{
+     document.body.classList.remove('ui-workspace-drawer','ui-traces-open','ui-drawer-io','ui-drawer-generator','ui-drawer-traces');
+     if(typeof window.v52SetIo==='function')window.v52SetIo(false);
+     if(typeof window.v53SetGeneratorDock==='function')window.v53SetGeneratorDock(false);
+   }
+   document.getElementById('uiMenu')?.classList.remove('open');document.getElementById('uiMenuBackdrop')?.classList.remove('open');
+   document.getElementById('uiMenuBtn')?.classList.remove('on');document.getElementById('uiMenuBtn')?.setAttribute('aria-expanded','false');
+   document.querySelectorAll('.measureDock.open,#tfPanel.open,#alignBar.show').forEach(p=>p.classList.remove('open','expanded','show'));
+   document.getElementById('modalBg')?.classList.remove('show');
+   if(typeof updateMeasureDockHeight==='function')updateMeasureDockHeight();
+ },{passive:true});
 })();
 </script>
 

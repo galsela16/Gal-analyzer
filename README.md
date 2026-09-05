@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.46 — Vivid Waterfall
+# GAL Analyzer V5.5.47 — Subtle Rails & Canvas Focus
 
-V5.5.46 gives the Waterfall a more vivid, saturated frequency palette with clearer active ridges and a stronger surface, while preserving time-depth fading and measurement detail.
+V5.5.47 replaces the prominent rail arrows with subtle low-profile handles and makes a main-canvas press enter focus mode by collapsing both rails and closing open workspaces and measurement panels.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 

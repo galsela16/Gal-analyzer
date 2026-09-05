@@ -91,13 +91,14 @@ const checks=[
  ,['resolution strip uses subtle active styling',html.includes('height:24px;display:flex')&&html.includes('button.on::after{content:""')&&html.includes('width:13px;height:1px')&&html.includes('background:transparent!important;box-shadow:none!important')]
  ,['I/O card has no decorative fake meter',!html.includes('class="tlsMeter"')&&!html.includes('.tlsMeter{')]
  ,['analysis selector uses compact single-surface styling',html.includes('width:min(480px,58vw)!important')&&html.includes('grid-template-columns:repeat(4,1fr)!important')&&html.includes('#v53AnalysisGroup button.on::after')&&html.includes('background:rgba(31,183,201,.11)')]
- ,['rail controls have reliable attached hit targets',html.includes('top:50%;width:34px;height:72px')&&html.includes('border-radius:0 14px 14px 0')&&html.includes('border-radius:14px 0 0 14px')&&html.includes('touch-action:manipulation')]
+ ,['rail controls have subtle touch-safe handles',html.includes('top:50%;width:28px;height:56px')&&html.includes('.workspaceRailToggle::before')&&html.includes('opacity:.46')&&html.includes('touch-action:manipulation')]
  ,['support and export actions are compact',html.includes('#uiMenu .uiMenuItem{')&&html.includes('min-height:38px!important;padding:6px 8px!important')]
  ,['day mode covers support and measurement internals',html.includes('body.sun-mode #uiMenu .uiMenuItem{background:#f8fbfd!important')&&html.includes('body.sun-mode .measureDock .tfProCard')&&html.includes('body.sun-mode .measureDock button.on')]
  ,['professional finish uses a shared restrained visual system',html.includes('--pro-radius:8px')&&html.includes('--pro-surface:#07151c')&&html.includes('V5.5.45 — professional finish')]
  ,['waterfall palette is vivid but depth-aware',core.includes('const stops=[[0,42,62,255]')&&core.includes('Math.max(.34,1-age*.48)')&&core.includes('fillAlpha=sunMode?.12:.19')&&core.includes('rr===0?2:1.05')]
+ ,['canvas click enters focus mode',html.includes("canvas?.addEventListener('pointerdown'")&&html.includes("setRail('left',false);setRail('right',false)")&&html.includes("document.querySelectorAll('.measureDock.open,#tfPanel.open,#alignBar.show')")]
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.46 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.47 regression validation passed (${checks.length} checks).`);
