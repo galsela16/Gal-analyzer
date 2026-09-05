@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.42 — Subtle Resolution Strip
+# GAL Analyzer V5.5.44 — Compact Support & Complete Day Mode
 
-V5.5.42 refines the resolution selector into a quiet secondary control: transparent background, compact typography, no button capsules and only a thin underline for the active value. Its height is reduced from 32 to 24 pixels to return more space to the graph.
+V5.5.44 turns Support & Export into compact secondary actions and completes the daylight palette inside all measurement panels, including cards, controls, status rows and active states.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 

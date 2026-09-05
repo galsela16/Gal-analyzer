@@ -91,9 +91,11 @@ const checks=[
  ,['resolution strip uses subtle active styling',html.includes('height:24px;display:flex')&&html.includes('button.on::after{content:""')&&html.includes('width:13px;height:1px')&&html.includes('background:transparent!important;box-shadow:none!important')]
  ,['I/O card has no decorative fake meter',!html.includes('class="tlsMeter"')&&!html.includes('.tlsMeter{')]
  ,['analysis selector uses compact single-surface styling',html.includes('width:min(480px,58vw)!important')&&html.includes('grid-template-columns:repeat(4,1fr)!important')&&html.includes('#v53AnalysisGroup button.on::after')&&html.includes('background:rgba(31,183,201,.11)')]
- ,['rail controls are slim attached edge handles',html.includes('top:50%;width:22px;height:52px')&&html.includes('border-radius:0 11px 11px 0')&&html.includes('border-radius:11px 0 0 11px')]
+ ,['rail controls have reliable attached hit targets',html.includes('top:50%;width:34px;height:72px')&&html.includes('border-radius:0 14px 14px 0')&&html.includes('border-radius:14px 0 0 14px')&&html.includes('touch-action:manipulation')]
+ ,['support and export actions are compact',html.includes('#uiMenu .uiMenuItem{')&&html.includes('min-height:38px!important;padding:6px 8px!important')]
+ ,['day mode covers support and measurement internals',html.includes('body.sun-mode #uiMenu .uiMenuItem{background:#f8fbfd!important')&&html.includes('body.sun-mode .measureDock .tfProCard')&&html.includes('body.sun-mode .measureDock button.on')]
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.42 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.44 regression validation passed (${checks.length} checks).`);

@@ -2100,20 +2100,22 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     border:1px solid rgba(104,170,192,.24);border-radius:10px;background:rgba(5,16,23,.97);padding:11px 12px
   }
   .workspaceRailToggle{
-    display:grid;position:fixed;z-index:46;top:50%;width:22px;height:52px;place-items:center;
+    display:grid;position:fixed;z-index:46;top:50%;width:34px;height:72px;place-items:center;
     transform:translateY(-50%);border:1px solid rgba(77,167,190,.24);background:rgba(6,22,29,.94);color:#7fa2ad;
-    font:800 15px ui-monospace,monospace;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.24);
-    transition:left .2s ease,right .2s ease,color .16s ease,border-color .16s ease,background .16s ease
+    font:800 19px ui-monospace,monospace;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.24);
+    touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent;
+    transition:left .2s ease,right .2s ease,color .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease
   }
-  .workspaceRailToggle:hover,.workspaceRailToggle:focus-visible{border-color:rgba(32,216,229,.62);background:#092630;color:#efffff;outline:none}
-  #leftRailToggle{left:calc(12px + var(--desktop-left) - 11px);border-radius:0 11px 11px 0}
-  #rightRailToggle{right:calc(12px + var(--desktop-right) - 11px);border-radius:11px 0 0 11px}
+  .workspaceRailToggle:hover,.workspaceRailToggle:focus-visible{border-color:rgba(32,216,229,.72);background:#092630;color:#efffff;outline:none;box-shadow:0 0 0 3px rgba(32,216,229,.10),0 8px 22px rgba(0,0,0,.32)}
+  .workspaceRailToggle:active{background:#0d3340;transform:translateY(-50%) scale(.96)}
+  #leftRailToggle{left:calc(12px + var(--desktop-left) - 1px);border-radius:0 14px 14px 0;border-left-color:rgba(32,216,229,.38)}
+  #rightRailToggle{right:calc(12px + var(--desktop-right) - 1px);border-radius:14px 0 0 14px;border-right-color:rgba(32,216,229,.38)}
   body.left-rail-collapsed #targetLeftStatus{display:none!important}
   body.left-rail-collapsed #stage{margin-left:12px!important}
-  body.left-rail-collapsed #leftRailToggle{left:0}
+  body.left-rail-collapsed #leftRailToggle{left:0;border-left-color:rgba(77,167,190,.24)}
   body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{display:none!important}
   body.right-rail-collapsed #stage{margin-right:12px!important}
-  body.right-rail-collapsed #rightRailToggle{right:0}
+  body.right-rail-collapsed #rightRailToggle{right:0;border-right-color:rgba(77,167,190,.24)}
   .tmpHead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid rgba(110,170,190,.14);font:800 9px ui-monospace,monospace;letter-spacing:.1em;color:#c8d8de}
   .tmpDot{width:7px;height:7px;border-radius:50%;background:#39dc6e;box-shadow:0 0 8px rgba(57,220,110,.5)}
   .tmpValue{font:400 25px ui-monospace,monospace;color:#eef8fa;margin:10px 0 2px}.tmpValue small{font-size:11px;color:#a9bdc5}
@@ -2208,6 +2210,37 @@ body.sun-mode .tlsOpen,body.sun-mode #uiRightTools button,body.sun-mode .tcb{
   background:#f5f9fb!important;border-color:#c8d8e1!important;color:#36515f!important
 }
 body.sun-mode .workspaceRailToggle{background:#fff!important;color:#36515f!important;border-color:#c8d8e1!important}
+/* Support and export are secondary actions: compact rows, not feature cards. */
+#uiMenu .uiMenuGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+#uiMenu .uiMenuItem{
+  min-height:38px!important;padding:6px 8px!important;border-radius:8px!important;
+  grid-template-columns:22px minmax(0,1fr)!important;column-gap:7px!important
+}
+#uiMenu .uiMenuItem .ico{width:22px!important;height:22px!important;min-width:22px!important;border-radius:6px!important;font-size:12px!important}
+#uiMenu .uiMenuItem .txt{display:block;font-size:10px!important;line-height:1.05!important}
+#uiMenu .uiMenuItem .meta{margin-top:2px!important;font-size:7.5px!important;line-height:1.05!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.sun-mode #uiMenu .uiMenuItem{background:#f8fbfd!important;color:#203441!important;border-color:#cbdbe4!important}
+body.sun-mode #uiMenu .uiMenuItem .ico{background:#edf6fa!important;color:#078ba0!important}
+body.sun-mode #uiMenu .uiMenuItem .meta{color:#6b818d!important}
+body.sun-mode #uiMenu .uiMenuItem:hover,body.sun-mode #uiMenu .uiMenuItem:active{background:#edf8fb!important;border-color:#65b8c7!important}
+/* Day mode must reach the contents of every measurement panel, not only its shell. */
+body.sun-mode .measureDock .v5ReadCard,body.sun-mode .measureDock .tfProCard,body.sun-mode .measureDock .alignProCard,
+body.sun-mode .measureDock .dlyMeasureCard,body.sun-mode .measureDock .tfGrid,body.sun-mode .measureDock .dockAdvanced,
+body.sun-mode #tfPanel .v5ReadCard,body.sun-mode #tfPanel .tfProCard,body.sun-mode #tfPanel .alignProCard{
+  background:#f7fafc!important;color:#203441!important;border-color:#c9d8e1!important;box-shadow:none!important
+}
+body.sun-mode .measureDock .tfProCard b,body.sun-mode .measureDock .alignProCard b,body.sun-mode .measureDock .v5ReadCard .value,
+body.sun-mode #tfPanel .tfProCard b{color:#203441!important}
+body.sun-mode .measureDock .tfProCard span,body.sun-mode .measureDock .tfProCard small,body.sun-mode .measureDock .alignProCard span,
+body.sun-mode .measureDock .v5ReadCard .label{color:#6a808c!important}
+body.sun-mode .measureDock button,body.sun-mode #tfPanel button{
+  background:#f5f9fb!important;color:#36515f!important;border-color:#c7d7e0!important;box-shadow:none!important
+}
+body.sun-mode .measureDock button:hover,body.sun-mode #tfPanel button:hover{background:#eaf6f9!important;border-color:#69b8c6!important;color:#176f7c!important}
+body.sun-mode .measureDock button.on,body.sun-mode #tfPanel button.on{background:#e4f8fa!important;border-color:#22bdca!important;color:#087b88!important}
+body.sun-mode .measureDock #dlyStatus,body.sun-mode #tfPanel #tfDelayInfo,body.sun-mode #tfPanel .tfProViewBar{
+  background:#f7fafc!important;color:#526b78!important;border-color:#c9d8e1!important
+}
 body.sun-mode #v53AnalysisGroup{background:#eef4f7!important;border-color:#cad8df!important;box-shadow:inset 0 1px 0 #fff,0 4px 12px rgba(30,55,70,.08)!important}
 body.sun-mode #v53AnalysisGroup button{color:#69818d!important}
 body.sun-mode #v53AnalysisGroup button:hover{color:#294653!important;background:rgba(32,151,170,.07)!important}
@@ -2300,7 +2333,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.42</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.44</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2330,7 +2363,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.42 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.44 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3046,7 +3079,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.42</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.44</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3241,7 +3274,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.42"></script>
+<script src="app.js?v=5.5.44"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3517,17 +3550,28 @@ window.addEventListener('load', function(){
 <script>
 (()=>{
  const buttons={left:document.getElementById('leftRailToggle'),right:document.getElementById('rightRailToggle')};
+ const resizeTimers={left:0,right:0};
+ function settleLayout(side){
+   cancelAnimationFrame(resizeTimers[side]);
+   resizeTimers[side]=requestAnimationFrame(()=>{if(typeof resize==='function')resize()});
+   clearTimeout(settleLayout[side]);
+   settleLayout[side]=setTimeout(()=>{if(typeof resize==='function')resize()},230);
+ }
  function setRail(side,open,persist=true){
    document.body.classList.toggle(side+'-rail-collapsed',!open);
    const b=buttons[side];
-   if(b){b.textContent=side==='left'?(open?'‹':'›'):(open?'›':'‹');b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',(open?'קפל ':'פתח ')+(side==='left'?'סרגל שמאלי':'סרגל ימני'));}
+   if(b){
+     const action=(open?'קפל ':'פתח ')+(side==='left'?'סרגל שמאלי':'סרגל ימני');
+     b.textContent=side==='left'?(open?'‹':'›'):(open?'›':'‹');
+     b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',action);b.title=action;
+   }
    if(persist)try{localStorage.setItem('gal_'+side+'_rail_open',open?'1':'0')}catch(_){ }
-   requestAnimationFrame(()=>{if(typeof resize==='function')resize()});
+   settleLayout(side);
  }
  for(const side of ['left','right']){
    let open=true;try{open=localStorage.getItem('gal_'+side+'_rail_open')!=='0'}catch(_){ }
    setRail(side,open,false);
-   buttons[side]?.addEventListener('click',()=>setRail(side,document.body.classList.contains(side+'-rail-collapsed')));
+   buttons[side]?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();setRail(side,document.body.classList.contains(side+'-rail-collapsed'));});
  }
  window.setWorkspaceRail=setRail;
  window.focusPersistentTraces=()=>{
