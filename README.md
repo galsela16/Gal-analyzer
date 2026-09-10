@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.56 — Single TF View
+# GAL Analyzer V5.5.57 — Compact TF Field Panel
 
-V5.5.56 presents one clear TF quantity at a time: Magnitude, Phase, or Coherence. It restores the phase cursor, preserves held results, and prevents an open TF control panel from replacing the selected RTA graph.
+V5.5.57 reduces the default TF panel to the three essential field tasks: choose a view, follow the next-step prompt, and run Sync → Verify → Capture. Diagnostics and infrequent controls remain available under More.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 

@@ -2453,6 +2453,51 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   #tfPanel.measureDock .tfProSummary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 
+/* V5.5.57 — TF compact field strip: view, next step, workflow. */
+#tfPanel.measureDock:not(.expanded){
+  min-height:0!important;max-height:112px!important;overflow:hidden!important;
+  padding:6px 92px 6px 9px!important;gap:5px 7px!important;align-items:center!important;align-content:center!important
+}
+#tfPanel.measureDock:not(.expanded) .tfProHeader,
+#tfPanel.measureDock:not(.expanded) .tfProCards,
+#tfPanel.measureDock:not(.expanded) #tfAverageBar,
+#tfPanel.measureDock:not(.expanded) #tfPhaseTools,
+#tfPanel.measureDock:not(.expanded)>.sub,
+#tfPanel.measureDock:not(.expanded)>.chBar,
+#tfPanel.measureDock:not(.expanded) #tfCorrCard,
+#tfPanel.measureDock:not(.expanded) #tfDelayInfo,
+#tfPanel.measureDock:not(.expanded)>.delayRangeControl,
+#tfPanel.measureDock:not(.expanded) #tfTargetCtrl,
+#tfPanel.measureDock:not(.expanded) #tfUtilityBtns{display:none!important}
+#tfPanel.measureDock:not(.expanded) .tfProViewBar{
+  order:1!important;flex:1 1 420px!important;max-width:520px!important;width:auto!important;
+  min-height:31px!important;margin:0!important;padding:3px!important;background:rgba(255,255,255,.018)!important
+}
+#tfPanel.measureDock:not(.expanded) .tfProViewBar .left{max-width:none!important;width:100%!important}
+#tfPanel.measureDock:not(.expanded) .tfProViewBar .right{display:none!important}
+#tfPanel.measureDock:not(.expanded) #tfFieldGuide{
+  order:2!important;flex:1 1 330px!important;min-height:31px!important;margin:0!important;padding:3px 8px!important;
+  justify-content:flex-start!important;overflow:hidden!important
+}
+#tfPanel.measureDock:not(.expanded) #tfFieldGuide span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tfPanel.measureDock:not(.expanded) #tfBtns{
+  order:3!important;display:block!important;flex:1 0 100%!important;width:100%!important;
+  margin:0!important;padding:0!important;border:0!important
+}
+#tfPanel.measureDock:not(.expanded) #tfWorkflowSteps{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important}
+#tfPanel.measureDock:not(.expanded) #tfWorkflowSteps button{min-height:29px!important;padding:3px 7px!important;font-size:9px!important}
+#tfPanel.measureDock:not(.expanded) #tfMeasBtn{display:none!important}
+#tfPanel.measureDock:not(.expanded)>.dockMoreBtn,#tfPanel.measureDock:not(.expanded)>.dockClose{top:7px!important;height:29px!important;min-height:29px!important}
+#tfPanel.measureDock:not(.expanded)>.dockMoreBtn{right:43px!important;min-width:45px!important;width:45px!important;padding:2px 4px!important;font-size:8px!important}
+#tfPanel.measureDock:not(.expanded)>.dockClose{right:7px!important;width:29px!important;min-width:29px!important;padding:2px!important}
+@media(max-width:900px){
+  #tfPanel.measureDock:not(.expanded){max-height:150px!important;padding:7px 48px 7px 7px!important;gap:5px!important}
+  #tfPanel.measureDock:not(.expanded) .tfProViewBar,#tfPanel.measureDock:not(.expanded) #tfFieldGuide{flex:1 0 100%!important;max-width:none!important}
+  #tfPanel.measureDock:not(.expanded) #tfFieldGuide{min-height:27px!important}
+  #tfPanel.measureDock:not(.expanded)>.dockMoreBtn{right:7px!important;top:42px!important}
+  #tfPanel.measureDock:not(.expanded)>.dockClose{right:7px!important;top:7px!important}
+}
+
 </style>
 </head>
 <body>
@@ -2505,7 +2550,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.56</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.57</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2535,7 +2580,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.56 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.57 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2861,8 +2906,8 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
         <div id="tfWorkflowSteps" aria-label="סדר מדידת TF">
           <button class="toggle" id="tfAutoDelayBtn">1 · סנכרון TF</button>
           <button class="toggle" id="tfVerifyBtn" title="בחר רעש ורוד, סוויפ או מקור חיצוני; האפליקציה תאסוף ותאמת פאזה וקוהרנטיות" disabled>2 · אימות TF</button>
-          <button class="toggle" id="tfTraceBtn" disabled>3א · לכוד Trace</button>
-          <button class="toggle" id="tfMeasBtn" disabled>3ב · מדוד EQ</button>
+          <button class="toggle" id="tfTraceBtn" disabled>3 · לכוד Trace</button>
+          <button class="toggle" id="tfMeasBtn" disabled>EQ מתקדם</button>
         </div>
         <div id="tfUtilityBtns" aria-label="פעולות TF נוספות">
           <button class="toggle" id="tfPhaseToggleBtn">Phase</button>
@@ -3257,7 +3302,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.56</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.57</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3451,7 +3496,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.56"></script>
+<script src="app.js?v=5.5.57"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
