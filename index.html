@@ -1474,6 +1474,15 @@ body.sun-mode .tfProCard b{color:#172033}
 .tfPhaseActions button.on{color:#56df86;border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.10)}
 @media(max-width:700px){.tfPhaseTools{grid-template-columns:1fr}.tfPhaseActions{justify-content:flex-start}.tfPhaseBadge{min-width:72px}}
 
+/* V5.5.56 — exclusive, single-canvas TF views. */
+#tfPhaseToggleBtn,#tfCohToggleBtn{display:none!important}
+#tfPanel .tfProViewBar .left{display:grid!important;grid-template-columns:repeat(3,minmax(82px,1fr));flex:1;max-width:420px}
+#tfPanel .tfProViewBar .left button{position:relative;text-align:center}
+#tfPanel .tfProViewBar .left button.on:after{content:"";position:absolute;left:22%;right:22%;bottom:2px;height:2px;border-radius:2px;background:var(--accent)}
+#tfPhaseTools[data-view="coherence"] .tfPhaseBadge:first-child,#tfPhaseTools[data-view="coherence"] .tfPhaseActions{display:none}
+#tfPhaseTools[data-view="coherence"] .phaseRead{width:100%}
+@media(max-width:700px){#tfPanel .tfProViewBar .left{width:100%;max-width:none;grid-template-columns:repeat(3,1fr)}}
+
 
 /* V5.5.3 Alignment Pro */
 #alignProResult{display:none;flex:1 0 100%;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
@@ -2496,7 +2505,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.55</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.56</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2526,7 +2535,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.55 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.56 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2822,8 +2831,8 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
         <div class="seg" id="tfAverageSpeed"><button data-tf-average="fast">FAST</button><button data-tf-average="normal" class="on">NORMAL</button><button data-tf-average="precision">PRECISION</button></div>
         <button type="button" id="tfAverageReset">RESET AVG</button>
       </div>
-      <div class="tfProViewBar">
-        <div class="left"><button type="button" id="tfProMag" class="on">Magnitude</button><button type="button" id="tfProPhase">Phase</button><button type="button" id="tfProCohBtn">Coherence</button></div>
+      <div class="tfProViewBar" aria-label="TF display">
+        <div class="left" role="group" aria-label="בחר תצוגת TF"><button type="button" id="tfProMag" class="on" aria-pressed="true">Magnitude</button><button type="button" id="tfProPhase" aria-pressed="false">Phase</button><button type="button" id="tfProCohBtn" aria-pressed="false">Coherence</button></div>
         <div class="right"><button type="button" id="tfProFreeze">Freeze / Trace</button><button type="button" id="tfProSync">Auto Delay</button></div>
       </div>
       <div class="tfPhaseTools" id="tfPhaseTools">
@@ -3248,7 +3257,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.55</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.56</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3405,7 +3414,7 @@ window.addEventListener('load', function(){
   document.getElementById('tfPhaseGate')?.addEventListener('click',function(){window.tfPhaseGateEnabled=window.tfPhaseGateEnabled===false?true:false;this.classList.toggle('on',window.tfPhaseGateEnabled!==false)});
   window.tfPhaseCursorHz=1000;window.tfPhaseGateEnabled=true;window.tfPhaseUnwrap=false;window.tfPhaseZeroAtCursor=false;
   setInterval(()=>{
-    const phaseOn=!!document.getElementById('tfPhaseToggleBtn')?.classList.contains('on');
+    const phaseOn=window.tfViewMode==='phase'||window.tfViewMode==='coherence';
     phaseTools?.classList.toggle('show',phaseOn);
     if(typeof window.getTfPhaseCursorInfo==='function'){
       const q=window.getTfPhaseCursorInfo(window.tfPhaseCursorHz||1000,window.tfPhaseUnwrap,window.tfPhaseZeroAtCursor);
@@ -3420,10 +3429,10 @@ window.addEventListener('load', function(){
   // TF Pro surface: mirrors the proven TF engine without duplicating DSP.
   const tfProPhase=document.getElementById('tfProPhase'), tfProCohBtn=document.getElementById('tfProCohBtn');
   document.getElementById('tfProSync')?.addEventListener('click',()=>document.getElementById('tfAutoDelayBtn')?.click());
-  tfProPhase?.addEventListener('click',()=>document.getElementById('tfPhaseToggleBtn')?.click());
-  tfProCohBtn?.addEventListener('click',()=>document.getElementById('tfCohToggleBtn')?.click());
+  tfProPhase?.addEventListener('click',()=>window.setTfViewMode?.('phase'));
+  tfProCohBtn?.addEventListener('click',()=>window.setTfViewMode?.('coherence'));
   document.getElementById('tfProFreeze')?.addEventListener('click',()=>document.getElementById('tfTraceBtn')?.click());
-  document.getElementById('tfProMag')?.addEventListener('click',()=>{ tfProPhase?.classList.remove('on');tfProCohBtn?.classList.remove('on'); if(document.getElementById('tfPhaseToggleBtn')?.classList.contains('on'))document.getElementById('tfPhaseToggleBtn').click(); if(document.getElementById('tfCohToggleBtn')?.classList.contains('on'))document.getElementById('tfCohToggleBtn').click();});
+  document.getElementById('tfProMag')?.addEventListener('click',()=>window.setTfViewMode?.('magnitude'));
   setInterval(()=>{
     const d=document.getElementById('tfDelayInfo')?.textContent||'';
     const dm=d.match(/([0-9]+(?:\.[0-9]+)?)\s*ms/i);
@@ -3436,14 +3445,13 @@ window.addEventListener('load', function(){
     const leg=document.querySelectorAll('#tfTraceLegend span').length;
     const te=document.getElementById('tfProTrace'); if(te)te.textContent=leg?leg+' SAVED':'LIVE';
     const ts=document.getElementById('tfProTraceSub');if(ts)ts.textContent=leg?'Comparison ready':'No capture yet';
-    tfProPhase?.classList.toggle('on',!!document.getElementById('tfPhaseToggleBtn')?.classList.contains('on'));
-    tfProCohBtn?.classList.toggle('on',!!document.getElementById('tfCohToggleBtn')?.classList.contains('on'));
+    [['tfProMag','magnitude'],['tfProPhase','phase'],['tfProCohBtn','coherence']].forEach(([id,state])=>{const b=document.getElementById(id);if(b){const on=window.tfViewMode===state;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');}});
   },500);
 
 });
 </script>
 
-<script src="app.js?v=5.5.55"></script>
+<script src="app.js?v=5.5.56"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

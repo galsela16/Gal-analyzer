@@ -29,6 +29,7 @@ let dlyLastPathResult = null;
 let dlyLastSpeakerResult = null;
 let showTfPhase = false;
 let showTfCoh = false;
+let tfViewMode = 'magnitude';
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
 let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
 let tfWorkingAverage=null,tfAverageFrames=0,tfAverageMode='normal',tfAverageLastUpdate=0;
@@ -244,29 +245,13 @@ function autoCal1kHz(){
 
 // Event Listeners for TF Quick Floating Bar
 safeOn('qbAutoDelay', 'click', tfAutoDelay);
-safeOn('qbCoh', 'click', function(){
-  showTfCoh = !showTfCoh;
-  this.classList.toggle('on', showTfCoh);
-  const mainBtn = document.getElementById('tfCohToggleBtn');
-  if(mainBtn) mainBtn.classList.toggle('on', showTfCoh);
-});
-safeOn('qbPhase', 'click', function(){
-  showTfPhase = !showTfPhase;
-  this.classList.toggle('on', showTfPhase);
-  const mainBtn = document.getElementById('tfPhaseToggleBtn');
-  if(mainBtn) mainBtn.classList.toggle('on', showTfPhase);
-});
+safeOn('qbCoh', 'click', ()=>setTfViewMode('coherence'));
+safeOn('qbPhase', 'click', ()=>setTfViewMode('phase'));
 safeOn('tfAutoDelayBtn','click',tfAutoDelay);
 safeOn('v52AutoDelayBtn','click',tfAutoDelay);
 safeOn('phSyncBtn','click',tfAutoDelay);
-safeOn('tfCohToggleBtn','click',function(){
-  showTfCoh=!showTfCoh; this.classList.toggle('on',showTfCoh);
-  const q=document.getElementById('qbCoh'); if(q) q.classList.toggle('on',showTfCoh);
-});
-safeOn('tfPhaseToggleBtn','click',function(){
-  showTfPhase=!showTfPhase; this.classList.toggle('on',showTfPhase);
-  const q=document.getElementById('qbPhase'); if(q) q.classList.toggle('on',showTfPhase);
-});
+safeOn('tfCohToggleBtn','click',()=>setTfViewMode('coherence'));
+safeOn('tfPhaseToggleBtn','click',()=>setTfViewMode('phase'));
 
 
 function tfAutoDelay(event){
@@ -385,7 +370,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.55-field-tf-workflow',
+    version: 'v5.5.56-single-tf-view',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1353,12 +1338,17 @@ function tfWorkflowQuality(){
   }
   return evaluateTfVerification(coherence,gate,signalsOk);
 }
+function setTfViewMode(view){
+  tfViewMode=['magnitude','phase','coherence'].includes(view)?view:'magnitude';
+  showTfPhase=tfViewMode==='phase';showTfCoh=tfViewMode==='coherence';window.tfViewMode=tfViewMode;
+  const states={tfProMag:'magnitude',tfProPhase:'phase',tfProCohBtn:'coherence',tfPhaseToggleBtn:'phase',tfCohToggleBtn:'coherence',qbPhase:'phase',qbCoh:'coherence'};
+  Object.entries(states).forEach(([id,state])=>document.getElementById(id)?.classList.toggle('on',tfViewMode===state));
+  const tools=document.getElementById('tfPhaseTools');if(tools){tools.dataset.view=tfViewMode;tools.classList.toggle('show',tfViewMode==='phase'||tfViewMode==='coherence');}
+}
+window.setTfViewMode=setTfViewMode;window.tfViewMode=tfViewMode;
 function setTfPhaseAndCoherence(on){
-  showTfPhase=on;showTfCoh=on;
-  const phase=document.getElementById('tfPhaseToggleBtn'),coh=document.getElementById('tfCohToggleBtn');
-  const qPhase=document.getElementById('qbPhase'),qCoh=document.getElementById('qbCoh');
-  if(phase)phase.classList.toggle('on',on);if(coh)coh.classList.toggle('on',on);
-  if(qPhase)qPhase.classList.toggle('on',on);if(qCoh)qCoh.classList.toggle('on',on);
+  // Verification collects both quantities without forcing a split/overlay view.
+  if(!on)setTfViewMode('magnitude');else setTfViewMode(tfViewMode);
 }
 function syncTfWorkflowUi(message,tone){
   const busy=measureBusy();
@@ -1415,12 +1405,11 @@ window.tfPhaseGateEnabled=window.tfPhaseGateEnabled!==false;
 window.tfPhaseUnwrap=!!window.tfPhaseUnwrap;
 window.tfPhaseZeroAtCursor=!!window.tfPhaseZeroAtCursor;
 window.getTfPhaseCursorInfo=function(freq,unwrap,zeroAtCursor){
-  if(!audioCtx||!tfPxyRe||!tfPxyIm)return null;
-  const n=TF_FFT_N/2,nyq=audioCtx.sampleRate/2;
+  const snap=tfDisplaySnapshot||tfWorkingAverage;if(!snap||!snap.ph||!snap.coh)return null;
+  const n=snap.ph.length,nyq=snap.sr/2;
   const k=Math.max(1,Math.min(n-1,Math.round(Number(freq||1000)/nyq*n)));
-  const pxx=tfPxx[k],pyy=tfPyy[k],sq=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
-  const coh=Math.max(0,Math.min(1,sq/(pxx*pyy+1e-20)));
-  let ph=Math.atan2(tfPxyIm[k],tfPxyRe[k])*180/Math.PI;
+  const coh=Math.max(0,Math.min(1,snap.coh[k]||0));
+  let ph=(snap.ph[k]||0)*180/Math.PI;
   // Cursor readout intentionally stays wrapped for a stable, intuitive value.
   if(zeroAtCursor)ph=0;
   return {phaseDeg:ph,coh,freq:k*audioCtx.sampleRate/TF_FFT_N};
@@ -1650,6 +1639,49 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   const trustworthy=!!(tfDelayReady&&tfWorkflowVerified&&(!live.confidence||live.confidence.label!=='LOW'));
   tfDrawTrustGuide(W,plotH,trustworthy,live.confidence?.reason==='Low coherence'?'Next: improve REF/SNR, run Delay Sync, then Verify.':null);
   ctx.restore();
+}
+
+// V5.5.56 — one full-canvas TF quantity at a time.
+function tfPrepareSelectedView(){
+  const liveSignal=tfHasReferenceSignal(),live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return null;
+  const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;
+  if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
+  const snap=working||live;tfDisplaySnapshot=snap;
+  const verified=!!(tfDelayReady&&tfWorkflowVerified&&working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');
+  return {snap,liveSignal,verified};
+}
+function tfViewHeader(label,detail,color){
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='800 11px ui-monospace,monospace';ctx.fillStyle=color;ctx.fillText(label,12,18);ctx.font='9px ui-monospace,monospace';ctx.fillStyle=sunMode?'#526776':'#91a4b1';ctx.fillText(detail,12,34);ctx.restore();
+}
+function tfDrawSelectedMagnitude(W,plotH,xForFreq){
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';
+  [18,12,6,0,-6,-12,-18].forEach(db=>{const yy=y(db);ctx.strokeStyle=db===0?'rgba(226,236,241,.62)':'rgba(120,145,160,.15)';ctx.lineWidth=db===0?1.5:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((db>0?'+':'')+db+' dB',5,yy-3);});
+  const fill=new Path2D(),line=new Path2D();let pen=false;fill.moveTo(0,zero);
+  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(s.mag[k]);if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
+  fill.lineTo(W,zero);fill.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.25)');grad.addColorStop(.5,'rgba(82,217,255,.08)');grad.addColorStop(1,'rgba(37,99,235,.25)');ctx.fillStyle=grad;ctx.fill(fill);ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.7;ctx.lineJoin='round';ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke(line);ctx.shadowBlur=0;
+  tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const yy=y(t.mag[k]);p?ctx.lineTo(px,yy):ctx.moveTo(px,yy);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
+  tfViewHeader('MAGNITUDE · MIC − REF','0 dB = no change · above = boost · below = loss','#52d9ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+}
+function tfDrawSelectedPhase(W,plotH,xForFreq){
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=42,bottom=plotH-14,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';
+  const labels=unwrap?[-720,-360,0,360,720]:[-180,-90,0,90,180];labels.forEach(d=>{const yy=y(d);ctx.strokeStyle=d===0?'rgba(80,230,140,.38)':'rgba(120,145,160,.15)';ctx.lineWidth=d===0?1.4:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((d>0?'+':'')+d+'°',5,yy-3);});
+  ctx.beginPath();let pen=false,have=false,prev=0,cum=0;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.ph.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),coh=s.coh[k]||0;if(gateOn&&coh<tfCohGate){pen=false;have=false;continue;}const raw=s.ph[k]||0;let ph=raw;if(unwrap){if(have){let d=raw-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;ph=cum;prev=raw;have=true;}let deg=ph*180/Math.PI;if(window.tfPhaseZeroAtCursor){const hz=Number(window.tfPhaseCursorHz)||1000,k0=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N)));deg-=(s.ph[k0]||0)*180/Math.PI;}const yy=y(deg);pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}ctx.strokeStyle='#50e68c';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.shadowColor='rgba(80,230,140,.26)';ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
+  const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),coh=s.coh[k]||0,deg=(s.ph[k]||0)*180/Math.PI,cy=y(window.tfPhaseZeroAtCursor?0:deg);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=coh>=tfCohGate?'#50e68c':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
+  tfViewHeader('PHASE','cursor '+(hz>=1000?(hz/1000).toFixed(2)+' kHz':Math.round(hz)+' Hz')+' · '+(gateOn?'coherence gate on':'all data'),'#50e68c');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+}
+function tfDrawSelectedCoherence(W,plotH,xForFreq){
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=v=>bottom-Math.max(0,Math.min(1,v))*(bottom-top);
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';[0,.25,.5,.75,1].forEach(v=>{const yy=y(v);ctx.strokeStyle='rgba(120,145,160,.15)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText(v.toFixed(2),5,yy-3);});const gy=y(tfCohGate);ctx.setLineDash([6,4]);ctx.strokeStyle='#f5b942';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f5b942';ctx.fillText('GATE '+tfCohGate.toFixed(2),W-72,gy-5);
+  const area=new Path2D(),line=new Path2D();area.moveTo(0,bottom);for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.coh.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),yy=y(s.coh[k]||0);px?line.lineTo(px,yy):line.moveTo(px,yy);area.lineTo(px,yy);}area.lineTo(W,bottom);area.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(80,230,140,.30)');grad.addColorStop(.55,'rgba(245,185,66,.16)');grad.addColorStop(1,'rgba(255,82,104,.22)');ctx.fillStyle=grad;ctx.fill(area);ctx.strokeStyle='#50e68c';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke(line);
+  const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.coh.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),cv=s.coh[k]||0,cy=y(cv);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=cv>=tfCohGate?'#50e68c':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
+  tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune','#50e68c');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+}
+function tfDrawSelectedView(W,plotH,nyquist,xForFreq){
+  if(tfViewMode==='phase')return tfDrawSelectedPhase(W,plotH,xForFreq);
+  if(tfViewMode==='coherence')return tfDrawSelectedCoherence(W,plotH,xForFreq);
+  return tfDrawSelectedMagnitude(W,plotH,xForFreq);
 }
 
 function tfDrawDualLiveView(W,plotH,nyquist){
@@ -3371,7 +3403,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   [0.25,0.5,0.75].forEach(p=>{ctx.globalAlpha=.3;ctx.strokeStyle=sunMode?'#cbd5e1':'#2b3646';ctx.beginPath();ctx.moveTo(0,plotH*p);ctx.lineTo(W,plotH*p);ctx.stroke();ctx.globalAlpha=1;});
 
   const bw=W/BANDS, gap=Math.max(0.5,bw*0.12);
-  const tfRequested = (tfOverlay || (typeof tfPanel!=='undefined' && tfPanel.classList.contains('open')) || alignOn) && floatDataRef && analyserRef;
+  const tfRequested = (v5WorkspaceMode==='tf' || alignOn) && floatDataRef && analyserRef;
   const tfOpen = tfRequested && tfHasReferenceSignal();
   
   const qBar = document.getElementById('tfQuickBar');
@@ -3417,11 +3449,11 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     // V5.5.3 TF Pro: when TF is selected, the main graph is the transfer
     // magnitude response. Raw MIC/REF curves remain available before TF opens.
     if(!alignView){
-      if(tfHasReferenceSignal()||tfWorkingAverage) tfDrawMagnitudeView(W,plotH,nyquist);
+      if(tfHasReferenceSignal()||tfWorkingAverage) tfDrawSelectedView(W,plotH,nyquist,xForFreq);
       else tfDrawDualLiveView(W,plotH,nyquist);
     }
 
-    if(tfOpen && showTfCoh && !alignView){
+    if(tfOpen && showTfCoh && !alignView && tfViewMode==='overlay'){
       ctx.beginPath();
       for(let px = 0; px <= W; px += 2){
         const f = freqForX(px);
@@ -3439,7 +3471,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.setLineDash([]);
     }
 
-    if(tfOpen && showTfPhase && !alignView){
+    if(tfOpen && showTfPhase && !alignView && tfViewMode==='overlay'){
       const Np=TF_FFT_N/2, unwrap=!!window.tfPhaseUnwrap, gateOn=window.tfPhaseGateEnabled!==false;
       const cursorHz=Number(window.tfPhaseCursorHz)||1000;
       const cursorK=Math.max(1,Math.min(Np-1,Math.round(cursorHz/nyquist*Np)));
@@ -4633,7 +4665,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.55';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.56';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4725,19 +4757,11 @@ function v54SetAnalysisView(view,event){
   }
 }
 function v5OpenTf(extra){
-  setMode('rta');
-  setTfOverlay(true);
+  if(v5WorkspaceMode!=='tf')v54SetAnalysisView('tf');else{setMode('rta');setTfOverlay(true);}
   showModal(tfPanel);
-  if(extra==='phase'){
-    tfShowPhase=true;
-    const p=document.getElementById('tfPhaseToggleBtn'); if(p)p.classList.add('on');
-    const q=document.getElementById('qbPhase'); if(q)q.classList.add('on');
-  }
-  if(extra==='coh'){
-    tfShowCoh=true;
-    const p=document.getElementById('tfCohToggleBtn'); if(p)p.classList.add('on');
-    const q=document.getElementById('qbCoh'); if(q)q.classList.add('on');
-  }
+  if(extra==='phase')setTfViewMode('phase');
+  else if(extra==='coh')setTfViewMode('coherence');
+  else setTfViewMode(tfViewMode);
 }
 function v5SyncRail(){
   const pk=document.getElementById('peakHz');

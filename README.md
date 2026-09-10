@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.55 — Field TF Workflow
+# GAL Analyzer V5.5.56 — Single TF View
 
-V5.5.55 makes the TF field sequence explicit, preserves the measured result after stimulus stops, runs measurement sweeps once, and removes collapsed EQ correction surfaces from the canvas entirely.
+V5.5.56 presents one clear TF quantity at a time: Magnitude, Phase, or Coherence. It restores the phase cursor, preserves held results, and prevents an open TF control panel from replacing the selected RTA graph.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 
