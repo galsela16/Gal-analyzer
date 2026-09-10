@@ -2098,6 +2098,8 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   .tlsLine strong{color:#d6e5e9;font-weight:750}.tlsDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3edb73;margin-right:6px;box-shadow:0 0 8px rgba(62,219,115,.45)}
   .tlsOpen{margin-top:auto;min-height:28px;border:1px solid rgba(105,169,190,.24);border-radius:7px;background:#071820;color:#9fb4bc;font:750 9px ui-monospace,monospace;cursor:pointer}
   .tlsOpen:hover{border-color:#1fd8e3;color:#effdff}
+  .tlsGenToggle{min-height:24px;margin:3px 0 6px;border:1px solid rgba(31,216,227,.20);border-radius:6px;background:rgba(31,216,227,.035);color:#91b7c0;font:750 8px ui-monospace,monospace;cursor:pointer}
+  .tlsGenToggle:hover{border-color:rgba(31,216,227,.48);color:#e8fcff}.tlsGenToggle.on{border-color:rgba(62,219,115,.5);background:rgba(62,219,115,.08);color:#71e79b}
   #targetTraceCard{flex:1 1 auto!important;min-height:150px!important;overflow:hidden!important}
   #persistentTraceHost{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px}
   #persistentTraceHost #v5TraceList{flex:1 1 auto;max-height:none!important;min-height:52px;border-top:1px solid rgba(105,169,190,.13);padding-top:5px}
@@ -2223,6 +2225,8 @@ body.sun-mode .tlsLine,body.sun-mode .tmpSub,body.sun-mode .tmpCell,body.sun-mod
 body.sun-mode .tlsOpen,body.sun-mode #uiRightTools button,body.sun-mode .tcb{
   background:#f5f9fb!important;border-color:#c8d8e1!important;color:#36515f!important
 }
+body.sun-mode .tlsGenToggle{background:#f5fbfd!important;border-color:#b9d6df!important;color:#486874!important}
+body.sun-mode .tlsGenToggle.on{background:#e9f9ef!important;border-color:#68c98c!important;color:#18733b!important}
 body.sun-mode .workspaceRailToggle{background:transparent!important;color:#607984!important;border:0!important}
 body.sun-mode .workspaceRailToggle::before{background:rgba(255,255,255,.68)!important;border-color:rgba(91,128,143,.20)!important}
 body.sun-mode .workspaceRailToggle:hover::before,body.sun-mode .workspaceRailToggle:focus-visible::before{background:rgba(255,255,255,.94)!important;border-color:rgba(15,140,157,.36)!important}
@@ -2582,7 +2586,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.58</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.59</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2612,7 +2616,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.58 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.59 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2733,7 +2737,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
         <div class="guideSections">
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
-          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace או מדידת EQ. בשלב 2 בחר רעש ורוד, סוויפ או מקור חיצוני; האפליקציה מפעילה את האות הנבחר, אוספת שתי שניות ופותחת את תצוגות הפאזה והקוהרנטיות. שלב 3 נפתח רק כשהאות בטווח המדידה אמין.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace. גם אימות וגם לכידה פותחים בחירת רעש ורוד, סוויפ או מקור חיצוני. בבחירת מקור פנימי האפליקציה מפעילה אותו, אוספת את המדידה ועוצרת אותו אוטומטית. Trace שלא עבר אימות נשמר עם סימון Unverified ברור.</p></details>
           <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע ומדוד מהמרכז האקוסטי של אותו רמקול ובאותו ניתוב. כיול שדורש קיזוז מערכת שלילי משמעותי יידחה. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
@@ -3327,7 +3331,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.58</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.59</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3521,7 +3525,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.58"></script>
+<script src="app.js?v=5.5.59"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3754,7 +3758,7 @@ window.addEventListener('load', function(){
    if(!b)return;
    const h=window.measurementHealth;
    const tfCapture=b.id==='tfTraceBtn'||document.body.classList.contains('ctx-tf')||!!document.querySelector('#v54TfGraphToggle.on');
-   if(h&&!h.ready&&['CLIPPING','LOW HEADROOM','LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason)&&!(tfCapture&&['LOW REF','LOW COHERENCE'].includes(h.reason))){
+   if(h&&!h.ready&&['CLIPPING','LOW HEADROOM','LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason)&&!(tfCapture&&['LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason))){
      e.preventDefault();e.stopImmediatePropagation();
      const msg=(advice[h.reason]||'Improve measurement conditions before capture.');
      if(typeof v3Toast==='function')v3Toast(h.reason+' · '+msg);else alert(h.reason+' — '+msg);
@@ -3788,7 +3792,7 @@ window.addEventListener('load', function(){
 </aside>
 <button id="rightRailToggle" class="workspaceRailToggle" type="button" aria-label="קפל סרגל ימני" aria-expanded="true">›</button>
 <div id="targetLeftStatus" aria-hidden="true">
- <section class="tlsCard"><div class="tlsHead">GENERATOR</div><div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div><button class="tlsOpen" type="button" data-tls-open="generator">OPEN GENERATOR</button></section>
+ <section class="tlsCard"><div class="tlsHead">GENERATOR</div><div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div><button class="tlsGenToggle" id="tlsGenToggle" type="button">▶ הפעל אות</button><button class="tlsOpen" type="button" data-tls-open="generator">OPEN GENERATOR</button></section>
  <section class="tlsCard"><div class="tlsHead"><span class="tlsDot"></span>I / O</div><div class="tlsLine"><span>MIC</span><strong id="tlsMic">—</strong></div><div class="tlsLine"><span>REF</span><strong id="tlsRef">—</strong></div><button class="tlsOpen" type="button" data-tls-open="io">OPEN I / O</button></section>
  <section class="tlsCard" id="targetTraceCard" tabindex="-1"><div class="tlsHead">TRACES</div><div class="tlsLine"><span>CAPTURED</span><strong id="tlsTraces">0</strong></div><div class="tlsLine"><span>VISIBLE</span><strong id="tlsVisible">0</strong></div><div id="persistentTraceHost"></div></section>
 </div>

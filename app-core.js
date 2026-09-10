@@ -17,6 +17,8 @@ let tfWorkflowVerified = false;
 let tfDelayQualityText = '';
 let tfWorkflowVerifying = false;
 let tfWorkflowVerifyTimer = null;
+let tfTraceCapturePending = false;
+let tfTraceCaptureTimer = null;
 let tfTraces=[];
 const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
@@ -370,7 +372,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.58-clean-tf-workflow',
+    version: 'v5.5.59-capture-source-picker',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -570,11 +572,12 @@ function genStart(options={}){
 }
 
 function syncInlineGenBtns(){
-  ['eqGenToggleBtn', 'areaGenToggleBtn'].forEach(id=>{
+  ['eqGenToggleBtn', 'areaGenToggleBtn', 'tlsGenToggle'].forEach(id=>{
     const b = document.getElementById(id);
     if(b){
-      b.classList.toggle('on', genOn && genType==='pink');
-      b.textContent = (genOn && genType==='pink') ? '⏹ עצור רעש' : '▶ רעש ורוד';
+      const rail=id==='tlsGenToggle';
+      b.classList.toggle('on', rail?genOn:(genOn && genType==='pink'));
+      b.textContent = rail?(genOn?'■ עצור אות':'▶ הפעל אות'):((genOn && genType==='pink') ? '⏹ עצור רעש' : '▶ רעש ורוד');
     }
   });
 }
@@ -644,6 +647,7 @@ function applyGenHz(hz, from){
 safeOn('genFreq', 'input',e=>applyGenHz(parseFloat(e.target.value),'slider'));
 safeOn('genFreqNum', 'input',e=>applyGenHz(parseFloat(e.target.value),'num'));
 safeOn('genOnBtn', 'click',()=>{ genOn?genStop():genStart(); });
+safeOn('tlsGenToggle', 'click',()=>{ genOn?genStop():genStart(); });
 
 ['eqGenToggleBtn', 'areaGenToggleBtn'].forEach(id=>{
   const el = document.getElementById(id);
@@ -1220,10 +1224,10 @@ function setGenTypeUI(kind){
 function runWithSource(kind, measureFn, durMs){
   durMs=durMs||5000;
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
-  if(kind==='external'){ measureFn(); return; }
+  if(kind==='external'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
   genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650}:{});
-  setTimeout(measureFn, kind==='sweep'?100:450);
+  setTimeout(()=>measureFn(kind), kind==='sweep'?100:450);
   setTimeout(()=>{
     genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart(); }
     else genStop();
@@ -1580,17 +1584,37 @@ function captureTfTrace(){
   tfTraces.push(s); if(tfTraces.length>24) tfTraces.shift();
   renderTfTraceLegend(); v3Toast(verified?'נלכד TF מאומת':'נלכד TF לא מאומת · Unverified');
 }
+function captureTfTraceFromSource(sourceKind){
+  if(tfTraceCapturePending)return;
+  tfTraceCapturePending=true;
+  const waitMs=sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800;
+  syncTfWorkflowUi('<b>שלב 3:</b> אוסף ממוצע יציב מהמקור שנבחר…');
+  v3Toast(sourceKind==='external'?'ממתין למקור החיצוני ואז לוכד Trace':'הגנרטור פעיל · לוכד Trace בעוד רגע');
+  tfTraceCaptureTimer=setTimeout(()=>{
+    tfTraceCaptureTimer=null;tfTraceCapturePending=false;
+    captureTfTrace();
+    syncTfWorkflowUi();
+  },waitMs);
+}
+function requestTfTraceCapture(){
+  if(!running){v3Toast('הפעל Audio קודם');return;}
+  if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
+  pickSource(captureTfTraceFromSource,2600,{
+    title:'איזה מקור להפעיל לצורך לכידת ה־Trace?',
+    allowed:['pink','sweep','external']
+  });
+}
 function captureWorkspaceTrace(){
   if(!running){v3Toast('הפעל Audio קודם');return;}
   if(v5WorkspaceMode==='tf'){
-    captureTfTrace();return;
+    requestTfTraceCapture();return;
   }
   const idx=tfTraces.length+1;
   tfTraces.push({type:'rta',visible:true,name:(mode==='spec'?'Waterfall ':'RTA ')+idx,color:TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length],values:lastV.slice(),bands:BANDS,t:Date.now()});
   if(tfTraces.length>24)tfTraces.shift();
   renderTfTraceLegend();v3Toast('נלכד Trace להשוואה');
 }
-safeOn('tfTraceBtn','click',captureTfTrace);
+safeOn('tfTraceBtn','click',requestTfTraceCapture);
 safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast('Traces נוקו');});
 
 function tfMagY(db,plotH){ const range=18; return plotH/2 - Math.max(-range,Math.min(range,db))/range*(plotH*.46); }
@@ -1607,10 +1631,9 @@ let tfLiveVisualDb=[];
 const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
 function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
 function tfDrawTrustGuide(W,plotH,verified,reason){
-  const boxW=Math.min(360,W-24),boxH=verified?34:54,x=W-boxW-12,y=32;
+  const boxW=Math.min(230,W-20),boxH=25,x=W-boxW-10,y=32;
   ctx.save();ctx.fillStyle=verified?'rgba(10,68,46,.88)':'rgba(70,42,8,.92)';ctx.strokeStyle=verified?'#45d47b':'#f5b942';ctx.lineWidth=1;ctx.fillRect(x,y,boxW,boxH);ctx.strokeRect(x+.5,y+.5,boxW-1,boxH-1);
-  ctx.fillStyle=verified?'#8ff0b9':'#ffd783';ctx.font='800 10px ui-monospace,monospace';ctx.fillText(verified?'VERIFIED TF · safe to compare and tune':'UNVERIFIED LIVE VIEW · do not tune from this yet',x+10,y+16);
-  if(!verified){ctx.fillStyle=sunMode?'#273843':'#d4e1e5';ctx.font='9px ui-monospace,monospace';ctx.fillText(reason||'Next: raise signal, connect REF, run Delay Sync, then Verify.',x+10,y+35);}
+  ctx.fillStyle=verified?'#8ff0b9':'#ffd783';ctx.font='800 9px ui-monospace,monospace';ctx.fillText(verified?'VERIFIED · safe to tune':'UNVERIFIED · verify before tuning',x+8,y+16);
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
@@ -2569,7 +2592,7 @@ function computeStableDelay(ref,mic,sr,options){
 
 function measureBusy(){
   return measState==='measuring' || areaState==='measuring' || tfState==='measuring'
-      || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || rt60State!=='idle';
+      || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || tfTraceCapturePending || rt60State!=='idle';
 }
 function unfreezeForMeasure(){
   if(!frozen) return;
@@ -4665,7 +4688,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.58';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.59';
   v3UpdateStatus();
 })();
 (function initAccent(){

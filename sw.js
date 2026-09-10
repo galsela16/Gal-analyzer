@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-58-clean-tf-workflow-20260910';
+const CACHE = 'gal-analyzer-v5-5-59-capture-source-picker-20260910';
 const ASSETS = [
   './',
   './index.html',

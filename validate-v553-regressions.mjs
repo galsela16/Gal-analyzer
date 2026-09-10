@@ -71,11 +71,11 @@ const checks=[
  ,['desktop rails have independent collapse controls',html.includes('id="leftRailToggle"')&&html.includes('id="rightRailToggle"')&&html.includes("side+'-rail-collapsed'")]
  ,['collapsed rails release canvas space',html.includes('body.left-rail-collapsed #stage{margin-left:12px!important}')&&html.includes('body.right-rail-collapsed #stage{margin-right:12px!important}')]
  ,['rail collapse preferences persist',html.includes("gal_'+side+'_rail_open")&&html.includes("setAttribute('aria-expanded'")]
- ,['TF trace capture cannot silently fall back to RTA',core.includes("if(v5WorkspaceMode==='tf')")&&core.includes('captureTfTrace();return;')]
+ ,['TF trace capture cannot silently fall back to RTA',core.includes("if(v5WorkspaceMode==='tf')")&&core.includes('requestTfTraceCapture();return;')]
  ,['TF capture is available without sync or verification',core.includes('if(trace)trace.disabled=busy;')&&!captureFn.includes('tfDelayReady||!tfWorkflowVerified')]
  ,['TF captures carry explicit trust state',core.includes("s.verified=verified;s.status=verified?'Verified':'Unverified'")&&core.includes("captureKind:'mic-spectrum'")]
  ,['TF trace rail preserves controls and trust badge',core.includes('data-trace-eye')&&core.includes('data-trace-del')&&core.includes('v5TraceTrust')&&core.includes("addEventListener('dblclick'")]
- ,['legacy health guard permits unverified TF capture',html.includes("!(tfCapture&&['LOW REF','LOW COHERENCE'].includes(h.reason))")]
+ ,['legacy health guard permits TF source selection from a quiet input',html.includes("!(tfCapture&&['LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason))")]
  ,['M/R overlays blue microphone and red reference',core.includes('function drawDualInputRta(W,plotH,nyquist)')&&core.includes("fill(ref,'#ff4d5e',.32)")&&core.includes("fill(mic,'#258dff',.50)")]
  ,['M/R reads the live reference analyser only in its own mode',core.includes('analyserRef.getFloatFrequencyData(floatDataRef)')&&core.includes("v5WorkspaceMode==='mr'&&analyserRef)drawDualInputRta")]
  ,['RTA retains its original presentation',core.includes("!(v5WorkspaceMode==='mr'&&analyserRef)")&&html.includes("v54SetAnalysisView('mr',event)")]
@@ -119,7 +119,11 @@ const checks=[
  ,['TF correlation meter is removed from the interface',!html.includes('id="tfCorrCard"')&&!html.includes('id="tfCorrVal"')&&core.includes('let tfState=')&&core.includes('_tfCorr=0')]
  ,['Legacy TF EQ controls cannot occupy the workflow panel',html.includes('id="tfLegacyEqTools" hidden')&&html.includes('#tfPanel.measureDock #tfLegacyEqTools')&&html.includes('#tfPanel.measureDock #tfMeasBtn')]
  ,['TF advanced controls remain available under More',html.includes('#tfPanel.measureDock:not(.expanded) #tfAverageBar')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfUtilityBtns')&&html.includes('#tfPanel.measureDock.expanded #tfInputLevels')&&core.includes("more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾'")]
+ ,['TF capture asks for a source before saving',core.includes("safeOn('tfTraceBtn','click',requestTfTraceCapture)")&&core.includes("title:'איזה מקור להפעיל לצורך לכידת ה־Trace?'")&&core.includes("allowed:['pink','sweep','external']")]
+ ,['TF source capture settles before saving and supports one-shot sweep',core.includes("sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800")&&core.includes('captureTfTraceFromSource')&&core.includes('tfTraceCapturePending')]
+ ,['TF trust warning is a compact single-line badge',core.includes('const boxW=Math.min(230,W-20),boxH=25')&&core.includes("'UNVERIFIED · verify before tuning'")&&!core.includes("'UNVERIFIED LIVE VIEW · do not tune from this yet'")]
+ ,['Generator rail has a synchronized direct start stop action',html.includes('id="tlsGenToggle"')&&core.includes("safeOn('tlsGenToggle', 'click'")&&core.includes("'areaGenToggleBtn', 'tlsGenToggle'")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.58 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.59 regression validation passed (${checks.length} checks).`);
