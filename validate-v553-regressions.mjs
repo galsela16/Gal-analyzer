@@ -53,7 +53,7 @@ const checks=[
  ,['TF difference colors show direction and severity',core.includes('TF_DELTA_COLORS')&&core.includes('function tfDeltaBucket')&&core.includes('rgba(239,68,68,.82)')&&core.includes('rgba(37,99,235,.82)')]
  ,['TF dense columns are batched for smooth rendering',core.includes('TF_DELTA_COLORS.map(()=>new Path2D())')&&core.includes('deviationBars.forEach')]
  ,['TF detailed contour remains clearly visible',core.includes("ctx.strokeStyle='#b7f34a'")&&core.includes('Math.floor(plotH*.52)')]
- ,['TF tab is not gated by hidden workflow state',core.includes('if(tfHasReferenceSignal()) tfDrawMagnitudeView(W,plotH,nyquist)')&&!core.includes('if(tfOpen && tfDelayReady) tfDrawMagnitudeView')]
+ ,['TF tab is not gated by hidden workflow state',core.includes('if(tfHasReferenceSignal()||tfWorkingAverage) tfDrawMagnitudeView(W,plotH,nyquist)')&&!core.includes('if(tfOpen && tfDelayReady) tfDrawMagnitudeView')]
  ,['TF mic-only fallback uses dense FFT detail',core.includes('A dense FFT silhouette stays useful')&&core.includes('for(let x=0;x<=W;x+=2,visualIndex++)')&&core.includes('ctx.createLinearGradient(0,0,W,0)')]
  ,['TF mic-only fallback has frequency colors and contour',Array.from(['#ef4444','#f97316','#facc15','#84cc16','#22d3ee','#0ea5e9','#2563eb']).every(color=>core.includes(color))&&core.includes("ctx.strokeStyle='#b7f34a'")]
  ,['one global speed control replaces per-graph controls',Array.from(['data-analysis-speed="slow"','data-analysis-speed="normal"','data-analysis-speed="fast"']).every(x=>html.includes(x))&&!html.includes('data-rta-speed=')&&!html.includes('data-wf-speed=')]
@@ -107,7 +107,11 @@ const checks=[
  ,['TF separates live and working-average traces',core.includes("ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42")&&core.includes("ctx.strokeStyle='#52d9ff'")&&core.includes("'━ WORKING AVG'")]
  ,['TF average exposes field speed and reset controls',html.includes('id="tfAverageBar"')&&['fast','normal','precision'].every(x=>html.includes('data-tf-average="'+x+'"'))&&html.includes('id="tfAverageReset"')]
  ,['verified TF capture requires a stable working average',core.includes("tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'")&&core.includes("captureKind:'working-average'")]
+ ,['collapsed EQ correction releases the canvas completely',core.includes("if(!keepExpanded){eqCorrectionVisible=false;dock.style.display='none'")&&core.includes("hideGeqDock();v3Toast('תיקון EQ נסגר")]
+ ,['TF field guide explains continuous stimulus workflow',html.includes('id="tfFieldGuide"')&&html.includes('הפעל Pink Noise רציף')&&core.includes('function syncTfFieldGuide')]
+ ,['measurement sweep runs exactly one deferred cycle',core.includes('genSweepSingleShot=false')&&core.includes('if(!genSweepSingleShot)sweepTimer=setTimeout')&&core.includes("genStart(kind==='sweep'?{sweepDelayMs:650}:{})")]
+ ,['TF working result remains held after stimulus ends',core.includes("tfHasReferenceSignal()||tfWorkingAverage")&&core.includes("stableHeld?'HELD · STABLE':'HELD · UNVERIFIED'")&&core.includes("'התוצאה המאומתת נשמרה על המסך'")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.54 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.55 regression validation passed (${checks.length} checks).`);

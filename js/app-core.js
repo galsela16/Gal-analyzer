@@ -128,7 +128,7 @@ function db2lin(db){
 }
 let _pfxRef=null;
 let tfOverlay=false;
-let genSweepDur=4, sweepTimer=null, sweepStartT=0;
+let genSweepDur=4, sweepTimer=null, sweepStartT=0, genSweepSingleShot=false, genSweepStartTimer=null;
 let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rtLevel=-6;
 let eqMarks=null;
 let eqCurveData=null;
@@ -385,7 +385,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.54-tf-working-average',
+    version: 'v5.5.55-field-tf-workflow',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -537,6 +537,7 @@ function genStop(){
   if(genGain){ try{genGain.gain.cancelScheduledValues(audioCtx.currentTime);
     genGain.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}catch(_){} }
   if(sweepTimer){ clearTimeout(sweepTimer); sweepTimer=null; }
+  if(genSweepStartTimer){clearTimeout(genSweepStartTimer);genSweepStartTimer=null;}
   const g=genGain, s=genSrc, o=genOsc;
   setTimeout(()=>{
     try{ if(s) s.stop(); }catch(_){}
@@ -556,9 +557,9 @@ function scheduleSweepCycle(){
     genOsc.frequency.setValueAtTime(20, t);
     genOsc.frequency.exponentialRampToValueAtTime(20000, t+genSweepDur);
   }catch(_){}
-  sweepTimer=setTimeout(scheduleSweepCycle, genSweepDur*1000);
+  if(!genSweepSingleShot)sweepTimer=setTimeout(scheduleSweepCycle, genSweepDur*1000);
 }
-function genStart(){
+function genStart(options={}){
   if(!running||!audioCtx){ alert('קודם הפעל את המיקרופון (כדי שהאודיו יהיה פעיל).'); return; }
   if(audioCtx.state==='suspended') audioCtx.resume();
   genStop();
@@ -575,7 +576,10 @@ function genStart(){
   const target=Math.pow(10,genDb/20);
   genGain.gain.setTargetAtTime(target,audioCtx.currentTime,0.15);
   genOn=true;
-  if(genType==='sweep') scheduleSweepCycle();
+  if(genType==='sweep'){
+    const wait=Math.max(0,Number(options.sweepDelayMs)||0);
+    if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
+  }
   syncInlineGenBtns();
   const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.add('on'); btn.textContent='⏹ עצור אות';}
 }
@@ -843,11 +847,12 @@ function showGeqDock(title,expanded){
   const dock=document.getElementById('geqDock'); if(!dock) return;
   const wasVisible=getComputedStyle(dock).display!=='none';
   const keepExpanded=expanded===true||(expanded==null&&wasVisible&&!dock.classList.contains('collapsed'));
+  const t=document.getElementById('geqDockTitle'); if(t&&title) t.textContent=title;
+  if(!keepExpanded){eqCorrectionVisible=false;dock.style.display='none';dock.classList.add('collapsed');syncGeqBtn();return;}
   eqCorrectionVisible=true;
-  dock.style.display='block';dock.classList.toggle('collapsed',!keepExpanded);
+  dock.style.display='block';dock.classList.remove('collapsed');
   const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent=keepExpanded?'הסתר פירוט':'הצג פירוט';
   syncGeqBtn();
-  const t=document.getElementById('geqDockTitle'); if(t&&title) t.textContent=title;
 }
 function latestEqWorkspace(){
   if(eqCurveData&&eqCurveData.freqs&&eqCurveData.corr)return {data:eqCurveData,title:document.getElementById('geqDockTitle')?.textContent||'תיקון EQ'};
@@ -890,9 +895,7 @@ safeOn('geqShowBtn', 'click',function(){
 });
 safeOn('geqDockToggle', 'click',function(){
   const d=document.getElementById('geqDock');
-  d.classList.toggle('collapsed');
-  this.textContent = d.classList.contains('collapsed') ? 'הצג פירוט' : 'הסתר פירוט';
-  if(!d.classList.contains('collapsed') && eqCurveData) drawGEQ(document.getElementById('eqCurveCanvas'), eqCurveData.freqs, eqCurveData.corr);
+  if(!d)return;hideGeqDock();v3Toast('תיקון EQ נסגר · ניתן לפתוח שוב מ־SPL / EQ');
 });
 function drawGEQ(c, freqs, corr){
   if(c && c.parentElement && c.parentElement.classList.contains('collapsed')) return;
@@ -1231,13 +1234,13 @@ function setGenTypeUI(kind){
 }
 function runWithSource(kind, measureFn, durMs){
   durMs=durMs||5000;
-  if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+600);
+  if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
   if(kind==='external'){ measureFn(); return; }
   const prevOn=genOn, prevType=genType;
-  genType=kind; setGenTypeUI(kind); genStart();
-  setTimeout(measureFn, 450);
+  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650}:{});
+  setTimeout(measureFn, kind==='sweep'?100:450);
   setTimeout(()=>{
-    if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart(); }
+    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart(); }
     else genStop();
   }, 450+durMs+300);
 }
@@ -1478,15 +1481,19 @@ function syncTfAverageUi(state='waiting',detail='WAITING'){
   const el=document.getElementById('tfAverageState');if(!el)return;
   el.dataset.state=state;el.textContent='AVERAGE · '+detail;
 }
+function syncTfFieldGuide(step,title,detail,ready=false){
+  const el=document.getElementById('tfFieldGuide');if(!el)return;el.dataset.state=ready?'ready':'action';el.innerHTML='<b>'+step+' · '+title+'</b><span>'+detail+'</span>';
+}
 function resetTfWorkingAverage(reason='WAITING'){
   tfWorkingAverage=null;tfAverageFrames=0;tfAverageLastUpdate=0;syncTfAverageUi('waiting',reason);
 }
 function updateTfWorkingAverage(live){
   if(!live)return null;
   const goodSignal=tfHasReferenceSignal(),confidence=live.confidence||tfBandConfidence(live);
-  if(!tfDelayReady){syncTfAverageUi('paused','PAUSED · SYNC DELAY');return tfWorkingAverage;}
-  if(!tfWorkflowVerified){syncTfAverageUi('paused','PAUSED · VERIFY');return tfWorkingAverage;}
-  if(!goodSignal||confidence.label==='LOW'){syncTfAverageUi('paused','PAUSED · LOW COHERENCE');return tfWorkingAverage;}
+  if(!goodSignal){const held=tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH';syncTfAverageUi(held?'stable':'paused',held?'HELD · STABLE':'PAUSED · PLAY SIGNAL');syncTfFieldGuide(held?'4':'1',held?'התוצאה נשמרה על המסך':'הפעל Pink Noise רציף',held?'אפשר לבדוק וללחוץ Capture':'חבר את אותו האות למערכת ול־REF 2',held);return tfWorkingAverage;}
+  if(!tfDelayReady){syncTfAverageUi('paused','PAUSED · SYNC DELAY');syncTfFieldGuide('2','לחץ סנכרון TF','השאר את האות מתנגן בזמן הסנכרון');return tfWorkingAverage;}
+  if(!tfWorkflowVerified){syncTfAverageUi('paused','PAUSED · VERIFY');syncTfFieldGuide('3','לחץ אימות TF','השאר את האות מתנגן במשך כל האימות');return tfWorkingAverage;}
+  if(confidence.label==='LOW'){syncTfAverageUi('paused','PAUSED · LOW COHERENCE');syncTfFieldGuide('בדיקה','המדידה אינה אמינה','העלה Reference ובדוק ניתוב, רעש ו־Delay');return tfWorkingAverage;}
   const now=performance.now();if(now-tfAverageLastUpdate<90)return tfWorkingAverage;tfAverageLastUpdate=now;
   if(!tfWorkingAverage||tfWorkingAverage.mag.length!==live.mag.length){
     tfWorkingAverage={...live,mag:new Float32Array(live.mag),ph:new Float32Array(live.ph),coh:new Float32Array(live.coh),refDb:new Float32Array(live.refDb),micDb:new Float32Array(live.micDb)};tfAverageFrames=1;
@@ -1504,7 +1511,7 @@ function updateTfWorkingAverage(live){
     }
     tfWorkingAverage.offset+=(progressive)*(live.offset-tfWorkingAverage.offset);tfWorkingAverage.refOffset+=progressive*(live.refOffset-tfWorkingAverage.refOffset);tfWorkingAverage.t=Date.now();tfWorkingAverage.confidence=confidence;
   }
-  syncTfAverageUi(tfAverageFrames>=18&&confidence.label==='HIGH'?'stable':'acquiring',(tfAverageFrames>=18&&confidence.label==='HIGH'?'STABLE · ':'ACQUIRING · ')+tfAverageFrames);
+  const stable=tfAverageFrames>=18&&confidence.label==='HIGH';syncTfAverageUi(stable?'stable':'acquiring',(stable?'STABLE · ':'ACQUIRING · ')+tfAverageFrames);syncTfFieldGuide(stable?'4':'4',stable?'מוכן ללכידת Trace':'אוסף Working Average',stable?'השאר את האות מתנגן ולחץ Capture':'השאר את האות מתנגן · '+tfAverageFrames+'/18',stable);
   return tfWorkingAverage;
 }
 safeOn('tfAverageReset','click',()=>{resetTfWorkingAverage('RESET');v3Toast('ממוצע TF אופס');});
@@ -1618,7 +1625,7 @@ function tfDrawTrustGuide(W,plotH,verified,reason){
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
-  const live=tfCurrentSnapshot();if(!live)return;tfDisplaySnapshot=live;const working=updateTfWorkingAverage(live);
+  const liveSignal=tfHasReferenceSignal();const live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return;tfDisplaySnapshot=live;const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
   const inputTop=28,inputBottom=Math.max(105,Math.floor(plotH*.52)),deltaTop=inputBottom+25,deltaBottom=plotH-18;
   const inputY=db=>inputTop+(12-Math.max(-36,Math.min(12,db)))/48*(inputBottom-inputTop);
   const deltaY=db=>deltaTop+(12-Math.max(-12,Math.min(12,db)))/24*(deltaBottom-deltaTop);
@@ -3410,7 +3417,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     // V5.5.3 TF Pro: when TF is selected, the main graph is the transfer
     // magnitude response. Raw MIC/REF curves remain available before TF opens.
     if(!alignView){
-      if(tfHasReferenceSignal()) tfDrawMagnitudeView(W,plotH,nyquist);
+      if(tfHasReferenceSignal()||tfWorkingAverage) tfDrawMagnitudeView(W,plotH,nyquist);
       else tfDrawDualLiveView(W,plotH,nyquist);
     }
 
@@ -4626,7 +4633,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.54';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.55';
   v3UpdateStatus();
 })();
 (function initAccent(){
