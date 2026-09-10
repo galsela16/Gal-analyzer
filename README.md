@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.57 — Compact TF Field Panel
+# GAL Analyzer V5.5.58 — Clean TF Workflow
 
-V5.5.57 reduces the default TF panel to the three essential field tasks: choose a view, follow the next-step prompt, and run Sync → Verify → Capture. Diagnostics and infrequent controls remain available under More.
+V5.5.58 removes the legacy TF clutter instead of relocating it. The field panel now focuses on choosing Magnitude, Phase or Coherence, following one next-step prompt, and running Sync → Verify → Capture. Correlation remains an internal verification signal but no longer occupies the interface; legacy EQ controls stay out of TF and remain available through the dedicated SPL / EQ tool.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 

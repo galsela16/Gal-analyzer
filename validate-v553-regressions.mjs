@@ -115,9 +115,11 @@ const checks=[
  ,['TF renders one full-canvas quantity at a time',core.includes("if(tfViewMode==='phase')return tfDrawSelectedPhase")&&core.includes("if(tfViewMode==='coherence')return tfDrawSelectedCoherence")&&core.includes('return tfDrawSelectedMagnitude')]
  ,['TF phase view restores a visible cursor marker',core.includes('function tfDrawSelectedPhase')&&core.includes('ctx.arc(cx,cy,5,0,Math.PI*2)')&&core.includes("tfViewHeader('PHASE'")]
  ,['TF controls cannot override the selected RTA graph',core.includes("const tfRequested = (v5WorkspaceMode==='tf' || alignOn)")&&!core.includes("tfPanel.classList.contains('open') || alignOn")]
- ,['TF default panel exposes only the field essentials',html.includes('V5.5.57 — TF compact field strip')&&html.includes('max-height:112px!important')&&html.includes('#tfPanel.measureDock:not(.expanded) .tfProCards')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfWorkflowSteps{display:grid!important;grid-template-columns:repeat(3')]
- ,['TF advanced controls remain available under More',html.includes('#tfPanel.measureDock:not(.expanded) #tfAverageBar')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfUtilityBtns')&&core.includes("more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾'")]
+ ,['TF default panel exposes only the field essentials',html.includes('V5.5.58 — TF field panel')&&html.includes('max-height:112px!important')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfInputLevels')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfWorkflowSteps{display:grid!important;grid-template-columns:repeat(3')]
+ ,['TF correlation meter is removed from the interface',!html.includes('id="tfCorrCard"')&&!html.includes('id="tfCorrVal"')&&core.includes('let tfState=')&&core.includes('_tfCorr=0')]
+ ,['Legacy TF EQ controls cannot occupy the workflow panel',html.includes('id="tfLegacyEqTools" hidden')&&html.includes('#tfPanel.measureDock #tfLegacyEqTools')&&html.includes('#tfPanel.measureDock #tfMeasBtn')]
+ ,['TF advanced controls remain available under More',html.includes('#tfPanel.measureDock:not(.expanded) #tfAverageBar')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfUtilityBtns')&&html.includes('#tfPanel.measureDock.expanded #tfInputLevels')&&core.includes("more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾'")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.57 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.58 regression validation passed (${checks.length} checks).`);

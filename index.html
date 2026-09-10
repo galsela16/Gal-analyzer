@@ -2453,7 +2453,12 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   #tfPanel.measureDock .tfProSummary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 
-/* V5.5.57 — TF compact field strip: view, next step, workflow. */
+/* V5.5.58 — TF field panel: only the decisions needed during a measurement. */
+#tfPanel.measureDock .tfProCards,
+#tfPanel.measureDock #tfCorrCard,
+#tfPanel.measureDock #tfLegacyEqTools,
+#tfPanel.measureDock #tfMeasBtn,
+#tfPanel.measureDock .tfProViewBar .right{display:none!important}
 #tfPanel.measureDock:not(.expanded){
   min-height:0!important;max-height:112px!important;overflow:hidden!important;
   padding:6px 92px 6px 9px!important;gap:5px 7px!important;align-items:center!important;align-content:center!important
@@ -2462,13 +2467,39 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 #tfPanel.measureDock:not(.expanded) .tfProCards,
 #tfPanel.measureDock:not(.expanded) #tfAverageBar,
 #tfPanel.measureDock:not(.expanded) #tfPhaseTools,
-#tfPanel.measureDock:not(.expanded)>.sub,
-#tfPanel.measureDock:not(.expanded)>.chBar,
+#tfPanel.measureDock:not(.expanded) #tfInputLevels,
+#tfPanel.measureDock:not(.expanded) #tfAdvancedTuning,
 #tfPanel.measureDock:not(.expanded) #tfCorrCard,
 #tfPanel.measureDock:not(.expanded) #tfDelayInfo,
 #tfPanel.measureDock:not(.expanded)>.delayRangeControl,
 #tfPanel.measureDock:not(.expanded) #tfTargetCtrl,
 #tfPanel.measureDock:not(.expanded) #tfUtilityBtns{display:none!important}
+#tfPanel.measureDock.expanded{
+  display:grid!important;grid-template-columns:minmax(270px,.9fr) minmax(420px,1.5fr)!important;
+  gap:7px 10px!important;align-content:start!important
+}
+#tfPanel.measureDock.expanded .tfProHeader{display:none!important}
+#tfPanel.measureDock.expanded .tfProViewBar,
+#tfPanel.measureDock.expanded #tfFieldGuide,
+#tfPanel.measureDock.expanded #tfBtns,
+#tfPanel.measureDock.expanded #tfInputLevels,
+#tfPanel.measureDock.expanded #tfPhaseTools,
+#tfPanel.measureDock.expanded #tfAdvancedTuning,
+#tfPanel.measureDock.expanded #tfAverageBar,
+#tfPanel.measureDock.expanded #tfDelayInfo,
+#tfPanel.measureDock.expanded>.delayRangeControl{min-width:0!important;width:100%!important;margin:0!important}
+#tfPanel.measureDock.expanded .tfProViewBar,
+#tfPanel.measureDock.expanded #tfFieldGuide,
+#tfPanel.measureDock.expanded #tfBtns{grid-column:1/-1!important}
+#tfPanel.measureDock.expanded #tfInputLevels{display:grid!important;grid-template-columns:1fr 1fr!important;gap:5px!important}
+#tfPanel.measureDock.expanded #tfInputLevels .sub{display:none!important}
+#tfPanel.measureDock.expanded #tfInputLevels .chBar{margin:0!important}
+#tfPanel.measureDock.expanded #tfAdvancedTuning{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin:0!important}
+#tfPanel.measureDock.expanded #tfAdvancedTuning .ctrl{min-width:0!important;margin:0!important}
+#tfPanel.measureDock.expanded #tfUtilityBtns{display:flex!important;gap:5px!important;justify-content:flex-start!important}
+#tfPanel.measureDock.expanded #tfPhaseToggleBtn,
+#tfPanel.measureDock.expanded #tfCohToggleBtn,
+#tfPanel.measureDock.expanded #tfOverlayBtn{display:none!important}
 #tfPanel.measureDock:not(.expanded) .tfProViewBar{
   order:1!important;flex:1 1 420px!important;max-width:520px!important;width:auto!important;
   min-height:31px!important;margin:0!important;padding:3px!important;background:rgba(255,255,255,.018)!important
@@ -2496,6 +2527,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   #tfPanel.measureDock:not(.expanded) #tfFieldGuide{min-height:27px!important}
   #tfPanel.measureDock:not(.expanded)>.dockMoreBtn{right:7px!important;top:42px!important}
   #tfPanel.measureDock:not(.expanded)>.dockClose{right:7px!important;top:7px!important}
+  #tfPanel.measureDock.expanded{display:flex!important}
 }
 
 </style>
@@ -2550,7 +2582,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.57</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.58</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2580,7 +2612,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.57 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.58 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2888,19 +2920,10 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
         </div>
         <div class="tfPhaseActions"><button type="button" id="tfPhaseGate">Coh Gate ✓</button><button type="button" id="tfPhaseUnwrap">Unwrap</button><button type="button" id="tfPhaseZero">0° Reference</button></div>
       </div>
-      <div class="sub">ערוץ 1 = מיקרופון מדידה · ערוץ 2 = רפרנס מהמיקסר. שלח תוכן/רעש ורוד דרך המערכת, ומדוד.</div>
-      <div class="sub">ערוץ 1 = מיקרופון מדידה · ערוץ 2 = רפרנס מהמיקסר. שלח תוכן/רעש ורוד דרך המערכת, ומדוד.</div>
-      <div class="chBar"><span id="tfL1" style="min-width:96px">כניסה 1 → מיק'</span><div class="track"><div class="fill" id="tfMicFill"></div></div><span id="tfMicDb">—</span></div>
-      <div class="chBar"><span id="tfL2" style="min-width:96px">כניסה 2 → רפרנס</span><div class="track"><div class="fill" id="tfRefFill"></div></div><span id="tfRefDb">—</span></div>
-      <div id="tfCorrCard">
-        <div id="tfCorrHead"><strong>Correlation · התאמה בין הערוצים</strong><b id="tfCorrVal" style="color:var(--accent)">—</b></div>
-        <div id="tfCorrScale"><span>−1 הפוך</span><span>0 לא מתואם</span><span>+1 בפאזה</span></div>
-        <div class="track" id="tfCorrTrack" style="position:relative">
-          <div id="tfCorrFill" style="position:absolute;top:0;bottom:0;background:var(--accent);border-radius:3px;width:0;right:50%"></div>
-          <div style="position:absolute;top:0;bottom:0;right:50%;width:1px;background:var(--dim);opacity:.5"></div>
-          <div id="tfCorrMarker"></div>
-        </div>
-        <div id="tfCorrStatus"><span id="tfCorrTip" style="color:var(--dim)">ממתין לאות בשני הערוצים</span><span>טווח: ‎−1.00 עד ‎+1.00</span></div>
+      <div id="tfInputLevels">
+        <div class="sub">רמות כניסה · מיקרופון ורפרנס</div>
+        <div class="chBar"><span id="tfL1" style="min-width:96px">כניסה 1 → מיק'</span><div class="track"><div class="fill" id="tfMicFill"></div></div><span id="tfMicDb">—</span></div>
+        <div class="chBar"><span id="tfL2" style="min-width:96px">כניסה 2 → רפרנס</span><div class="track"><div class="fill" id="tfRefFill"></div></div><span id="tfRefDb">—</span></div>
       </div>
       <div id="tfBtns">
         <div id="tfWorkflowSteps" aria-label="סדר מדידת TF">
@@ -2921,7 +2944,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <div id="tfTraceLegend" class="tfTraceLegend"></div>
       <div id="tfDelayInfo" role="status" style="text-align:center;font-size:11px;color:var(--accent)"><b>שלב 1:</b> הפעל אות רחב־פס ובצע סנכרון TF</div>
       <div class="delayRangeControl"><span>טווח חיפוש</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
-      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:6px 0">
+      <div id="tfAdvancedTuning" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:6px 0">
         <div class="ctrl" style="min-width:150px">
           <label>יציבות TF <b id="tfSmoothVal">בינונית</b></label>
           <input type="range" id="tfSmooth" min="70" max="98" step="1" value="93">
@@ -2931,20 +2954,22 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
           <input type="range" id="tfCohGate" min="0" max="90" step="5" value="40">
         </div>
       </div>
-      <canvas id="tfCanvas" style="width:100%;height:234px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none"></canvas>
-      <div class="seg" id="tfModeSeg" style="align-self:center">
-        <button data-m="graphic" class="on">גרפיק</button>
-        <button data-m="param">פרמטרי · 6 Bands</button>
-      </div>
-      <div class="ctrl" style="flex:0 0 auto;align-items:center;min-width:auto">
-        <label style="justify-content:center">עקומת יעד</label>
-        <div class="seg tgtSeg" style="align-self:center">
-          <button data-t="flat" class="on">שטוח</button>
-          <button data-t="house">House</button>
+      <div id="tfLegacyEqTools" hidden aria-hidden="true">
+        <canvas id="tfCanvas" style="width:100%;height:234px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none"></canvas>
+        <div class="seg" id="tfModeSeg" style="align-self:center">
+          <button data-m="graphic" class="on">גרפיק</button>
+          <button data-m="param">פרמטרי · 6 Bands</button>
         </div>
+        <div class="ctrl" id="tfLegacyTargetCtrl" style="flex:0 0 auto;align-items:center;min-width:auto">
+          <label style="justify-content:center">עקומת יעד</label>
+          <div class="seg tgtSeg" style="align-self:center">
+            <button data-t="flat" class="on">שטוח</button>
+            <button data-t="house">House</button>
+          </div>
+        </div>
+        <div id="tfGeqList"></div>
+        <div class="sub" id="tfInfo">התוצאה: כמה dB להזיז בכל פס בגרפיק־EQ (31 פסים).</div>
       </div>
-      <div id="tfGeqList"></div>
-      <div class="sub" id="tfInfo">התוצאה: כמה dB להזיז בכל פס בגרפיק־EQ (31 פסים). ירוק=הזז, אפור=לא אמין (רפרנס חלש).</div>
       <button id="tfClose">סגור</button>
     </div>
     
@@ -3302,7 +3327,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.57</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.58</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3496,7 +3521,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.57"></script>
+<script src="app.js?v=5.5.58"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
