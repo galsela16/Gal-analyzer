@@ -103,7 +103,11 @@ const checks=[
  ,['Delay defaults to a compact measurement strip',html.includes('V5.5.52 — Delay opens as a focused measurement strip')&&html.includes('max-height:min(20vh,148px)')&&html.includes('#dlyPanel.measureDock:not(.expanded) .dlyAlignment{display:none!important}')]
  ,['graph plot meets the SPL meter without dead space',core.includes("?28:6,plotH=H-meterH-6")&&core.includes("? 28 : 6;\n  const plotH = H - meterH - 6;")]
  ,['Delay controls use the full dock width',html.includes('V5.5.53 — use the full dock width')&&html.includes('grid-template-columns:repeat(2,minmax(0,1fr))')&&html.includes('max-height:min(15vh,112px)')&&html.includes('#dlyPanel.measureDock:not(.expanded) #dlyInfo')]
+ ,['TF has a confidence-gated progressive working average',core.includes('function updateTfWorkingAverage(live)')&&core.includes("confidence.label==='LOW'")&&core.includes('const progressive=Math.max(base,1/Math.min(tfAverageFrames,40))')]
+ ,['TF separates live and working-average traces',core.includes("ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42")&&core.includes("ctx.strokeStyle='#52d9ff'")&&core.includes("'━ WORKING AVG'")]
+ ,['TF average exposes field speed and reset controls',html.includes('id="tfAverageBar"')&&['fast','normal','precision'].every(x=>html.includes('data-tf-average="'+x+'"'))&&html.includes('id="tfAverageReset"')]
+ ,['verified TF capture requires a stable working average',core.includes("tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'")&&core.includes("captureKind:'working-average'")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.53 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.54 regression validation passed (${checks.length} checks).`);

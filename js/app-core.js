@@ -31,6 +31,7 @@ let showTfPhase = false;
 let showTfCoh = false;
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
 let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
+let tfWorkingAverage=null,tfAverageFrames=0,tfAverageMode='normal',tfAverageLastUpdate=0;
 let phaseSub=null, phaseTop=null;  // צילומי פאזה: {ph:Float32Array, coh:Float32Array}
 let xoverF=90, showXover=false;    // סמן תדר חיתוך
 let alignRecommendation=null;
@@ -47,6 +48,7 @@ function configureTfFft(n){
   tfWin=new Float32Array(TF_FFT_N);
   for(let i=0;i<TF_FFT_N;i++) tfWin[i]=0.5*(1-Math.cos((2*Math.PI*i)/(TF_FFT_N-1)));
   tfWorkflowVerified=false;
+  resetTfWorkingAverage('FFT CHANGED');
   phaseSub=null; phaseTop=null; alignRecommendation=null;
 }
 configureTfFft(TF_FFT_N);
@@ -297,7 +299,7 @@ function tfAutoDelay(event){
 
 function resetTfAutoDelay(){
   cancelTfWorkflowVerification();
-  tfDelayMs=0;tfDelaySamples=0;tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
+  tfDelayMs=0;tfDelaySamples=0;tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';resetTfWorkingAverage('DELAY UNLOCKED');
   clearSubTopSnapshots('סנכרון TF אופס — סנכרן ואז מדוד שוב סאב וטופ.');
   syncTfWorkflowUi();
   const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent='⏱ סנכרון TF';}
@@ -383,7 +385,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.53-wide-delay-strip',
+    version: 'v5.5.54-tf-working-average',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1472,6 +1474,42 @@ function tfCurrentSnapshot(){
   const snap={mag,ph,coh,offset,refDb,micDb,refOffset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()}; snap.confidence=tfBandConfidence(snap); return snap;
 }
 
+function syncTfAverageUi(state='waiting',detail='WAITING'){
+  const el=document.getElementById('tfAverageState');if(!el)return;
+  el.dataset.state=state;el.textContent='AVERAGE · '+detail;
+}
+function resetTfWorkingAverage(reason='WAITING'){
+  tfWorkingAverage=null;tfAverageFrames=0;tfAverageLastUpdate=0;syncTfAverageUi('waiting',reason);
+}
+function updateTfWorkingAverage(live){
+  if(!live)return null;
+  const goodSignal=tfHasReferenceSignal(),confidence=live.confidence||tfBandConfidence(live);
+  if(!tfDelayReady){syncTfAverageUi('paused','PAUSED · SYNC DELAY');return tfWorkingAverage;}
+  if(!tfWorkflowVerified){syncTfAverageUi('paused','PAUSED · VERIFY');return tfWorkingAverage;}
+  if(!goodSignal||confidence.label==='LOW'){syncTfAverageUi('paused','PAUSED · LOW COHERENCE');return tfWorkingAverage;}
+  const now=performance.now();if(now-tfAverageLastUpdate<90)return tfWorkingAverage;tfAverageLastUpdate=now;
+  if(!tfWorkingAverage||tfWorkingAverage.mag.length!==live.mag.length){
+    tfWorkingAverage={...live,mag:new Float32Array(live.mag),ph:new Float32Array(live.ph),coh:new Float32Array(live.coh),refDb:new Float32Array(live.refDb),micDb:new Float32Array(live.micDb)};tfAverageFrames=1;
+  }else{
+    tfAverageFrames++;
+    const base=tfAverageMode==='fast'?.22:tfAverageMode==='precision'?.045:.10;
+    const progressive=Math.max(base,1/Math.min(tfAverageFrames,40));
+    for(let k=1;k<live.mag.length;k++){
+      const quality=Math.max(0,Math.min(1,(live.coh[k]-tfCohGate)/Math.max(.05,1-tfCohGate)));
+      if(quality<=0)continue;const a=progressive*quality;
+      tfWorkingAverage.mag[k]+=a*(live.mag[k]-tfWorkingAverage.mag[k]);
+      tfWorkingAverage.refDb[k]+=a*(live.refDb[k]-tfWorkingAverage.refDb[k]);tfWorkingAverage.micDb[k]+=a*(live.micDb[k]-tfWorkingAverage.micDb[k]);
+      tfWorkingAverage.coh[k]+=.12*(live.coh[k]-tfWorkingAverage.coh[k]);
+      const x=(1-a)*Math.cos(tfWorkingAverage.ph[k])+a*Math.cos(live.ph[k]),y=(1-a)*Math.sin(tfWorkingAverage.ph[k])+a*Math.sin(live.ph[k]);tfWorkingAverage.ph[k]=Math.atan2(y,x);
+    }
+    tfWorkingAverage.offset+=(progressive)*(live.offset-tfWorkingAverage.offset);tfWorkingAverage.refOffset+=progressive*(live.refOffset-tfWorkingAverage.refOffset);tfWorkingAverage.t=Date.now();tfWorkingAverage.confidence=confidence;
+  }
+  syncTfAverageUi(tfAverageFrames>=18&&confidence.label==='HIGH'?'stable':'acquiring',(tfAverageFrames>=18&&confidence.label==='HIGH'?'STABLE · ':'ACQUIRING · ')+tfAverageFrames);
+  return tfWorkingAverage;
+}
+safeOn('tfAverageReset','click',()=>{resetTfWorkingAverage('RESET');v3Toast('ממוצע TF אופס');});
+document.querySelectorAll('[data-tf-average]').forEach(btn=>btn.addEventListener('click',()=>{tfAverageMode=btn.dataset.tfAverage;document.querySelectorAll('[data-tf-average]').forEach(x=>x.classList.toggle('on',x===btn));resetTfWorkingAverage(tfAverageMode.toUpperCase());}));
+
 // V5.5.3 Trace Manager + Spatial Average
 function v552CloneArray(a){return a?Array.from(a):[];}
 function v552SpatialAverage(indices){
@@ -1537,8 +1575,9 @@ function tfMicOnlySnapshot(){
 function captureTfTrace(){
   if(!running){ alert('הפעל Audio קודם.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
-  const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified);
-  const s=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot(); if(!s) return;
+  const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH');
+  const current=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot();
+  const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:current; if(!s) return;
   const idx=tfTraces.length+1;
   s.type='tf';s.visible=true;s.verified=verified;s.status=verified?'Verified':'Unverified';
   s.name='TF '+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
@@ -1579,7 +1618,7 @@ function tfDrawTrustGuide(W,plotH,verified,reason){
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
-  const live=tfCurrentSnapshot();if(!live)return;tfDisplaySnapshot=live;
+  const live=tfCurrentSnapshot();if(!live)return;tfDisplaySnapshot=live;const working=updateTfWorkingAverage(live);
   const inputTop=28,inputBottom=Math.max(105,Math.floor(plotH*.52)),deltaTop=inputBottom+25,deltaBottom=plotH-18;
   const inputY=db=>inputTop+(12-Math.max(-36,Math.min(12,db)))/48*(inputBottom-inputTop);
   const deltaY=db=>deltaTop+(12-Math.max(-12,Math.min(12,db)))/24*(deltaBottom-deltaTop);
@@ -1595,11 +1634,12 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   const zeroY=deltaY(0);ctx.beginPath();let pen=false;
   const deviationBars=TF_DELTA_COLORS.map(()=>new Path2D());
   for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N))),c=live.coh[k];if(c<tfCohGate){pen=false;continue;}const db=live.mag[k],y=deltaY(db),path=deviationBars[tfDeltaBucket(db)];path.moveTo(px,zeroY);path.lineTo(px,y);}
-  ctx.lineWidth=1.7;deviationBars.forEach((path,i)=>{ctx.strokeStyle=TF_DELTA_COLORS[i];ctx.stroke(path);});
-  ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#b7f34a';ctx.lineWidth=1.8;ctx.lineJoin='round';ctx.stroke();
+  ctx.save();ctx.globalAlpha=.30;ctx.lineWidth=1.3;deviationBars.forEach((path,i)=>{ctx.strokeStyle=TF_DELTA_COLORS[i];ctx.stroke(path);});ctx.restore();
+  ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42;ctx.lineWidth=1;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
+  if(working){ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(working.mag.length-1,Math.max(1,Math.round(f/working.sr*TF_FFT_N)));if(working.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(working.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.8;ctx.shadowColor='rgba(82,217,255,.30)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;}
   tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
   ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('TOP · INPUTS — REF (source) vs MIC (system)',8,14);ctx.fillText('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE',8,deltaTop-9);
-  ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#d8f5e5';ctx.fillText('━ Δ',410,14);
+  ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#8fb6c2';ctx.fillText('━ LIVE',410,14);ctx.fillStyle='#52d9ff';ctx.fillText('━ WORKING AVG',470,14);
   const trustworthy=!!(tfDelayReady&&tfWorkflowVerified&&(!live.confidence||live.confidence.label!=='LOW'));
   tfDrawTrustGuide(W,plotH,trustworthy,live.confidence?.reason==='Low coherence'?'Next: improve REF/SNR, run Delay Sync, then Verify.':null);
   ctx.restore();
@@ -4586,7 +4626,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.53';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.54';
   v3UpdateStatus();
 })();
 (function initAccent(){

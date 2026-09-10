@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.53 — Wide Compact Delay Strip
+# GAL Analyzer V5.5.54 — Stable TF Working Average
 
-V5.5.53 spreads Delay inputs and controls across the full panel width, preventing unnecessary line wrapping and reducing the compact panel to 112 px.
+V5.5.54 keeps RTA, M/R, and Waterfall unchanged while turning TF into a field-ready measurement workflow with a confidence-gated progressive working average, separate live trace, acquisition status, averaging speeds, and stable-average capture.
 
 V5.5.41 adds a compact segmented resolution selector directly below the RTA / M/R / Waterfall / TF row. The four canonical choices—1/3, 1/6, 1/12 and 1/24 octave—are always visible, synchronized with every existing resolution control and laid out without covering the graph.
 

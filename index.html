@@ -2407,6 +2407,16 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   #dlyPanel.measureDock:not(.expanded) .dlyActions{position:absolute!important;left:8px!important;top:4px!important;width:auto!important;padding:0!important;margin:0!important}
 }
 
+/* V5.5.54 — TF working average and confidence-gated field workflow. */
+#tfAverageBar{display:flex;align-items:center;gap:6px;min-height:28px;padding:3px 5px;border:1px solid rgba(148,163,184,.16);border-radius:5px;background:rgba(255,255,255,.025)}
+#tfAverageState{margin-right:auto;font:800 8px/1 ui-monospace,monospace;letter-spacing:.07em;color:#91a4b5;white-space:nowrap}
+#tfAverageState[data-state="acquiring"]{color:#38bdf8}#tfAverageState[data-state="stable"]{color:#56df86}#tfAverageState[data-state="paused"]{color:#f5b942}
+#tfAverageSpeed{display:flex;gap:2px}#tfAverageSpeed button,#tfAverageReset{min-height:22px!important;padding:2px 6px!important;border-radius:4px!important;font-size:7px!important}
+#tfAverageSpeed button.on{color:#7dd3fc!important;border-color:rgba(56,189,248,.55)!important;background:rgba(56,189,248,.11)!important}
+body.sun-mode #tfAverageBar{background:#f7fafc;border-color:#cad8e1}body.sun-mode #tfAverageState{color:#607785}
+@media(min-width:901px){#tfPanel.measureDock:not(.expanded){max-height:min(24vh,184px)!important}}
+@media(max-width:700px){#tfAverageBar{flex-wrap:wrap}#tfAverageState{width:100%}}
+
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle,#uiContextBar{display:none!important}
@@ -2483,7 +2493,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.53</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.54</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2513,7 +2523,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.53 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.54 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2802,6 +2812,11 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
         <div class="tfProCard"><span>COHERENCE</span><b id="tfProCoh">—</b><small id="tfProCohSub">200 Hz – 10 kHz</small></div>
         <div class="tfProCard"><span>REFERENCE</span><b id="tfProRef">—</b><small id="tfProRefSub">Channel 2</small></div>
         <div class="tfProCard"><span>TRACE</span><b id="tfProTrace">LIVE</b><small id="tfProTraceSub">No capture yet</small></div><div class="tfProCard tfConfidenceCard"><span>CONFIDENCE</span><b id="tfProConfidence">—</b><small id="tfProConfidenceSub">Waiting for TF</small></div>
+      </div>
+      <div id="tfAverageBar" aria-label="TF working average">
+        <span id="tfAverageState" data-state="waiting">AVERAGE · WAITING</span>
+        <div class="seg" id="tfAverageSpeed"><button data-tf-average="fast">FAST</button><button data-tf-average="normal" class="on">NORMAL</button><button data-tf-average="precision">PRECISION</button></div>
+        <button type="button" id="tfAverageReset">RESET AVG</button>
       </div>
       <div class="tfProViewBar">
         <div class="left"><button type="button" id="tfProMag" class="on">Magnitude</button><button type="button" id="tfProPhase">Phase</button><button type="button" id="tfProCohBtn">Coherence</button></div>
@@ -3229,7 +3244,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.53</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.54</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3424,7 +3439,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.53"></script>
+<script src="app.js?v=5.5.54"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
