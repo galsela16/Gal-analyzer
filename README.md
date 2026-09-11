@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.67 — Precision Tone Tracking
+# GAL Analyzer V5.5.68 — Collision-free Waterfall Alerts
 
-V5.5.67 improves feedback and standing-frequency detection with sub-bin frequency interpolation, a robust local noise floor, true narrow-band Q estimation and median frequency tracking. A steady 650 Hz tone is now measured from the FFT peak itself instead of being pulled toward a nearby ISO-band centre.
+V5.5.68 lays nearby Waterfall resonance alerts out across three automatic lanes. Every marker stays anchored to its exact measured frequency while its label is moved only when needed and connected back with a subtle leader line.
 
 V5.5.65 adopts the reference image's restrained white-outline treatment across the workspace. Neutral translucent borders now define panels, cards, controls, the canvas and graph selector, while structural interface text uses a consistent crisp white treatment in dark mode. Functional color remains reserved for live data, active tools and selected states. This improves hierarchy and gives the interface a cleaner instrument-like finish without changing layout or measurement behavior.
 
