@@ -154,6 +154,7 @@ const wf3d={rows:[],frame:0,maxRows:85,maxHz:20000,intervalMs:120,lastCapture:0}
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
+let fbTrackSerial = 0;
 let smoothedDbfs = -120;
 
 function resize(){
@@ -372,7 +373,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.66-canvas-status-line',
+    version: 'v5.5.67-precision-tone-tracking',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3901,6 +3902,28 @@ function interpolatedSpectrumHz(data,index,nyquist){
   }
   return (index+offset)*nyquist/data.length;
 }
+function medianNumber(values){
+  if(!values?.length)return 0;
+  const sorted=values.slice().sort((a,b)=>a-b),mid=sorted.length>>1;
+  return sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])*.5;
+}
+// Sub-bin peak position plus a robust local floor prevents broad programme
+// energy from pulling a narrow tone toward the centre of an ISO band.
+function spectralPeakCandidates(data,nyquist,minHz=20,maxHz=20000){
+  const bins=data?.length||0;if(bins<7||!nyquist)return [];
+  const binHz=nyquist/bins,lo=Math.max(2,Math.ceil(minHz/binHz)),hi=Math.min(bins-3,Math.floor(Math.min(maxHz,nyquist*.98)/binHz)),out=[];
+  for(let i=lo;i<=hi;i++){
+    const db=data[i];if(!Number.isFinite(db)||!(db>data[i-1]&&db>=data[i+1]))continue;
+    const radius=Math.max(10,Math.min(48,Math.round(i*.035))),noise=[];
+    for(let j=Math.max(1,i-radius);j<=Math.min(bins-2,i+radius);j++)if(Math.abs(j-i)>3&&Number.isFinite(data[j]))noise.push(data[j]);
+    const floor=medianNumber(noise),prom=db-floor;if(prom<2.5)continue;
+    const hz=interpolatedSpectrumHz(data,i,nyquist),edge=db-3;let left=i,right=i;
+    while(left>lo&&data[left]>edge)left--;while(right<hi&&data[right]>edge)right++;
+    const widthHz=Math.max(binHz,(right-left)*binHz),q=hz/widthHz;
+    out.push({index:i,hz,db,prom,floor,q,widthHz});
+  }
+  return out.sort((a,b)=>(b.prom+Math.min(18,b.q)*.18)-(a.prom+Math.min(18,a.q)*.18));
+}
 function preciseSpectrumPeakHz(data,centerHz,nyquist){
   const bins=data?.length||0;if(!bins||!centerHz)return centerHz||0;
   const radius=Math.pow(2,1/12);
@@ -3914,12 +3937,10 @@ function spectrumPeakDetail(data,centerHz,nyquist){
   const bins=data?.length||0;if(!bins)return {hz:centerHz||0,prom:0,db:-120};
   const radius=Math.pow(2,1/12),lo=Math.max(2,Math.floor(centerHz/radius/nyquist*bins));
   const hi=Math.min(bins-3,Math.ceil(centerHz*radius/nyquist*bins));
+  const best=spectralPeakCandidates(data,nyquist,centerHz/radius,centerHz*radius)[0];
+  if(best)return {hz:best.hz,prom:best.prom,db:best.db,q:best.q,widthHz:best.widthHz};
   let peak=lo;for(let i=lo+1;i<=hi;i++)if(data[i]>data[peak])peak=i;
-  let sum=0,n=0;
-  for(let i=Math.max(1,peak-24);i<=Math.min(bins-2,peak+24);i++){
-    if(Math.abs(i-peak)>3&&Number.isFinite(data[i])){sum+=data[i];n++;}
-  }
-  return {hz:interpolatedSpectrumHz(data,peak,nyquist),prom:data[peak]-(n?sum/n:data[peak]),db:data[peak]};
+  return {hz:interpolatedSpectrumHz(data,peak,nyquist),prom:0,db:data[peak],q:0,widthHz:0};
 }
 function updateWaterfallResonances(nyquist){
   if(!wfResonance.enabled||frozen||!floatData?.length)return;
@@ -3938,8 +3959,8 @@ function updateWaterfallResonances(nyquist){
     const local=neigh.reduce((a,v)=>a+v,0)/neigh.length,prom=db-local;
     const detail=spectrumPeakDetail(floatData,fc,nyquist);
     const measuredHz=(prom>=wfResonance.minPromDb*.65||detail.prom>=7)?detail.hz:fc;
-    let t=wfResonance.tracks.get(b)||{hz:measuredHz,ema:db,var:0,prom,narrowProm:detail.prom,score:0,hits:0,total:0};
-    t.hz+=.38*(measuredHz-t.hz);
+    let t=wfResonance.tracks.get(b)||{hz:measuredHz,hzSamples:[],ema:db,var:0,prom,narrowProm:detail.prom,score:0,hits:0,total:0};
+    t.hzSamples=(t.hzSamples||[]).concat(measuredHz).slice(-9);t.hz=medianNumber(t.hzSamples);
     const d=db-t.ema;t.ema+=.16*d;t.var=.86*t.var+.14*d*d;t.prom=.78*t.prom+.22*prom;
     t.narrowProm=.72*(t.narrowProm||0)+.28*detail.prom;t.total++;
     if((t.prom>=wfResonance.minPromDb||t.narrowProm>=7)&&Math.sqrt(Math.max(0,t.var))<3.2){t.hits++;t.score=Math.min(1,t.score+(t.narrowProm>=10?.10:.075));}
@@ -4191,38 +4212,23 @@ const FB_CONFIRM=18;
 const FB_MAXSWING=2.5;
 function detectFeedback(nyquist,bins){
   const PROM=fbProm;
-  const win=24;
   const seen=new Set();
-  const iLo=Math.max(2,Math.floor(120/nyquist*bins));
-  const iHi=Math.min(bins-2,Math.floor(10000/nyquist*bins));
-  for(let i=iLo;i<=iHi;i++){
-    const d=floatData[i];
-    if(d<FB_MINDB) continue;
-    if(!(d>floatData[i-1]&&d>=floatData[i+1])) continue;
-    let sum=0,n=0;
-    for(let j=i-win;j<=i+win;j++){ if(Math.abs(j-i)>2&&j>=0&&j<bins){sum+=floatData[j];n++;} }
-    const avg=sum/Math.max(1,n);
-    const prom=d-avg;
-    if(prom<PROM) continue;
-    let li=i, ri=i;
-    while(li>1 && floatData[li]>d-3) li--;
-    while(ri<bins-1 && floatData[ri]>d-3) ri++;
-    const bw3=Math.max(1,(ri-li))*nyquist/bins;
-    const hz=Math.round(i*nyquist/bins);
-    const q=Math.max(2,Math.min(30, hz/bw3));
+  const candidates=spectralPeakCandidates(floatData,nyquist,120,10000).filter(c=>c.db>=FB_MINDB&&c.prom>=PROM);
+  for(const candidate of candidates.slice(0,12)){
+    const d=candidate.db,prom=candidate.prom,hz=candidate.hz,q=Math.max(2,Math.min(60,candidate.q));
     if(q<FB_MINQ) continue;
     const cut=Math.max(3,Math.min(12, Math.round(prom*0.7)));
-    const key=Math.round(hz/ (hz<300?4:hz<2000?10:40));
+    const tolerance=Math.max(nyquist/bins*2.2,hz*(Math.pow(2,12/1200)-1));
+    let key=null,rec=null,bestDistance=Infinity;
+    for(const [existingKey,existing] of fbTrack){const distance=Math.abs(hz-existing.hz);if(distance<=tolerance&&distance<bestDistance){key=existingKey;rec=existing;bestDistance=distance;}}
+    if(key==null)key=++fbTrackSerial;
     seen.add(key);
-    const tol = hz<300?5:hz<2000?14:50;
-    const rec=fbTrack.get(key);
     if(rec){
-      if(Math.abs(hz-rec.hz)<=tol) rec.hold=Math.min(FB_CONFIRM+30, rec.hold+1);
-      else rec.hold=Math.max(0, rec.hold-3);
+      rec.hold=Math.min(FB_CONFIRM+30,rec.hold+1);
       rec.swing = rec.swing*0.8 + Math.abs(d-rec.db)*0.2;
-      rec.db=d; rec.hz=hz; rec.cut=cut; rec.q=q;
+      rec.hzSamples=rec.hzSamples.concat(hz).slice(-11);rec.db=d;rec.hz=medianNumber(rec.hzSamples);rec.cut=cut;rec.q=q;rec.prom=prom;
     } else {
-      fbTrack.set(key,{hold:1, swing:0, db:d, hz:hz, cut:cut, q:q});
+      fbTrack.set(key,{hold:1,swing:0,db:d,hz,hzSamples:[hz],cut,q,prom});
     }
   }
   for(const [k,rec] of fbTrack){ if(!seen.has(k)){ rec.hold-=3; if(rec.hold<=0) fbTrack.delete(k);} }
@@ -4696,7 +4702,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.66';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.67';
   v3UpdateStatus();
 })();
 (function initAccent(){

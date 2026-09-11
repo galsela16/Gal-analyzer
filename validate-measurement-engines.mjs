@@ -25,6 +25,7 @@ const binOverlapLinearPower=Function(`${extract('binOverlapLinearPower')};return
 const analyzeDecay=Function(`${extract('analyzeDecay')};return analyzeDecay`)();
 const applyDelayPhaseToCross=Function(`${extract('applyDelayPhaseToCross')};return applyDelayPhaseToCross`)();
 const evaluateTfVerification=Function(`${extract('evaluateTfVerification')};return evaluateTfVerification`)();
+const precisionPeaks=Function(`${extract('interpolatedSpectrumHz')};${extract('medianNumber')};${extract('spectralPeakCandidates')};return spectralPeakCandidates`)();
 const testPxx=new Float64Array(8192).fill(1),testPyy=new Float64Array(8192).fill(1),testRe=new Float64Array(8192).fill(Math.sqrt(.81)),testIm=new Float64Array(8192);
 const tfBandCoherence=Function('tfPxx','tfPyy','tfPxyRe','tfPxyIm','TF_FFT_N',`${extract('tfBandCoherence')};return tfBandCoherence`)(testPxx,testPyy,testRe,testIm,16384);
 const geqBody=source.match(/const GEQ=\[([\s\S]*?)\];/)?.[1];
@@ -42,6 +43,17 @@ const eqEngine=Function('GEQ','eqMinFreq','eqMaxFreq',`
   return {buildCorr,relByLevel,paramFromCorr};
 `)(GEQ,100,16000);
 const micCalAt=Function('micCal',`${extract('micCalAt')};return micCalAt`)({f:[20,100,1000,10000,20000],g:[3,1,0,-1,-2]});
+
+for(const wantedHz of [163,650,997,3150,7997]){
+  const bins=8192,nyquist=24000,trueBin=wantedHz/nyquist*bins,data=new Float32Array(bins);
+  for(let i=0;i<bins;i++)data[i]=-84+2*Math.sin(i*.071)+1.2*Math.cos(i*.019);
+  const centre=Math.round(trueBin);
+  for(let i=centre-5;i<=centre+5;i++)data[i]=-24-1.35*(i-trueBin)*(i-trueBin);
+  const found=precisionPeaks(data,nyquist,120,10000).find(p=>Math.abs(p.hz-wantedHz)<8);
+  assert(found,`Precision peak missing at ${wantedHz} Hz`);
+  assert(Math.abs(found.hz-wantedHz)<.35,`Precision peak error at ${wantedHz} Hz: ${found.hz}`);
+  assert(found.prom>20&&found.q>=6,`Precision peak quality rejected at ${wantedHz} Hz`);
+}
 
 let seed=0x5a17c9e3;const rnd=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/2**32*2-1;};
 function broadband(n,sr){

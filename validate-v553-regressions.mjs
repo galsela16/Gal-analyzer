@@ -8,6 +8,7 @@ const checks=[
  ['waterfall confidence uses hz',core.includes('const f=c.hz||c.f||0')],
  ['waterfall marker has confidence',core.includes("hz+' · '+Math.round(q*100)+'%'")],
  ['waterfall frequency uses interpolated FFT peak',core.includes('spectrumPeakDetail(floatData,fc,nyquist)')&&core.includes('interpolatedSpectrumHz(data,index,nyquist)')],
+ ['feedback and resonance use robust sub-bin peaks',core.includes('function spectralPeakCandidates(')&&core.includes('medianNumber(noise)')&&core.includes('rec.hz=medianNumber(rec.hzSamples)')],
  ['narrow tone can pass resonance display gate',core.includes('(r.narrowProm||0)>=8')],
  ['waterfall draws only measured slices',core.includes('Draw each measured slice once')&&!core.includes('visualSubdivisions')&&!core.includes('motionPhase')],
  ['waterfall display filter preserves peaks without blur frames',core.includes('short symmetric display filter')&&core.includes('3*v+2*raw')],
@@ -135,4 +136,4 @@ const checks=[
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.66 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.67 regression validation passed (${checks.length} checks).`);
