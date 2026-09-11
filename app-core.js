@@ -372,7 +372,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.60-integrated-workflow',
+    version: 'v5.5.64-unified-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -861,6 +861,12 @@ function openLatestEqWorkspace(){
   }));
   return true;
 }
+window.openCorrectionGraph=function(){
+  if(openLatestEqWorkspace())return true;
+  showModal(eqPanel);
+  updateEqUI();
+  return false;
+};
 window.openLatestEqWorkspaceFromRail=function(event){
   if(event){event.preventDefault();event.stopPropagation();}
   const dock=document.getElementById('geqDock');
@@ -3189,6 +3195,16 @@ function heat(t){
   return 'rgb('+r+','+g+','+b+')';
 }
 function fLabel(f){return f>=1000?(f%1000?(f/1000).toFixed(1):f/1000)+'k':''+f;}
+const SHARED_FREQ_TICKS=[31.5,50,100,200,500,1000,2000,5000,10000,20000];
+function drawSharedFrequencyAxis(W,axisTop,xForFreq,lo,hi){
+  const axisH=23,ticks=SHARED_FREQ_TICKS.filter(f=>f>=lo&&f<=hi);
+  ctx.save();ctx.direction='ltr';
+  ctx.fillStyle=sunMode?'rgba(244,248,251,.96)':'rgba(3,14,20,.94)';ctx.fillRect(0,axisTop,W,axisH);
+  ctx.strokeStyle=sunMode?'rgba(55,92,112,.30)':'rgba(91,190,211,.30)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,axisTop+.5);ctx.lineTo(W,axisTop+.5);ctx.stroke();
+  ctx.font='700 11.5px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.fillStyle=sunMode?'#263f4d':'#d2e5ec';ctx.textBaseline='middle';
+  ticks.forEach((f,i)=>{const x=xForFreq(f);ctx.strokeStyle=sunMode?'#668594':'#5ea6b7';ctx.beginPath();ctx.moveTo(x,axisTop);ctx.lineTo(x,axisTop+5);ctx.stroke();ctx.textAlign=i===0?'left':i===ticks.length-1?'right':'center';ctx.fillText(fLabel(f)+'Hz',x,axisTop+14);});
+  ctx.restore();
+}
 
 function updateLevel(){
   if(!analyserMeter) return;
@@ -3421,7 +3437,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   [20,31.5,50,100,200,500,1000,2000,5000,10000,20000].filter(f=>f>=lo&&f<=hi).forEach(f=>{
     const x=xForFreq(f);
     ctx.globalAlpha=.6; ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,plotH);ctx.stroke(); ctx.globalAlpha=1;
-    ctx.fillText(fLabel(f)+'Hz',x,labelY);
+    // Frequency labels are redrawn above the spectrum at the end of the frame.
   });
   [0.25,0.5,0.75].forEach(p=>{ctx.globalAlpha=.3;ctx.strokeStyle=sunMode?'#cbd5e1':'#2b3646';ctx.beginPath();ctx.moveTo(0,plotH*p);ctx.lineTo(W,plotH*p);ctx.stroke();ctx.globalAlpha=1;});
 
@@ -3798,6 +3814,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.fillStyle='rgba(80,230,140,.9)'; ctx.font='10px monospace'; ctx.textAlign='end';
     ctx.fillText(tfOpen?(targetMode==='house'?'Target House · TF':'Target 0dB · TF'):(targetMode==='house'?'יעד House':'יעד שטוח'), W-8, 12);
   }
+  // Keep the frequency scale readable above dense bars and filled TF spectra.
+  drawSharedFrequencyAxis(W,plotH-23,xForFreq,lo,hi);
   if(cursorX!=null && cursorX>=0 && cursorX<=W){
     const cf=freqForX(cursorX);
     const bi=Math.max(0,Math.min(BANDS-1,Math.floor(cursorX/bw)));
@@ -4128,12 +4146,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     g.addColorStop(0,'rgba(255,45,82,.19)');g.addColorStop(.28,'rgba(255,194,0,.16)');g.addColorStop(.56,'rgba(0,232,151,.13)');g.addColorStop(1,'rgba(42,62,255,.09)');
     ctx.fillStyle=g;ctx.fill();
   }
-  ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font='10px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';
-  [20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{
-    if(f>Math.min(20000,nyquist*.96))return;
-    const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left);
-    ctx.fillText(f>=1000?(f/1000)+'k':f,x,H-9);
-  });
+  drawSharedFrequencyAxis(W,H-23,xForFreq,ISO[0],Math.min(ISO[BANDS-1],nyquist*.96));
   // Level scale inside the plot, matching the compact reference instrument style.
   ctx.textAlign='left';ctx.fillStyle=sunMode?'#475569':'#93a3ad';ctx.fillText('dB SPL',7,13);
   for(let j=0;j<=4;j++){
@@ -4688,7 +4701,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.60';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.64';
   v3UpdateStatus();
 })();
 (function initAccent(){

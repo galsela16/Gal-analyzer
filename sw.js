@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-60-integrated-workflow-20260910';
+const CACHE = 'gal-analyzer-v5-5-64-unified-frequency-axis-20260911';
 const ASSETS = [
   './',
   './index.html',

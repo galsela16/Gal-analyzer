@@ -94,7 +94,7 @@ const checks=[
  ,['rail controls have subtle touch-safe handles',html.includes('top:50%;width:28px;height:56px')&&html.includes('.workspaceRailToggle::before')&&html.includes('opacity:.46')&&html.includes('touch-action:manipulation')]
  ,['support and export actions are compact',html.includes('#uiMenu .uiMenuItem{')&&html.includes('min-height:38px!important;padding:6px 8px!important')]
  ,['day mode covers support and measurement internals',html.includes('body.sun-mode #uiMenu .uiMenuItem{background:#f8fbfd!important')&&html.includes('body.sun-mode .measureDock .tfProCard')&&html.includes('body.sun-mode .measureDock button.on')]
- ,['professional finish uses a shared restrained visual system',html.includes('--pro-radius:8px')&&html.includes('--pro-surface:#07151c')&&html.includes('V5.5.45 — professional finish')]
+ ,['professional finish uses a shared restrained visual system',html.includes('--pro-radius:12px')&&html.includes('--pro-surface:#06151d')&&html.includes('V5.5.45 — professional finish')]
  ,['waterfall palette is vivid but depth-aware',core.includes('const stops=[[0,42,62,255]')&&core.includes('Math.max(.34,1-age*.48)')&&core.includes('fillAlpha=sunMode?.12:.19')&&core.includes('rr===0?2:1.05')]
  ,['canvas click toggles both rails and closes overlays',html.includes("canvas?.addEventListener('pointerdown'")&&html.includes("const bothCollapsed=document.body.classList.contains('left-rail-collapsed')")&&html.includes("setRail('left',bothCollapsed);setRail('right',bothCollapsed)")&&html.includes("document.querySelectorAll('.measureDock.open,#tfPanel.open,#alignBar.show')")]
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
@@ -124,10 +124,12 @@ const checks=[
  ,['TF trust warning is a compact single-line badge',core.includes('const boxW=Math.min(230,W-20),boxH=25')&&core.includes("'UNVERIFIED · verify before tuning'")&&!core.includes("'UNVERIFIED LIVE VIEW · do not tune from this yet'")]
  ,['Generator rail has a synchronized direct start stop action',html.includes('id="tlsGenToggle"')&&core.includes("safeOn('tlsGenToggle', 'click'")&&core.includes("'areaGenToggleBtn', 'tlsGenToggle'")]
  ,['graph selector follows RTA Waterfall M/R TF order',(()=>{const start=html.indexOf('id="v53AnalysisGroup"'),tabs=html.slice(start,html.indexOf('</div>',start));return start>=0&&tabs.indexOf('id="v53AnalysisToggle"')<tabs.indexOf('id="v54WaterfallToggle"')&&tabs.indexOf('id="v54WaterfallToggle"')<tabs.indexOf('id="v54MrToggle"')&&tabs.indexOf('id="v54MrToggle"')<tabs.indexOf('id="v54TfGraphToggle"')})()]
- ,['bottom bar opens the canonical correction graph',html.includes('data-tcb="correction"')&&html.includes('CORRECTION GRAPH')&&html.includes("#uiRightTools [data-tool=\"spleq\"]")]
+ ,['bottom bar opens the canonical correction graph',html.includes('data-tcb="correction"')&&html.includes('CORRECTION GRAPH')&&html.includes("window.openCorrectionGraph()")&&core.includes('window.openCorrectionGraph=function()')&&core.includes('if(openLatestEqWorkspace())return true;')]
  ,['trace visibility is explicit and accessible',core.includes('v5TraceVisibility')&&core.includes('aria-pressed="')&&core.includes("t.visible===false?'○ SHOW':'● VISIBLE'")]
  ,['trace visibility toggles canonical trace state',core.includes('t.visible=t.visible===false;renderTfTraceLegend();')]
+ ,['frequency axis stays above dense graph content',core.includes('Keep the frequency scale readable above dense bars')&&core.includes("ctx.font='700 11.5px ui-monospace")&&core.includes('drawSharedFrequencyAxis(W,plotH-23')]
+ ,['every measurement uses one shared frequency axis',core.includes('const SHARED_FREQ_TICKS=[31.5,50,100,200,500,1000,2000,5000,10000,20000]')&&core.includes('function drawSharedFrequencyAxis')&&core.includes('drawSharedFrequencyAxis(W,H-23,xForFreq')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.60 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.64 regression validation passed (${checks.length} checks).`);

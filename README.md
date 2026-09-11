@@ -1,4 +1,12 @@
-# GAL Analyzer V5.5.60 — Integrated Workflow
+# GAL Analyzer V5.5.64 — Unified Frequency Axis
+
+V5.5.64 replaces the separate RTA and Waterfall frequency scales with one shared renderer. RTA, Waterfall, M/R and TF now show the exact same frequency set, typography, contrast, tick marks, alignment and edge handling. The crowded 20 Hz label is removed so 31.5 Hz remains fully legible at reduced window widths.
+
+V5.5.63 redraws the frequency scale after the measurement graphics so bars and filled spectra can no longer cover it. RTA, M/R and TF now use a high-contrast dedicated axis strip with stronger type and short ticks; Waterfall receives the same treatment while retaining its perspective geometry. Dark and daylight palettes are both supported.
+
+V5.5.62 gives the complete workspace a more vivid field-instrument identity without adding motion or distracting from the measurement canvas. Tools receive individual functional colors, active cards gain stronger state feedback, the graph selector uses a cyan-to-violet active spectrum, and the header and side cards gain controlled depth and light. Measurement engines and workspace geometry remain unchanged.
+
+V5.5.61 connects the bottom Correction Graph action directly to the canonical correction workspace. When correction data exists it opens immediately; otherwise the SPL / EQ measurement panel opens so a correction can be created. The general desktop interface receives a restrained visual refresh with clearer surface depth, stronger panel separation, more legible Tools cards, a lighter command bar and a more expressive graph selector while preserving the V5.5.60 layout and measurement engines.
 
 V5.5.60 integrates the complete V5.5.59 measurement engine and field workflow from the updated project with the latest navigation and trace refinements. The graph selector now follows the exact RTA / Waterfall / M/R / TF order, the bottom command bar opens the canonical Correction Graph directly, and every captured trace exposes an explicit SHOW / VISIBLE state while retaining its existing delete, rename and trust controls. All V5.5.59 TF source capture, verification, Generator and measurement behavior remains intact.
 
