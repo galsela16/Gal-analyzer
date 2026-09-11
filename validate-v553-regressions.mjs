@@ -129,7 +129,8 @@ const checks=[
  ,['trace visibility toggles canonical trace state',core.includes('t.visible=t.visible===false;renderTfTraceLegend();')]
  ,['frequency axis stays above dense graph content',core.includes('Keep the frequency scale readable above dense bars')&&core.includes("ctx.font='700 11.5px ui-monospace")&&core.includes('drawSharedFrequencyAxis(W,plotH-23')]
  ,['every measurement uses one shared frequency axis',core.includes('const SHARED_FREQ_TICKS=[31.5,50,100,200,500,1000,2000,5000,10000,20000]')&&core.includes('function drawSharedFrequencyAxis')&&core.includes('drawSharedFrequencyAxis(W,H-23,xForFreq')]
+ ,['dark workspace uses white structural outlines and text',html.includes('--pro-line:rgba(224,239,246,.24)')&&html.includes('body:not(.sun-mode) .tlsHead')&&html.includes('color:#f1f7f9!important')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.64 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.65 regression validation passed (${checks.length} checks).`);

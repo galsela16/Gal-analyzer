@@ -2281,10 +2281,10 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 }
 
 /* V5.5.45 — professional finish: one restrained visual system across the workspace. */
-:root{--pro-radius:12px;--pro-line:rgba(93,190,211,.28);--pro-surface:#06151d;--pro-raised:#0a202a;--pro-muted:#789aa8;--live-cyan:#33e1ed;--live-blue:#3d8fff;--live-violet:#a77cff;--live-green:#45dc92;--live-amber:#ffc857}
+:root{--pro-radius:12px;--pro-line:rgba(224,239,246,.24);--pro-surface:#06151d;--pro-raised:#0a202a;--pro-muted:#789aa8;--live-cyan:#33e1ed;--live-blue:#3d8fff;--live-violet:#a77cff;--live-green:#45dc92;--live-amber:#ffc857}
 body.sun-mode{--pro-line:#cbd9e1;--pro-surface:#fff;--pro-raised:#f6f9fb;--pro-muted:#637b87}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;-webkit-font-smoothing:antialiased}
-header.uiRefreshed{border-bottom-color:rgba(51,225,237,.28)!important;background:radial-gradient(circle at 18% -40%,rgba(61,143,255,.20),transparent 35%),linear-gradient(180deg,#08212b 0%,#04131a 100%)!important;box-shadow:0 8px 28px rgba(0,0,0,.24),inset 0 -1px 0 rgba(51,225,237,.08)!important}
+header.uiRefreshed{border-bottom-color:rgba(231,244,249,.24)!important;background:radial-gradient(circle at 18% -40%,rgba(61,143,255,.20),transparent 35%),linear-gradient(180deg,#08212b 0%,#04131a 100%)!important;box-shadow:0 8px 28px rgba(0,0,0,.24),inset 0 -1px 0 rgba(255,255,255,.06)!important}
 header.uiRefreshed h1{font-weight:720!important;letter-spacing:.13em!important}
 header.uiRefreshed #measurementHealth{display:none!important}
 #stage{border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;background:radial-gradient(circle at 50% 0%,rgba(21,86,104,.10),transparent 42%),#020d13!important;box-shadow:0 18px 55px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.025)!important}
@@ -2293,9 +2293,16 @@ header.uiRefreshed #measurementHealth{display:none!important}
   border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;background:linear-gradient(155deg,rgba(10,34,44,.98),rgba(4,17,24,.98))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 10px 28px rgba(0,0,0,.18)!important
 }
 .tlsCard{padding:12px!important;position:relative;overflow:hidden}
-.tlsCard::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:linear-gradient(180deg,var(--live-cyan),var(--live-blue));box-shadow:0 0 12px rgba(51,225,237,.42)}
+.tlsCard::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:1px;border-radius:2px;background:rgba(240,249,252,.68);box-shadow:0 0 9px rgba(220,244,250,.18)}
 .tlsHead,.tmpHead,.uiRightToolsTitle{font-weight:760!important;letter-spacing:.11em!important;color:#aec1c9!important}
 .tlsLine,.tmpCell{font-weight:600!important;letter-spacing:.015em!important}
+body:not(.sun-mode) .tlsHead,body:not(.sun-mode) .tlsLine,body:not(.sun-mode) .tlsLine span,
+body:not(.sun-mode) .tmpHead,body:not(.sun-mode) .tmpCell,body:not(.sun-mode) .tmpCell span,
+body:not(.sun-mode) .tmpValue,body:not(.sun-mode) .uiRightToolsTitle,body:not(.sun-mode) #uiRightTools button,
+body:not(.sun-mode) .tlsOpen,body:not(.sun-mode) .tcb,body:not(.sun-mode) #v53AnalysisGroup button,
+body:not(.sun-mode) .v5RailTitle,body:not(.sun-mode) .v5Minor,body:not(.sun-mode) #v5RailHint,
+body:not(.sun-mode) .uiMenuTitle,body:not(.sun-mode) .uiMenuItem .txt,body:not(.sun-mode) .uiSettingsRow,
+body:not(.sun-mode) .measureDock h3,body:not(.sun-mode) .measureDock label{color:#f1f7f9!important}
 .tlsOpen,.tcb,#uiRightTools button{
   border-radius:6px!important;border-color:var(--pro-line)!important;background:var(--pro-raised)!important;
   transition:background .15s ease,border-color .15s ease,color .15s ease,transform .12s ease!important
@@ -2314,7 +2321,7 @@ header.uiRefreshed #measurementHealth{display:none!important}
 .tcb{font-weight:700!important;letter-spacing:.045em!important}
 #targetCommandBar .tcb[data-tcb="correction"]{color:#bffaff!important;border-color:rgba(50,211,224,.40)!important;background:linear-gradient(145deg,rgba(22,171,190,.17),rgba(37,86,151,.12))!important}
 #targetCommandBar .tcb[data-tcb="correction"]::before{content:"⌁ ";font-size:15px;color:#56e5ee}
-#v53AnalysisGroup{border-radius:11px!important;background:rgba(2,13,19,.70)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 8px 22px rgba(0,0,0,.20)!important}
+#v53AnalysisGroup{border-radius:11px!important;border-color:rgba(224,239,246,.28)!important;background:rgba(2,13,19,.70)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 8px 22px rgba(0,0,0,.20)!important}
 #v53AnalysisGroup button{border-radius:6px!important;letter-spacing:.075em!important}
 #v53AnalysisGroup button.on{color:#eaffff!important;background:linear-gradient(135deg,rgba(51,225,237,.22),rgba(61,143,255,.15),rgba(167,124,255,.12))!important;box-shadow:inset 0 0 0 1px rgba(51,225,237,.36),0 0 20px rgba(46,186,224,.12)!important}
 #v53AnalysisGroup button.on::after{background:linear-gradient(90deg,var(--live-cyan),var(--live-blue),var(--live-violet))!important;box-shadow:0 0 9px rgba(51,225,237,.55)!important;height:2px!important}
@@ -2599,7 +2606,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.64</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.65</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2629,7 +2636,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.64 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.65 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3344,7 +3351,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.64</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.65</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3538,7 +3545,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.64"></script>
+<script src="app.js?v=5.5.65"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

@@ -1,4 +1,6 @@
-# GAL Analyzer V5.5.64 — Unified Frequency Axis
+# GAL Analyzer V5.5.65 — White Outline System
+
+V5.5.65 adopts the reference image's restrained white-outline treatment across the workspace. Neutral translucent borders now define panels, cards, controls, the canvas and graph selector, while structural interface text uses a consistent crisp white treatment in dark mode. Functional color remains reserved for live data, active tools and selected states. This improves hierarchy and gives the interface a cleaner instrument-like finish without changing layout or measurement behavior.
 
 V5.5.64 replaces the separate RTA and Waterfall frequency scales with one shared renderer. RTA, Waterfall, M/R and TF now show the exact same frequency set, typography, contrast, tick marks, alignment and edge handling. The crowded 20 Hz label is removed so 31.5 Hz remains fully legible at reduced window widths.
 
