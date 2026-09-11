@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.59 — TF Capture Source Picker
+# GAL Analyzer V5.5.60 — Integrated Workflow
 
-V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
+V5.5.60 integrates the complete V5.5.59 measurement engine and field workflow from the updated project with the latest navigation and trace refinements. The graph selector now follows the exact RTA / Waterfall / M/R / TF order, the bottom command bar opens the canonical Correction Graph directly, and every captured trace exposes an explicit SHOW / VISIBLE state while retaining its existing delete, rename and trust controls. All V5.5.59 TF source capture, verification, Generator and measurement behavior remains intact.
 
 V5.5.58 removes the legacy TF clutter instead of relocating it. The field panel now focuses on choosing Magnitude, Phase or Coherence, following one next-step prompt, and running Sync → Verify → Capture. Correlation remains an internal verification signal but no longer occupies the interface; legacy EQ controls stay out of TF and remain available through the dedicated SPL / EQ tool.
 

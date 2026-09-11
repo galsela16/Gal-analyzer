@@ -614,7 +614,7 @@
   }
   #v5TraceList{display:flex;flex-direction:column;gap:2px;overflow:auto;min-height:0;max-height:210px}
   .v5TraceRow{
-    display:grid;grid-template-columns:18px 1fr 26px 26px;align-items:center;gap:4px;
+    display:grid;grid-template-columns:18px minmax(0,1fr) 64px 26px;align-items:center;gap:4px;
     min-height:28px;padding:3px 4px;border-bottom:1px solid #17242f;font-size:10px;
   }
   .v5TraceNum{color:#6f8090}
@@ -623,6 +623,9 @@
   .v5TraceAction{border:0;background:transparent;color:#90a1af;cursor:pointer;padding:4px;border-radius:4px}
   .v5TraceAction:hover{color:var(--accent);background:rgba(62,166,255,.1)}
   .v5TraceAction.off{opacity:.35}
+  .v5TraceVisibility{min-width:64px;border:1px solid rgba(95,165,185,.20);font:750 8px ui-monospace,monospace;letter-spacing:.03em}
+  .v5TraceVisibility[aria-pressed="true"]{color:#72e6ef;background:rgba(27,193,211,.09);border-color:rgba(35,202,218,.34)}
+  .v5TraceVisibility[aria-pressed="false"]{color:#738a94;background:rgba(95,115,125,.05)}
   #v5AddTrace{
     margin-top:3px;border:1px solid #263745;background:#0d1923;color:#aebbc7;
     border-radius:5px;padding:7px;font:600 10px inherit;cursor:pointer;
@@ -2586,7 +2589,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.59</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.60</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2616,7 +2619,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.59 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.60 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2625,8 +2628,8 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
     <div id="v5ModeTabs" aria-label="Measurement modes">
       <div class="v53AnalysisGroup on" id="v53AnalysisGroup" aria-label="Analysis view">
         <button id="v53AnalysisToggle" data-v5mode="analysis" type="button" class="on" onclick="v54SetAnalysisView('rta',event)">RTA</button>
-        <button id="v54MrToggle" type="button" onclick="v54SetAnalysisView('mr',event)" title="Microphone / Reference comparison">M/R</button>
         <button id="v54WaterfallToggle" type="button" onclick="v54SetAnalysisView('spec',event)">Waterfall</button>
+        <button id="v54MrToggle" type="button" onclick="v54SetAnalysisView('mr',event)" title="Microphone / Reference comparison">M/R</button>
         <button id="v54TfGraphToggle" type="button" onclick="v54SetAnalysisView('tf',event)">TF</button>
       </div>
       <div id="displayResolutionBar" aria-label="RTA resolution">
@@ -3331,7 +3334,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.59</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.60</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3525,7 +3528,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.59"></script>
+<script src="app.js?v=5.5.60"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3852,8 +3855,8 @@ window.addEventListener('load', function(){
 <script>(()=>{const host=document.getElementById('persistentTraceHost'),list=document.getElementById('v5TraceList'),add=document.getElementById('v5AddTrace');if(host&&list&&add){host.append(list,add);document.body.classList.remove('ui-traces-open','ui-drawer-traces');}})();</script>
 
 <div id="targetLeftLabels" aria-hidden="true"><div class="tll">GENERATOR</div><div class="tll">I / O</div><div class="tll">TRACES</div></div>
-<div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button><button class="tcb danger" id="v5ResetSession" type="button">↺ RESET SESSION</button></div>
-<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='traces'){window.focusPersistentTraces?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
+<div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="correction">CORRECTION GRAPH</button><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button><button class="tcb danger" id="v5ResetSession" type="button">↺ RESET SESSION</button></div>
+<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='correction'){ca(['#uiRightTools [data-tool="spleq"]','#v5ModeTabs [data-v5mode="spleq"]','#eqBtn'])}if(a==='traces'){window.focusPersistentTraces?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
 
 <script>
 (()=>{

@@ -21,7 +21,7 @@ const checks=[
  ['generator has dual-channel meters',html.includes('id="gainMicFill"')&&html.includes('id="gainRefFill"')&&core.includes("document.getElementById('gainRefGain')")],
  ['right tools exposes every auxiliary measurement',Array.from(['tf','delay','rt60','spleq','align']).every(t=>html.includes('data-tool="'+t+'"'))],
  ['right tools has no duplicate settings',!html.includes('data-tool="settings"')],
- ['bottom bar contains only canonical actions',Array.from(['capture','traces','settings']).every(t=>html.includes('data-tcb="'+t+'"'))],
+ ['bottom bar contains only canonical actions',Array.from(['capture','traces','settings','correction']).every(t=>html.includes('data-tcb="'+t+'"'))],
  ['session reset is accessible in bottom bar',html.includes('class="tcb danger" id="v5ResetSession"')&&!html.includes('id="v5ResetSession" class="v5RailTool"')],
  ['right tools fill the rail in measurement order',(()=>{const rail=html.slice(html.indexOf('<aside id="uiRightTools"'),html.indexOf('</aside>',html.indexOf('<aside id="uiRightTools"')));return html.includes('grid-template-columns:1fr!important;grid-template-rows:22px repeat(5,minmax(0,1fr))')&&rail.indexOf('data-tool="tf"')<rail.indexOf('data-tool="delay"')&&rail.indexOf('data-tool="delay"')<rail.indexOf('data-tool="rt60"')&&rail.indexOf('data-tool="rt60"')<rail.indexOf('data-tool="spleq"')&&rail.indexOf('data-tool="spleq"')<rail.indexOf('data-tool="align"')})()],
  ['redundant measurement health row is hidden from header',html.indexOf('id="measurementHealth"')<html.indexOf('</header>')&&html.includes('header.uiRefreshed #measurementHealth{display:none!important}')],
@@ -123,7 +123,11 @@ const checks=[
  ,['TF source capture settles before saving and supports one-shot sweep',core.includes("sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800")&&core.includes('captureTfTraceFromSource')&&core.includes('tfTraceCapturePending')]
  ,['TF trust warning is a compact single-line badge',core.includes('const boxW=Math.min(230,W-20),boxH=25')&&core.includes("'UNVERIFIED · verify before tuning'")&&!core.includes("'UNVERIFIED LIVE VIEW · do not tune from this yet'")]
  ,['Generator rail has a synchronized direct start stop action',html.includes('id="tlsGenToggle"')&&core.includes("safeOn('tlsGenToggle', 'click'")&&core.includes("'areaGenToggleBtn', 'tlsGenToggle'")]
+ ,['graph selector follows RTA Waterfall M/R TF order',(()=>{const start=html.indexOf('id="v53AnalysisGroup"'),tabs=html.slice(start,html.indexOf('</div>',start));return start>=0&&tabs.indexOf('id="v53AnalysisToggle"')<tabs.indexOf('id="v54WaterfallToggle"')&&tabs.indexOf('id="v54WaterfallToggle"')<tabs.indexOf('id="v54MrToggle"')&&tabs.indexOf('id="v54MrToggle"')<tabs.indexOf('id="v54TfGraphToggle"')})()]
+ ,['bottom bar opens the canonical correction graph',html.includes('data-tcb="correction"')&&html.includes('CORRECTION GRAPH')&&html.includes("#uiRightTools [data-tool=\"spleq\"]")]
+ ,['trace visibility is explicit and accessible',core.includes('v5TraceVisibility')&&core.includes('aria-pressed="')&&core.includes("t.visible===false?'○ SHOW':'● VISIBLE'")]
+ ,['trace visibility toggles canonical trace state',core.includes('t.visible=t.visible===false;renderTfTraceLegend();')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.59 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.60 regression validation passed (${checks.length} checks).`);

@@ -372,7 +372,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.59-capture-source-picker',
+    version: 'v5.5.60-integrated-workflow',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -4688,7 +4688,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.59';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.60';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4834,7 +4834,7 @@ function v5RenderTraceRail(){
     '<div class="v5TraceRow" data-trace="'+i+'">'+
       '<span class="v5TraceNum">'+(i+1)+'</span>'+
       '<span class="v5TraceName" title="לחץ פעמיים לשינוי שם" style="color:'+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+ 
-      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" title="הצג/הסתר">◉</button>'+
+      '<button class="v5TraceAction v5TraceVisibility'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" aria-pressed="'+(t.visible!==false)+'" title="הצג או הסתר Capture זה">'+(t.visible===false?'○ SHOW':'● VISIBLE')+'</button>'+
       '<button class="v5TraceAction" data-trace-del="'+i+'" title="מחק">×</button>'+
     '</div>').join('');
   box.querySelectorAll('[data-trace-eye]').forEach(b=>b.addEventListener('click',()=>{const t=tfTraces[+b.dataset.traceEye];if(!t)return;t.visible=t.visible===false;renderTfTraceLegend();}));
