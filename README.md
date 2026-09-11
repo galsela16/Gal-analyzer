@@ -1,4 +1,6 @@
-# GAL Analyzer V5.5.65 — White Outline System
+# GAL Analyzer V5.5.66 — Canvas Status Line
+
+V5.5.66 removes the floating debug-like boxes from the TF and M/R canvases. MIC and Reference telemetry now use compact inline rows, while Reference and verification states appear as restrained dot-led text. The graphs remain unobstructed and the same information is retained without oversized alerts.
 
 V5.5.65 adopts the reference image's restrained white-outline treatment across the workspace. Neutral translucent borders now define panels, cards, controls, the canvas and graph selector, while structural interface text uses a consistent crisp white treatment in dark mode. Functional color remains reserved for live data, active tools and selected states. This improves hierarchy and gives the interface a cleaner instrument-like finish without changing layout or measurement behavior.
 

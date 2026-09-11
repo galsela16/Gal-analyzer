@@ -78,11 +78,12 @@ const checks=[
  ,['legacy health guard permits TF source selection from a quiet input',html.includes("!(tfCapture&&['LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason))")]
  ,['M/R overlays blue microphone and red reference',core.includes('function drawDualInputRta(W,plotH,nyquist)')&&core.includes("fill(ref,'#ff4d5e',.32)")&&core.includes("fill(mic,'#258dff',.50)")]
  ,['M/R reads the live reference analyser only in its own mode',core.includes('analyserRef.getFloatFrequencyData(floatDataRef)')&&core.includes("v5WorkspaceMode==='mr'&&analyserRef)drawDualInputRta")]
+ ,['M/R canvas uses inline legend and warning',core.includes("ctx.fillText('━ MIC 1',12,20)")&&core.includes("ctx.fillText('○ REF 2 · NO SIGNAL  ·  CHECK ROUTING / INPUT',W-12,38)")&&!core.includes('ctx.fillRect(10,10,232,27)')&&!core.includes('ctx.fillRect(W-244,10,232,36)')]
  ,['RTA retains its original presentation',core.includes("!(v5WorkspaceMode==='mr'&&analyserRef)")&&html.includes("v54SetAnalysisView('mr',event)")]
  ,['M/R has explicit input legend',core.includes("ctx.fillText('━ MIC 1'")&&core.includes("ctx.fillText('━ REF 2'")&&core.includes("ctx.fillText('M/R'")]
  ,['M/R uses canonical RTA band power',core.includes('const bandPoints=(data,history,isMic)')&&core.includes('binOverlapPowerDb(data,fc/R,fc*R,nyquist)')]
  ,['M/R and TF share the same speed coefficient',core.includes('old*tfSmoothA+raw*(1-tfSmoothA)')&&core.includes('const alpha = tfSmoothA')]
- ,['M/R reports a disconnected reference',core.includes('REF 2 · NO SIGNAL')&&core.includes('Check routing / input channel')]
+ ,['M/R reports a disconnected reference',core.includes('REF 2 · NO SIGNAL')&&core.includes('CHECK ROUTING / INPUT')]
  ,['responsive layout removes the legacy context bar',html.includes('@media(max-width:900px){')&&html.includes('.workspaceRailToggle,#uiContextBar{display:none!important}')]
  ,['responsive mode selector stays visible above graph',html.includes('#v5ModeTabs{display:flex!important;left:0!important;right:0!important;top:0!important;height:48px!important')&&html.includes('#stage>canvas#cv,#stage.measure-open>canvas#cv,#stage.bar-open>canvas#cv{top:76px!important;height:calc(100% - 76px)!important}')]
  ,['resolution strip exposes all canonical choices',html.includes('id="displayResolutionBar"')&&[3,6,12,24].every(n=>html.includes('data-display-bpo="'+n+'"'))]
@@ -121,7 +122,7 @@ const checks=[
  ,['TF advanced controls remain available under More',html.includes('#tfPanel.measureDock:not(.expanded) #tfAverageBar')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfUtilityBtns')&&html.includes('#tfPanel.measureDock.expanded #tfInputLevels')&&core.includes("more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾'")]
  ,['TF capture asks for a source before saving',core.includes("safeOn('tfTraceBtn','click',requestTfTraceCapture)")&&core.includes("title:'איזה מקור להפעיל לצורך לכידת ה־Trace?'")&&core.includes("allowed:['pink','sweep','external']")]
  ,['TF source capture settles before saving and supports one-shot sweep',core.includes("sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800")&&core.includes('captureTfTraceFromSource')&&core.includes('tfTraceCapturePending')]
- ,['TF trust warning is a compact single-line badge',core.includes('const boxW=Math.min(230,W-20),boxH=25')&&core.includes("'UNVERIFIED · verify before tuning'")&&!core.includes("'UNVERIFIED LIVE VIEW · do not tune from this yet'")]
+ ,['TF trust state is a compact inline status',core.includes("'UNVERIFIED · VERIFY BEFORE TUNING'")&&core.includes("ctx.fillText((verified?'● ':'○ ')+label,W-12,18)")&&!core.includes('const boxW=Math.min(230,W-20),boxH=25')]
  ,['Generator rail has a synchronized direct start stop action',html.includes('id="tlsGenToggle"')&&core.includes("safeOn('tlsGenToggle', 'click'")&&core.includes("'areaGenToggleBtn', 'tlsGenToggle'")]
  ,['graph selector follows RTA Waterfall M/R TF order',(()=>{const start=html.indexOf('id="v53AnalysisGroup"'),tabs=html.slice(start,html.indexOf('</div>',start));return start>=0&&tabs.indexOf('id="v53AnalysisToggle"')<tabs.indexOf('id="v54WaterfallToggle"')&&tabs.indexOf('id="v54WaterfallToggle"')<tabs.indexOf('id="v54MrToggle"')&&tabs.indexOf('id="v54MrToggle"')<tabs.indexOf('id="v54TfGraphToggle"')})()]
  ,['bottom bar opens the canonical correction graph',html.includes('data-tcb="correction"')&&html.includes('CORRECTION GRAPH')&&html.includes("window.openCorrectionGraph()")&&core.includes('window.openCorrectionGraph=function()')&&core.includes('if(openLatestEqWorkspace())return true;')]
@@ -130,7 +131,8 @@ const checks=[
  ,['frequency axis stays above dense graph content',core.includes('Keep the frequency scale readable above dense bars')&&core.includes("ctx.font='700 11.5px ui-monospace")&&core.includes('drawSharedFrequencyAxis(W,plotH-23')]
  ,['every measurement uses one shared frequency axis',core.includes('const SHARED_FREQ_TICKS=[31.5,50,100,200,500,1000,2000,5000,10000,20000]')&&core.includes('function drawSharedFrequencyAxis')&&core.includes('drawSharedFrequencyAxis(W,H-23,xForFreq')]
  ,['dark workspace uses white structural outlines and text',html.includes('--pro-line:rgba(224,239,246,.24)')&&html.includes('body:not(.sun-mode) .tlsHead')&&html.includes('color:#f1f7f9!important')]
+ ,['TF canvas uses inline telemetry without floating boxes',core.includes("ctx.fillText('TF · MIC SPECTRUM ONLY',12,18)")&&core.includes("ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36)")&&!core.includes("ctx.fillRect(legendX,8,258,40)")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.65 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.66 regression validation passed (${checks.length} checks).`);

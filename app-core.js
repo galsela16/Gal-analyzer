@@ -372,7 +372,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.65-white-outline-system',
+    version: 'v5.5.66-canvas-status-line',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1637,9 +1637,9 @@ let tfLiveVisualDb=[];
 const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
 function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
 function tfDrawTrustGuide(W,plotH,verified,reason){
-  const boxW=Math.min(230,W-20),boxH=25,x=W-boxW-10,y=32;
-  ctx.save();ctx.fillStyle=verified?'rgba(10,68,46,.88)':'rgba(70,42,8,.92)';ctx.strokeStyle=verified?'#45d47b':'#f5b942';ctx.lineWidth=1;ctx.fillRect(x,y,boxW,boxH);ctx.strokeRect(x+.5,y+.5,boxW-1,boxH-1);
-  ctx.fillStyle=verified?'#8ff0b9':'#ffd783';ctx.font='800 9px ui-monospace,monospace';ctx.fillText(verified?'VERIFIED · safe to tune':'UNVERIFIED · verify before tuning',x+8,y+16);
+  const label=verified?'VERIFIED · SAFE TO TUNE':'UNVERIFIED · VERIFY BEFORE TUNING';
+  ctx.save();ctx.direction='ltr';ctx.textAlign='right';ctx.font='750 9px ui-monospace,monospace';
+  ctx.fillStyle=verified?'#68e3a0':'#f4c76b';ctx.fillText((verified?'● ':'○ ')+label,W-12,18);
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
@@ -1730,7 +1730,7 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.beginPath();ctx.moveTo(0,plotH);mic.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=.26;ctx.fillStyle=spectrumGradient;ctx.fill();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>{ctx.moveTo(p.x,plotH);ctx.lineTo(p.x,p.y);});ctx.strokeStyle=spectrumGradient;ctx.globalAlpha=.48;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#b7f34a';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
-  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',8,16);ctx.restore();
+  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#f1f7f9';ctx.font='750 10px ui-monospace,monospace';ctx.fillText('TF · MIC SPECTRUM ONLY',12,18);ctx.restore();
   tfDrawTrustGuide(W,plotH,false,'Next: connect a Reference channel, run Delay Sync, then Verify.');
   const drawCurve=(values,color,dash=[])=>{const bw=W/BANDS;ctx.beginPath();values.forEach((v,b)=>{const x=b*bw+bw/2,y=plotH-Math.max(0,Math.min(1,v))*plotH;b?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);};
   ctx.save();
@@ -1738,11 +1738,9 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.font='700 11px monospace';ctx.textAlign='left';
   const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
   const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
-  const legendX=50;
-  ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(7,16,24,.86)';ctx.fillRect(legendX,8,258,40);
-  ctx.strokeStyle=sunMode?'#cbd5e1':'#294052';ctx.strokeRect(legendX,8,258,40);
-  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX+9,24);
-  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',legendX+9,41);
+  const legendX=12;
+  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36);
+  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',legendX+155,36);
   ctx.textAlign='right';ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8193a2';
   ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
@@ -1764,8 +1762,8 @@ function drawDualInputRta(W,plotH,nyquist){
   const fill=(pts,color,alpha)=>{ctx.beginPath();ctx.moveTo(0,plotH);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;};
   const stroke=(pts,color,width)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();};
   fill(ref,'#ff4d5e',.32);fill(mic,'#258dff',.50);stroke(ref,'#ff4d5e',2.1);stroke(mic,'#45a5ff',2.1);
-  ctx.save();ctx.font='800 10px ui-monospace,monospace';ctx.fillStyle='rgba(3,13,19,.78)';ctx.fillRect(10,10,232,27);ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',20,28);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',112,28);ctx.fillStyle=sunMode?'#334b58':'#b6c8cf';ctx.fillText('M/R',202,28);ctx.restore();
-  if(!tfHasReferenceSignal()){ctx.save();ctx.fillStyle='rgba(70,22,27,.92)';ctx.fillRect(W-244,10,232,36);ctx.strokeStyle='#ff4d5e';ctx.strokeRect(W-243.5,10.5,231,35);ctx.fillStyle='#ff9aa4';ctx.font='800 10px ui-monospace,monospace';ctx.fillText('REF 2 · NO SIGNAL',W-232,26);ctx.fillStyle='#d9e5ea';ctx.font='9px ui-monospace,monospace';ctx.fillText('Check routing / input channel',W-232,39);ctx.restore();}
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='800 10px ui-monospace,monospace';ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',12,20);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',104,20);ctx.fillStyle=sunMode?'#334b58':'#f1f7f9';ctx.fillText('M/R',196,20);ctx.restore();
+  if(!tfHasReferenceSignal()){ctx.save();ctx.direction='ltr';ctx.textAlign='right';ctx.font='750 9px ui-monospace,monospace';ctx.fillStyle='#ff7d8a';ctx.fillText('○ REF 2 · NO SIGNAL  ·  CHECK ROUTING / INPUT',W-12,38);ctx.restore();}
   return true;
 }
 
@@ -3716,10 +3714,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     if(tfRequested && !alignOn && !tfHasReferenceSignal()){
       ctx.save();ctx.font='600 10px monospace';ctx.textAlign='right';
       const message='Reference low · MIC 1 + REF 2 remain live';
-      const w=ctx.measureText(message).width+16;
-      ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(10,20,28,.88)';ctx.fillRect(W-w-8,8,w,24);
-      ctx.strokeStyle=sunMode?'#cbd5e1':'#385064';ctx.strokeRect(W-w-8,8,w,24);
-      ctx.fillStyle=sunMode?'#475569':'#b9c7d3';ctx.fillText(message,W-16,24);ctx.restore();
+      ctx.fillStyle=sunMode?'#475569':'#d4e2e7';ctx.fillText('○ '+message,W-12,36);ctx.restore();
     }
   }
 
@@ -4701,7 +4696,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.65';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.66';
   v3UpdateStatus();
 })();
 (function initAccent(){

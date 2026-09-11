@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-65-white-outline-system-20260912';
+const CACHE = 'gal-analyzer-v5-5-66-canvas-status-line-20260912';
 const ASSETS = [
   './',
   './index.html',
