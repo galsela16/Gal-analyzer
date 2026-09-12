@@ -279,7 +279,9 @@ function tfAutoDelay(event){
       const msg=silent==='mic'?'אין אות במיקרופון'
         :silent==='ref'?'אין אות ב־Reference'
         :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
-      loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();v3Toast(msg); return;
+      loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();
+      if(automatic)syncTfWorkflowUi('<b>Loopback מחובר:</b> '+msg+' · ה־Magnitude נשאר זמין, אך אינו מאומת','warn');
+      v3Toast(msg); return;
     }
     tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
     tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms';
@@ -385,7 +387,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.71-loopback-auto-sync',
+    version: 'v5.5.72-continuous-tf',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1742,9 +1744,14 @@ function tfDrawSelectedMagnitude(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';
   [18,12,6,0,-6,-12,-18].forEach(db=>{const yy=y(db);ctx.strokeStyle=db===0?'rgba(226,236,241,.62)':'rgba(120,145,160,.15)';ctx.lineWidth=db===0?1.5:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((db>0?'+':'')+db+' dB',5,yy-3);});
-  const fill=new Path2D(),line=new Path2D();let pen=false;fill.moveTo(0,zero);
-  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(s.mag[k]);if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
-  fill.lineTo(W,zero);fill.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.25)');grad.addColorStop(.5,'rgba(82,217,255,.08)');grad.addColorStop(1,'rgba(37,99,235,.25)');ctx.fillStyle=grad;ctx.fill(fill);ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.7;ctx.lineJoin='round';ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke(line);ctx.shadowBlur=0;
+  // Magnitude remains continuous even before verification. Coherence controls
+  // emphasis, not whether useful frequency information disappears entirely.
+  const points=[];let visualDb=null;
+  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(2,Math.round(f/s.sr*TF_FFT_N))),vals=[];for(let j=-2;j<=2;j++){const v=s.mag[Math.max(1,Math.min(s.mag.length-1,k+j))];if(Number.isFinite(v))vals.push(v);}vals.sort((a,b)=>a-b);const raw=vals.length?vals[Math.floor(vals.length/2)]:0;visualDb=visualDb==null?raw:visualDb*.58+raw*.42;points.push({x:px,y:y(visualDb),coh:s.coh[k]||0});}
+  const fill=new Path2D(),allLine=new Path2D();fill.moveTo(0,zero);points.forEach((p,i)=>{i?allLine.lineTo(p.x,p.y):allLine.moveTo(p.x,p.y);fill.lineTo(p.x,p.y);});fill.lineTo(W,zero);fill.closePath();
+  const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.18)');grad.addColorStop(.5,'rgba(82,217,255,.07)');grad.addColorStop(1,'rgba(37,99,235,.18)');ctx.fillStyle=grad;ctx.fill(fill);
+  ctx.strokeStyle='#87a9b4';ctx.globalAlpha=.72;ctx.lineWidth=1.55;ctx.lineJoin='round';ctx.stroke(allLine);ctx.globalAlpha=1;
+  ctx.beginPath();let trusted=false;points.forEach(p=>{if(p.coh<tfCohGate){trusted=false;return;}trusted?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);trusted=true;});ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.7;ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;
   tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const yy=y(t.mag[k]);p?ctx.lineTo(px,yy):ctx.moveTo(px,yy);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
   tfViewHeader('MAGNITUDE · MIC − REF','0 dB = no change · above = boost · below = loss','#52d9ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
@@ -4780,7 +4787,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.71';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.72';
   v3UpdateStatus();
 })();
 (function initAccent(){

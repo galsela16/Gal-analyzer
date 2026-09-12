@@ -141,8 +141,10 @@ const checks=[
  ,['loopback delay capture uses the generator reference',core.includes('numberOfInputs:generatorLoopback&&genGain?2:1')&&core.includes('genGain.connect(workletNode,0,1)')&&recorder.includes('const loopback = inputs[1] && inputs[1][0]')]
  ,['loopback automatically verifies after delay sync',core.includes('verifyTfWorkflow({loopbackAuto:true})')&&core.includes('if(options.loopbackAuto){loopbackAutoSyncActive=false')]
  ,['TF hides misleading fragments during loopback preparation',core.includes("'LOOPBACK · AUTO SYNC'")&&core.includes('if(loopbackAutoSyncActive)')&&core.includes('Matching acoustic path delay…')]
+ ,['TF magnitude stays continuous at low coherence',core.includes('Magnitude remains continuous even before verification')&&core.includes("ctx.strokeStyle='#87a9b4'")&&core.includes('points.forEach(p=>{if(p.coh<tfCohGate)')]
+ ,['TF continuous contour uses compact spatial smoothing',core.includes('for(let j=-2;j<=2;j++')&&core.includes('visualDb*.58+raw*.42')]
  ,['TF canvas uses inline telemetry without floating boxes',core.includes("ctx.fillText('TF · MIC SPECTRUM ONLY',12,18)")&&core.includes("ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36)")&&!core.includes("ctx.fillRect(legendX,8,258,40)")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.71 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.72 regression validation passed (${checks.length} checks).`);
