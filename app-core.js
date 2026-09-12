@@ -115,6 +115,8 @@ let weightA=null, weightC=null;
 let leqSumP=0, leqN=0, splMax=-120;
 let dragging=false, dragX0=0, dragX1=0, cursorX=null, eqRtaRangeDrag=null;
 let genType='pink', genOn=false, genGain=null, genSrc=null, genOsc=null;
+let inputSplitter=null, generatorLoopback=false;
+try{generatorLoopback=localStorage.getItem('gal_generator_loopback')==='1';}catch(_){}
 let genDb=-34, genHz=1000, targetMode='flat';
 let targetVisible=true;
 let eqMinFreq=40, eqMaxFreq=16000;
@@ -373,7 +375,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.69-deep-black-workspace',
+    version: 'v5.5.70-generator-loopback',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -521,6 +523,29 @@ function makeNoiseBuffer(type){
   }
   return buf;
 }
+function syncGeneratorLoopbackUi(){
+  const btn=document.getElementById('uiSetLoopback');if(!btn)return;
+  btn.classList.toggle('on',generatorLoopback);btn.setAttribute('aria-pressed',String(generatorLoopback));
+  btn.textContent=generatorLoopback?(genOn?'ON · Generator → REF':'ON · Start generator'):'OFF';
+}
+function refreshReferenceRouting(){
+  if(!analyserRef)return syncGeneratorLoopbackUi();
+  if(inputSplitter){try{inputSplitter.disconnect(analyserRef);}catch(_){} }
+  if(genGain){try{genGain.disconnect(analyserRef);}catch(_){} }
+  try{
+    if(generatorLoopback){if(genGain)genGain.connect(analyserRef);}
+    else if(inputSplitter)inputSplitter.connect(analyserRef,refChannel);
+  }catch(_){}
+  resetTfAutoDelay();tfWorkingAverage=null;tfAverageFrames=0;syncGeneratorLoopbackUi();
+}
+function setGeneratorLoopback(enabled){
+  generatorLoopback=!!enabled;try{localStorage.setItem('gal_generator_loopback',generatorLoopback?'1':'0');}catch(_){}
+  refreshReferenceRouting();
+  v3Toast(generatorLoopback?'Loopback פעיל · הגנרטור מזין את Reference':'Loopback כבוי · Reference חזר לערוץ הקלט');
+}
+window.setGeneratorLoopback=setGeneratorLoopback;
+safeOn('uiSetLoopback','click',()=>setGeneratorLoopback(!generatorLoopback));
+syncGeneratorLoopbackUi();
 function genStop(){
   if(genGain){ try{genGain.gain.cancelScheduledValues(audioCtx.currentTime);
     genGain.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}catch(_){} }
@@ -535,6 +560,7 @@ function genStop(){
   genSrc=null; genOsc=null; genGain=null; genOn=false;
   const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.remove('on'); btn.textContent='▶ הפעל אות';}
   syncInlineGenBtns();
+  syncGeneratorLoopbackUi();
 }
 function scheduleSweepCycle(){
   if(!genOn || genType!=='sweep' || !genOsc) return;
@@ -561,9 +587,11 @@ function genStart(options={}){
     genSrc.loop=true; genSrc.connect(genGain); genSrc.start();
   }
   genGain.connect(audioCtx.destination);
+  refreshReferenceRouting();
   const target=Math.pow(10,genDb/20);
   genGain.gain.setTargetAtTime(target,audioCtx.currentTime,0.15);
   genOn=true;
+  syncGeneratorLoopbackUi();
   if(genType==='sweep'){
     const wait=Math.max(0,Number(options.sweepDelayMs)||0);
     if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
@@ -3043,11 +3071,11 @@ async function start(deviceId){
     analyserMeter = audioCtx.createAnalyser();
     analyserMeter.fftSize = 2048;
 
-    const splitter = audioCtx.createChannelSplitter(2);
-    source.connect(splitter);
+    inputSplitter = audioCtx.createChannelSplitter(2);
+    source.connect(inputSplitter);
 
-    splitter.connect(analyser, measChannel);
-    splitter.connect(analyserRef, refChannel);
+    inputSplitter.connect(analyser, measChannel);
+    refreshReferenceRouting();
     source.connect(analyserMeter);
 
     floatData = new Float32Array(analyser.frequencyBinCount);
@@ -3130,7 +3158,7 @@ function stop(){
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
   if(rt60ArmTimer){clearTimeout(rt60ArmTimer);rt60ArmTimer=null;}if(rt60CutTimer){clearTimeout(rt60CutTimer);rt60CutTimer=null;}if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
   rt60State='idle'; measState='idle'; areaState='idle'; dlyState='idle';
-  analyserRef=null; floatDataRef=null; tfState='idle'; eqCurveData=null;
+  analyserRef=null; inputSplitter=null; floatDataRef=null; tfState='idle'; eqCurveData=null;
   genSrc=null; genOsc=null; genGain=null; genOn=false;
   const gb=document.getElementById('genOnBtn'); if(gb){gb.classList.remove('on');gb.textContent='▶ הפעל אות';}
   if(stream) stream.getTracks().forEach(t=>t.stop());
@@ -4712,7 +4740,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.69';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.70';
   v3UpdateStatus();
 })();
 (function initAccent(){

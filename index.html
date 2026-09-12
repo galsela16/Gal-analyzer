@@ -1577,6 +1577,7 @@ body.ui-workspace-drawer #uiDrawerLabel{display:block}
 .uiSettingsRow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;border-bottom:1px solid rgba(148,163,184,.09);font-size:9px;color:#8999aa}
 .uiSettingsRow:last-child{border-bottom:0}.uiSettingsRow strong{color:var(--text);font-size:9px}
 .uiSettingsRow button{border:1px solid rgba(148,163,184,.16);background:#111923;color:#a9b5c2;border-radius:6px;padding:5px 7px;font-size:8px;font-weight:700}
+.uiSettingsRow #uiSetLoopback.on{color:#8ff0b9;border-color:rgba(69,220,146,.58);background:rgba(20,98,67,.28);box-shadow:0 0 14px rgba(69,220,146,.10)}
 body.sun-mode #uiSettingsPanel{background:#f8fafc}body.sun-mode .uiSettingsTabs button,body.sun-mode .uiSettingsRow button{background:#fff;color:#334155}
 
 
@@ -2619,7 +2620,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.69</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.70</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2639,6 +2640,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
       <div class="uiSettingsPage" data-settings-content="audio">
         <div class="uiSettingsRow"><span>Input / Reference / Calibration</span><button id="uiSetOpenIo">Open I/O</button></div>
         <div class="uiSettingsRow"><span>Generator</span><button id="uiSetOpenGen">Open Generator</button></div>
+        <div class="uiSettingsRow"><span>Generator Loopback → Reference</span><button id="uiSetLoopback" type="button" aria-pressed="false">OFF</button></div>
         <div class="uiSettingsRow"><span>Audio engine</span><strong id="uiSetAudioState">—</strong></div>
       </div>
     </div>
@@ -2649,7 +2651,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.69 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.70 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3364,7 +3366,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.69</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.70</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3558,7 +3560,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.69"></script>
+<script src="app.js?v=5.5.70"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

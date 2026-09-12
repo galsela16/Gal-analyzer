@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.69 — Deep-black Workspace
+# GAL Analyzer V5.5.70 — Generator Loopback
 
-V5.5.69 moves the dark workspace closer to the supplied reference with a true near-black canvas, deeper surrounding surfaces and restrained blue-green lift only where it preserves panel separation. Graph colours and white structural text now stand out more clearly.
+V5.5.70 adds a persistent Generator Loopback switch under Audio settings. When enabled, the generator continues to feed the selected output while an internal copy is routed directly to the Reference analyser, replacing the physical reference channel without creating an acoustic feedback path.
 
 V5.5.65 adopts the reference image's restrained white-outline treatment across the workspace. Neutral translucent borders now define panels, cards, controls, the canvas and graph selector, while structural interface text uses a consistent crisp white treatment in dark mode. Functional color remains reserved for live data, active tools and selected states. This improves hierarchy and gives the interface a cleaner instrument-like finish without changing layout or measurement behavior.
 
