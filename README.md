@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.72 — Continuous TF Magnitude
+# GAL Analyzer V5.5.73 — Non-blocking Loopback Sync
 
-V5.5.72 keeps TF Magnitude continuous at low coherence while clearly distinguishing trusted sections. Loopback still performs automatic delay sync and verification, but failed verification no longer leaves an unusable field of disconnected fragments.
+V5.5.73 prevents Loopback auto-sync from colliding with an active measurement. It now waits and retries without modal alerts, then either continues automatically or leaves a clear recoverable status.
 
 V5.5.65 adopts the reference image's restrained white-outline treatment across the workspace. Neutral translucent borders now define panels, cards, controls, the canvas and graph selector, while structural interface text uses a consistent crisp white treatment in dark mode. Functional color remains reserved for live data, active tools and selected states. This improves hierarchy and gives the interface a cleaner instrument-like finish without changing layout or measurement behavior.
 

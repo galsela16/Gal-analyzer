@@ -19,6 +19,7 @@ let tfWorkflowVerifying = false;
 let tfWorkflowVerifyTimer = null;
 let loopbackAutoSyncTimer = null;
 let loopbackAutoSyncActive = false;
+let loopbackAutoSyncRetries = 0;
 let tfTraceCapturePending = false;
 let tfTraceCaptureTimer = null;
 let tfTraces=[];
@@ -274,6 +275,17 @@ function tfAutoDelay(event){
     syncSubTopWorkflowUi();
     syncTfWorkflowUi('<b>שלב 1:</b> מבצע שלוש בדיקות סנכרון…');
     runDelayCapture(trigger||globalBtn,(res,silent)=>{
+    if(automatic&&silent==='busy'){
+      if(loopbackAutoSyncRetries<12&&generatorLoopback&&genOn){
+        loopbackAutoSyncRetries++;
+        syncTfWorkflowUi('<b>Loopback:</b> ממתין לסיום המדידה הפעילה ואז יסנכרן אוטומטית…');
+        loopbackAutoSyncTimer=setTimeout(()=>{loopbackAutoSyncTimer=null;tfAutoDelay({loopbackAuto:true});},650);
+      }else{
+        loopbackAutoSyncActive=false;loopbackAutoSyncRetries=0;syncGeneratorLoopbackUi();
+        syncTfWorkflowUi('<b>Loopback מחובר:</b> המדידה הקודמת עדיין פעילה · עצור אותה ונסה שוב','warn');
+      }
+      return;
+    }
     if(!res || !res.reliable){
       resetTfAutoDelay();
       const msg=silent==='mic'?'אין אות במיקרופון'
@@ -284,6 +296,7 @@ function tfAutoDelay(event){
       v3Toast(msg); return;
     }
     tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
+    loopbackAutoSyncRetries=0;
     tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms';
     clearSubTopSnapshots('סנכרון TF השתנה — מדוד שוב סאב וטופ.');
     syncTfWorkflowUi();
@@ -294,7 +307,7 @@ function tfAutoDelay(event){
     }else{
       loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
     }
-  },{maxDelayMs:delaySearchMs,mode:'tf'});
+  },{maxDelayMs:delaySearchMs,mode:'tf',silentBusy:automatic});
   };
   if(automatic)beginDelayCapture();else pickSource(beginDelayCapture,3800);
 }
@@ -387,7 +400,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.72-continuous-tf',
+    version: 'v5.5.73-loopback-retry',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -549,6 +562,7 @@ function scheduleLoopbackAutoSync(){
     return;
   }
   loopbackAutoSyncActive=true;syncGeneratorLoopbackUi();
+  loopbackAutoSyncRetries=0;
   syncTfWorkflowUi('<b>Loopback:</b> מכין Reference ומסנכרן TF אוטומטית…');
   loopbackAutoSyncTimer=setTimeout(()=>{loopbackAutoSyncTimer=null;tfAutoDelay({loopbackAuto:true});},1100);
 }
@@ -574,6 +588,7 @@ syncGeneratorLoopbackUi();
 function genStop(){
   if(loopbackAutoSyncTimer){clearTimeout(loopbackAutoSyncTimer);loopbackAutoSyncTimer=null;}
   loopbackAutoSyncActive=false;
+  loopbackAutoSyncRetries=0;
   if(genGain){ try{genGain.gain.cancelScheduledValues(audioCtx.currentTime);
     genGain.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}catch(_){} }
   if(sweepTimer){ clearTimeout(sweepTimer); sweepTimer=null; }
@@ -1331,7 +1346,10 @@ function updateAreaMeasBtn(){
 function measureArea(){
   if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
   if(areas.length>=4){ alert('הגעת ל־4 אזורים — מחק אחד כדי להוסיף.'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(measureBusy()){
+    if(options.silentBusy){cb(null,'busy');return;}
+    alert('מדידה אחרת פעילה — המתן לסיומה.'); return;
+  }
   unfreezeForMeasure();
   const srcData = floatData;
   areaAccum=new Float64Array(srcData.length); areaFrames=0; areaState='measuring';
@@ -4787,7 +4805,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.72';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.73';
   v3UpdateStatus();
 })();
 (function initAccent(){

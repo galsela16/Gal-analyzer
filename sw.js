@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-72-continuous-tf-20260912';
+const CACHE = 'gal-analyzer-v5-5-73-loopback-retry-20260912';
 const ASSETS = [
   './',
   './index.html',
