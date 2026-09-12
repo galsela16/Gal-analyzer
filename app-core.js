@@ -169,7 +169,7 @@ function resize(){
   nc.width=Math.max(2,Math.floor(Math.min(r.width,MAXW)));
   nc.height=Math.max(2,Math.floor(Math.min(r.height,MAXH)));
   const nctx=nc.getContext('2d');
-  nctx.fillStyle=sunMode ? '#f8fafc' : '#0d1117'; 
+  nctx.fillStyle=sunMode ? '#f8fafc' : '#010609'; 
   nctx.fillRect(0,0,nc.width,nc.height);
   if(oldSpec){ try{ nctx.drawImage(oldSpec,0,0,nc.width,nc.height); }catch(_){} }
   specCanvas=nc; specCtx=nctx;
@@ -182,7 +182,7 @@ safeOn('sunBtn', 'click', function(){
   this.classList.toggle('on', sunMode);
   prefSet('rta_sunmode', sunMode ? '1' : '0');
   if(specCtx){
-    specCtx.fillStyle = sunMode ? '#f8fafc' : '#0d1117';
+    specCtx.fillStyle = sunMode ? '#f8fafc' : '#010609';
     specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);
   }
   if(eqCurveData){
@@ -356,7 +356,7 @@ function exportPNG(){
   const W=cv.clientWidth,H=cv.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
   const off=document.createElement('canvas'); off.width=W*dpr; off.height=H*dpr;
   const o=off.getContext('2d'); o.scale(dpr,dpr);
-  o.fillStyle=sunMode ? '#f8fafc' : '#0d1117'; 
+  o.fillStyle=sunMode ? '#f8fafc' : '#010609'; 
   o.fillRect(0,0,W,H);
   o.drawImage(cv,0,0,W,H);
   download('rta_'+stamp()+'.png', off.toDataURL('image/png'));
@@ -373,7 +373,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.68-collision-free-alerts',
+    version: 'v5.5.69-deep-black-workspace',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2962,7 +2962,7 @@ function setMode(m){
   document.getElementById('v53AnalysisToggle')?.classList.toggle('on',m==='rta');
   document.getElementById('v54WaterfallToggle')?.classList.toggle('on',m==='spec');
   if(specCtx){
-    specCtx.fillStyle=sunMode ? '#f8fafc' : '#0d1117';
+    specCtx.fillStyle=sunMode ? '#f8fafc' : '#010609';
     specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);
   }
 }
@@ -4712,7 +4712,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.68';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.69';
   v3UpdateStatus();
 })();
 (function initAccent(){

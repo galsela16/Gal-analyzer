@@ -133,8 +133,9 @@ const checks=[
  ,['frequency axis stays above dense graph content',core.includes('Keep the frequency scale readable above dense bars')&&core.includes("ctx.font='700 11.5px ui-monospace")&&core.includes('drawSharedFrequencyAxis(W,plotH-23')]
  ,['every measurement uses one shared frequency axis',core.includes('const SHARED_FREQ_TICKS=[31.5,50,100,200,500,1000,2000,5000,10000,20000]')&&core.includes('function drawSharedFrequencyAxis')&&core.includes('drawSharedFrequencyAxis(W,H-23,xForFreq')]
  ,['dark workspace uses white structural outlines and text',html.includes('--pro-line:rgba(224,239,246,.24)')&&html.includes('body:not(.sun-mode) .tlsHead')&&html.includes('color:#f1f7f9!important')]
+ ,['dark workspace uses reference-like black surfaces',html.includes('V5.5.69 — deep-black measurement room')&&html.includes("'#010609'")&&html.includes('rgba(1,7,10,.995)')]
  ,['TF canvas uses inline telemetry without floating boxes',core.includes("ctx.fillText('TF · MIC SPECTRUM ONLY',12,18)")&&core.includes("ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36)")&&!core.includes("ctx.fillRect(legendX,8,258,40)")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.68 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.69 regression validation passed (${checks.length} checks).`);

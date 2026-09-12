@@ -2453,6 +2453,19 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 @media(min-width:901px){#tfPanel.measureDock:not(.expanded){max-height:min(24vh,184px)!important}}
 @media(max-width:700px){#tfAverageBar{flex-wrap:wrap}#tfAverageState{width:100%}}
 
+/* V5.5.69 — deep-black measurement room inspired by the visual reference. */
+body:not(.sun-mode){background:radial-gradient(100% 70% at 50% -12%,#07151d 0%,#02070a 48%,#000 100%)!important}
+body:not(.sun-mode) header.uiRefreshed{background:linear-gradient(180deg,#061219 0%,#010609 100%)!important}
+body:not(.sun-mode) #stage{background:radial-gradient(circle at 50% 0%,rgba(16,72,87,.07),transparent 40%),#010609!important}
+body:not(.sun-mode) .tlsCard,body:not(.sun-mode) #targetMeasurementPanel,
+body:not(.sun-mode) #uiRightTools,body:not(.sun-mode) #targetCommandBar{
+  background:linear-gradient(155deg,rgba(5,18,24,.99),rgba(1,7,10,.995))!important
+}
+body:not(.sun-mode) #uiRightTools button,body:not(.sun-mode) .tlsOpen,body:not(.sun-mode) .tcb{
+  background:linear-gradient(155deg,#07161d,#02090d)!important
+}
+body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
+
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
   #targetLeftStatus,#targetLeftLabels,#targetCommandBar,#targetMeasurementPanel,#targetPeakCard,#wfTargetLegend,#rtaProStrip,.workspaceRailToggle,#uiContextBar{display:none!important}
@@ -2606,7 +2619,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.68</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.69</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2636,7 +2649,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.68 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.69 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3351,7 +3364,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.68</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.69</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3478,7 +3491,7 @@ window.addEventListener('load', function(){
     }
     if(a==='modeAction'){
       if(m==='tf'){(document.getElementById('tfProSync')||document.getElementById('tfAutoDelayBtn')||document.getElementById('tfSyncBtn'))?.click();}
-      else if(m==='waterfall'){window.resetWaterfallResonances?.();if(specCtx&&specCanvas){specCtx.fillStyle=sunMode?'#f8fafc':'#0d1117';specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);}}
+      else if(m==='waterfall'){window.resetWaterfallResonances?.();if(specCtx&&specCanvas){specCtx.fillStyle=sunMode?'#f8fafc':'#010609';specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);}}
       else{(document.getElementById('peakHoldBtn')||document.getElementById('holdBtn'))?.click();}
     }
     if(a==='freeze'){const f=document.getElementById('freezeBtn')||document.getElementById('frzBtn');if(f)f.click();else document.getElementById('tfProFreeze')?.click();}
@@ -3545,7 +3558,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.68"></script>
+<script src="app.js?v=5.5.69"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
