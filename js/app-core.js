@@ -400,7 +400,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.73-loopback-retry',
+    version: 'v5.5.74-loopback-busy-fix',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1346,10 +1346,7 @@ function updateAreaMeasBtn(){
 function measureArea(){
   if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
   if(areas.length>=4){ alert('הגעת ל־4 אזורים — מחק אחד כדי להוסיף.'); return; }
-  if(measureBusy()){
-    if(options.silentBusy){cb(null,'busy');return;}
-    alert('מדידה אחרת פעילה — המתן לסיומה.'); return;
-  }
+  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   unfreezeForMeasure();
   const srcData = floatData;
   areaAccum=new Float64Array(srcData.length); areaFrames=0; areaState='measuring';
@@ -2223,7 +2220,10 @@ function delayChunkSize(sr,maxDelayMs){
 function runDelayCapture(btn, cb, options){
   options=options||{};
   if(!running||!analyserRef||!source){ alert('צריך כרטיס קול עם input סטריאו (מיק\'+רפרנס).'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(measureBusy()){
+    if(options.silentBusy){cb(null,'busy');return;}
+    alert('מדידה אחרת פעילה — המתן לסיומה.'); return;
+  }
   unfreezeForMeasure();
   dlyState='measuring';
   const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent='בודק 1 · 2 · 3…';btn.style.opacity=.5;btn.disabled=true;}
@@ -4805,7 +4805,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.73';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.74';
   v3UpdateStatus();
 })();
 (function initAccent(){
