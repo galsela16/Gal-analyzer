@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.70 — Generator Loopback
+# GAL Analyzer V5.5.71 — Loopback Auto Sync
 
-V5.5.70 adds a persistent Generator Loopback switch under Audio settings. When enabled, the generator continues to feed the selected output while an internal copy is routed directly to the Reference analyser, replacing the physical reference channel without creating an acoustic feedback path.
+V5.5.71 makes Generator Loopback complete the TF preparation automatically. Starting a broadband generator now routes the internal reference, finds the acoustic path delay, verifies phase/coherence, and only then exposes the usable TF curve.
 
 V5.5.65 adopts the reference image's restrained white-outline treatment across the workspace. Neutral translucent borders now define panels, cards, controls, the canvas and graph selector, while structural interface text uses a consistent crisp white treatment in dark mode. Functional color remains reserved for live data, active tools and selected states. This improves hierarchy and gives the interface a cleaner instrument-like finish without changing layout or measurement behavior.
 

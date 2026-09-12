@@ -17,6 +17,8 @@ let tfWorkflowVerified = false;
 let tfDelayQualityText = '';
 let tfWorkflowVerifying = false;
 let tfWorkflowVerifyTimer = null;
+let loopbackAutoSyncTimer = null;
+let loopbackAutoSyncActive = false;
 let tfTraceCapturePending = false;
 let tfTraceCaptureTimer = null;
 let tfTraces=[];
@@ -260,10 +262,12 @@ safeOn('tfPhaseToggleBtn','click',()=>setTfViewMode('phase'));
 
 
 function tfAutoDelay(event){
+  const automatic=!!(event&&event.loopbackAuto);
   const globalBtn=document.getElementById('v52AutoDelayBtn');
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
   const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
-  pickSource(()=>{
+  const beginDelayCapture=()=>{
+    if(automatic)loopbackAutoSyncActive=true;
     cancelTfWorkflowVerification();
     tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
     clearSubTopSnapshots('סנכרון TF מתבצע…');
@@ -275,16 +279,22 @@ function tfAutoDelay(event){
       const msg=silent==='mic'?'אין אות במיקרופון'
         :silent==='ref'?'אין אות ב־Reference'
         :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
-      v3Toast(msg); return;
+      loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();v3Toast(msg); return;
     }
     tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
     tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms';
     clearSubTopSnapshots('סנכרון TF השתנה — מדוד שוב סאב וטופ.');
     syncTfWorkflowUi();
     if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}
-    v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
+    if(automatic&&generatorLoopback&&genOn){
+      syncTfWorkflowUi('<b>Loopback:</b> הסנכרון הושלם · מאמת את המדידה אוטומטית…');
+      setTimeout(()=>verifyTfWorkflow({loopbackAuto:true}),260);
+    }else{
+      loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
+    }
   },{maxDelayMs:delaySearchMs,mode:'tf'});
-  },3800);
+  };
+  if(automatic)beginDelayCapture();else pickSource(beginDelayCapture,3800);
 }
 
 function resetTfAutoDelay(){
@@ -375,7 +385,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.70-generator-loopback',
+    version: 'v5.5.71-loopback-auto-sync',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -526,7 +536,19 @@ function makeNoiseBuffer(type){
 function syncGeneratorLoopbackUi(){
   const btn=document.getElementById('uiSetLoopback');if(!btn)return;
   btn.classList.toggle('on',generatorLoopback);btn.setAttribute('aria-pressed',String(generatorLoopback));
-  btn.textContent=generatorLoopback?(genOn?'ON · Generator → REF':'ON · Start generator'):'OFF';
+  btn.textContent=generatorLoopback?(loopbackAutoSyncActive?'AUTO SYNC…':genOn?'ON · Generator → REF':'ON · Start generator'):'OFF';
+}
+function scheduleLoopbackAutoSync(){
+  if(loopbackAutoSyncTimer){clearTimeout(loopbackAutoSyncTimer);loopbackAutoSyncTimer=null;}
+  if(!generatorLoopback||!genOn||!running||!analyserRef)return;
+  if(genType==='sine'){
+    loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();
+    syncTfWorkflowUi('<b>Loopback פעיל:</b> עבור TF יש לבחור Pink Noise או Sweep','warn');
+    return;
+  }
+  loopbackAutoSyncActive=true;syncGeneratorLoopbackUi();
+  syncTfWorkflowUi('<b>Loopback:</b> מכין Reference ומסנכרן TF אוטומטית…');
+  loopbackAutoSyncTimer=setTimeout(()=>{loopbackAutoSyncTimer=null;tfAutoDelay({loopbackAuto:true});},1100);
 }
 function refreshReferenceRouting(){
   if(!analyserRef)return syncGeneratorLoopbackUi();
@@ -541,12 +563,15 @@ function refreshReferenceRouting(){
 function setGeneratorLoopback(enabled){
   generatorLoopback=!!enabled;try{localStorage.setItem('gal_generator_loopback',generatorLoopback?'1':'0');}catch(_){}
   refreshReferenceRouting();
+  if(generatorLoopback&&genOn)scheduleLoopbackAutoSync();
   v3Toast(generatorLoopback?'Loopback פעיל · הגנרטור מזין את Reference':'Loopback כבוי · Reference חזר לערוץ הקלט');
 }
 window.setGeneratorLoopback=setGeneratorLoopback;
 safeOn('uiSetLoopback','click',()=>setGeneratorLoopback(!generatorLoopback));
 syncGeneratorLoopbackUi();
 function genStop(){
+  if(loopbackAutoSyncTimer){clearTimeout(loopbackAutoSyncTimer);loopbackAutoSyncTimer=null;}
+  loopbackAutoSyncActive=false;
   if(genGain){ try{genGain.gain.cancelScheduledValues(audioCtx.currentTime);
     genGain.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}catch(_){} }
   if(sweepTimer){ clearTimeout(sweepTimer); sweepTimer=null; }
@@ -592,6 +617,7 @@ function genStart(options={}){
   genGain.gain.setTargetAtTime(target,audioCtx.currentTime,0.15);
   genOn=true;
   syncGeneratorLoopbackUi();
+  scheduleLoopbackAutoSync();
   if(genType==='sweep'){
     const wait=Math.max(0,Number(options.sweepDelayMs)||0);
     if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
@@ -1415,7 +1441,7 @@ function cancelTfWorkflowVerification(){
   if(tfWorkflowVerifyTimer){clearTimeout(tfWorkflowVerifyTimer);tfWorkflowVerifyTimer=null;}
   tfWorkflowVerifying=false;
 }
-function verifyTfWorkflow(){
+function verifyTfWorkflow(options={}){
   if(!tfDelayReady){v3Toast('תחילה בצע סנכרון TF');return;}
   if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
   setTfPhaseAndCoherence(true);
@@ -1433,6 +1459,7 @@ function verifyTfWorkflow(){
       syncTfWorkflowUi('<b>שלב 2 לא עבר:</b> '+q.reason+' · בדוק רמות, ניתוב ו־Reference ונסה שוב','warn');
       v3Toast(q.reason);
     }
+    if(options.loopbackAuto){loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();}
   },2000);
 }
 safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000));
@@ -1737,6 +1764,15 @@ function tfDrawSelectedCoherence(W,plotH,xForFreq){
   tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune','#50e68c');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedView(W,plotH,nyquist,xForFreq){
+  if(loopbackAutoSyncActive){
+    ctx.save();ctx.direction='ltr';ctx.textAlign='center';
+    ctx.fillStyle='rgba(2,10,14,.72)';ctx.fillRect(0,0,W,plotH);
+    ctx.strokeStyle='rgba(82,217,255,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(W*.24,plotH*.52);ctx.lineTo(W*.76,plotH*.52);ctx.stroke();
+    ctx.fillStyle='#52d9ff';ctx.font='800 16px ui-monospace,monospace';ctx.fillText('LOOPBACK · AUTO SYNC',W/2,plotH*.48);
+    ctx.fillStyle='#d9e8ed';ctx.font='11px ui-monospace,monospace';ctx.fillText(tfDelayReady?'Verifying phase and coherence…':'Matching acoustic path delay…',W/2,plotH*.48+25);
+    ctx.fillStyle='#91a4b1';ctx.font='9px ui-monospace,monospace';ctx.fillText('Keep the generator running · the TF curve will appear when ready',W/2,plotH*.48+46);
+    ctx.restore();return true;
+  }
   if(tfViewMode==='phase')return tfDrawSelectedPhase(W,plotH,xForFreq);
   if(tfViewMode==='coherence')return tfDrawSelectedCoherence(W,plotH,xForFreq);
   return tfDrawSelectedMagnitude(W,plotH,xForFreq);
@@ -2174,7 +2210,9 @@ function runDelayCapture(btn, cb, options){
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
   try {
-    workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet');
+    workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet',{
+      numberOfInputs:generatorLoopback&&genGain?2:1,numberOfOutputs:1,outputChannelCount:[1]
+    });
   } catch(e) {
     alert('AudioWorklet לא נטען. פתח את האתר דרך שרת (למשל Live Server ב-VSCode) ולא כקובץ מתיקייה.');
     dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
@@ -2182,7 +2220,9 @@ function runDelayCapture(btn, cb, options){
   }
 
   const mute=audioCtx.createGain(); mute.gain.value=0;
-  source.connect(workletNode); workletNode.connect(mute); mute.connect(audioCtx.destination);
+  source.connect(workletNode,0,0);
+  if(generatorLoopback&&genGain)genGain.connect(workletNode,0,1);
+  workletNode.connect(mute); mute.connect(audioCtx.destination);
   
   workletNode.port.onmessage = e => {
     if (pos >= want) return;
@@ -2197,7 +2237,7 @@ function runDelayCapture(btn, cb, options){
     // Give the worklet one message turn to flush its last partial block before
     // disconnecting and analysing the complete capture.
     setTimeout(()=>{
-      try{ source.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
+      try{ source.disconnect(workletNode); }catch(_){} try{ if(generatorLoopback&&genGain)genGain.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
       dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
       const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
       const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
@@ -4740,7 +4780,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.70';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.71';
   v3UpdateStatus();
 })();
 (function initAccent(){

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-const core=fs.readFileSync('app-core.js','utf8'), html=fs.readFileSync('index.html','utf8');
+const core=fs.readFileSync('app-core.js','utf8'), html=fs.readFileSync('index.html','utf8'), recorder=fs.readFileSync('recorder-worklet.js','utf8');
 const captureFn=core.slice(core.indexOf('function captureTfTrace()'),core.indexOf('function captureWorkspaceTrace()'));
 const checks=[
  ['runtime core copies match',core===fs.readFileSync('js/app-core.js','utf8')],
@@ -137,8 +137,12 @@ const checks=[
  ,['generator loopback is exposed in Audio settings',html.includes('id="uiSetLoopback"')&&html.includes('Generator Loopback → Reference')]
  ,['generator loopback replaces physical reference routing',core.includes('function refreshReferenceRouting()')&&core.includes('inputSplitter.disconnect(analyserRef)')&&core.includes('genGain.connect(analyserRef)')&&core.includes('inputSplitter.connect(analyserRef,refChannel)')]
  ,['generator loopback persists and resets TF state',core.includes("localStorage.setItem('gal_generator_loopback'")&&core.includes('tfWorkingAverage=null;tfAverageFrames=0')]
+ ,['loopback automatically starts TF delay sync',core.includes('function scheduleLoopbackAutoSync()')&&core.includes('tfAutoDelay({loopbackAuto:true})')&&core.includes('scheduleLoopbackAutoSync();')]
+ ,['loopback delay capture uses the generator reference',core.includes('numberOfInputs:generatorLoopback&&genGain?2:1')&&core.includes('genGain.connect(workletNode,0,1)')&&recorder.includes('const loopback = inputs[1] && inputs[1][0]')]
+ ,['loopback automatically verifies after delay sync',core.includes('verifyTfWorkflow({loopbackAuto:true})')&&core.includes('if(options.loopbackAuto){loopbackAutoSyncActive=false')]
+ ,['TF hides misleading fragments during loopback preparation',core.includes("'LOOPBACK · AUTO SYNC'")&&core.includes('if(loopbackAutoSyncActive)')&&core.includes('Matching acoustic path delay…')]
  ,['TF canvas uses inline telemetry without floating boxes',core.includes("ctx.fillText('TF · MIC SPECTRUM ONLY',12,18)")&&core.includes("ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36)")&&!core.includes("ctx.fillRect(legendX,8,258,40)")]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.70 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.71 regression validation passed (${checks.length} checks).`);

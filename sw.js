@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-70-generator-loopback-20260912';
+const CACHE = 'gal-analyzer-v5-5-71-loopback-auto-sync-20260912';
 const ASSETS = [
   './',
   './index.html',
