@@ -24,6 +24,8 @@ const binOverlapPowerDb=Function('db2lin',`${extract('binOverlapPowerDb')};retur
 const binOverlapLinearPower=Function(`${extract('binOverlapLinearPower')};return binOverlapLinearPower`)();
 const analyzeDecay=Function(`${extract('analyzeDecay')};return analyzeDecay`)();
 const applyDelayPhaseToCross=Function(`${extract('applyDelayPhaseToCross')};return applyDelayPhaseToCross`)();
+const tfH1MagnitudeDb=Function(`${extract('tfH1MagnitudeDb')};return tfH1MagnitudeDb`)();
+const tfCoherence=Function(`${extract('tfCoherence')};return tfCoherence`)();
 const evaluateTfVerification=Function(`${extract('evaluateTfVerification')};return evaluateTfVerification`)();
 const precisionPeaks=Function(`${extract('interpolatedSpectrumHz')};${extract('medianNumber')};${extract('spectralPeakCandidates')};return spectralPeakCandidates`)();
 const testPxx=new Float64Array(8192).fill(1),testPyy=new Float64Array(8192).fill(1),testRe=new Float64Array(8192).fill(Math.sqrt(.81)),testIm=new Float64Array(8192);
@@ -214,10 +216,17 @@ for(const sr of [44100,48000,96000])for(const ms of [2,5,12]){
   assert(Math.abs(tfBandCoherence(1000,2**(1/6),48000)-.81)<1e-10,'TF band coherence aggregation failed');
 }
 {
-  const good=evaluateTfVerification([.82,.75,.68,.2,.1],.4,true);
-  assert(good.ok&&good.passing===3,'TF workflow must accept adequate coherent coverage');
-  assert(!evaluateTfVerification([.25,.3,.39,.1,.2],.4,true).ok,'TF workflow must reject weak coherence');
+  const good=evaluateTfVerification([.82,.75,.68,.91,.73,.66,.88,.77,.61,.84,.72,.69],.4,true,16);
+  assert(good.ok&&good.passing===12,'TF workflow must accept broad coherent coverage');
+  assert(!evaluateTfVerification([.82,.75,.68,.91,.73,.2,.2,.2],.4,true,16).ok,'TF workflow must reject narrow coherent coverage');
+  assert(!evaluateTfVerification([.45,.46,.47,.48,.49,.45,.46,.47,.48,.49],.4,true,10).ok,'TF workflow must reject weak mean coherence');
   assert(!evaluateTfVerification([.9,.9,.9],.4,false).ok,'TF workflow must reject missing input signal');
+}
+
+{
+  assert(Math.abs(tfH1MagnitudeDb(1,.5,0)+6.020599913)<1e-6,'H1 magnitude must report a half-gain system as -6.02 dB');
+  assert(Math.abs(tfH1MagnitudeDb(1,1,0))<1e-9,'H1 unity transfer must report 0 dB');
+  assert(Math.abs(tfCoherence(1,4,1,0)-.25)<1e-12,'TF coherence must expose uncorrelated output energy');
 }
 
 {

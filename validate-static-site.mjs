@@ -31,7 +31,7 @@ for(const asset of cachedAssets) await access(asset,constants.R_OK);
 const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 const core=await readFile('js/app-core.js','utf8');
 for(const workflowCheck of [
-  "safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000))",
+  "safeOn('tfVerifyBtn','click',()=>pickSource(kind=>verifyTfWorkflow(kind),3000))",
   "verify.disabled=busy||!tfDelayReady",
   "trace.disabled=busy",
   "eq.disabled=busy||!tfWorkflowVerified",
@@ -39,8 +39,8 @@ for(const workflowCheck of [
   "st.dataset.delayResult==='path'",
   "st.dataset.delayResult==='speaker'",
   "safeOn('phSyncBtn','click',tfAutoDelay)",
-  "safeOn('phSubBtn','click',()=>pickSource(()=>capturePhase('sub'),3200",
-  "safeOn('phTopBtn','click',()=>pickSource(()=>capturePhase('top'),3200",
+  "safeOn('phSubBtn','click',()=>pickSource(kind=>capturePhase('sub',kind),3200",
+  "safeOn('phTopBtn','click',()=>pickSource(kind=>capturePhase('top',kind),3200",
   "sub.disabled=phMeasuring||!tfDelayReady",
   "top.disabled=phMeasuring||!tfDelayReady||!phaseSub",
   "if(which==='top'&&!phaseSub)"
@@ -61,7 +61,7 @@ for(const delaySafetyCheck of [
   if(!core.includes(delaySafetyCheck)) throw new Error(`Sweep-delay safety guard missing: ${delaySafetyCheck}`);
 }
 if(core.includes("signalType!=='noise')sweepResult=computeSweepDelay")) throw new Error('Unknown external audio can still fall through to the sweep estimator');
-if(!html.includes('GAL Analyzer V5.5.74')||!config.includes("version:'5.5.74-loopback-busy-fix'")||!worker.includes('v5-5-74-loopback-busy-fix')) throw new Error('V5.5.74 release identifiers are inconsistent');
+if(!html.includes('GAL Analyzer V5.5.76')||!config.includes("version:'5.5.76-tf-field-rebuild'")||!worker.includes('v5-5-76-tf-field-rebuild')) throw new Error('V5.5.76 release identifiers are inconsistent');
 const recorder=await readFile('recorder-worklet.js','utf8');
 if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
 if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');

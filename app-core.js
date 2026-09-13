@@ -38,7 +38,11 @@ let tfViewMode = 'magnitude';
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
 let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
 let tfWorkingAverage=null,tfAverageFrames=0,tfAverageMode='normal',tfAverageLastUpdate=0;
+let tfSweepAcquiring=false;
+const tfConfidenceHistory=[];
+let tfReferenceState={live:false,lastGood:0,peak:-120,activeBins:0};
 let phaseSub=null, phaseTop=null;  // צילומי פאזה: {ph:Float32Array, coh:Float32Array}
+let subTopSourceKind=null;
 let xoverF=90, showXover=false;    // סמן תדר חיתוך
 let alignRecommendation=null;
 
@@ -55,6 +59,7 @@ function configureTfFft(n){
   for(let i=0;i<TF_FFT_N;i++) tfWin[i]=0.5*(1-Math.cos((2*Math.PI*i)/(TF_FFT_N-1)));
   tfWorkflowVerified=false;
   resetTfWorkingAverage('FFT CHANGED');
+  resetTfReferenceDetector();
   phaseSub=null; phaseTop=null; alignRecommendation=null;
 }
 configureTfFft(TF_FFT_N);
@@ -303,7 +308,7 @@ function tfAutoDelay(event){
     if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}
     if(automatic&&generatorLoopback&&genOn){
       syncTfWorkflowUi('<b>Loopback:</b> הסנכרון הושלם · מאמת את המדידה אוטומטית…');
-      setTimeout(()=>verifyTfWorkflow({loopbackAuto:true}),260);
+      setTimeout(()=>verifyTfWorkflow(genType,{loopbackAuto:true}),260);
     }else{
       loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
     }
@@ -400,7 +405,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.74-loopback-busy-fix',
+    version: 'v5.5.76-tf-field-rebuild',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -566,7 +571,7 @@ function scheduleLoopbackAutoSync(){
   syncTfWorkflowUi('<b>Loopback:</b> מכין Reference ומסנכרן TF אוטומטית…');
   loopbackAutoSyncTimer=setTimeout(()=>{loopbackAutoSyncTimer=null;tfAutoDelay({loopbackAuto:true});},1100);
 }
-function refreshReferenceRouting(){
+function refreshReferenceRouting(preserveTfSync=false){
   if(!analyserRef)return syncGeneratorLoopbackUi();
   if(inputSplitter){try{inputSplitter.disconnect(analyserRef);}catch(_){} }
   if(genGain){try{genGain.disconnect(analyserRef);}catch(_){} }
@@ -574,7 +579,9 @@ function refreshReferenceRouting(){
     if(generatorLoopback){if(genGain)genGain.connect(analyserRef);}
     else if(inputSplitter)inputSplitter.connect(analyserRef,refChannel);
   }catch(_){}
-  resetTfAutoDelay();tfWorkingAverage=null;tfAverageFrames=0;syncGeneratorLoopbackUi();
+  resetTfReferenceDetector();
+  if(!preserveTfSync){resetTfAutoDelay();tfWorkingAverage=null;tfAverageFrames=0;}
+  syncGeneratorLoopbackUi();
 }
 function setGeneratorLoopback(enabled){
   generatorLoopback=!!enabled;try{localStorage.setItem('gal_generator_loopback',generatorLoopback?'1':'0');}catch(_){}
@@ -629,12 +636,12 @@ function genStart(options={}){
     genSrc.loop=true; genSrc.connect(genGain); genSrc.start();
   }
   genGain.connect(audioCtx.destination);
-  refreshReferenceRouting();
+  refreshReferenceRouting(!!options.preserveTfSync);
   const target=Math.pow(10,genDb/20);
   genGain.gain.setTargetAtTime(target,audioCtx.currentTime,0.15);
   genOn=true;
   syncGeneratorLoopbackUi();
-  scheduleLoopbackAutoSync();
+  if(!options.preserveTfSync)scheduleLoopbackAutoSync();
   if(genType==='sweep'){
     const wait=Math.max(0,Number(options.sweepDelayMs)||0);
     if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
@@ -1290,26 +1297,27 @@ function pickSource(fn, dur, options){
 srcOverlay.addEventListener('click',e=>{ if(e.target===srcOverlay){srcOverlay.classList.remove('show');pendingMeasureFn=null;pendingSourceOptions=null;} });
 document.querySelectorAll('#srcBox button').forEach(b=>b.addEventListener('click',function(){
   srcOverlay.classList.remove('show');
-  const src=this.dataset.src,fn=pendingMeasureFn,dur=pendingDur;pendingMeasureFn=null;pendingSourceOptions=null;
+  const src=this.dataset.src,fn=pendingMeasureFn,dur=pendingDur,opts=pendingSourceOptions||{};pendingMeasureFn=null;pendingSourceOptions=null;
   if(src==='cancel'||!fn) return;
-  runWithSource(src,fn,dur);
+  runWithSource(src,fn,dur,opts.runOptions||{});
 }));
 function setGenTypeUI(kind){
   document.querySelectorAll('#genType button').forEach(x=>x.classList.toggle('on', x.dataset.t===kind));
   document.getElementById('genFreqWrap').style.display='none';
   document.getElementById('genSweepWrap').style.display = kind==='sweep'?'flex':'none';
 }
-function runWithSource(kind, measureFn, durMs){
+function runWithSource(kind, measureFn, durMs, options={}){
   durMs=durMs||5000;
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
   if(kind==='external'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
-  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650}:{});
-  setTimeout(()=>measureFn(kind), kind==='sweep'?100:450);
+  const startDelay=kind==='sweep'?700:450;
+  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart({sweepDelayMs:kind==='sweep'?650:0,preserveTfSync:!!options.preserveTfSync});
+  setTimeout(()=>measureFn(kind),startDelay);
   setTimeout(()=>{
-    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart(); }
+    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart({preserveTfSync:!!options.preserveTfSync}); }
     else genStop();
-  }, 450+durMs+300);
+  },startDelay+durMs+500);
 }
 
 safeOn('areaCombBtn', 'click',()=>runCombCheck('areaCombResult'));
@@ -1396,29 +1404,34 @@ function tfWorkflowSignalPresent(data){
   for(let i=0;i<data.length;i+=8)if(data[i]>peak)peak=data[i];
   return peak>-85;
 }
-function evaluateTfVerification(coherence,gate,signalsOk){
+function evaluateTfVerification(coherence,gate,signalsOk,coverageBase){
   if(!signalsOk)return {ok:false,passing:0,checked:0,mean:0,reason:'אין מספיק אות בשני הערוצים'};
   const values=(coherence||[]).filter(Number.isFinite),checked=values.length;
   const passing=values.filter(c=>c>=Math.max(.4,gate)).length;
-  const required=Math.max(3,Math.ceil(checked*.3));
+  const expected=Math.max(checked,Number(coverageBase)||checked),coverage=expected?passing/expected:0;
+  const required=Math.max(8,Math.ceil(expected*.55));
   const mean=checked?values.reduce((sum,c)=>sum+c,0)/checked:0;
-  const ok=checked>=3&&passing>=required;
-  return {ok,passing,checked,mean,reason:ok?'':'קוהרנטיות נמוכה מדי בטווח המדידה'};
+  const ok=checked>=8&&passing>=required&&mean>=Math.max(.5,gate);
+  return {ok,passing,checked,mean,coverage,reason:ok?'':coverage<.55?'אין כיסוי קוהרנטי מספיק לאורך תחום המדידה':'קוהרנטיות ממוצעת נמוכה מדי'};
 }
 function tfWorkflowQuality(){
   if(!running||!analyserRef||!audioCtx)return {ok:false,reason:'אין מדידה דו־ערוצית פעילה'};
-  const signalsOk=tfWorkflowSignalPresent(floatData)&&tfWorkflowSignalPresent(floatDataRef);
   const snap=tfCurrentSnapshot();
   if(!snap)return {ok:false,reason:'עדיין אין נתוני TF'};
-  const coherence=[];
+  const points=[];
   const lo=Math.max(31.5,eqMinFreq),hi=Math.min(16000,eqMaxFreq),gate=Math.max(.4,tfCohGate);
   for(const f of GEQ){
     if(f<lo||f>hi)continue;
     const k=Math.min(snap.coh.length-1,Math.max(1,Math.round(f*TF_FFT_N/snap.sr)));
-    const c=snap.coh[k];
-    if(Number.isFinite(c))coherence.push(c);
+    points.push({c:snap.coh[k],r:snap.refDb[k],m:snap.micDb[k]});
   }
-  return evaluateTfVerification(coherence,gate,signalsOk);
+  const maxRef=Math.max(...points.map(p=>p.r)),maxMic=Math.max(...points.map(p=>p.m));
+  const energized=points.filter(p=>Number.isFinite(p.c)&&p.r>=maxRef-35&&p.m>=maxMic-45);
+  const refCoverage=points.length?points.filter(p=>p.r>=maxRef-35).length/points.length:0;
+  const signalsOk=Number.isFinite(maxRef)&&Number.isFinite(maxMic)&&maxRef>-120&&maxMic>-120&&refCoverage>=.70;
+  const result=evaluateTfVerification(energized.map(p=>p.c),gate,signalsOk,points.length);
+  result.refCoverage=refCoverage;
+  return result;
 }
 function setTfViewMode(view){
   tfViewMode=['magnitude','phase','coherence'].includes(view)?view:'magnitude';
@@ -1456,18 +1469,22 @@ function syncTfWorkflowUi(message,tone){
 }
 function cancelTfWorkflowVerification(){
   if(tfWorkflowVerifyTimer){clearTimeout(tfWorkflowVerifyTimer);tfWorkflowVerifyTimer=null;}
-  tfWorkflowVerifying=false;
+  tfWorkflowVerifying=false;tfSweepAcquiring=false;
 }
-function verifyTfWorkflow(options={}){
+function verifyTfWorkflow(sourceKind='external',options={}){
+  if(sourceKind&&typeof sourceKind==='object'){options=sourceKind;sourceKind=options.sourceKind||'external';}
   if(!tfDelayReady){v3Toast('תחילה בצע סנכרון TF');return;}
   if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
   setTfPhaseAndCoherence(true);
   tfWorkflowVerified=false;tfWorkflowVerifying=true;
+  resetTfWorkingAverage('VERIFYING');
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
-  syncTfWorkflowUi('<b>שלב 2:</b> אוסף נתוני פאזה וקוהרנטיות במשך 2 שניות…');
+  tfSweepAcquiring=sourceKind==='sweep';
+  const verifyMs=sourceKind==='sweep'?Math.round(genSweepDur*1000+850):3000;
+  syncTfWorkflowUi('<b>שלב 2:</b> '+(sourceKind==='sweep'?'לוכד את כל הסוויפ':'אוסף פאזה וקוהרנטיות')+' במשך '+(verifyMs/1000).toFixed(1)+' שניות…');
   tfWorkflowVerifyTimer=setTimeout(()=>{
     tfWorkflowVerifyTimer=null;tfWorkflowVerifying=false;
-    const q=tfWorkflowQuality();
+    const q=tfWorkflowQuality();tfSweepAcquiring=false;
     tfWorkflowVerified=!!q.ok;
     if(q.ok){
       syncTfWorkflowUi('<b>✓ שלב 2 הושלם</b> · '+q.passing+'/'+q.checked+' תחומים עברו סף קוהרנטיות · בחר Trace או EQ','ready');
@@ -1477,9 +1494,9 @@ function verifyTfWorkflow(options={}){
       v3Toast(q.reason);
     }
     if(options.loopbackAuto){loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();}
-  },2000);
+  },verifyMs);
 }
-safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000));
+safeOn('tfVerifyBtn','click',()=>pickSource(kind=>verifyTfWorkflow(kind),3000));
 
 
 
@@ -1499,12 +1516,15 @@ window.getTfPhaseCursorInfo=function(freq,unwrap,zeroAtCursor){
 };
 
 
-const tfConfidenceHistory=[];
 function tfBandConfidence(snap,lo=80,hi=12000){
   if(!snap||!snap.coh||!snap.mag)return {score:0,label:'LOW',coverage:0,meanCoh:0,stability:0,reason:'No TF data'};
   const vals=[], mags=[];
-  for(let k=1;k<snap.coh.length;k++){
-    const f=k*snap.sr/TF_FFT_N;if(f<lo||f>hi)continue;
+  // Evaluate equal log-frequency samples so treble FFT bins cannot outvote
+  // bass/mid coverage merely because a linear FFT contains more of them.
+  const samples=64;
+  for(let i=0;i<samples;i++){
+    const f=lo*Math.pow(hi/lo,i/(samples-1));
+    const k=Math.max(1,Math.min(snap.coh.length-1,Math.round(f*TF_FFT_N/snap.sr)));
     const c=snap.coh[k],m=snap.mag[k];
     if(Number.isFinite(c)&&Number.isFinite(m)){vals.push(c);if(c>=tfCohGate)mags.push(m);}
   }
@@ -1529,15 +1549,17 @@ function tfBandConfidence(snap,lo=80,hi=12000){
 }
 window.tfBandConfidence=tfBandConfidence;
 
-function tfCurrentSnapshot(){
+function tfCurrentSnapshot(options={}){
   if(!analyserRef || !audioCtx) return null;
-  computeComplexTf();
+  if(!options.precomputed)computeComplexTf();
   const n=TF_FFT_N/2, mag=new Float32Array(n), ph=new Float32Array(n), coh=new Float32Array(n),refDb=new Float32Array(n),micDb=new Float32Array(n);
   const vals=[],refVals=[];
   for(let k=1;k<n;k++){
-    const pxx=tfPxx[k], pyy=tfPyy[k], ps=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
-    const c=Math.max(0,Math.min(1,ps/(pxx*pyy+1e-20)));
-    const m=10*Math.log10((pyy+1e-20)/(pxx+1e-20));
+    const pxx=tfPxx[k], pyy=tfPyy[k];
+    const c=tfCoherence(pxx,pyy,tfPxyRe[k],tfPxyIm[k]);
+    // H1 transfer estimator rejects uncorrelated microphone/background noise.
+    // Use it everywhere so TF, traces and Sub/Top share one magnitude model.
+    const m=tfH1MagnitudeDb(pxx,tfPxyRe[k],tfPxyIm[k]);
     refDb[k]=10*Math.log10(pxx+1e-20);micDb[k]=10*Math.log10(pyy+1e-20);
     mag[k]=m; ph[k]=Math.atan2(tfPxyIm[k],tfPxyRe[k]); coh[k]=c;
     const f=k*audioCtx.sampleRate/TF_FFT_N;
@@ -1557,7 +1579,7 @@ function syncTfFieldGuide(step,title,detail,ready=false){
   const el=document.getElementById('tfFieldGuide');if(!el)return;el.dataset.state=ready?'ready':'action';el.innerHTML='<b>'+step+' · '+title+'</b><span>'+detail+'</span>';
 }
 function resetTfWorkingAverage(reason='WAITING'){
-  tfWorkingAverage=null;tfAverageFrames=0;tfAverageLastUpdate=0;syncTfAverageUi('waiting',reason);
+  tfWorkingAverage=null;tfAverageFrames=0;tfAverageLastUpdate=0;tfConfidenceHistory.length=0;syncTfAverageUi('waiting',reason);
 }
 function updateTfWorkingAverage(live){
   if(!live)return null;
@@ -1635,7 +1657,7 @@ window.v552DeleteTrace=i=>{if(!tfTraces[i])return false;tfTraces.splice(i,1);ren
 
 function renderTfTraceLegend(){
   const el=document.getElementById('tfTraceLegend');
-  if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map(t=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+' <b class="tfTraceStatus '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</b></span>').join('');
+  if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map(t=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+' <b class="tfTraceStatus '+(t.verified===true?'verified':'unverified')+'">'+(t.type==='mic-spectrum'?'MIC only':t.verified===true?'Verified':'Unverified')+'</b></span>').join('');
   if(typeof v5RenderTraceRail==='function') v5RenderTraceRail();
 }
 function tfMicOnlySnapshot(){
@@ -1655,23 +1677,27 @@ function captureTfTrace(){
   if(!running){ alert('הפעל Audio קודם.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH');
-  const current=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot();
+  const hasRef=!!(analyserRef&&tfHasReferenceSignal());
+  const current=hasRef?tfCurrentSnapshot():tfMicOnlySnapshot();
   const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:current; if(!s) return;
   const idx=tfTraces.length+1;
-  s.type='tf';s.visible=true;s.verified=verified;s.status=verified?'Verified':'Unverified';
-  s.name='TF '+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  s.type=hasRef?'tf':'mic-spectrum';s.visible=true;s.verified=hasRef&&verified;s.status=hasRef?(verified?'Verified':'Unverified'):'MIC Spectrum';
+  s.name=(hasRef?'TF ':'MIC ')+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
   tfTraces.push(s); if(tfTraces.length>24) tfTraces.shift();
-  renderTfTraceLegend(); v3Toast(verified?'נלכד TF מאומת':'נלכד TF לא מאומת · Unverified');
+  renderTfTraceLegend(); v3Toast(!hasRef?'אין Reference · נשמר MIC Spectrum בלבד':verified?'נלכד TF מאומת':'נלכד TF לא מאומת · Unverified');
 }
 function captureTfTraceFromSource(sourceKind){
   if(tfTraceCapturePending)return;
   tfTraceCapturePending=true;
+  resetTfWorkingAverage('NEW CAPTURE');
+  tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
+  tfSweepAcquiring=sourceKind==='sweep';
   const waitMs=sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800;
   syncTfWorkflowUi('<b>שלב 3:</b> אוסף ממוצע יציב מהמקור שנבחר…');
   v3Toast(sourceKind==='external'?'ממתין למקור החיצוני ואז לוכד Trace':'הגנרטור פעיל · לוכד Trace בעוד רגע');
   tfTraceCaptureTimer=setTimeout(()=>{
     tfTraceCaptureTimer=null;tfTraceCapturePending=false;
-    captureTfTrace();
+    captureTfTrace();tfSweepAcquiring=false;
     syncTfWorkflowUi();
   },waitMs);
 }
@@ -1697,13 +1723,21 @@ safeOn('tfTraceBtn','click',requestTfTraceCapture);
 safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast('Traces נוקו');});
 
 function tfMagY(db,plotH){ const range=18; return plotH/2 - Math.max(-range,Math.min(range,db))/range*(plotH*.46); }
+function resetTfReferenceDetector(){
+  tfReferenceState={live:false,lastGood:0,peak:-120,activeBins:0};
+}
 function tfHasReferenceSignal(){
   if(!floatDataRef || !floatDataRef.length) return false;
   let peak=-120;
-  // A sparse scan is enough to distinguish an actual reference feed from the
-  // browser's silent floor, without adding work to every audio frame.
-  for(let i=0;i<floatDataRef.length;i+=8) if(floatDataRef[i]>peak) peak=floatDataRef[i];
-  return peak>-85;
+  for(let i=1;i<floatDataRef.length;i++)if(Number.isFinite(floatDataRef[i])&&floatDataRef[i]>peak)peak=floatDataRef[i];
+  const activeFloor=Math.max(-88,peak-24);let activeBins=0;
+  for(let i=1;i<floatDataRef.length;i++)if(floatDataRef[i]>=activeFloor)activeBins++;
+  // Require either a clearly strong narrow stimulus or several adjacent FFT
+  // bins. A short hold prevents the graph from flickering on leakage/spikes.
+  const credible=(peak>-70&&activeBins>=2)||(peak>-82&&activeBins>=5);
+  const now=performance.now();if(credible)tfReferenceState.lastGood=now;
+  tfReferenceState={live:credible||(tfReferenceState.live&&now-tfReferenceState.lastGood<450),lastGood:tfReferenceState.lastGood,peak,activeBins};
+  return tfReferenceState.live;
 }
 let tfDisplaySnapshot=null;
 let tfLiveVisualDb=[];
@@ -1716,7 +1750,7 @@ function tfDrawTrustGuide(W,plotH,verified,reason){
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
-  const liveSignal=tfHasReferenceSignal();const live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return;tfDisplaySnapshot=live;const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
+  const liveSignal=tfHasReferenceSignal();const live=liveSignal?tfCurrentSnapshot({precomputed:true}):tfWorkingAverage;if(!live)return;tfDisplaySnapshot=live;const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
   const inputTop=28,inputBottom=Math.max(105,Math.floor(plotH*.52)),deltaTop=inputBottom+25,deltaBottom=plotH-18;
   const inputY=db=>inputTop+(12-Math.max(-36,Math.min(12,db)))/48*(inputBottom-inputTop);
   const deltaY=db=>deltaTop+(12-Math.max(-12,Math.min(12,db)))/24*(deltaBottom-deltaTop);
@@ -1735,7 +1769,7 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   ctx.save();ctx.globalAlpha=.30;ctx.lineWidth=1.3;deviationBars.forEach((path,i)=>{ctx.strokeStyle=TF_DELTA_COLORS[i];ctx.stroke(path);});ctx.restore();
   ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42;ctx.lineWidth=1;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
   if(working){ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(working.mag.length-1,Math.max(1,Math.round(f/working.sr*TF_FFT_N)));if(working.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(working.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.8;ctx.shadowColor='rgba(82,217,255,.30)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;}
-  tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
+  tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
   ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('TOP · INPUTS — REF (source) vs MIC (system)',8,14);ctx.fillText('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE',8,deltaTop-9);
   ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#8fb6c2';ctx.fillText('━ LIVE',410,14);ctx.fillStyle='#52d9ff';ctx.fillText('━ WORKING AVG',470,14);
   const trustworthy=!!(tfDelayReady&&tfWorkflowVerified&&(!live.confidence||live.confidence.label!=='LOW'));
@@ -1745,7 +1779,7 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
 
 // V5.5.56 — one full-canvas TF quantity at a time.
 function tfPrepareSelectedView(){
-  const liveSignal=tfHasReferenceSignal(),live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return null;
+  const liveSignal=tfHasReferenceSignal(),live=liveSignal?tfCurrentSnapshot({precomputed:true}):tfWorkingAverage;if(!live)return null;
   const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;
   if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
   const snap=working||live;tfDisplaySnapshot=snap;
@@ -3218,6 +3252,10 @@ async function switchInput(deviceId){
 
 function stop(){
   running=false; if(raf) cancelAnimationFrame(raf);
+  tfSweepAcquiring=false;
+  tfTraceCapturePending=false;
+  if(tfTraceCaptureTimer){clearTimeout(tfTraceCaptureTimer);tfTraceCaptureTimer=null;}
+  cancelTfWorkflowVerification();
   resetTfAutoDelay();
   resetDistanceCalibration();
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
@@ -3352,7 +3390,7 @@ function draw(){
     for(let i=0;i<srcData.length;i++) areaAccum[i]+=db2lin(srcData[i]);
     areaFrames++;
   }
-  if(analyserRef && floatDataRef && (tfState==='measuring' || tfPanel.classList.contains('open'))){
+  if(analyserRef && floatDataRef && (tfState==='measuring' || tfPanel.classList.contains('open') || v5WorkspaceMode==='tf' || alignOn || tfWorkflowVerifying || phMeasuring || tfTraceCapturePending)){
     analyserRef.getFloatFrequencyData(floatDataRef);
     if(tfState==='measuring' && tfMic){
       const mic = tfSwap? floatDataRef : floatData;
@@ -3414,6 +3452,13 @@ function draw(){
   const nyquist=audioCtx.sampleRate/2, bins=floatData.length;
   const logMin=Math.log(ISO[0]), logMax=Math.log(ISO[BANDS-1]);
   const xForFreq=f=>((Math.log(f)-logMin)/(logMax-logMin))*W;
+  const tfEngineActive=!!(analyserRef&&floatDataRef&&(v5WorkspaceMode==='tf'||alignOn||tfWorkflowVerifying||phMeasuring||tfTraceCapturePending));
+  if(tfEngineActive&&tfHasReferenceSignal()){
+    computeComplexTf();
+    if(tfTraceCapturePending&&v5WorkspaceMode!=='tf'){
+      const backgroundTf=tfCurrentSnapshot({precomputed:true});if(backgroundTf)updateTfWorkingAverage(backgroundTf);
+    }
+  }
 
   if(mode==='rta'){
     drawRta(W,H,nyquist,bins,xForFreq);
@@ -3460,10 +3505,16 @@ function computeComplexTf(){
     const corrected=applyDelayPhaseToCross(rawRe,rawIm,k,N,tfDelaySamples);
     const pxyRe=corrected.re,pxyIm=corrected.im;
 
-    tfPxx[k] = alpha * tfPxx[k] + (1 - alpha) * pxx;
-    tfPyy[k] = alpha * tfPyy[k] + (1 - alpha) * pyy;
-    tfPxyRe[k] = alpha * tfPxyRe[k] + (1 - alpha) * pxyRe;
-    tfPxyIm[k] = alpha * tfPxyIm[k] + (1 - alpha) * pxyIm;
+    if(tfSweepAcquiring){
+      // A sweep visits each frequency once. Accumulate every visited bin so
+      // low frequencies are still present when the sweep reaches the highs.
+      tfPxx[k]+=pxx;tfPyy[k]+=pyy;tfPxyRe[k]+=pxyRe;tfPxyIm[k]+=pxyIm;
+    }else{
+      tfPxx[k] = alpha * tfPxx[k] + (1 - alpha) * pxx;
+      tfPyy[k] = alpha * tfPyy[k] + (1 - alpha) * pyy;
+      tfPxyRe[k] = alpha * tfPxyRe[k] + (1 - alpha) * pxyRe;
+      tfPxyIm[k] = alpha * tfPxyIm[k] + (1 - alpha) * pxyIm;
+    }
   }
 }
 
@@ -3471,6 +3522,12 @@ function applyDelayPhaseToCross(re,im,k,n,delaySamples){
   if(!delaySamples)return {re,im};
   const phase=2*Math.PI*k*delaySamples/n,c=Math.cos(phase),s=Math.sin(phase);
   return {re:re*c-im*s,im:re*s+im*c};
+}
+function tfH1MagnitudeDb(pxx,pxyRe,pxyIm){
+  return 20*Math.log10(Math.hypot(pxyRe,pxyIm)/(pxx+1e-20)+1e-20);
+}
+function tfCoherence(pxx,pyy,pxyRe,pxyIm){
+  return Math.max(0,Math.min(1,(pxyRe*pxyRe+pxyIm*pxyIm)/(pxx*pyy+1e-20)));
 }
 
 function drawRtaEqRange(W,H,xForFreq){
@@ -3576,7 +3633,6 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       lastRefV[b]=lastRefV[b]*a+rv*(1-a);
     }
     
-    if(tfOpen)computeComplexTf();
     // V5.5.3 TF Pro: when TF is selected, the main graph is the transfer
     // magnitude response. Raw MIC/REF curves remain available before TF opens.
     if(!alignView){
@@ -4510,7 +4566,7 @@ function updateAlignmentRecommendation(){
     document.getElementById('alignProResult')?.classList.remove('show');
     document.getElementById('alignProApply')?.classList.remove('show');
     if(!tfDelayReady) el.innerHTML='<strong>שלב 1:</strong><span>השאר טופ בלבד ובצע סנכרון TF</span>';
-    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר רעש ורוד פנימי או מקור חיצוני</span>';
+    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר Sweep, רעש ורוד רחב־פס או מקור חיצוני</span>';
     else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, לחץ מדוד טופ ובחר את אותו מקור אות</span>';
     scheduleAlignBarResize();
     return;
@@ -4565,9 +4621,8 @@ function tfPhaseSnapshot(){
   const n=TF_FFT_N/2, ph=new Float32Array(n), coh=new Float32Array(n), mag=new Float32Array(n);
   for(let k=0;k<n;k++){
     ph[k]=Math.atan2(tfPxyIm[k], tfPxyRe[k]);
-    const pxySq=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
-    coh[k]=Math.max(0,Math.min(1, pxySq/(tfPxx[k]*tfPyy[k]+1e-12)));
-    mag[k]=20*Math.log10(Math.hypot(tfPxyRe[k],tfPxyIm[k])/(tfPxx[k]+1e-12)+1e-12);
+    coh[k]=tfCoherence(tfPxx[k],tfPyy[k],tfPxyRe[k],tfPxyIm[k]);
+    mag[k]=tfH1MagnitudeDb(tfPxx[k],tfPxyRe[k],tfPxyIm[k]);
   }
   return {ph,coh,mag,sr:audioCtx?audioCtx.sampleRate:48000,fftN:TF_FFT_N};
 }
@@ -4592,18 +4647,22 @@ function syncSubTopWorkflowUi(){
 }
 function clearSubTopSnapshots(message){
   if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}
-  phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;
+  phMeasuring=false;tfSweepAcquiring=false;phaseSub=null;phaseTop=null;subTopSourceKind=null;showXover=false;alignRecommendation=null;
   const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
   const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
   const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב ואז טופ — בכל שלב בחר רעש ורוד פנימי או מקור חיצוני.';st.style.color='var(--dim)';}
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
 }
-function capturePhase(which){
+function capturePhase(which,sourceKind='external'){
   if(!analyser || !analyserRef){ alert('פאזה דורשת מדידת מיק/רפרנס פעילה (רפרנס בערוץ 2).'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   if(!tfDelayReady){ alert('תחילה בצע את שלב 1 — סנכרון TF.'); return; }
   if(which==='top'&&!phaseSub){ alert('תחילה בצע את שלב 2 — מדידת הסאב לבדו.'); return; }
+  if(which==='top'&&subTopSourceKind&&sourceKind!==subTopSourceKind){
+    alert('כדי להשוות נכון, מדוד את הסאב והטופ עם אותו מקור: '+(subTopSourceKind==='sweep'?'Sweep':subTopSourceKind==='pink'?'Pink Noise':'External'));
+    return;
+  }
   phMeasuring=true;
   const btn=document.getElementById(which==='sub'?'phSubBtn':'phTopBtn');
   const other=document.getElementById(which==='sub'?'phTopBtn':'phSubBtn');
@@ -4616,15 +4675,18 @@ function capturePhase(which){
   updateAlignmentRecommendation();
   // אפס צוברים לחלון מדידה נקי
   tfPxx.fill(0); tfPyy.fill(0); tfPxyRe.fill(0); tfPxyIm.fill(0);
-  let t=3;
-  const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
+  tfSweepAcquiring=sourceKind==='sweep';
+  let t=sourceKind==='sweep'?Math.max(4,Math.ceil(genSweepDur+.5)):3;
+  const sourceLabel=sourceKind==='sweep'?'Sweep מלא':sourceKind==='pink'?'Pink Noise רחב־פס':'מקור חיצוני';
+  const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+' עם '+sourceLabel+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
   tick();
   phMeasureTimer=setInterval(()=>{
     t--;
     if(t>0){ tick(); return; }
     clearInterval(phMeasureTimer);phMeasureTimer=null;
-    const snap=tfPhaseSnapshot();
-    if(which==='sub') phaseSub=snap; else phaseTop=snap;
+    const snap=tfPhaseSnapshot();tfSweepAcquiring=false;
+    snap.sourceKind=sourceKind;
+    if(which==='sub'){phaseSub=snap;subTopSourceKind=sourceKind;}else phaseTop=snap;
     showXover=true;
     const N2=TF_FFT_N/2, nyq=(typeof audioCtx!=='undefined'&&audioCtx)?audioCtx.sampleRate/2:24000;
     const k=Math.min(N2-1, Math.round(xoverF/nyq*N2));
@@ -4642,8 +4704,8 @@ function capturePhase(which){
     updateAlignmentRecommendation();
   },1000);
 }
-safeOn('phSubBtn','click',()=>pickSource(()=>capturePhase('sub'),3200,{title:'אות למדידת הסאב לבדו',allowed:['pink','external']}));
-safeOn('phTopBtn','click',()=>pickSource(()=>capturePhase('top'),3200,{title:'אות למדידת הטופ לבדו',allowed:['pink','external']}));
+safeOn('phSubBtn','click',()=>pickSource(kind=>capturePhase('sub',kind),3200,{title:'אות למדידת הסאב לבדו · Pink Noise הוא רחב־פס; הסאב ישמיע רק את תחום העבודה שלו',allowed:['pink','sweep','external'],runOptions:{preserveTfSync:true}}));
+safeOn('phTopBtn','click',()=>pickSource(kind=>capturePhase('top',kind),3200,{title:'אות למדידת הטופ לבדו · השתמש באותו מקור שבו נמדד הסאב',allowed:['pink','sweep','external'],runOptions:{preserveTfSync:true}}));
 safeOn('phClearBtn','click',function(){
   clearSubTopSnapshots();
 });
@@ -4805,7 +4867,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.74';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.76';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5231,8 +5293,8 @@ const HELP={
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
   phSyncBtn:'שלב 1: השאר טופ בלבד. הסנכרון מודד ומפצה את הפרש הנתיבים בין המיקרופון ל־Reference.',
-  phSubBtn:'שלב 2: פותח בחירת רעש ורוד פנימי או מקור חיצוני ולוכד שלוש שניות של הסאב לבדו. הטופ חייב להיות מושתק.',
-  phTopBtn:'שלב 3: פותח את אותה בחירת אות ולוכד שלוש שניות של הטופ לבדו. הסאב חייב להיות מושתק.',
+  phSubBtn:'שלב 2: פותח בחירת Sweep, רעש ורוד רחב־פס או מקור חיצוני. בסוויפ חלון הלכידה מותאם לכל משך הסוויפ. הטופ חייב להיות מושתק.',
+  phTopBtn:'שלב 3: משתמש באותה בחירת אות ובאותו משך כמו מדידת הסאב. הסאב חייב להיות מושתק.',
   xoverF:'תדר החיתוך בפועל. האופטימייזר בודק שליש אוקטבה סביב הערך הזה.',
   phRecommendation:'המלצת יישור המחושבת מטווח החיתוך: רמקול לדיליי, ערך ms, פולריות, שיפור צפוי ואמינות.',
   rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',

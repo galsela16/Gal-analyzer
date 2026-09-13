@@ -1,6 +1,6 @@
-# GAL Analyzer V5.5.74 — Loopback Busy-State Fix
+# GAL Analyzer V5.5.76 — TF Field Rebuild
 
-V5.5.74 applies the non-blocking busy-state handling to the actual delay recorder and restores the independent Area measurement guard. Auto Sync no longer reports a user measurement when only its own workflow is active.
+V5.5.76 rebuilds the TF acquisition and trust path for field use: one H1 estimator across TF/Trace/Sub-Top, complete accumulated sweep capture, stricter log-frequency verification, stable Reference detection, graph-independent acquisition, and explicit MIC Spectrum fallback when no reference exists.
 
 V5.5.65 adopts the reference image's restrained white-outline treatment across the workspace. Neutral translucent borders now define panels, cards, controls, the canvas and graph selector, while structural interface text uses a consistent crisp white treatment in dark mode. Functional color remains reserved for live data, active tools and selected states. This improves hierarchy and gives the interface a cleaner instrument-like finish without changing layout or measurement behavior.
 

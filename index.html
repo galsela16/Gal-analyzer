@@ -2620,7 +2620,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.74</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.76</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2651,7 +2651,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.74 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.76 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2719,8 +2719,8 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
     <div id="alignBar">
       <div id="phWorkflowSteps" aria-label="סדר מדידת סאב וטופ">
         <button id="phSyncBtn" title="שלב 1: מסנכרן את נתיבי המיקרופון והרפרנס">1 · סנכרון TF</button>
-        <button id="phSubBtn" title="שלב 2: בחר רעש ורוד פנימי או מקור חיצוני ולכוד את הסאב לבדו" disabled>2 · מדוד סאב</button>
-        <button id="phTopBtn" title="שלב 3: בחר את אותו מקור אות ולכוד את הטופ לבדו" disabled>3 · מדוד טופ</button>
+        <button id="phSubBtn" title="שלב 2: בחר Sweep, רעש ורוד רחב־פס או מקור חיצוני ולכוד את הסאב לבדו" disabled>2 · מדוד סאב</button>
+        <button id="phTopBtn" title="שלב 3: בחר את אותו מקור שבו נמדד הסאב ולכוד את הטופ לבדו" disabled>3 · מדוד טופ</button>
       </div>
       <button id="phClearBtn">נקה</button>
       <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);white-space:nowrap">חיתוך <b id="xoverFVal" style="color:var(--accent)">90Hz</b>
@@ -2772,11 +2772,11 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
         <div class="guideSections">
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
-          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace. גם אימות וגם לכידה פותחים בחירת רעש ורוד, סוויפ או מקור חיצוני. בבחירת מקור פנימי האפליקציה מפעילה אותו, אוספת את המדידה ועוצרת אותו אוטומטית. Trace שלא עבר אימות נשמר עם סימון Unverified ברור.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>מומלץ בשטח:</strong> Pink Noise רציף למדידת TF חיה; Sweep נלכד במלואו במסלול מצטבר נפרד.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה, קוהרנטיות וכיסוי תדרים → 3 · לכידת Trace. האימות דורש Reference תקין וכיסוי רחב. ללא Reference נשמר MIC Spectrum בלבד ולא TF מטעה.</p></details>
           <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע ומדוד מהמרכז האקוסטי של אותו רמקול ובאותו ניתוב. כיול שדורש קיזוז מערכת שלילי משמעותי יידחה. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
-          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו וקבע את תדר החיתוך. לחיצה על מדוד סאב או מדוד טופ תפתח בחירת רעש ורוד פנימי או מקור חיצוני; האפליקציה תפעיל את האות למשך הלכידה ותעצור אותו בסיום. מדוד כל מקור לבדו, באותו אות ובלי להזיז את המיקרופון. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
+          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו וקבע את תדר החיתוך. גם הסאב וגם הטופ מאפשרים Pink Noise, Sweep או מקור חיצוני. מדוד כל מקור לבדו, באותו סוג אות ובלי להזיז את המיקרופון; Sweep נלכד לכל אורכו. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
           <details><summary>Trace · לפני ואחרי</summary><p>שמור Trace לפני שינוי. לאחריו השווה באותו מיקום מיקרופון, אותה עוצמה ואותו אות בדיקה.</p></details>
         </div>
         <button id="guideClose" type="button">סגור</button>
@@ -3366,7 +3366,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.74</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.76</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3560,7 +3560,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.74"></script>
+<script src="app.js?v=5.5.76"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3720,7 +3720,7 @@ window.addEventListener('load', function(){
    const traces=v552GetTraces();box.innerHTML='';
    traces.forEach((t,i)=>{
      const r=document.createElement('div');r.className='tsRow';
-     r.innerHTML='<input type="checkbox" data-ts-select="'+i+'"><input class="tsInput" value="'+String(t.name||'Trace').replace(/"/g,'&quot;')+'"><span>'+(t.type==='tf'?('TF · '+(t.verified===true?'Verified':'Unverified')):'RTA')+(t.spatialAverage?' · AVG':'')+'</span><button class="tsBtn" data-eye="'+i+'">'+(t.visible===false?'SHOW':'HIDE')+'</button><button class="tsBtn" data-del="'+i+'">DEL</button>';
+     r.innerHTML='<input type="checkbox" data-ts-select="'+i+'"><input class="tsInput" value="'+String(t.name||'Trace').replace(/"/g,'&quot;')+'"><span>'+(t.type==='tf'?('TF · '+(t.verified===true?'Verified':'Unverified')):t.type==='mic-spectrum'?'MIC Spectrum':'RTA')+(t.spatialAverage?' · AVG':'')+'</span><button class="tsBtn" data-eye="'+i+'">'+(t.visible===false?'SHOW':'HIDE')+'</button><button class="tsBtn" data-del="'+i+'">DEL</button>';
      r.querySelector('.tsInput').onchange=e=>v552RenameTrace(i,e.target.value);
      r.querySelector('[data-eye]').onclick=()=>{v552ToggleTrace(i);renderTraceManager()};
      r.querySelector('[data-del]').onclick=()=>{v552DeleteTrace(i);renderTraceManager()};
