@@ -2620,7 +2620,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.76</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.77</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2651,7 +2651,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.76 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.77 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3366,7 +3366,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.76</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.77</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3560,7 +3560,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.76"></script>
+<script src="app.js?v=5.5.77"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3705,13 +3705,15 @@ window.addEventListener('load', function(){
  setInterval(updateHealth,850);
 
  // Delay repeatability layer, callable by current/future delay UI.
- const dh=[];window.recordDelayReliability=function(ms,confidence=1){
-   const now=Date.now();dh.push({t:now,ms,confidence});while(dh.length>5)dh.shift();
-   if(dh.length<3)return {label:'PENDING',spread:null,count:dh.length};
+ const delayHistories=new Map();window.recordDelayReliability=function(ms,confidence=1,scope='path'){
+   const key=String(scope||'path'),dh=delayHistories.get(key)||[],now=Date.now();
+   dh.push({t:now,ms,confidence});while(dh.length>5)dh.shift();delayHistories.set(key,dh);
+   if(dh.length<3)return {label:'PENDING',spread:null,count:dh.length,scope:key};
    const a=dh.map(x=>x.ms),av=a.reduce((x,y)=>x+y,0)/a.length,sd=Math.sqrt(a.reduce((x,y)=>x+(y-av)**2,0)/a.length);
    const c=dh.reduce((x,y)=>x+y.confidence,0)/dh.length,label=sd<=.18&&c>=.7?'HIGH':sd<=.5&&c>=.55?'MEDIUM':'LOW';
-   return {label,spread:sd,mean:av,count:dh.length};
+   return {label,spread:sd,mean:av,count:dh.length,scope:key};
  };
+ window.resetDelayReliability=function(){delayHistories.clear();window.lastDelayRepeatability=null;};
 
  function mode(){return document.querySelector('#v54TfGraphToggle.on')?'TF':document.querySelector('#v54WaterfallToggle.on')?'WATERFALL':document.querySelector('#v54MrToggle.on')?'M/R':'RTA'}
 
@@ -3751,7 +3753,7 @@ window.addEventListener('load', function(){
 <script>
 (()=>{
  function ensureDelayRepeat(){
-   const host=document.querySelector('#delayPanel,#v5DelayPanel,[data-tool-panel="delay"],.delayCard');
+   const host=document.querySelector('#dlyPanel,#delayPanel,#v5DelayPanel,[data-tool-panel="delay"],.delayCard');
    if(!host)return null;let b=document.getElementById('delayRepeatBadge');
    if(!b){b=document.createElement('div');b.id='delayRepeatBadge';host.prepend(b)}return b;
  }

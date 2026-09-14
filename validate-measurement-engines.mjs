@@ -68,6 +68,14 @@ function delayed(ref,samples,{invert=false,noise=.015,reflection=0,reflectionLag
     out[i]=(invert?-1:1)*(direct+reflection*refl)+noise*rnd();
   }return out;
 }
+function delayedFractional(ref,samples,{gain=1,noise=.01}={}){
+  const out=new Float64Array(ref.length),whole=Math.floor(samples),frac=samples-whole;
+  for(let i=0;i<out.length;i++){
+    const a=i-whole>=0?ref[i-whole]:0,b=i-whole-1>=0?ref[i-whole-1]:0;
+    out[i]=gain*((1-frac)*a+frac*b)+noise*rnd();
+  }
+  return out;
+}
 
 const delayCases=[];
 for(const sr of [44100,48000,96000])for(const ms of [1,2.9,5,10,18]){
@@ -79,7 +87,37 @@ for(const sr of [44100,48000,96000])for(const ms of [1,2.9,5,10,18]){
 {
   const sr=48000,ref=broadband(32768,sr),samples=240,mic=delayed(ref,samples,{invert:true,noise:.005});
   const r=computeDelay(ref,mic,sr,{maxDelayMs:20});
-  assert(r&&Math.abs(Math.abs(r.ms)-5)<.15&&r.reliable,'Delay must survive inverted polarity');
+  assert(r&&Math.abs(r.ms-5)<.15&&r.reliable&&r.polarity===-1,'Delay must lock the true arrival and report inverted polarity');
+}
+for(const [sr,ms] of [[44100,3.37],[48000,17.83],[96000,7.41]]){
+  const ref=broadband(sr*2,sr),samples=ms*sr/1000,mic=delayedFractional(ref,samples,{noise:.006});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20,signalType:'noise'});
+  assert(r&&r.reliable&&Math.abs(r.ms-ms)<.10,`Fractional delay error: ${sr}Hz wanted ${ms}, got ${r&&r.ms}`);
+  delayCases.push(`${sr}/${ms}ms fractional→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,ref=broadband(sr*3,sr),ms=49.4,samples=Math.round(ms*sr/1000),mic=delayed(ref,samples,{noise:.006});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:50,signalType:'noise'});
+  assert(r&&r.reliable&&Math.abs(r.ms-ms)<.15,`Delay near the selected search boundary failed: ${r&&r.ms}`);
+  delayCases.push(`48000/${ms}ms boundary→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,ref=broadband(sr*2,sr),samples=Math.round(.0065*sr),mic=delayedFractional(ref,samples,{gain:.025,noise:.0002});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:20,signalType:'noise'});
+  assert(r&&r.reliable&&Math.abs(r.ms-6.5)<.15,'GCC delay must survive a large MIC/REF gain difference');
+  delayCases.push(`48000/6.5ms low-gain MIC→${r.ms.toFixed(3)}ms`);
+}
+{
+  const sr=48000,ref=broadband(sr*3,sr),samples=Math.round(.005*sr);
+  const mic=delayed(ref,samples,{noise:.006,reflection:1.15,reflectionLag:Math.round(.018*sr)});
+  const r=computeStableDelay(ref,mic,sr,{maxDelayMs:50,signalType:'noise'});
+  assert(!r||!r.reliable||Math.abs(r.ms-5)<.3,'A stronger late room reflection must not be reported as the direct noise arrival');
+}
+{
+  const sr=48000,clean=broadband(sr*2,sr),late=delayed(clean,Math.round(.004*sr),{noise:.004}),ref=delayed(clean,Math.round(.009*sr),{noise:0});
+  const r=computeStableDelay(ref,late,sr,{maxDelayMs:20,signalType:'noise'});
+  assert(r&&r.reliable&&Math.abs(r.ms+5)<.15,'Negative channel delay must remain signed instead of becoming a false positive arrival');
+  delayCases.push(`48000/-5ms signed→${r.ms.toFixed(3)}ms`);
 }
 for(const [sr,ms,range] of [[48000,38,50],[48000,95,100],[96000,76,100]]){
   const n=sr===96000?196608:131072,ref=broadband(n,sr),samples=Math.round(ms*sr/1000),mic=delayed(ref,samples,{noise:.008,reflection:.22,reflectionLag:Math.round(.009*sr)});
@@ -121,7 +159,7 @@ for(const sr of [44100,48000,96000])for(const ms of [2,5,12]){
 {
   const sr=48000,n=131072,ref=expSweep(n,sr),samples=Math.round(.005*sr);
   const r=computeStableDelay(ref,delayed(ref,samples,{invert:true,noise:.005}),sr,{maxDelayMs:20,signalType:'sweep'});
-  assert(r&&r.reliable&&Math.abs(r.ms-5)<.15,'Sweep delay must survive inverted polarity');
+  assert(r&&r.reliable&&Math.abs(r.ms-5)<.15&&r.polarity===-1,'Sweep delay must lock the true arrival and report inverted polarity');
   delayCases.push(`48000/5ms inverted sweep→${r.ms.toFixed(3)}ms`);
 }
 {

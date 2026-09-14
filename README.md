@@ -1,4 +1,6 @@
-# GAL Analyzer V5.5.76 — TF Field Rebuild
+# GAL Analyzer V5.5.77 — Delay Field Rebuild
+
+V5.5.77 rebuilds the delay measurement path for reliable field work. Missing Reference audio can no longer be replaced silently by the microphone channel, swept measurements are armed before the sweep begins and are captured through their complete duration, and all delay estimators now evaluate signed correlation so inverted polarity is detected instead of producing a false secondary arrival. Accepted measurements still require three independent checks, now with polarity agreement, received-sample validation and target-specific repeatability history. Speaker rows preserve polarity and warn when a loudspeaker differs from the selected anchor. Stopping, restarting or resetting safely cancels an active delay capture.
 
 V5.5.76 rebuilds the TF acquisition and trust path for field use: one H1 estimator across TF/Trace/Sub-Top, complete accumulated sweep capture, stricter log-frequency verification, stable Reference detection, graph-independent acquisition, and explicit MIC Spectrum fallback when no reference exists.
 

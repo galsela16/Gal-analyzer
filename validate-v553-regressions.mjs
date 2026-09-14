@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 const core=fs.readFileSync('app-core.js','utf8'), html=fs.readFileSync('index.html','utf8'), recorder=fs.readFileSync('recorder-worklet.js','utf8');
 const captureFn=core.slice(core.indexOf('function captureTfTrace()'),core.indexOf('function captureWorkspaceTrace()'));
-const delayCaptureFn=core.slice(core.indexOf('function runDelayCapture('),core.indexOf('function delayEstimate('));
+const delayCaptureFn=core.slice(core.indexOf('function runDelayCapture('),core.indexOf("safeOn('dlyLoopbackBtn'"));
 const areaMeasureFn=core.slice(core.indexOf('function measureArea()'),core.indexOf('function renderAreaList()'));
 const checks=[
  ['runtime core copies match',core===fs.readFileSync('js/app-core.js','utf8')],
@@ -150,7 +150,7 @@ const checks=[
  ,['TF continuous contour uses compact spatial smoothing',core.includes('for(let j=-2;j<=2;j++')&&core.includes('visualDb*.58+raw*.42')]
  ,['TF canvas uses inline telemetry without floating boxes',core.includes("ctx.fillText('TF · MIC SPECTRUM ONLY',12,18)")&&core.includes("ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36)")&&!core.includes("ctx.fillRect(legendX,8,258,40)")]
  ,['Sub and Top expose the same three measurement sources',core.match(/allowed:\['pink','sweep','external'\]/g)?.length>=2&&core.includes("kind=>capturePhase('sub',kind)")&&core.includes("kind=>capturePhase('top',kind)")]
- ,['Sub Top sweep capture covers the complete sweep',core.includes("if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200)")&&core.includes("const startDelay=kind==='sweep'?700:450")&&core.includes("Math.ceil(genSweepDur+.5)")]
+ ,['Sub Top sweep capture covers the complete sweep',core.includes("if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200)")&&core.includes("const startDelay=kind==='sweep'?250:450")&&core.includes("Math.ceil(genSweepDur+.5)")]
  ,['Sub Top requires one source for a valid comparison',core.includes("sourceKind!==subTopSourceKind")&&core.includes('מדוד את הסאב והטופ עם אותו מקור')&&core.includes('snap.sourceKind=sourceKind')]
  ,['Sub Top internal stimulus preserves TF synchronization',core.includes('runOptions:{preserveTfSync:true}')&&core.includes('refreshReferenceRouting(!!options.preserveTfSync)')&&core.includes('if(!preserveTfSync){resetTfAutoDelay()')]
  ,['TF uses one H1 magnitude estimator everywhere',core.includes('function tfH1MagnitudeDb(')&&core.match(/tfH1MagnitudeDb\(/g)?.length>=3&&!core.includes('10*Math.log10((pyy+1e-20)/(pxx+1e-20))')]
@@ -162,7 +162,16 @@ const checks=[
  ,['TF capture labels missing reference as microphone spectrum',core.includes("const hasRef=!!(analyserRef&&tfHasReferenceSignal())")&&core.includes("s.type=hasRef?'tf':'mic-spectrum'")&&core.includes('נשמר MIC Spectrum בלבד')]
  ,['TF confidence is balanced on a logarithmic frequency grid',core.includes('const samples=64')&&core.includes('lo*Math.pow(hi/lo')]
  ,['TF resets confidence history between measurements',core.includes('tfConfidenceHistory.length=0')&&core.includes("resetTfWorkingAverage('NEW CAPTURE')")]
+ ,['delay recorder never clones microphone into a missing reference',recorder.includes('const c1 = loopback || input[this.refChannel]')&&!recorder.includes('input[this.refChannel] || input[0]')&&recorder.includes('c1 ? c1[i] : 0')]
+ ,['delay capture is armed before the sweep starts',core.includes("const startDelay=kind==='sweep'?250:450")&&core.includes("sweepDelayMs:kind==='sweep'?650:0")]
+ ,['delay sweep capture is not clipped by a ten second cap',delayCaptureFn.includes("genSweepDur+0.8")&&!delayCaptureFn.includes('Math.min(10,Math.max(3.2')]
+ ,['delay estimator locks signed polarity peaks',core.includes('chunkPolarities.push(localValue<0?-1:1)')&&core.includes('const polarity=chosen.v<0?-1:1')&&core.includes('polarityConsistent>=.67')]
+ ,['sweep delay estimator reports polarity',core.includes('polarity:bestValue<0?-1:1')&&core.includes('r.polarity===full.polarity')&&core.includes('polarity:full.polarity')]
+ ,['delay capture analyzes only received samples',delayCaptureFn.includes('mic.subarray(0,captured)')&&delayCaptureFn.includes('ref.subarray(0,captured)')&&delayCaptureFn.includes("cb(null,'capture')")]
+ ,['delay capture is cancellable on stop and reset',core.includes('function cancelDelayCapture()')&&core.match(/cancelDelayCapture\(\);/g)?.length>=3&&delayCaptureFn.includes('dlyCaptureSession=session')]
+ ,['delay repeatability is isolated by measurement target',html.includes('const delayHistories=new Map()')&&html.includes("scope='path'")&&core.includes("repeatabilityKey:'speaker:'+i")]
+ ,['delay repeatability badge attaches to the real panel',html.includes("document.querySelector('#dlyPanel,#delayPanel")&&html.includes('window.resetDelayReliability=function()')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.76 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.77 regression validation passed (${checks.length} checks).`);

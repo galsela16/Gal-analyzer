@@ -302,7 +302,7 @@ function tfAutoDelay(event){
     }
     tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
     loopbackAutoSyncRetries=0;
-    tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms';
+    tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms'+(res.polarity<0?' · קוטביות הפוכה':'');
     clearSubTopSnapshots('סנכרון TF השתנה — מדוד שוב סאב וטופ.');
     syncTfWorkflowUi();
     if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}
@@ -405,7 +405,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.76-tf-field-rebuild',
+    version: 'v5.5.77-delay-field-rebuild',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1311,7 +1311,9 @@ function runWithSource(kind, measureFn, durMs, options={}){
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
   if(kind==='external'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
-  const startDelay=kind==='sweep'?700:450;
+  // Arm the measurement before a one-shot sweep begins. Starting the capture
+  // after the oscillator ramp had already started clipped the lowest octaves.
+  const startDelay=kind==='sweep'?250:450;
   genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart({sweepDelayMs:kind==='sweep'?650:0,preserveTfSync:!!options.preserveTfSync});
   setTimeout(()=>measureFn(kind),startDelay);
   setTimeout(()=>{
@@ -2062,9 +2064,11 @@ safeOn('dlyBtn', 'click',()=>{
 });
 safeOn('dlyClose', 'click',closeModals);
 function resetDelay(){
+  cancelDelayCapture();
+  if(typeof window.resetDelayReliability==='function')window.resetDelayReliability();
   dlyState='idle';
   dlyLastPathResult=null;dlyLastSpeakerResult=null;
-  dlySpeakers.forEach((s,i)=>{ s.ms=null;s.confidence=0;s.spreadMs=null;s.name=dlyName(i); });
+  dlySpeakers.forEach((s,i)=>{ s.ms=null;s.confidence=0;s.spreadMs=null;s.polarity=null;s.name=dlyName(i); });
   dlyAnchor=0;
   resetDistanceCalibration();
   const st=document.getElementById('dlyStatus'); if(st){delete st.dataset.delayResult;st.textContent='—';}
@@ -2160,6 +2164,7 @@ function fft(re,im,inv){
 }
 
 let dlyState='idle', timeDataRef=null;
+let dlyCaptureSession=null;
 document.querySelectorAll('#meterModeSeg button').forEach(b=>b.addEventListener('click',function(){
   document.querySelectorAll('#meterModeSeg button').forEach(x=>x.classList.remove('on'));
   this.classList.add('on'); meterMode=this.dataset.m;
@@ -2198,6 +2203,7 @@ function delayChecksHtml(res){
 function delayFailureText(res,silent){
   if(silent==='mic')return 'המיקרופון לא קלט אות — בדוק גיין וחיבור.';
   if(silent==='ref')return 'כניסה 2 (Reference) שקטה — בדוק את הניתוב מהמיקסר.';
+  if(silent==='capture')return 'ההקלטה נקטעה לפני שנאספו שלוש בדיקות מלאות — נסה שוב והשאר את האפליקציה בחזית.';
   const bw=res&&Number.isFinite(res.bandwidthHz)?res.bandwidthHz:0;
   const checks=res&&Number.isFinite(res.validChecks)?res.validChecks:0;
   const conf=res&&Number.isFinite(res.confidence)?Math.round(res.confidence*100):0;
@@ -2227,7 +2233,8 @@ function renderDelayPathResult(res){
   const stableLabel=res.reliable?'STABLE ✓':'UNSTABLE';
   const bw=Number.isFinite(res.bandwidthHz)&&res.bandwidthHz>0?Math.round(res.bandwidthHz):null;
   const method=res.method==='sweep'?'SWEEP':(res.method==='noise'?'PINK / NOISE':'AUTO');
-  const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+'% · פיזור '+spread;
+  const polarity=res.polarity<0?' · <span style="color:var(--warn)">POLARITY INVERTED</span>':' · POLARITY NORMAL';
+  const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+'% · פיזור '+spread+polarity;
   const acousticDistance=(ms>0?delayMsToMeters(ms):null);
   const diagnostic='<br><span style="font-size:11px;color:var(--dim)">'+method+(bw?' · Usable bandwidth ≈ '+bw+' Hz':'')+(acousticDistance!=null?' · זמן מעבר שקול ≈ '+acousticDistance.toFixed(1)+'m':'')+'</span>';
   const alternativeValues=res.alternatives&&res.alternatives.length
@@ -2251,6 +2258,19 @@ function delayChunkSize(sr,maxDelayMs){
   const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
   let n=8192; while(n/2-2<required&&n<65536)n*=2; return n;
 }
+function cancelDelayCapture(){
+  const s=dlyCaptureSession;if(!s)return;
+  s.cancelled=true;
+  if(s.stopTimer)clearTimeout(s.stopTimer);
+  if(s.flushTimer)clearTimeout(s.flushTimer);
+  try{s.workletNode.port.postMessage({cmd:'stop'});}catch(_){}
+  try{s.source.disconnect(s.workletNode);}catch(_){}
+  try{if(s.loopbackGain)s.loopbackGain.disconnect(s.workletNode);}catch(_){}
+  try{s.workletNode.disconnect();}catch(_){}
+  try{s.mute.disconnect();}catch(_){}
+  if(s.btn){s.btn.textContent=s.prevTxt;s.btn.style.opacity=1;s.btn.disabled=false;}
+  dlyCaptureSession=null;dlyState='idle';
+}
 function runDelayCapture(btn, cb, options){
   options=options||{};
   if(!running||!analyserRef||!source){ alert('צריך כרטיס קול עם input סטריאו (מיק\'+רפרנס).'); return; }
@@ -2264,7 +2284,7 @@ function runDelayCapture(btn, cb, options){
   const sr=audioCtx.sampleRate;
   const maxDelayMs=Math.max(20,Math.min(100,Number(options.maxDelayMs)||delaySearchMs));
   const minCapture=delayChunkSize(sr,maxDelayMs)*3/sr+.35;
-  const captureSec = (genOn && genType==='sweep') ? Math.min(10,Math.max(3.2,minCapture,genSweepDur+0.6)) : Math.max(3.2,minCapture);
+  const captureSec = (genOn && genType==='sweep') ? Math.max(3.2,minCapture,genSweepDur+0.8) : Math.max(3.2,minCapture);
   const want=Math.floor(sr*captureSec);
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
@@ -2282,6 +2302,8 @@ function runDelayCapture(btn, cb, options){
   source.connect(workletNode,0,0);
   if(generatorLoopback&&genGain)genGain.connect(workletNode,0,1);
   workletNode.connect(mute); mute.connect(audioCtx.destination);
+  const session={workletNode,mute,source,loopbackGain:generatorLoopback?genGain:null,btn,prevTxt,cancelled:false,stopTimer:null,flushTimer:null};
+  dlyCaptureSession=session;
   
   workletNode.port.onmessage = e => {
     if (pos >= want) return;
@@ -2291,14 +2313,20 @@ function runDelayCapture(btn, cb, options){
   };
   workletNode.port.postMessage({ cmd: 'start', micChannel:measChannel, refChannel:refChannel });
 
-  setTimeout(()=>{
+  session.stopTimer=setTimeout(()=>{
+    if(session.cancelled)return;
     workletNode.port.postMessage({ cmd: 'stop' });
     // Give the worklet one message turn to flush its last partial block before
     // disconnecting and analysing the complete capture.
-    setTimeout(()=>{
-      try{ source.disconnect(workletNode); }catch(_){} try{ if(generatorLoopback&&genGain)genGain.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
+    session.flushTimer=setTimeout(()=>{
+      if(session.cancelled)return;
+      try{ source.disconnect(workletNode); }catch(_){} try{ if(session.loopbackGain)session.loopbackGain.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
+      if(dlyCaptureSession===session)dlyCaptureSession=null;
       dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
-      const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
+      const captured=Math.min(pos,want),minimum=delayChunkSize(sr,maxDelayMs)*3;
+      if(captured<minimum){cb(null,'capture');return;}
+      const micCaptured=mic.subarray(0,captured),refCaptured=ref.subarray(0,captured);
+      const m = tfSwap? refCaptured: micCaptured, r = tfSwap? micCaptured: refCaptured;
       const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
       const micRms=rmsOf(m), refRms=rmsOf(r);
       if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
@@ -2311,7 +2339,7 @@ function runDelayCapture(btn, cb, options){
         :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
       const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
       if(delayResult&&delayResult.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
-        delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);
+        delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1,options.repeatabilityKey||options.mode||'path');
         window.lastDelayRepeatability=delayResult.repeatability;
       }
       cb(delayResult);
@@ -2325,8 +2353,8 @@ safeOn('dlyLoopbackBtn','click',function(){
   dlyLastPathResult=null;dlyLastSpeakerResult=null;delete st.dataset.delayResult;
   pickSource(()=>runDelayCapture(btn,(res,silent)=>{
     if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
-    const ok=Math.abs(res.ms)<=.30;
-    st.innerHTML=(ok?'✓ החיבור מסונכרן':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
+    const ok=Math.abs(res.ms)<=.30&&res.polarity>=0;
+    st.innerHTML=(ok?'✓ החיבור מסונכרן':res.polarity<0?'⚠ הקוטביות בין הכניסות הפוכה':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, קוטביות, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
   },{maxDelayMs:20,mode:'loopback'}),3800);
 });
 
@@ -2366,11 +2394,11 @@ safeOn('dlyDistanceCalBtn','click',function(){
 
 const DLY_NAMES=['Top','Sub','FF'];
 function dlyName(i){ return DLY_NAMES[i] || ('רמקול '+(i+1)); }
-let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null}];
+let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null,polarity:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null,polarity:null}];
 let dlyAnchor=0;
 function setDlyCount(n){
   const cur=dlySpeakers.length;
-  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null,confidence:0,spreadMs:null}); }
+  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null,confidence:0,spreadMs:null,polarity:null}); }
   else if(n<cur){ dlySpeakers=dlySpeakers.slice(0,n); if(dlyAnchor>=n) dlyAnchor=0; }
   renderDlySpk();
 }
@@ -2381,12 +2409,14 @@ function renderDlySpk(){
     if(s.ms!=null && dlySpeakers[dlyAnchor] && dlySpeakers[dlyAnchor].ms!=null){
       if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן · יעד</span>';
       else{ const d=dlySpeakers[dlyAnchor].ms - s.ms;
-        const equivalentM=delayMsToMeters(Math.abs(d));
-        if(Math.abs(d)<=.05)add='<b style="color:var(--accent)">✓ מיושר לעוגן</b>';
-        else if(d>0)add=dlyDisplayUnit==='m'
+        const equivalentM=delayMsToMeters(Math.abs(d));add='';
+        const polarityMismatch=s.polarity!=null&&dlySpeakers[dlyAnchor].polarity!=null&&s.polarity!==dlySpeakers[dlyAnchor].polarity;
+        if(polarityMismatch)add='<span style="color:var(--warn)">⚠ קוטביות הפוכה לעוגן</span><br>';
+        if(Math.abs(d)<=.05)add+='<b style="color:var(--accent)">✓ מיושר בזמן</b>';
+        else if(d>0)add+=dlyDisplayUnit==='m'
           ? '<b style="color:var(--accent)">דיליי שקול +'+equivalentM.toFixed(2)+'m</b>'
           : '<b style="color:var(--accent)">הוסף '+d.toFixed(2)+' ms</b>';
-        else add=dlyDisplayUnit==='m'
+        else add+=dlyDisplayUnit==='m'
           ? '<span style="color:var(--warn)">מאוחר ב־'+equivalentM.toFixed(2)+'m<br>בחר אותו כעוגן</span>'
           : '<span style="color:var(--warn)">מאוחר ב־'+Math.abs(d).toFixed(2)+'ms<br>בחר אותו כעוגן</span>'; }
     }
@@ -2411,17 +2441,17 @@ function renderDlySpk(){
     pickSource(()=>runDelayCapture(btn,(res,silent)=>{
       if(res==null){ btn.textContent='נכשל'; setTimeout(()=>btn.textContent='מדוד',1500); return; }
       if(!res.reliable){ btn.textContent='לא יציב'; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent='מדוד',1800); return; }
-      dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;
+      dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;dlySpeakers[i].polarity=res.polarity;
       dlyLastSpeakerResult={index:i,result:res};renderSpeakerMeasurementStatus(i,res);
       renderDlySpk();
-    },{maxDelayMs:delaySearchMs,mode:'speaker'}),3800);
+    },{maxDelayMs:delaySearchMs,mode:'speaker',repeatabilityKey:'speaker:'+i}),3800);
   }));
 }
 function renderSpeakerMeasurementStatus(i,res){
   const st=document.getElementById('dlyStatus');if(!st||!res)return;
   const displayed=delayDisplayValue(res.ms,dlyDisplayUnit,dlyDistanceOffsetMs);
   const value=displayed?(displayed.unit==='m'?displayed.value.toFixed(2)+'m':displayed.value.toFixed(2)+'ms'):'נשמר · נדרש כיול להצגת מטרים';
-  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+' נשמר: <b>'+value+'</b> '+delayChecksHtml(res)+' · עכשיו מדוד את הרמקול הבא בלי להזיז את המיקרופון.';
+  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+' נשמר: <b>'+value+'</b> '+delayChecksHtml(res)+(res.polarity<0?' · <span style="color:var(--warn)">קוטביות הפוכה</span>':'')+' · עכשיו מדוד את הרמקול הבא בלי להזיז את המיקרופון.';
   st.dataset.delayResult='speaker';
 }
 document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('click',function(){
@@ -2454,7 +2484,7 @@ function computeDelay(ref, mic, sr, options){
     win[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (chunkSize - 1)));
   }
 
-  const chunkLags=[];
+  const chunkLags=[],chunkPolarities=[];
   let activeBinSum=0;
   let validChunks = 0;
   for(let c = 0; c < numChunks; c++){
@@ -2501,14 +2531,15 @@ function computeDelay(ref, mic, sr, options){
       xi[k]=w*ci/mag;
     }
     fft(xr,xi,true);
-    let localBest=-Infinity,localLag=0;
+    let localBest=-Infinity,localLag=0,localValue=0;
     for(let lag=-maxLag;lag<=maxLag;lag++){
       const idx=lag<0?chunkSize+lag:lag;
       const v=xr[idx];
       avgCorr[idx]+=v;
-      if(v>localBest){localBest=v;localLag=lag;}
+      if(Math.abs(v)>localBest){localBest=Math.abs(v);localLag=lag;localValue=v;}
     }
     chunkLags.push(localLag);
+    chunkPolarities.push(localValue<0?-1:1);
     activeBinSum+=activeBins;
     validChunks++;
   }
@@ -2524,36 +2555,39 @@ function computeDelay(ref, mic, sr, options){
     const idx=lag<0?chunkSize+lag:lag;
     const prev=(lag-1)<0?chunkSize+lag-1:lag-1;
     const next=(lag+1)<0?chunkSize+lag+1:lag+1;
-    const v=avgCorr[idx];
-    if(v>=avgCorr[prev]&&v>avgCorr[next]) peaks.push({lag,v});
+    const v=avgCorr[idx],score=Math.abs(v);
+    if(score>=Math.abs(avgCorr[prev])&&score>Math.abs(avgCorr[next])) peaks.push({lag,v,score});
   }
   if(!peaks.length)return null;
-  peaks.sort((a,b)=>b.v-a.v);
+  peaks.sort((a,b)=>b.score-a.score);
   const strongest=peaks[0];
   // Prefer the earliest plausible arrival among near-equal correlation peaks.
   // A late room reflection or one extra bass cycle must not beat the direct sound.
-  const near=peaks.filter(p=>p.v>=strongest.v*.82).sort((a,b)=>Math.abs(a.lag)-Math.abs(b.lag));
+  const near=peaks.filter(p=>p.score>=strongest.score*.72).sort((a,b)=>Math.abs(a.lag)-Math.abs(b.lag));
   const chosen=near[0]||strongest;
   const idx=chosen.lag<0?chunkSize+chosen.lag:chosen.lag;
   const left=(chosen.lag-1)<0?chunkSize+chosen.lag-1:chosen.lag-1;
   const right=(chosen.lag+1)<0?chunkSize+chosen.lag+1:chosen.lag+1;
-  const denom=avgCorr[left]-2*avgCorr[idx]+avgCorr[right];
-  const frac=Math.abs(denom)>1e-12?.5*(avgCorr[left]-avgCorr[right])/denom:0;
+  const leftV=Math.abs(avgCorr[left]),centerV=Math.abs(avgCorr[idx]),rightV=Math.abs(avgCorr[right]);
+  const denom=leftV-2*centerV+rightV;
+  const frac=Math.abs(denom)>1e-12?.5*(leftV-rightV)/denom:0;
   const lag=chosen.lag+Math.max(-.5,Math.min(.5,frac));
   const sorted=chunkLags.slice().sort((a,b)=>a-b);
   const median=sorted[Math.floor(sorted.length/2)];
   const consistent=chunkLags.filter(v=>Math.abs(v-median)<=Math.max(3,sr*.0005)).length/validChunks;
+  const polarity=chosen.v<0?-1:1;
+  const polarityConsistent=chunkPolarities.filter(v=>v===polarity).length/validChunks;
   const deviations=chunkLags.map(v=>Math.abs(v-median)/sr*1000).sort((a,b)=>a-b);
   const chunkSpreadMs=deviations[Math.min(deviations.length-1,Math.floor(deviations.length*.9))]||0;
   const rival=peaks.find(p=>Math.abs(p.lag-chosen.lag)>Math.max(4,sr*.001));
-  const separation=rival?Math.max(0,Math.min(1,(chosen.v-rival.v)/(Math.abs(chosen.v)+1e-12))):1;
-  const confidence=Math.max(0,Math.min(1,.65*consistent+.35*separation));
+  const separation=rival?Math.max(0,Math.min(1,(chosen.score-rival.score)/(chosen.score+1e-12))):1;
+  const confidence=Math.max(0,Math.min(1,.55*consistent+.25*separation+.20*polarityConsistent));
   const activeBins=activeBinSum/validChunks;
   const broadbandScore=Math.max(0,Math.min(1,(activeBins-6)/30));
   const finalConfidence=confidence*broadbandScore;
-  const alternatives=peaks.filter(p=>p!==chosen&&p.v>=strongest.v*.65).slice(0,3).map(p=>p.lag/sr*1000);
+  const alternatives=peaks.filter(p=>p!==chosen&&p.score>=strongest.score*.65).slice(0,3).map(p=>p.lag/sr*1000);
   const bandwidthHz=activeBins*sr/chunkSize;
-  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins,bandwidthHz,consistent,validChunks,chunkSpreadMs,method:'noise'};
+  return {ms:lag/sr*1000,samples:lag,polarity,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&polarityConsistent>=.67&&activeBins>=18,alternatives,maxDelayMs,activeBins,bandwidthHz,consistent,polarityConsistent,validChunks,chunkSpreadMs,method:'noise'};
 }
 
 // Full-capture GCC-PHAT for non-stationary excitation (swept sine). A sweep is
@@ -2624,10 +2658,10 @@ function computeSweepDelay(ref,mic,sr,options){
       xr[k]=w*cr/mag;xi[k]=w*ci/mag;
     }
     fft(xr,xi,true);
-    let best=-Infinity,bestLag=0;
+    let best=-Infinity,bestLag=0,bestValue=0;
     for(let lag=-maxLag;lag<=maxLag;lag++){
       const idx=lag<0?N+lag:lag,v=xr[idx];
-      if(v>best){best=v;bestLag=lag;}
+      if(Math.abs(v)>best){best=Math.abs(v);bestLag=lag;bestValue=v;}
     }
     const bandwidthHz=activeBins?Math.max(0,activeHi-activeLo):0;
     // A narrow-band sub sweep has a naturally wide correlation lobe. Do not
@@ -2638,7 +2672,7 @@ function computeSweepDelay(ref,mic,sr,options){
     let second=-Infinity;
     for(let lag=-maxLag;lag<=maxLag;lag++){
       if(Math.abs(lag-bestLag)<=guard)continue;
-      const idx=lag<0?N+lag:lag;if(xr[idx]>second)second=xr[idx];
+      const idx=lag<0?N+lag:lag;if(Math.abs(xr[idx])>second)second=Math.abs(xr[idx]);
     }
     const li=(bestLag-1)<0?N+bestLag-1:bestLag-1;
     const cidx=bestLag<0?N+bestLag:bestLag;
@@ -2648,20 +2682,20 @@ function computeSweepDelay(ref,mic,sr,options){
     const lag=bestLag+Math.max(-.5,Math.min(.5,frac));
     const separation=best>0?Math.max(0,Math.min(1,(best-Math.max(0,second))/best)):0;
     const toleranceMs=Math.min(1,Math.max(.30,resolutionMs*.10));
-    results.push({ms:lag/sr*1000,samples:lag,peak:best,separation,activeBins,bandwidthHz,resolutionMs,toleranceMs});
+    results.push({ms:lag/sr*1000,samples:lag,peak:best,polarity:bestValue<0?-1:1,separation,activeBins,bandwidthHz,resolutionMs,toleranceMs});
   }
 
   const full=results[0];
   if(!full)return null;
   const tol=full.toleranceMs;
-  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=70&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
+  const checks=results.map(r=>({reliable:!!(r&&r.polarity===full.polarity&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=70&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
   const validChecks=checks.filter(c=>c.reliable).length;
   const agreeMs=results.filter((r,i)=>checks[i].reliable).map(r=>r.ms);
   const spreadMs=agreeMs.length>1?Math.max.apply(null,agreeMs)-Math.min.apply(null,agreeMs):0;
   const reliable=!!(full.separation>=.40&&full.activeBins>=60&&full.bandwidthHz>=70&&validChecks>=2&&spreadMs<=tol);
   const confidence=Math.max(0,Math.min(1,full.separation*Math.min(1,full.activeBins/120)*Math.min(1,full.bandwidthHz/100)));
   return {
-    ms:full.ms,samples:full.samples,confidence,reliable,stable:reliable,
+    ms:full.ms,samples:full.samples,polarity:full.polarity,confidence,reliable,stable:reliable,
     checks,validChecks,spreadMs,fullMs:full.ms,alternatives:[],maxDelayMs,
     activeBins:full.activeBins,bandwidthHz:full.bandwidthHz,resolutionMs:full.resolutionMs,method:'sweep'
   };
@@ -2692,7 +2726,10 @@ function computeStableDelay(ref,mic,sr,options){
     const start=i*third,end=i===2?L:(i+1)*third;
     checks.push(computeDelay(ref.subarray(start,end),mic.subarray(start,end),sr,{maxDelayMs}));
   }
-  const valid=checks.filter(r=>r&&r.reliable).sort((a,b)=>a.ms-b.ms);
+  const independentlyValid=checks.filter(r=>r&&r.reliable);
+  const polarity=full&&full.reliable?full.polarity:
+    (independentlyValid.filter(r=>r.polarity<0).length>independentlyValid.length/2?-1:1);
+  const valid=independentlyValid.filter(r=>r.polarity===polarity).sort((a,b)=>a.ms-b.ms);
 
   let chunkResult;
   if(!valid.length){
@@ -2700,14 +2737,14 @@ function computeStableDelay(ref,mic,sr,options){
   }else{
     const medianMs=valid[Math.floor(valid.length/2)].ms;
     const spreadMs=valid.length>1?valid[valid.length-1].ms-valid[0].ms:Infinity;
-    const fullAgrees=!!(full&&full.reliable&&Math.abs(full.ms-medianMs)<=.25);
+    const fullAgrees=!!(full&&full.reliable&&full.polarity===polarity&&Math.abs(full.ms-medianMs)<=.25);
     const stable=valid.length>=2&&spreadMs<=.20&&fullAgrees;
     const base=valid.reduce((best,r)=>Math.abs(r.ms-medianMs)<Math.abs(best.ms-medianMs)?r:best,valid[0]);
     const avgConfidence=valid.reduce((sum,r)=>sum+r.confidence,0)/valid.length;
     const confidence=Math.max(0,Math.min(1,avgConfidence*(stable?1:.55)));
     const alternatives=Array.from(new Set(valid.flatMap(r=>r.alternatives||[]).map(v=>Math.round(v*10)/10))).filter(v=>Math.abs(v-medianMs)>.5).slice(0,3);
     chunkResult=Object.assign({},base,{
-      ms:medianMs,samples:medianMs*sr/1000,confidence,reliable:stable,stable,
+      ms:medianMs,samples:medianMs*sr/1000,polarity,confidence,reliable:stable,stable,
       checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs,
       bandwidthHz:valid.reduce((sum,r)=>sum+(Number(r.bandwidthHz)||0),0)/valid.length,method:signalType==='noise'?'noise':(base.method||'noise')
     });
@@ -3107,6 +3144,7 @@ function buildWeighting(nyquist,bins){
 
 async function start(deviceId){
   errBox.style.display='none';
+  cancelDelayCapture();
   // Compensation is valid only for the current physical routing.
   resetTfAutoDelay();
   resetDistanceCalibration();
@@ -3252,6 +3290,7 @@ async function switchInput(deviceId){
 
 function stop(){
   running=false; if(raf) cancelAnimationFrame(raf);
+  cancelDelayCapture();
   tfSweepAcquiring=false;
   tfTraceCapturePending=false;
   if(tfTraceCaptureTimer){clearTimeout(tfTraceCaptureTimer);tfTraceCaptureTimer=null;}
@@ -4725,7 +4764,7 @@ function snapshotState(name){
     target:targetMode,
     positions:eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
     areas:areas.map(a=>({name:a.name, color:a.color, db:Array.from(a.db), show:a.show})),
-    speakers:dlySpeakers.map(s=>({name:s.name, ms:s.ms})),
+    speakers:dlySpeakers.map(s=>({name:s.name,ms:s.ms,confidence:s.confidence,spreadMs:s.spreadMs,polarity:s.polarity})),
     anchor:dlyAnchor,
     calName: micCal ? (micCalList.find(c=>c.id===activeCalId)||{}).name||null : null
   };
@@ -4763,7 +4802,7 @@ function loadSave(id){
     return {name:p.name, db:new Float32Array(GEQ.length).fill(-120)};
   });
   areas=(s.areas||[]).map(a=>({name:a.name, color:a.color, db:Float32Array.from(a.db), show:a.show!==false}));
-  if(s.speakers&&s.speakers.length){ dlySpeakers=s.speakers.map(x=>({name:x.name, ms:x.ms})); dlyAnchor=s.anchor||0; }
+  if(s.speakers&&s.speakers.length){ dlySpeakers=s.speakers.map(x=>({name:x.name,ms:x.ms,confidence:Number(x.confidence)||0,spreadMs:Number.isFinite(x.spreadMs)?x.spreadMs:null,polarity:x.polarity===-1?-1:x.polarity===1?1:null})); dlyAnchor=s.anchor||0; }
   if(s.target) setTarget(s.target);
   renderEqList(); renderDlySpk(); updateEqUI();
   if(eqPositions.length) computeAndShow();
@@ -4867,7 +4906,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.76';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.77';
   v3UpdateStatus();
 })();
 (function initAccent(){

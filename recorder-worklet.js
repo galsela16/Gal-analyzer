@@ -31,15 +31,18 @@ class RecorderWorklet extends AudioWorkletProcessor {
     
     const input = inputs[0];
     if (input && input.length > 0) {
-      const c0 = input[this.micChannel] || input[0];
+      const c0 = input[this.micChannel];
       // A second node input is the generator's direct digital reference when
       // Loopback is enabled. Otherwise retain the selected physical channel.
       const loopback = inputs[1] && inputs[1][0];
-      const c1 = loopback || input[this.refChannel] || input[0];
+      // Never clone channel 1 into a missing physical Reference channel. That
+      // used to turn a mono interface into a convincing but false 0 ms result.
+      const c1 = loopback || input[this.refChannel];
+      if(!c0) return true;
       
       for(let i = 0; i < c0.length; i++) {
         this.buffer.mic[this.pos] = c0[i];
-        this.buffer.ref[this.pos] = c1[i];
+        this.buffer.ref[this.pos] = c1 ? c1[i] : 0;
         this.pos++;
         
         if(this.pos >= 4096) {
