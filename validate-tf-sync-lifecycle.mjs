@@ -10,6 +10,7 @@ for(const kind of ['pink','sweep'])for(const previouslyOn of [false,true]){
   const oscillator={frequency:{value:0},connect(){},start(){}};
   const ctx={running:true,audioCtx:{state:'running',currentTime:0,destination:{},createGain:()=>gain,createOscillator:()=>oscillator,createBufferSource:()=>({...oscillator})},
     genOn:previouslyOn,genType:'pink',genSweepDur:4,genSweepSingleShot:false,genGain:null,genSrc:null,genOsc:null,genHz:1000,genDb:-20,genSweepStartTimer:null,
+    managedSourcePending:false,managedSourceStartTimer:null,managedSourceRestoreTimer:null,managedSourcePrevious:null,
     document:{getElementById:()=>null},alert:assert.fail,setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},
     makeNoiseBuffer(){},setGenTypeUI(){},syncGeneratorLoopbackUi(){},syncInlineGenBtns(){},scheduleSweepCycle(){},
     refreshReferenceRouting:(preserve)=>routes.push(preserve),scheduleLoopbackAutoSync:()=>autoSync.push(true)};

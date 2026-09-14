@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-5-77-delay-field-rebuild-tf-sync-fix-20260914';
+const CACHE = 'gal-analyzer-v5-5-77-delay-field-rebuild-measurement-lifecycle-fix-20260915';
 const ASSETS = [
   './',
   './index.html',
