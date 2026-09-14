@@ -273,6 +273,11 @@ function tfAutoDelay(event){
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
   const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
   const beginDelayCapture=()=>{
+    // Do not invalidate a measurement already in progress.
+    if(measureBusy()){
+      if(automatic){loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();return;}
+      v3Toast('מדידה אחרת פעילה — המתן לסיומה.'); return;
+    }
     if(automatic)loopbackAutoSyncActive=true;
     cancelTfWorkflowVerification();
     tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
@@ -293,9 +298,10 @@ function tfAutoDelay(event){
     }
     if(!res || !res.reliable){
       resetTfAutoDelay();
-      const msg=silent==='mic'?'אין אות במיקרופון'
-        :silent==='ref'?'אין אות ב־Reference'
-        :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
+      const msg=delayFailureText(res,silent);
+      const phaseStatus=document.getElementById('phStatus');
+      if(phaseStatus)phaseStatus.textContent=msg+' · לסנכרון השאר טופ בלבד, עם אותו אות ב־MIC וב־Reference.';
+      syncTfWorkflowUi(msg,'warn');
       loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();
       if(automatic)syncTfWorkflowUi('<b>Loopback מחובר:</b> '+msg+' · ה־Magnitude נשאר זמין, אך אינו מאומת','warn');
       v3Toast(msg); return;
@@ -641,7 +647,7 @@ function genStart(options={}){
   genGain.gain.setTargetAtTime(target,audioCtx.currentTime,0.15);
   genOn=true;
   syncGeneratorLoopbackUi();
-  if(!options.preserveTfSync)scheduleLoopbackAutoSync();
+  if(!options.preserveTfSync&&options.autoSync!==false)scheduleLoopbackAutoSync();
   if(genType==='sweep'){
     const wait=Math.max(0,Number(options.sweepDelayMs)||0);
     if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
@@ -1314,10 +1320,10 @@ function runWithSource(kind, measureFn, durMs, options={}){
   // Arm the measurement before a one-shot sweep begins. Starting the capture
   // after the oscillator ramp had already started clipped the lowest octaves.
   const startDelay=kind==='sweep'?250:450;
-  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart({sweepDelayMs:kind==='sweep'?650:0,preserveTfSync:!!options.preserveTfSync});
+  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart({sweepDelayMs:kind==='sweep'?650:0,preserveTfSync:!!options.preserveTfSync,autoSync:false});
   setTimeout(()=>measureFn(kind),startDelay);
   setTimeout(()=>{
-    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart({preserveTfSync:!!options.preserveTfSync}); }
+    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart({preserveTfSync:true,autoSync:false}); }
     else genStop();
   },startDelay+durMs+500);
 }
@@ -2282,6 +2288,8 @@ function runDelayCapture(btn, cb, options){
   dlyState='measuring';
   const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent='בודק 1 · 2 · 3…';btn.style.opacity=.5;btn.disabled=true;}
   const sr=audioCtx.sampleRate;
+  const signalType=(genOn&&genType==='sweep')?'sweep'
+    :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
   const maxDelayMs=Math.max(20,Math.min(100,Number(options.maxDelayMs)||delaySearchMs));
   const minCapture=delayChunkSize(sr,maxDelayMs)*3/sr+.35;
   const captureSec = (genOn && genType==='sweep') ? Math.max(3.2,minCapture,genSweepDur+0.8) : Math.max(3.2,minCapture);
@@ -2333,10 +2341,8 @@ function runDelayCapture(btn, cb, options){
       // Tell the estimator what kind of excitation it is looking at. A swept
       // sine is narrowband inside any short analysis chunk, so it must be
       // correlated across the whole capture instead of per-chunk. Pink/white
-      // noise stays on the proven per-chunk path; anything else ('auto') tries
-      // the chunk path first and falls back to full-capture correlation.
-      const signalType=(genOn&&genType==='sweep')?'sweep'
-        :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
+      // noise and unknown external signals stay on the per-chunk path.
+      // Use the excitation type captured when recording was armed.
       const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
       if(delayResult&&delayResult.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
         delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1,options.repeatabilityKey||options.mode||'path');
@@ -2705,8 +2711,7 @@ function computeSweepDelay(ref,mic,sr,options){
 // accepted when at least two windows agree within 0.20ms and the full capture
 // points to the same arrival. This prevents a reflection or one bass cycle from
 // silently becoming the system delay. Non-stationary excitation (a sweep) is
-// routed to computeSweepDelay, and any signal type gets a full-capture rescue
-// pass when the per-chunk path cannot lock.
+// routed to computeSweepDelay. Unknown external signals stay on the noise path.
 function computeStableDelay(ref,mic,sr,options){
   options=options||{};
   const L=Math.min(ref.length,mic.length),maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
