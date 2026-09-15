@@ -189,7 +189,7 @@
   body.sun-mode .meter{ background:rgba(255,255,255,.85); }
   .meterFill{position:absolute;inset-inline-start:0;top:0;bottom:0;width:0%;
     background:linear-gradient(90deg,var(--accent) 0%,#5ab6ff 60%,#9fd4ff 80%,var(--hot) 100%);
-    opacity:.8;transition:width 0.08s ease-out}
+    opacity:.8}
   .meterPeak{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.9}
   body.sun-mode .meterPeak{ background:#0f172a; }
   .meterVal{position:relative;margin-inline-start:auto;padding-inline-end:10px;font-size:13px;font-weight:600;
@@ -378,7 +378,7 @@
   #tfPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
   .chBar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text)}
   .chBar .track{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
-  .chBar .fill{height:100%;width:0%;background:var(--accent);transition:width .1s linear}
+  .chBar .fill{height:100%;width:0%;background:var(--accent)}
   .chBar .fill.lo{background:var(--hot)}
   .chBar .fill.ok{background:#39d98a}
   .chBar .fill.hi{background:var(--warn)}
@@ -1149,7 +1149,7 @@
     font-size:10px;
   }
   .v52MeterTrack{position:relative;height:8px;background:#15232e;border-radius:4px;overflow:hidden}
-  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6 0%,#42d57b 72%,#f6b64a 90%,#ff4d5d 100%);transition:width .045s linear}
+  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6 0%,#42d57b 72%,#f6b64a 90%,#ff4d5d 100%)}
   .v52MeterFill.clip{filter:brightness(1.16);box-shadow:inset 0 0 8px rgba(255,77,93,.7)}
   .v52MeterPeak{position:absolute;top:0;bottom:0;left:0;width:2px;background:#eef7ff;box-shadow:0 0 5px rgba(238,247,255,.9);transition:left .11s linear}
   .v52MeterValue{text-align:right;color:#9fb0bd;font-variant-numeric:tabular-nums}

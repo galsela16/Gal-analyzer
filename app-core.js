@@ -167,6 +167,7 @@ let fbTrack=new Map();
 let fbFrameCounter = 0;
 let fbTrackSerial = 0;
 let smoothedDbfs = -120;
+let meterSmoothAt=0, meterTextAt=0;
 
 function resize(){
   const r=cv.getBoundingClientRect();
@@ -3289,7 +3290,8 @@ async function start(deviceId){
     resize();
     peaks.fill(0); fbTrack.clear(); fbPanel.innerHTML = ''; lvlPeak = -120;
     leqSumP = 0; leqN = 0; splMax = -120;
-    smoothedDbfs = -120;
+    smoothedDbfs = -120;meterSmoothAt=0;meterTextAt=0;
+    v52MeasDbfs=-120;v52RefDbfs=-120;v52MeasPeakDbfs=-120;v52RefPeakDbfs=-120;v52MeterUpdateAt=0;v52MeterPaintAt=0;
     running = true; idle.style.display = 'none'; dot.classList.add('live'); v3UpdateStatus();
     meterEl.style.display = 'flex'; document.getElementById('stats').style.display = 'flex';
     document.getElementById('stopBtn').style.display = '';
@@ -3443,20 +3445,21 @@ function updateLevel(){
   if(!analyserMeter) return;
   analyserMeter.getFloatTimeDomainData(timeDataMeter);
   const dbfs = levelDb(timeDataMeter, 2048);
-
-  if (dbfs > smoothedDbfs) {
-    smoothedDbfs += (dbfs - smoothedDbfs) * 0.55;
-  } else {
-    smoothedDbfs += (dbfs - smoothedDbfs) * 0.035;
-  }
-
   const now=performance.now();
+  const dt=meterSmoothAt?Math.max(.008,Math.min(.2,(now-meterSmoothAt)/1000)):1/30;
+  meterSmoothAt=now;
+  const tau=dbfs>smoothedDbfs ? .075 : .42;
+  const alpha=1-Math.exp(-dt/tau);
+  smoothedDbfs=smoothedDbfs<=-119?dbfs:smoothedDbfs+(dbfs-smoothedDbfs)*alpha;
   if(smoothedDbfs>lvlPeak || now-lvlPeakT>1500){ lvlPeak=smoothedDbfs; lvlPeakT=now; }
   const pct=v=>Math.max(0,Math.min(100,(v+60)/60*100));
   meterFill.style.width=pct(smoothedDbfs)+'%';
   meterPeak.style.insetInlineStart=pct(lvlPeak)+'%';
-  if(meterUnit==='SPL') meterVal.textContent=(smoothedDbfs+calib).toFixed(0)+' dB SPL≈';
-  else meterVal.textContent=smoothedDbfs.toFixed(1)+' dBFS';
+  if(now-meterTextAt>=100){
+    meterTextAt=now;
+    if(meterUnit==='SPL') meterVal.textContent=(smoothedDbfs+calib).toFixed(0)+' dB SPL≈';
+    else meterVal.textContent=smoothedDbfs.toFixed(1)+' dBFS';
+  }
 
   const w = weightMode==='A'?weightA : weightMode==='C'?weightC : null;
   let p=0;
@@ -5178,6 +5181,7 @@ setTimeout(v5InitWorkspace,0);
 let v52IoOpen=false;
 let v52MeasDbfs=-120, v52RefDbfs=-120;
 let v52MeasPeakDbfs=-120, v52RefPeakDbfs=-120, v52PeakAt=0;
+let v52MeterUpdateAt=0, v52MeterPaintAt=0;
 
 function v52SetIo(open){
   v52IoOpen=!!open;
@@ -5240,17 +5244,24 @@ function v52UpdateLiveMeters(){
     analyserRef.getFloatTimeDomainData(timeDataRef);
     ref=levelDb(timeDataRef,timeDataRef.length);
   }
-  const smooth=(old,next)=>next>old ? old+(next-old)*.62 : old+(next-old)*.055;
-  v52MeasDbfs=smooth(v52MeasDbfs,meas);
+  const dt=v52MeterUpdateAt?Math.max(.008,Math.min(.2,(now-v52MeterUpdateAt)/1000)):1/30;
+  v52MeterUpdateAt=now;
+  const smooth=(old,next)=>old<=-119?next:old+(next-old)*(1-Math.exp(-dt/(next>old ? .085 : .48)));
+  // MIC already uses the time-smoothed main meter. Avoid a second filter that
+  // makes its movement uneven while REF uses the same time-domain response.
+  v52MeasDbfs=meas;
   v52RefDbfs=smooth(v52RefDbfs,ref);
   if(v52MeasDbfs>v52MeasPeakDbfs || now-v52PeakAt>1400) v52MeasPeakDbfs=v52MeasDbfs;
   if(v52RefDbfs>v52RefPeakDbfs || now-v52PeakAt>1400) v52RefPeakDbfs=v52RefDbfs;
   if(now-v52PeakAt>1400) v52PeakAt=now;
+  if(now-v52MeterPaintAt<50)return;
+  v52MeterPaintAt=now;
   const paint=(fill,peak,value,quick,db,peakDb)=>{
     if(fill){fill.style.width=v52DbToPct(db)+'%';fill.classList.toggle('clip',db>-1);}
     if(peak)peak.style.left=v52DbToPct(peakDb)+'%';
-    if(value)value.textContent=db.toFixed(1)+' dBFS';
-    if(quick)quick.textContent=db.toFixed(1)+' dB';
+    const noSignal=db<=-110;
+    if(value)value.textContent=noSignal?'— dBFS':db.toFixed(1)+' dBFS';
+    if(quick)quick.textContent=noSignal?'NO SIG':db.toFixed(1)+' dB';
   };
   paint(document.getElementById('v52MeasMeter'),document.getElementById('v52MeasPeak'),document.getElementById('v52MeasDb'),document.getElementById('v52MeasQuick'),v52MeasDbfs,v52MeasPeakDbfs);
   paint(document.getElementById('v52RefMeter'),document.getElementById('v52RefPeak'),document.getElementById('v52RefDb'),document.getElementById('v52RefQuick'),v52RefDbfs,v52RefPeakDbfs);
