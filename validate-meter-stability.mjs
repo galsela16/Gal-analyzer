@@ -10,6 +10,8 @@ assert(core.includes('1-Math.exp(-dt/tau)'),'Main meter smoothing must be time b
 assert(core.includes('if(now-meterTextAt>=100)'),'Main numeric meter must have a stable refresh interval');
 assert(core.includes('if(now-v52MeterPaintAt<50)return'),'I/O meters must paint at a bounded rate');
 assert(core.includes("noSignal=db<=-110")&&core.includes("'NO SIG'"),'Silent reference input must have a stable no-signal state');
+assert(html.includes("typeof smoothedDbfs!=='undefined'")&&html.includes('setInterval(syncMeasurementTarget,100)'),'Persistent measurement card must follow the smoothed live meter');
+assert(html.includes('function setText(el,text){if(el&&el.textContent!==text)'),'Persistent measurement card must avoid redundant DOM mutations');
 assert(!html.includes('transition:width 0.08s ease-out'),'Main meter must not combine CSS and signal smoothing');
 assert(!html.includes('transition:width .045s linear'),'I/O meters must not restart a CSS animation every audio frame');
 

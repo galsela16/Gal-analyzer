@@ -2620,7 +2620,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.77</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.78</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2651,7 +2651,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.77 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.78 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3367,7 +3367,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.77</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.78</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3561,7 +3561,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.77"></script>
+<script src="app.js?v=5.5.78"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3933,22 +3933,30 @@ window.addEventListener('load', function(){
 <script>
 (()=>{
  let peak=-Infinity;
+ let shown={mic:null,snr:null,coh:null,headroom:null},last=performance.now();
+ function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
+ function follow(old,next,dt,tau){return old==null?next:old+(next-old)*(1-Math.exp(-dt/tau))}
  function syncMeasurementTarget(){
    const h=window.measurementHealth;if(!h)return;
+   const now=performance.now(),dt=Math.max(.04,Math.min(.3,(now-last)/1000));last=now;
+   const liveMic=typeof smoothedDbfs!=='undefined'&&Number.isFinite(smoothedDbfs)?smoothedDbfs:h.micDb;
+   shown.mic=follow(shown.mic,liveMic,dt,.32);
+   shown.snr=follow(shown.snr,h.snr,dt,.55);
+   shown.coh=follow(shown.coh,h.coh,dt,.55);
+   shown.headroom=follow(shown.headroom,Math.max(0,-shown.mic),dt,.4);
    const main=document.getElementById('tmpMain'),pk=document.getElementById('tmpPeak'),sn=document.getElementById('tmpSnr'),co=document.getElementById('tmpCoh'),hr=document.getElementById('tmpHeadroom');
-   if(main&&Number.isFinite(h.micDb))main.textContent=h.micDb.toFixed(1);
-   if(Number.isFinite(h.micDb))peak=Math.max(peak,h.micDb);
-   if(pk&&Number.isFinite(peak))pk.textContent=peak.toFixed(1)+' dBFS';
-   if(sn)sn.textContent=Number.isFinite(h.snr)?Math.round(h.snr)+' dB':'—';
-   if(co)co.textContent=Number.isFinite(h.coh)?h.coh.toFixed(2):'—';
-   if(hr)hr.textContent=Number.isFinite(h.headroomDb)?Math.round(h.headroomDb)+' dB':'—';
-   const sec=document.getElementById('tmpSecondary');if(sec)sec.textContent=h.reason||'LIVE INPUT';
+   if(Number.isFinite(shown.mic)){setText(main,shown.mic.toFixed(1));peak=Math.max(peak,shown.mic)}
+   if(Number.isFinite(peak))setText(pk,peak.toFixed(1)+' dBFS');
+   setText(sn,Number.isFinite(shown.snr)?Math.round(shown.snr)+' dB':'—');
+   setText(co,Number.isFinite(shown.coh)?shown.coh.toFixed(2):'—');
+   setText(hr,Number.isFinite(shown.headroom)?Math.round(shown.headroom)+' dB':'—');
+   const sec=document.getElementById('tmpSecondary');setText(sec,h.reason||'LIVE INPUT');
    // Mirror existing RTA peak/cursor text if present; do not invent spectral values.
    const source=document.querySelector('#peakInfo,#rtaPeak,#peakReadout,.peakReadout,[data-peak-readout]');
    const hz=document.getElementById('tpkHz'),meta=document.getElementById('tpkMeta');
    if(source&&hz){hz.textContent=(source.textContent||'PEAK —').trim().slice(0,34);if(meta)meta.textContent='PEAK / HOLD';}
  }
- setInterval(syncMeasurementTarget,650);syncMeasurementTarget();
+ setInterval(syncMeasurementTarget,100);syncMeasurementTarget();
 })();
 </script>
 

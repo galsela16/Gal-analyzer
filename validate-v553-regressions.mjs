@@ -174,4 +174,4 @@ const checks=[
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.77 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.78 regression validation passed (${checks.length} checks).`);
