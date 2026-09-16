@@ -17,9 +17,6 @@ let tfWorkflowVerified = false;
 let tfDelayQualityText = '';
 let tfWorkflowVerifying = false;
 let tfWorkflowVerifyTimer = null;
-let loopbackAutoSyncTimer = null;
-let loopbackAutoSyncActive = false;
-let loopbackAutoSyncRetries = 0;
 let tfTraceCapturePending = false;
 let tfTraceCaptureTimer = null;
 let tfTraces=[];
@@ -38,11 +35,7 @@ let tfViewMode = 'magnitude';
 let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
 let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
 let tfWorkingAverage=null,tfAverageFrames=0,tfAverageMode='normal',tfAverageLastUpdate=0;
-let tfSweepAcquiring=false;
-const tfConfidenceHistory=[];
-let tfReferenceState={live:false,lastGood:0,peak:-120,activeBins:0};
 let phaseSub=null, phaseTop=null;  // צילומי פאזה: {ph:Float32Array, coh:Float32Array}
-let subTopSourceKind=null;
 let xoverF=90, showXover=false;    // סמן תדר חיתוך
 let alignRecommendation=null;
 
@@ -59,7 +52,6 @@ function configureTfFft(n){
   for(let i=0;i<TF_FFT_N;i++) tfWin[i]=0.5*(1-Math.cos((2*Math.PI*i)/(TF_FFT_N-1)));
   tfWorkflowVerified=false;
   resetTfWorkingAverage('FFT CHANGED');
-  resetTfReferenceDetector();
   phaseSub=null; phaseTop=null; alignRecommendation=null;
 }
 configureTfFft(TF_FFT_N);
@@ -123,8 +115,6 @@ let weightA=null, weightC=null;
 let leqSumP=0, leqN=0, splMax=-120;
 let dragging=false, dragX0=0, dragX1=0, cursorX=null, eqRtaRangeDrag=null;
 let genType='pink', genOn=false, genGain=null, genSrc=null, genOsc=null;
-let inputSplitter=null, generatorLoopback=false;
-try{generatorLoopback=localStorage.getItem('gal_generator_loopback')==='1';}catch(_){}
 let genDb=-34, genHz=1000, targetMode='flat';
 let targetVisible=true;
 let eqMinFreq=40, eqMaxFreq=16000;
@@ -142,7 +132,7 @@ function db2lin(db){
 let _pfxRef=null;
 let tfOverlay=false;
 let genSweepDur=4, sweepTimer=null, sweepStartT=0, genSweepSingleShot=false, genSweepStartTimer=null;
-let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rt60GeneratorRestore=null, rtLevel=-6;
+let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rtLevel=-6;
 let eqMarks=null;
 let eqCurveData=null;
 let eqCorrectionVisible=false;
@@ -152,9 +142,8 @@ let tfMode='graphic';
 const AREA_COLORS=['#2f9bff','#ffa53b','#ff5cc8','#50e68c'];
 const AREA_NAMES=['צפון','דרום','מזרח','מערב'];
 let areas=[];
-let areaState='idle', areaAccum=null, areaFrames=0, areaMeasureTimer=null;
-let measState='idle', measAccum=null, measFrames=0, eqMeasureTimer=null, tfMeasureTimer=null;
-let managedSourcePending=false, managedSourceStartTimer=null, managedSourceRestoreTimer=null, managedSourcePrevious=null;
+let areaState='idle', areaAccum=null, areaFrames=0;
+let measState='idle', measAccum=null, measFrames=0;
 let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
@@ -165,9 +154,7 @@ const wf3d={rows:[],frame:0,maxRows:85,maxHz:20000,intervalMs:120,lastCapture:0}
 
 let fbTrack=new Map();
 let fbFrameCounter = 0;
-let fbTrackSerial = 0;
 let smoothedDbfs = -120;
-let meterSmoothAt=0, meterTextAt=0;
 
 function resize(){
   const r=cv.getBoundingClientRect();
@@ -181,7 +168,7 @@ function resize(){
   nc.width=Math.max(2,Math.floor(Math.min(r.width,MAXW)));
   nc.height=Math.max(2,Math.floor(Math.min(r.height,MAXH)));
   const nctx=nc.getContext('2d');
-  nctx.fillStyle=sunMode ? '#f8fafc' : '#010609'; 
+  nctx.fillStyle=sunMode ? '#f8fafc' : '#0d1117'; 
   nctx.fillRect(0,0,nc.width,nc.height);
   if(oldSpec){ try{ nctx.drawImage(oldSpec,0,0,nc.width,nc.height); }catch(_){} }
   specCanvas=nc; specCtx=nctx;
@@ -194,7 +181,7 @@ safeOn('sunBtn', 'click', function(){
   this.classList.toggle('on', sunMode);
   prefSet('rta_sunmode', sunMode ? '1' : '0');
   if(specCtx){
-    specCtx.fillStyle = sunMode ? '#f8fafc' : '#010609';
+    specCtx.fillStyle = sunMode ? '#f8fafc' : '#0d1117';
     specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);
   }
   if(eqCurveData){
@@ -270,59 +257,31 @@ safeOn('tfPhaseToggleBtn','click',()=>setTfViewMode('phase'));
 
 
 function tfAutoDelay(event){
-  const automatic=!!(event&&event.loopbackAuto);
   const globalBtn=document.getElementById('v52AutoDelayBtn');
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
   const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
-  const beginDelayCapture=(sourceKind='external')=>{
-    // Do not invalidate a measurement already in progress.
-    if(measureBusy()){
-      if(automatic){loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();return;}
-      v3Toast('מדידה אחרת פעילה — המתן לסיומה.'); return;
-    }
-    if(automatic)loopbackAutoSyncActive=true;
+  pickSource(()=>{
     cancelTfWorkflowVerification();
     tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
     clearSubTopSnapshots('סנכרון TF מתבצע…');
     syncSubTopWorkflowUi();
     syncTfWorkflowUi('<b>שלב 1:</b> מבצע שלוש בדיקות סנכרון…');
     runDelayCapture(trigger||globalBtn,(res,silent)=>{
-    if(automatic&&silent==='busy'){
-      if(loopbackAutoSyncRetries<12&&generatorLoopback&&genOn){
-        loopbackAutoSyncRetries++;
-        syncTfWorkflowUi('<b>Loopback:</b> ממתין לסיום המדידה הפעילה ואז יסנכרן אוטומטית…');
-        loopbackAutoSyncTimer=setTimeout(()=>{loopbackAutoSyncTimer=null;tfAutoDelay({loopbackAuto:true});},650);
-      }else{
-        loopbackAutoSyncActive=false;loopbackAutoSyncRetries=0;syncGeneratorLoopbackUi();
-        syncTfWorkflowUi('<b>Loopback מחובר:</b> המדידה הקודמת עדיין פעילה · עצור אותה ונסה שוב','warn');
-      }
-      return;
-    }
     if(!res || !res.reliable){
       resetTfAutoDelay();
-      const msg=delayFailureText(res,silent);
-      const phaseStatus=document.getElementById('phStatus');
-      if(phaseStatus)phaseStatus.textContent=msg+' · לסנכרון השאר טופ בלבד, עם אותו אות ב־MIC וב־Reference.';
-      syncTfWorkflowUi(msg,'warn');
-      loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();
-      if(automatic)syncTfWorkflowUi('<b>Loopback מחובר:</b> '+msg+' · ה־Magnitude נשאר זמין, אך אינו מאומת','warn');
+      const msg=silent==='mic'?'אין אות במיקרופון'
+        :silent==='ref'?'אין אות ב־Reference'
+        :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
       v3Toast(msg); return;
     }
     tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
-    loopbackAutoSyncRetries=0;
-    tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms'+(res.polarity<0?' · קוטביות הפוכה':'');
+    tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms';
     clearSubTopSnapshots('סנכרון TF השתנה — מדוד שוב סאב וטופ.');
     syncTfWorkflowUi();
     if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}
-    if(automatic&&generatorLoopback&&genOn){
-      syncTfWorkflowUi('<b>Loopback:</b> הסנכרון הושלם · מאמת את המדידה אוטומטית…');
-      setTimeout(()=>verifyTfWorkflow(genType,{loopbackAuto:true}),260);
-    }else{
-      loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
-    }
-  },{maxDelayMs:delaySearchMs,mode:'tf',signalType:sourceKind,silentBusy:automatic});
-  };
-  if(automatic)beginDelayCapture();else pickSource(beginDelayCapture,3800);
+    v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
+  },{maxDelayMs:delaySearchMs,mode:'tf'});
+  },3800);
 }
 
 function resetTfAutoDelay(){
@@ -396,7 +355,7 @@ function exportPNG(){
   const W=cv.clientWidth,H=cv.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
   const off=document.createElement('canvas'); off.width=W*dpr; off.height=H*dpr;
   const o=off.getContext('2d'); o.scale(dpr,dpr);
-  o.fillStyle=sunMode ? '#f8fafc' : '#010609'; 
+  o.fillStyle=sunMode ? '#f8fafc' : '#0d1117'; 
   o.fillRect(0,0,W,H);
   o.drawImage(cv,0,0,W,H);
   download('rta_'+stamp()+'.png', off.toDataURL('image/png'));
@@ -413,7 +372,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.78-meter-stability',
+    version: 'v5.5.59-capture-source-picker',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -561,49 +520,7 @@ function makeNoiseBuffer(type){
   }
   return buf;
 }
-function syncGeneratorLoopbackUi(){
-  const btn=document.getElementById('uiSetLoopback');if(!btn)return;
-  btn.classList.toggle('on',generatorLoopback);btn.setAttribute('aria-pressed',String(generatorLoopback));
-  btn.textContent=generatorLoopback?(loopbackAutoSyncActive?'AUTO SYNC…':genOn?'ON · Generator → REF':'ON · Start generator'):'OFF';
-}
-function scheduleLoopbackAutoSync(){
-  if(loopbackAutoSyncTimer){clearTimeout(loopbackAutoSyncTimer);loopbackAutoSyncTimer=null;}
-  if(!generatorLoopback||!genOn||!running||!analyserRef)return;
-  if(genType==='sine'){
-    loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();
-    syncTfWorkflowUi('<b>Loopback פעיל:</b> עבור TF יש לבחור Pink Noise או Sweep','warn');
-    return;
-  }
-  loopbackAutoSyncActive=true;syncGeneratorLoopbackUi();
-  loopbackAutoSyncRetries=0;
-  syncTfWorkflowUi('<b>Loopback:</b> מכין Reference ומסנכרן TF אוטומטית…');
-  loopbackAutoSyncTimer=setTimeout(()=>{loopbackAutoSyncTimer=null;tfAutoDelay({loopbackAuto:true});},1100);
-}
-function refreshReferenceRouting(preserveTfSync=false){
-  if(!analyserRef)return syncGeneratorLoopbackUi();
-  if(inputSplitter){try{inputSplitter.disconnect(analyserRef);}catch(_){} }
-  if(genGain){try{genGain.disconnect(analyserRef);}catch(_){} }
-  try{
-    if(generatorLoopback){if(genGain)genGain.connect(analyserRef);}
-    else if(inputSplitter)inputSplitter.connect(analyserRef,refChannel);
-  }catch(_){}
-  resetTfReferenceDetector();
-  if(!preserveTfSync){resetTfAutoDelay();tfWorkingAverage=null;tfAverageFrames=0;}
-  syncGeneratorLoopbackUi();
-}
-function setGeneratorLoopback(enabled){
-  generatorLoopback=!!enabled;try{localStorage.setItem('gal_generator_loopback',generatorLoopback?'1':'0');}catch(_){}
-  refreshReferenceRouting();
-  if(generatorLoopback&&genOn)scheduleLoopbackAutoSync();
-  v3Toast(generatorLoopback?'Loopback פעיל · הגנרטור מזין את Reference':'Loopback כבוי · Reference חזר לערוץ הקלט');
-}
-window.setGeneratorLoopback=setGeneratorLoopback;
-safeOn('uiSetLoopback','click',()=>setGeneratorLoopback(!generatorLoopback));
-syncGeneratorLoopbackUi();
 function genStop(){
-  if(loopbackAutoSyncTimer){clearTimeout(loopbackAutoSyncTimer);loopbackAutoSyncTimer=null;}
-  loopbackAutoSyncActive=false;
-  loopbackAutoSyncRetries=0;
   if(genGain){ try{genGain.gain.cancelScheduledValues(audioCtx.currentTime);
     genGain.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}catch(_){} }
   if(sweepTimer){ clearTimeout(sweepTimer); sweepTimer=null; }
@@ -617,7 +534,6 @@ function genStop(){
   genSrc=null; genOsc=null; genGain=null; genOn=false;
   const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.remove('on'); btn.textContent='▶ הפעל אות';}
   syncInlineGenBtns();
-  syncGeneratorLoopbackUi();
 }
 function scheduleSweepCycle(){
   if(!genOn || genType!=='sweep' || !genOsc) return;
@@ -644,12 +560,9 @@ function genStart(options={}){
     genSrc.loop=true; genSrc.connect(genGain); genSrc.start();
   }
   genGain.connect(audioCtx.destination);
-  refreshReferenceRouting(!!options.preserveTfSync);
   const target=Math.pow(10,genDb/20);
   genGain.gain.setTargetAtTime(target,audioCtx.currentTime,0.15);
   genOn=true;
-  syncGeneratorLoopbackUi();
-  if(!options.preserveTfSync&&options.autoSync!==false)scheduleLoopbackAutoSync();
   if(genType==='sweep'){
     const wait=Math.max(0,Number(options.sweepDelayMs)||0);
     if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
@@ -948,12 +861,6 @@ function openLatestEqWorkspace(){
   }));
   return true;
 }
-window.openCorrectionGraph=function(){
-  if(openLatestEqWorkspace())return true;
-  showModal(eqPanel);
-  updateEqUI();
-  return false;
-};
 window.openLatestEqWorkspaceFromRail=function(event){
   if(event){event.preventDefault();event.stopPropagation();}
   const dock=document.getElementById('geqDock');
@@ -1258,15 +1165,7 @@ function showModal(p){
   if(p.classList.contains('measureDock')){modalBg.classList.remove('show');setTimeout(updateMeasureDockHeight,0);}
   else modalBg.classList.add('show');
 }
-function restoreRt60Generator(restorePrevious=true){
-  const previous=rt60GeneratorRestore;rt60GeneratorRestore=null;
-  if(genOn)genStop();
-  if(previous){
-    genType=previous.type;setGenTypeUI(genType);
-    if(restorePrevious&&previous.on&&running&&audioCtx)genStart({preserveTfSync:true,autoSync:false});
-  }
-}
-function abortRT60(restoreGenerator=true){
+function abortRT60(){
   if(rt60State==='idle'&&!rt60Timer&&!rt60ArmTimer&&!rt60CutTimer&&!rt60FinishTimer)return;
   rt60State='idle';
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
@@ -1274,7 +1173,7 @@ function abortRT60(restoreGenerator=true){
   if(rt60CutTimer){clearTimeout(rt60CutTimer);rt60CutTimer=null;}
   if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
   if(analyser) analyser.smoothingTimeConstant=parseFloat(document.getElementById('smooth').value);
-  restoreRt60Generator(restoreGenerator);
+  genStop();
   if(rtStatus) rtStatus.textContent='המדידה בוטלה.';
 }
 function closeModals(){
@@ -1305,7 +1204,7 @@ const srcOverlay=document.getElementById('srcOverlay');
 function pickSource(fn, dur, options){
   if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
   pendingMeasureFn=fn;pendingDur=dur||5000;pendingSourceOptions=options||{};
-  const allowed=Array.isArray(pendingSourceOptions.allowed)?pendingSourceOptions.allowed:['pink','sweep','external','external-sweep'];
+  const allowed=Array.isArray(pendingSourceOptions.allowed)?pendingSourceOptions.allowed:['pink','sweep','external'];
   const title=document.querySelector('#srcBox .srcTitle');if(title)title.textContent=pendingSourceOptions.title||'איזה אות להשמיע למדידה?';
   document.querySelectorAll('#srcBox button[data-src]').forEach(btn=>{btn.style.display=btn.dataset.src==='cancel'||allowed.includes(btn.dataset.src)?'':'none';});
   srcOverlay.classList.add('show');
@@ -1313,57 +1212,26 @@ function pickSource(fn, dur, options){
 srcOverlay.addEventListener('click',e=>{ if(e.target===srcOverlay){srcOverlay.classList.remove('show');pendingMeasureFn=null;pendingSourceOptions=null;} });
 document.querySelectorAll('#srcBox button').forEach(b=>b.addEventListener('click',function(){
   srcOverlay.classList.remove('show');
-  const src=this.dataset.src,fn=pendingMeasureFn,dur=pendingDur,opts=pendingSourceOptions||{};pendingMeasureFn=null;pendingSourceOptions=null;
+  const src=this.dataset.src,fn=pendingMeasureFn,dur=pendingDur;pendingMeasureFn=null;pendingSourceOptions=null;
   if(src==='cancel'||!fn) return;
-  runWithSource(src,fn,dur,opts.runOptions||{});
+  runWithSource(src,fn,dur);
 }));
 function setGenTypeUI(kind){
   document.querySelectorAll('#genType button').forEach(x=>x.classList.toggle('on', x.dataset.t===kind));
   document.getElementById('genFreqWrap').style.display='none';
   document.getElementById('genSweepWrap').style.display = kind==='sweep'?'flex':'none';
 }
-function isSweepSource(kind){return kind==='sweep'||kind==='external-sweep';}
-function runWithSource(kind, measureFn, durMs, options={}){
+function runWithSource(kind, measureFn, durMs){
   durMs=durMs||5000;
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
-  if(kind==='external'||kind==='external-sweep'){ measureFn(kind); return; }
-  cancelManagedSourceRun(true);
+  if(kind==='external'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
-  managedSourcePrevious={on:prevOn,type:prevType};
-  // Arm the measurement before a one-shot sweep begins. Starting the capture
-  // after the oscillator ramp had already started clipped the lowest octaves.
-  const startDelay=kind==='sweep'?250:450;
-  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart({sweepDelayMs:kind==='sweep'?650:0,preserveTfSync:!!options.preserveTfSync,autoSync:false});
-  managedSourcePending=true;
-  managedSourceStartTimer=setTimeout(()=>{
-    managedSourceStartTimer=null;managedSourcePending=false;
-    if(running)measureFn(kind);
-  },startDelay);
-  managedSourceRestoreTimer=setTimeout(()=>{
-    managedSourceRestoreTimer=null;managedSourcePending=false;genSweepSingleShot=false;
-    const previous=managedSourcePrevious;managedSourcePrevious=null;
-    if(!running)return;
-    if(previous&&previous.on){ genType=previous.type; setGenTypeUI(previous.type); genStart({preserveTfSync:true,autoSync:false}); }
+  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650}:{});
+  setTimeout(()=>measureFn(kind), kind==='sweep'?100:450);
+  setTimeout(()=>{
+    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart(); }
     else genStop();
-  },startDelay+durMs+500);
-}
-function cancelManagedSourceRun(stopGenerator=true){
-  const active=managedSourcePending||managedSourceStartTimer||managedSourceRestoreTimer||managedSourcePrevious;
-  if(managedSourceStartTimer){clearTimeout(managedSourceStartTimer);managedSourceStartTimer=null;}
-  if(managedSourceRestoreTimer){clearTimeout(managedSourceRestoreTimer);managedSourceRestoreTimer=null;}
-  managedSourcePending=false;managedSourcePrevious=null;genSweepSingleShot=false;
-  if(active&&stopGenerator&&genOn)genStop();
-}
-function cancelTimedMeasurements(){
-  if(areaMeasureTimer){clearTimeout(areaMeasureTimer);areaMeasureTimer=null;}
-  if(eqMeasureTimer){clearTimeout(eqMeasureTimer);eqMeasureTimer=null;}
-  if(tfMeasureTimer){clearTimeout(tfMeasureTimer);tfMeasureTimer=null;}
-  areaState='idle';areaAccum=null;areaFrames=0;
-  measState='idle';measAccum=null;measFrames=0;
-  tfState='idle';tfMic=null;tfRef=null;tfFrames=0;tfSweepAcquiring=false;
-  if(typeof updateAreaMeasBtn==='function')updateAreaMeasBtn();
-  if(typeof updateEqUI==='function')updateEqUI();
-  const tfBtn=document.getElementById('tfMeasBtn');if(tfBtn){tfBtn.textContent='3ב · מדוד EQ';tfBtn.style.opacity=1;}
+  }, 450+durMs+300);
 }
 
 safeOn('areaCombBtn', 'click',()=>runCombCheck('areaCombResult'));
@@ -1405,9 +1273,7 @@ function measureArea(){
   const srcData = floatData;
   areaAccum=new Float64Array(srcData.length); areaFrames=0; areaState='measuring';
   updateAreaMeasBtn();
-  areaMeasureTimer=setTimeout(()=>{
-    areaMeasureTimer=null;
-    if(areaState!=='measuring'||!running||!audioCtx||!areaAccum)return;
+  setTimeout(()=>{
     const bins=areaAccum.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
     const db=GEQ.map(fc=>10*Math.log10(binOverlapLinearPower(areaAccum,fc/R6,fc*R6,nyq,areaFrames)+1e-12));
     const idx=areas.length;
@@ -1452,34 +1318,29 @@ function tfWorkflowSignalPresent(data){
   for(let i=0;i<data.length;i+=8)if(data[i]>peak)peak=data[i];
   return peak>-85;
 }
-function evaluateTfVerification(coherence,gate,signalsOk,coverageBase){
+function evaluateTfVerification(coherence,gate,signalsOk){
   if(!signalsOk)return {ok:false,passing:0,checked:0,mean:0,reason:'אין מספיק אות בשני הערוצים'};
   const values=(coherence||[]).filter(Number.isFinite),checked=values.length;
   const passing=values.filter(c=>c>=Math.max(.4,gate)).length;
-  const expected=Math.max(checked,Number(coverageBase)||checked),coverage=expected?passing/expected:0;
-  const required=Math.max(8,Math.ceil(expected*.55));
+  const required=Math.max(3,Math.ceil(checked*.3));
   const mean=checked?values.reduce((sum,c)=>sum+c,0)/checked:0;
-  const ok=checked>=8&&passing>=required&&mean>=Math.max(.5,gate);
-  return {ok,passing,checked,mean,coverage,reason:ok?'':coverage<.55?'אין כיסוי קוהרנטי מספיק לאורך תחום המדידה':'קוהרנטיות ממוצעת נמוכה מדי'};
+  const ok=checked>=3&&passing>=required;
+  return {ok,passing,checked,mean,reason:ok?'':'קוהרנטיות נמוכה מדי בטווח המדידה'};
 }
 function tfWorkflowQuality(){
   if(!running||!analyserRef||!audioCtx)return {ok:false,reason:'אין מדידה דו־ערוצית פעילה'};
+  const signalsOk=tfWorkflowSignalPresent(floatData)&&tfWorkflowSignalPresent(floatDataRef);
   const snap=tfCurrentSnapshot();
   if(!snap)return {ok:false,reason:'עדיין אין נתוני TF'};
-  const points=[];
+  const coherence=[];
   const lo=Math.max(31.5,eqMinFreq),hi=Math.min(16000,eqMaxFreq),gate=Math.max(.4,tfCohGate);
   for(const f of GEQ){
     if(f<lo||f>hi)continue;
     const k=Math.min(snap.coh.length-1,Math.max(1,Math.round(f*TF_FFT_N/snap.sr)));
-    points.push({c:snap.coh[k],r:snap.refDb[k],m:snap.micDb[k]});
+    const c=snap.coh[k];
+    if(Number.isFinite(c))coherence.push(c);
   }
-  const maxRef=Math.max(...points.map(p=>p.r)),maxMic=Math.max(...points.map(p=>p.m));
-  const energized=points.filter(p=>Number.isFinite(p.c)&&p.r>=maxRef-35&&p.m>=maxMic-45);
-  const refCoverage=points.length?points.filter(p=>p.r>=maxRef-35).length/points.length:0;
-  const signalsOk=Number.isFinite(maxRef)&&Number.isFinite(maxMic)&&maxRef>-120&&maxMic>-120&&refCoverage>=.70;
-  const result=evaluateTfVerification(energized.map(p=>p.c),gate,signalsOk,points.length);
-  result.refCoverage=refCoverage;
-  return result;
+  return evaluateTfVerification(coherence,gate,signalsOk);
 }
 function setTfViewMode(view){
   tfViewMode=['magnitude','phase','coherence'].includes(view)?view:'magnitude';
@@ -1517,22 +1378,18 @@ function syncTfWorkflowUi(message,tone){
 }
 function cancelTfWorkflowVerification(){
   if(tfWorkflowVerifyTimer){clearTimeout(tfWorkflowVerifyTimer);tfWorkflowVerifyTimer=null;}
-  tfWorkflowVerifying=false;tfSweepAcquiring=false;
+  tfWorkflowVerifying=false;
 }
-function verifyTfWorkflow(sourceKind='external',options={}){
-  if(sourceKind&&typeof sourceKind==='object'){options=sourceKind;sourceKind=options.sourceKind||'external';}
+function verifyTfWorkflow(){
   if(!tfDelayReady){v3Toast('תחילה בצע סנכרון TF');return;}
   if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
   setTfPhaseAndCoherence(true);
   tfWorkflowVerified=false;tfWorkflowVerifying=true;
-  resetTfWorkingAverage('VERIFYING');
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
-  tfSweepAcquiring=isSweepSource(sourceKind);
-  const verifyMs=isSweepSource(sourceKind)?Math.round(genSweepDur*1000+850):3000;
-  syncTfWorkflowUi('<b>שלב 2:</b> '+(isSweepSource(sourceKind)?'לוכד את כל הסוויפ':'אוסף פאזה וקוהרנטיות')+' במשך '+(verifyMs/1000).toFixed(1)+' שניות…');
+  syncTfWorkflowUi('<b>שלב 2:</b> אוסף נתוני פאזה וקוהרנטיות במשך 2 שניות…');
   tfWorkflowVerifyTimer=setTimeout(()=>{
     tfWorkflowVerifyTimer=null;tfWorkflowVerifying=false;
-    const q=tfWorkflowQuality();tfSweepAcquiring=false;
+    const q=tfWorkflowQuality();
     tfWorkflowVerified=!!q.ok;
     if(q.ok){
       syncTfWorkflowUi('<b>✓ שלב 2 הושלם</b> · '+q.passing+'/'+q.checked+' תחומים עברו סף קוהרנטיות · בחר Trace או EQ','ready');
@@ -1541,10 +1398,9 @@ function verifyTfWorkflow(sourceKind='external',options={}){
       syncTfWorkflowUi('<b>שלב 2 לא עבר:</b> '+q.reason+' · בדוק רמות, ניתוב ו־Reference ונסה שוב','warn');
       v3Toast(q.reason);
     }
-    if(options.loopbackAuto){loopbackAutoSyncActive=false;syncGeneratorLoopbackUi();}
-  },verifyMs);
+  },2000);
 }
-safeOn('tfVerifyBtn','click',()=>pickSource(kind=>verifyTfWorkflow(kind),3000));
+safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000));
 
 
 
@@ -1564,15 +1420,12 @@ window.getTfPhaseCursorInfo=function(freq,unwrap,zeroAtCursor){
 };
 
 
+const tfConfidenceHistory=[];
 function tfBandConfidence(snap,lo=80,hi=12000){
   if(!snap||!snap.coh||!snap.mag)return {score:0,label:'LOW',coverage:0,meanCoh:0,stability:0,reason:'No TF data'};
   const vals=[], mags=[];
-  // Evaluate equal log-frequency samples so treble FFT bins cannot outvote
-  // bass/mid coverage merely because a linear FFT contains more of them.
-  const samples=64;
-  for(let i=0;i<samples;i++){
-    const f=lo*Math.pow(hi/lo,i/(samples-1));
-    const k=Math.max(1,Math.min(snap.coh.length-1,Math.round(f*TF_FFT_N/snap.sr)));
+  for(let k=1;k<snap.coh.length;k++){
+    const f=k*snap.sr/TF_FFT_N;if(f<lo||f>hi)continue;
     const c=snap.coh[k],m=snap.mag[k];
     if(Number.isFinite(c)&&Number.isFinite(m)){vals.push(c);if(c>=tfCohGate)mags.push(m);}
   }
@@ -1597,17 +1450,15 @@ function tfBandConfidence(snap,lo=80,hi=12000){
 }
 window.tfBandConfidence=tfBandConfidence;
 
-function tfCurrentSnapshot(options={}){
+function tfCurrentSnapshot(){
   if(!analyserRef || !audioCtx) return null;
-  if(!options.precomputed)computeComplexTf();
+  computeComplexTf();
   const n=TF_FFT_N/2, mag=new Float32Array(n), ph=new Float32Array(n), coh=new Float32Array(n),refDb=new Float32Array(n),micDb=new Float32Array(n);
   const vals=[],refVals=[];
   for(let k=1;k<n;k++){
-    const pxx=tfPxx[k], pyy=tfPyy[k];
-    const c=tfCoherence(pxx,pyy,tfPxyRe[k],tfPxyIm[k]);
-    // H1 transfer estimator rejects uncorrelated microphone/background noise.
-    // Use it everywhere so TF, traces and Sub/Top share one magnitude model.
-    const m=tfH1MagnitudeDb(pxx,tfPxyRe[k],tfPxyIm[k]);
+    const pxx=tfPxx[k], pyy=tfPyy[k], ps=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
+    const c=Math.max(0,Math.min(1,ps/(pxx*pyy+1e-20)));
+    const m=10*Math.log10((pyy+1e-20)/(pxx+1e-20));
     refDb[k]=10*Math.log10(pxx+1e-20);micDb[k]=10*Math.log10(pyy+1e-20);
     mag[k]=m; ph[k]=Math.atan2(tfPxyIm[k],tfPxyRe[k]); coh[k]=c;
     const f=k*audioCtx.sampleRate/TF_FFT_N;
@@ -1627,7 +1478,7 @@ function syncTfFieldGuide(step,title,detail,ready=false){
   const el=document.getElementById('tfFieldGuide');if(!el)return;el.dataset.state=ready?'ready':'action';el.innerHTML='<b>'+step+' · '+title+'</b><span>'+detail+'</span>';
 }
 function resetTfWorkingAverage(reason='WAITING'){
-  tfWorkingAverage=null;tfAverageFrames=0;tfAverageLastUpdate=0;tfConfidenceHistory.length=0;syncTfAverageUi('waiting',reason);
+  tfWorkingAverage=null;tfAverageFrames=0;tfAverageLastUpdate=0;syncTfAverageUi('waiting',reason);
 }
 function updateTfWorkingAverage(live){
   if(!live)return null;
@@ -1705,7 +1556,7 @@ window.v552DeleteTrace=i=>{if(!tfTraces[i])return false;tfTraces.splice(i,1);ren
 
 function renderTfTraceLegend(){
   const el=document.getElementById('tfTraceLegend');
-  if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map(t=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+' <b class="tfTraceStatus '+(t.verified===true?'verified':'unverified')+'">'+(t.type==='mic-spectrum'?'MIC only':t.verified===true?'Verified':'Unverified')+'</b></span>').join('');
+  if(el) el.innerHTML=tfTraces.filter(t=>t.type!=='rta').map(t=>'<span><i style="background:'+t.color+'"></i>'+escapeHtml(t.name)+' <b class="tfTraceStatus '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</b></span>').join('');
   if(typeof v5RenderTraceRail==='function') v5RenderTraceRail();
 }
 function tfMicOnlySnapshot(){
@@ -1725,27 +1576,23 @@ function captureTfTrace(){
   if(!running){ alert('הפעל Audio קודם.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH');
-  const hasRef=!!(analyserRef&&tfHasReferenceSignal());
-  const current=hasRef?tfCurrentSnapshot():tfMicOnlySnapshot();
+  const current=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot();
   const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:current; if(!s) return;
   const idx=tfTraces.length+1;
-  s.type=hasRef?'tf':'mic-spectrum';s.visible=true;s.verified=hasRef&&verified;s.status=hasRef?(verified?'Verified':'Unverified'):'MIC Spectrum';
-  s.name=(hasRef?'TF ':'MIC ')+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  s.type='tf';s.visible=true;s.verified=verified;s.status=verified?'Verified':'Unverified';
+  s.name='TF '+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
   tfTraces.push(s); if(tfTraces.length>24) tfTraces.shift();
-  renderTfTraceLegend(); v3Toast(!hasRef?'אין Reference · נשמר MIC Spectrum בלבד':verified?'נלכד TF מאומת':'נלכד TF לא מאומת · Unverified');
+  renderTfTraceLegend(); v3Toast(verified?'נלכד TF מאומת':'נלכד TF לא מאומת · Unverified');
 }
 function captureTfTraceFromSource(sourceKind){
   if(tfTraceCapturePending)return;
   tfTraceCapturePending=true;
-  resetTfWorkingAverage('NEW CAPTURE');
-  tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
-  tfSweepAcquiring=isSweepSource(sourceKind);
-  const waitMs=isSweepSource(sourceKind)?Math.round(genSweepDur*1000+700):1800;
+  const waitMs=sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800;
   syncTfWorkflowUi('<b>שלב 3:</b> אוסף ממוצע יציב מהמקור שנבחר…');
-  v3Toast(sourceKind.startsWith('external')?'ממתין למקור החיצוני ואז לוכד Trace':'הגנרטור פעיל · לוכד Trace בעוד רגע');
+  v3Toast(sourceKind==='external'?'ממתין למקור החיצוני ואז לוכד Trace':'הגנרטור פעיל · לוכד Trace בעוד רגע');
   tfTraceCaptureTimer=setTimeout(()=>{
     tfTraceCaptureTimer=null;tfTraceCapturePending=false;
-    captureTfTrace();tfSweepAcquiring=false;
+    captureTfTrace();
     syncTfWorkflowUi();
   },waitMs);
 }
@@ -1754,7 +1601,7 @@ function requestTfTraceCapture(){
   if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
   pickSource(captureTfTraceFromSource,2600,{
     title:'איזה מקור להפעיל לצורך לכידת ה־Trace?',
-    allowed:['pink','sweep','external','external-sweep']
+    allowed:['pink','sweep','external']
   });
 }
 function captureWorkspaceTrace(){
@@ -1771,34 +1618,26 @@ safeOn('tfTraceBtn','click',requestTfTraceCapture);
 safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast('Traces נוקו');});
 
 function tfMagY(db,plotH){ const range=18; return plotH/2 - Math.max(-range,Math.min(range,db))/range*(plotH*.46); }
-function resetTfReferenceDetector(){
-  tfReferenceState={live:false,lastGood:0,peak:-120,activeBins:0};
-}
 function tfHasReferenceSignal(){
   if(!floatDataRef || !floatDataRef.length) return false;
   let peak=-120;
-  for(let i=1;i<floatDataRef.length;i++)if(Number.isFinite(floatDataRef[i])&&floatDataRef[i]>peak)peak=floatDataRef[i];
-  const activeFloor=Math.max(-88,peak-24);let activeBins=0;
-  for(let i=1;i<floatDataRef.length;i++)if(floatDataRef[i]>=activeFloor)activeBins++;
-  // Require either a clearly strong narrow stimulus or several adjacent FFT
-  // bins. A short hold prevents the graph from flickering on leakage/spikes.
-  const credible=(peak>-70&&activeBins>=2)||(peak>-82&&activeBins>=5);
-  const now=performance.now();if(credible)tfReferenceState.lastGood=now;
-  tfReferenceState={live:credible||(tfReferenceState.live&&now-tfReferenceState.lastGood<450),lastGood:tfReferenceState.lastGood,peak,activeBins};
-  return tfReferenceState.live;
+  // A sparse scan is enough to distinguish an actual reference feed from the
+  // browser's silent floor, without adding work to every audio frame.
+  for(let i=0;i<floatDataRef.length;i+=8) if(floatDataRef[i]>peak) peak=floatDataRef[i];
+  return peak>-85;
 }
 let tfDisplaySnapshot=null;
 let tfLiveVisualDb=[];
 const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
 function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
 function tfDrawTrustGuide(W,plotH,verified,reason){
-  const label=verified?'VERIFIED · SAFE TO TUNE':'UNVERIFIED · VERIFY BEFORE TUNING';
-  ctx.save();ctx.direction='ltr';ctx.textAlign='right';ctx.font='750 9px ui-monospace,monospace';
-  ctx.fillStyle=verified?'#68e3a0':'#f4c76b';ctx.fillText((verified?'● ':'○ ')+label,W-12,18);
+  const boxW=Math.min(230,W-20),boxH=25,x=W-boxW-10,y=32;
+  ctx.save();ctx.fillStyle=verified?'rgba(10,68,46,.88)':'rgba(70,42,8,.92)';ctx.strokeStyle=verified?'#45d47b':'#f5b942';ctx.lineWidth=1;ctx.fillRect(x,y,boxW,boxH);ctx.strokeRect(x+.5,y+.5,boxW-1,boxH-1);
+  ctx.fillStyle=verified?'#8ff0b9':'#ffd783';ctx.font='800 9px ui-monospace,monospace';ctx.fillText(verified?'VERIFIED · safe to tune':'UNVERIFIED · verify before tuning',x+8,y+16);
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
-  const liveSignal=tfHasReferenceSignal();const live=liveSignal?tfCurrentSnapshot({precomputed:true}):tfWorkingAverage;if(!live)return;tfDisplaySnapshot=live;const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
+  const liveSignal=tfHasReferenceSignal();const live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return;tfDisplaySnapshot=live;const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
   const inputTop=28,inputBottom=Math.max(105,Math.floor(plotH*.52)),deltaTop=inputBottom+25,deltaBottom=plotH-18;
   const inputY=db=>inputTop+(12-Math.max(-36,Math.min(12,db)))/48*(inputBottom-inputTop);
   const deltaY=db=>deltaTop+(12-Math.max(-12,Math.min(12,db)))/24*(deltaBottom-deltaTop);
@@ -1817,7 +1656,7 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   ctx.save();ctx.globalAlpha=.30;ctx.lineWidth=1.3;deviationBars.forEach((path,i)=>{ctx.strokeStyle=TF_DELTA_COLORS[i];ctx.stroke(path);});ctx.restore();
   ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42;ctx.lineWidth=1;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
   if(working){ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(working.mag.length-1,Math.max(1,Math.round(f/working.sr*TF_FFT_N)));if(working.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(working.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.8;ctx.shadowColor='rgba(82,217,255,.30)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;}
-  tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
+  tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
   ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('TOP · INPUTS — REF (source) vs MIC (system)',8,14);ctx.fillText('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE',8,deltaTop-9);
   ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#8fb6c2';ctx.fillText('━ LIVE',410,14);ctx.fillStyle='#52d9ff';ctx.fillText('━ WORKING AVG',470,14);
   const trustworthy=!!(tfDelayReady&&tfWorkflowVerified&&(!live.confidence||live.confidence.label!=='LOW'));
@@ -1827,7 +1666,7 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
 
 // V5.5.56 — one full-canvas TF quantity at a time.
 function tfPrepareSelectedView(){
-  const liveSignal=tfHasReferenceSignal(),live=liveSignal?tfCurrentSnapshot({precomputed:true}):tfWorkingAverage;if(!live)return null;
+  const liveSignal=tfHasReferenceSignal(),live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return null;
   const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;
   if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
   const snap=working||live;tfDisplaySnapshot=snap;
@@ -1841,14 +1680,9 @@ function tfDrawSelectedMagnitude(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';
   [18,12,6,0,-6,-12,-18].forEach(db=>{const yy=y(db);ctx.strokeStyle=db===0?'rgba(226,236,241,.62)':'rgba(120,145,160,.15)';ctx.lineWidth=db===0?1.5:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((db>0?'+':'')+db+' dB',5,yy-3);});
-  // Magnitude remains continuous even before verification. Coherence controls
-  // emphasis, not whether useful frequency information disappears entirely.
-  const points=[];let visualDb=null;
-  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(2,Math.round(f/s.sr*TF_FFT_N))),vals=[];for(let j=-2;j<=2;j++){const v=s.mag[Math.max(1,Math.min(s.mag.length-1,k+j))];if(Number.isFinite(v))vals.push(v);}vals.sort((a,b)=>a-b);const raw=vals.length?vals[Math.floor(vals.length/2)]:0;visualDb=visualDb==null?raw:visualDb*.58+raw*.42;points.push({x:px,y:y(visualDb),coh:s.coh[k]||0});}
-  const fill=new Path2D(),allLine=new Path2D();fill.moveTo(0,zero);points.forEach((p,i)=>{i?allLine.lineTo(p.x,p.y):allLine.moveTo(p.x,p.y);fill.lineTo(p.x,p.y);});fill.lineTo(W,zero);fill.closePath();
-  const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.18)');grad.addColorStop(.5,'rgba(82,217,255,.07)');grad.addColorStop(1,'rgba(37,99,235,.18)');ctx.fillStyle=grad;ctx.fill(fill);
-  ctx.strokeStyle='#87a9b4';ctx.globalAlpha=.72;ctx.lineWidth=1.55;ctx.lineJoin='round';ctx.stroke(allLine);ctx.globalAlpha=1;
-  ctx.beginPath();let trusted=false;points.forEach(p=>{if(p.coh<tfCohGate){trusted=false;return;}trusted?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);trusted=true;});ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.7;ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;
+  const fill=new Path2D(),line=new Path2D();let pen=false;fill.moveTo(0,zero);
+  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(s.mag[k]);if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
+  fill.lineTo(W,zero);fill.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.25)');grad.addColorStop(.5,'rgba(82,217,255,.08)');grad.addColorStop(1,'rgba(37,99,235,.25)');ctx.fillStyle=grad;ctx.fill(fill);ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.7;ctx.lineJoin='round';ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke(line);ctx.shadowBlur=0;
   tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const yy=y(t.mag[k]);p?ctx.lineTo(px,yy):ctx.moveTo(px,yy);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
   tfViewHeader('MAGNITUDE · MIC − REF','0 dB = no change · above = boost · below = loss','#52d9ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
@@ -1868,15 +1702,6 @@ function tfDrawSelectedCoherence(W,plotH,xForFreq){
   tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune','#50e68c');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedView(W,plotH,nyquist,xForFreq){
-  if(loopbackAutoSyncActive){
-    ctx.save();ctx.direction='ltr';ctx.textAlign='center';
-    ctx.fillStyle='rgba(2,10,14,.72)';ctx.fillRect(0,0,W,plotH);
-    ctx.strokeStyle='rgba(82,217,255,.28)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(W*.24,plotH*.52);ctx.lineTo(W*.76,plotH*.52);ctx.stroke();
-    ctx.fillStyle='#52d9ff';ctx.font='800 16px ui-monospace,monospace';ctx.fillText('LOOPBACK · AUTO SYNC',W/2,plotH*.48);
-    ctx.fillStyle='#d9e8ed';ctx.font='11px ui-monospace,monospace';ctx.fillText(tfDelayReady?'Verifying phase and coherence…':'Matching acoustic path delay…',W/2,plotH*.48+25);
-    ctx.fillStyle='#91a4b1';ctx.font='9px ui-monospace,monospace';ctx.fillText('Keep the generator running · the TF curve will appear when ready',W/2,plotH*.48+46);
-    ctx.restore();return true;
-  }
   if(tfViewMode==='phase')return tfDrawSelectedPhase(W,plotH,xForFreq);
   if(tfViewMode==='coherence')return tfDrawSelectedCoherence(W,plotH,xForFreq);
   return tfDrawSelectedMagnitude(W,plotH,xForFreq);
@@ -1899,7 +1724,7 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.beginPath();ctx.moveTo(0,plotH);mic.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=.26;ctx.fillStyle=spectrumGradient;ctx.fill();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>{ctx.moveTo(p.x,plotH);ctx.lineTo(p.x,p.y);});ctx.strokeStyle=spectrumGradient;ctx.globalAlpha=.48;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#b7f34a';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
-  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#f1f7f9';ctx.font='750 10px ui-monospace,monospace';ctx.fillText('TF · MIC SPECTRUM ONLY',12,18);ctx.restore();
+  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',8,16);ctx.restore();
   tfDrawTrustGuide(W,plotH,false,'Next: connect a Reference channel, run Delay Sync, then Verify.');
   const drawCurve=(values,color,dash=[])=>{const bw=W/BANDS;ctx.beginPath();values.forEach((v,b)=>{const x=b*bw+bw/2,y=plotH-Math.max(0,Math.min(1,v))*plotH;b?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);};
   ctx.save();
@@ -1907,9 +1732,11 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.font='700 11px monospace';ctx.textAlign='left';
   const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
   const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
-  const legendX=12;
-  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36);
-  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',legendX+155,36);
+  const legendX=50;
+  ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(7,16,24,.86)';ctx.fillRect(legendX,8,258,40);
+  ctx.strokeStyle=sunMode?'#cbd5e1':'#294052';ctx.strokeRect(legendX,8,258,40);
+  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX+9,24);
+  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',legendX+9,41);
   ctx.textAlign='right';ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8193a2';
   ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
@@ -1931,8 +1758,8 @@ function drawDualInputRta(W,plotH,nyquist){
   const fill=(pts,color,alpha)=>{ctx.beginPath();ctx.moveTo(0,plotH);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;};
   const stroke=(pts,color,width)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();};
   fill(ref,'#ff4d5e',.32);fill(mic,'#258dff',.50);stroke(ref,'#ff4d5e',2.1);stroke(mic,'#45a5ff',2.1);
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='800 10px ui-monospace,monospace';ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',12,20);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',104,20);ctx.fillStyle=sunMode?'#334b58':'#f1f7f9';ctx.fillText('M/R',196,20);ctx.restore();
-  if(!tfHasReferenceSignal()){ctx.save();ctx.direction='ltr';ctx.textAlign='right';ctx.font='750 9px ui-monospace,monospace';ctx.fillStyle='#ff7d8a';ctx.fillText('○ REF 2 · NO SIGNAL  ·  CHECK ROUTING / INPUT',W-12,38);ctx.restore();}
+  ctx.save();ctx.font='800 10px ui-monospace,monospace';ctx.fillStyle='rgba(3,13,19,.78)';ctx.fillRect(10,10,232,27);ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',20,28);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',112,28);ctx.fillStyle=sunMode?'#334b58':'#b6c8cf';ctx.fillText('M/R',202,28);ctx.restore();
+  if(!tfHasReferenceSignal()){ctx.save();ctx.fillStyle='rgba(70,22,27,.92)';ctx.fillRect(W-244,10,232,36);ctx.strokeStyle='#ff4d5e';ctx.strokeRect(W-243.5,10.5,231,35);ctx.fillStyle='#ff9aa4';ctx.font='800 10px ui-monospace,monospace';ctx.fillText('REF 2 · NO SIGNAL',W-232,26);ctx.fillStyle='#d9e5ea';ctx.font='9px ui-monospace,monospace';ctx.fillText('Check routing / input channel',W-232,39);ctx.restore();}
   return true;
 }
 
@@ -2020,7 +1847,7 @@ function updateTfLevels(){
     }
   }
 }
-function tfMeasure(sourceKind='external'){
+function tfMeasure(){
   if(!running||!analyserRef){ alert('הפעל מיקרופון עם כרטיס קול (input סטריאו).'); return; }
   if(!tfDelayReady||!tfWorkflowVerified){ alert('תחילה השלם סנכרון ואימות TF.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
@@ -2028,14 +1855,11 @@ function tfMeasure(sourceKind='external'){
   const bins=floatData.length;
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
   tfMic=new Float64Array(bins); tfRef=new Float64Array(bins); tfFrames=0; tfState='measuring';
-  tfSweepAcquiring=isSweepSource(sourceKind);
   const btn=document.getElementById('tfMeasBtn'); btn.textContent='מודד EQ…'; btn.style.opacity=.5;
   syncTfWorkflowUi();
-  tfMeasureTimer=setTimeout(()=>{
-    tfMeasureTimer=null;
-    if(tfState!=='measuring'||!running||!audioCtx)return;
+  setTimeout(()=>{
     tfState='idle'; btn.textContent='3ב · מדוד EQ שוב'; btn.style.opacity=1;
-    tfCompute();tfSweepAcquiring=false;
+    tfCompute();
     syncTfWorkflowUi();
   },6000);
 }
@@ -2113,11 +1937,9 @@ safeOn('dlyBtn', 'click',()=>{
 });
 safeOn('dlyClose', 'click',closeModals);
 function resetDelay(){
-  cancelDelayCapture();
-  if(typeof window.resetDelayReliability==='function')window.resetDelayReliability();
   dlyState='idle';
   dlyLastPathResult=null;dlyLastSpeakerResult=null;
-  dlySpeakers.forEach((s,i)=>{ s.ms=null;s.confidence=0;s.spreadMs=null;s.polarity=null;s.name=dlyName(i); });
+  dlySpeakers.forEach((s,i)=>{ s.ms=null;s.confidence=0;s.spreadMs=null;s.name=dlyName(i); });
   dlyAnchor=0;
   resetDistanceCalibration();
   const st=document.getElementById('dlyStatus'); if(st){delete st.dataset.delayResult;st.textContent='—';}
@@ -2213,7 +2035,6 @@ function fft(re,im,inv){
 }
 
 let dlyState='idle', timeDataRef=null;
-let dlyCaptureSession=null;
 document.querySelectorAll('#meterModeSeg button').forEach(b=>b.addEventListener('click',function(){
   document.querySelectorAll('#meterModeSeg button').forEach(x=>x.classList.remove('on'));
   this.classList.add('on'); meterMode=this.dataset.m;
@@ -2252,7 +2073,6 @@ function delayChecksHtml(res){
 function delayFailureText(res,silent){
   if(silent==='mic')return 'המיקרופון לא קלט אות — בדוק גיין וחיבור.';
   if(silent==='ref')return 'כניסה 2 (Reference) שקטה — בדוק את הניתוב מהמיקסר.';
-  if(silent==='capture')return 'ההקלטה נקטעה לפני שנאספו שלוש בדיקות מלאות — נסה שוב והשאר את האפליקציה בחזית.';
   const bw=res&&Number.isFinite(res.bandwidthHz)?res.bandwidthHz:0;
   const checks=res&&Number.isFinite(res.validChecks)?res.validChecks:0;
   const conf=res&&Number.isFinite(res.confidence)?Math.round(res.confidence*100):0;
@@ -2282,8 +2102,7 @@ function renderDelayPathResult(res){
   const stableLabel=res.reliable?'STABLE ✓':'UNSTABLE';
   const bw=Number.isFinite(res.bandwidthHz)&&res.bandwidthHz>0?Math.round(res.bandwidthHz):null;
   const method=res.method==='sweep'?'SWEEP':(res.method==='noise'?'PINK / NOISE':'AUTO');
-  const polarity=res.polarity<0?' · <span style="color:var(--warn)">POLARITY INVERTED</span>':' · POLARITY NORMAL';
-  const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+'% · פיזור '+spread+polarity;
+  const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+'% · פיזור '+spread;
   const acousticDistance=(ms>0?delayMsToMeters(ms):null);
   const diagnostic='<br><span style="font-size:11px;color:var(--dim)">'+method+(bw?' · Usable bandwidth ≈ '+bw+' Hz':'')+(acousticDistance!=null?' · זמן מעבר שקול ≈ '+acousticDistance.toFixed(1)+'m':'')+'</span>';
   const alternativeValues=res.alternatives&&res.alternatives.length
@@ -2296,56 +2115,33 @@ function renderDelayPathResult(res){
   st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?' · לא ממירים את המספר הזה למרחק':'')+alternatives+'</span>'+diagnostic;
   st.dataset.delayResult='path';
 }
-function measureDelay(sourceKind='external'){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
+function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
   const st=document.getElementById('dlyStatus');
   dlyLastSpeakerResult=null;
   if(!res||!res.reliable){ dlyLastPathResult=null;delete st.dataset.delayResult;st.textContent=delayFailureText(res,silent); return; }
   dlyLastPathResult=res;
   renderDelayPathResult(res);
-},{maxDelayMs:delaySearchMs,mode:'arrival',signalType:sourceKind}); }
+},{maxDelayMs:delaySearchMs,mode:'arrival'}); }
 function delayChunkSize(sr,maxDelayMs){
   const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
   let n=8192; while(n/2-2<required&&n<65536)n*=2; return n;
 }
-function cancelDelayCapture(){
-  const s=dlyCaptureSession;if(!s)return;
-  s.cancelled=true;
-  if(s.stopTimer)clearTimeout(s.stopTimer);
-  if(s.flushTimer)clearTimeout(s.flushTimer);
-  try{s.workletNode.port.postMessage({cmd:'stop'});}catch(_){}
-  try{s.source.disconnect(s.workletNode);}catch(_){}
-  try{if(s.loopbackGain)s.loopbackGain.disconnect(s.workletNode);}catch(_){}
-  try{s.workletNode.disconnect();}catch(_){}
-  try{s.mute.disconnect();}catch(_){}
-  if(s.btn){s.btn.textContent=s.prevTxt;s.btn.style.opacity=1;s.btn.disabled=false;}
-  dlyCaptureSession=null;dlyState='idle';
-}
 function runDelayCapture(btn, cb, options){
   options=options||{};
   if(!running||!analyserRef||!source){ alert('צריך כרטיס קול עם input סטריאו (מיק\'+רפרנס).'); return; }
-  if(measureBusy()){
-    if(options.silentBusy){cb(null,'busy');return;}
-    alert('מדידה אחרת פעילה — המתן לסיומה.'); return;
-  }
+  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   unfreezeForMeasure();
   dlyState='measuring';
   const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent='בודק 1 · 2 · 3…';btn.style.opacity=.5;btn.disabled=true;}
   const sr=audioCtx.sampleRate;
-  const requestedSignal=options.signalType;
-  const signalType=isSweepSource(requestedSignal)?'sweep'
-    :(requestedSignal==='pink'||requestedSignal==='noise')?'noise'
-    :(genOn&&genType==='sweep')?'sweep'
-    :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
   const maxDelayMs=Math.max(20,Math.min(100,Number(options.maxDelayMs)||delaySearchMs));
   const minCapture=delayChunkSize(sr,maxDelayMs)*3/sr+.35;
-  const captureSec = signalType==='sweep' ? Math.max(3.2,minCapture,genSweepDur+0.8) : Math.max(3.2,minCapture);
+  const captureSec = (genOn && genType==='sweep') ? Math.min(10,Math.max(3.2,minCapture,genSweepDur+0.6)) : Math.max(3.2,minCapture);
   const want=Math.floor(sr*captureSec);
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
   try {
-    workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet',{
-      numberOfInputs:generatorLoopback&&genGain?2:1,numberOfOutputs:1,outputChannelCount:[1]
-    });
+    workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet');
   } catch(e) {
     alert('AudioWorklet לא נטען. פתח את האתר דרך שרת (למשל Live Server ב-VSCode) ולא כקובץ מתיקייה.');
     dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
@@ -2353,11 +2149,7 @@ function runDelayCapture(btn, cb, options){
   }
 
   const mute=audioCtx.createGain(); mute.gain.value=0;
-  source.connect(workletNode,0,0);
-  if(generatorLoopback&&genGain)genGain.connect(workletNode,0,1);
-  workletNode.connect(mute); mute.connect(audioCtx.destination);
-  const session={workletNode,mute,source,loopbackGain:generatorLoopback?genGain:null,btn,prevTxt,cancelled:false,stopTimer:null,flushTimer:null};
-  dlyCaptureSession=session;
+  source.connect(workletNode); workletNode.connect(mute); mute.connect(audioCtx.destination);
   
   workletNode.port.onmessage = e => {
     if (pos >= want) return;
@@ -2367,31 +2159,27 @@ function runDelayCapture(btn, cb, options){
   };
   workletNode.port.postMessage({ cmd: 'start', micChannel:measChannel, refChannel:refChannel });
 
-  session.stopTimer=setTimeout(()=>{
-    if(session.cancelled)return;
+  setTimeout(()=>{
     workletNode.port.postMessage({ cmd: 'stop' });
     // Give the worklet one message turn to flush its last partial block before
     // disconnecting and analysing the complete capture.
-    session.flushTimer=setTimeout(()=>{
-      if(session.cancelled)return;
-      try{ source.disconnect(workletNode); }catch(_){} try{ if(session.loopbackGain)session.loopbackGain.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
-      if(dlyCaptureSession===session)dlyCaptureSession=null;
+    setTimeout(()=>{
+      try{ source.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
       dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
-      const captured=Math.min(pos,want),minimum=delayChunkSize(sr,maxDelayMs)*3;
-      if(captured<minimum){cb(null,'capture');return;}
-      const micCaptured=mic.subarray(0,captured),refCaptured=ref.subarray(0,captured);
-      const m = tfSwap? refCaptured: micCaptured, r = tfSwap? micCaptured: refCaptured;
+      const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
       const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
       const micRms=rmsOf(m), refRms=rmsOf(r);
       if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
       // Tell the estimator what kind of excitation it is looking at. A swept
       // sine is narrowband inside any short analysis chunk, so it must be
       // correlated across the whole capture instead of per-chunk. Pink/white
-      // noise and unknown external signals stay on the per-chunk path.
-      // Use the excitation type captured when recording was armed.
+      // noise stays on the proven per-chunk path; anything else ('auto') tries
+      // the chunk path first and falls back to full-capture correlation.
+      const signalType=(genOn&&genType==='sweep')?'sweep'
+        :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
       const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
       if(delayResult&&delayResult.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
-        delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1,options.repeatabilityKey||options.mode||'path');
+        delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);
         window.lastDelayRepeatability=delayResult.repeatability;
       }
       cb(delayResult);
@@ -2403,11 +2191,11 @@ safeOn('dlyLoopbackBtn','click',function(){
   if(!confirm('בדיקת חיבור דורשת שאותו אות בדיוק יגיע לשתי הכניסות.\nחבר/נתב את אותו Reference ל־MIC 1 ול־REF 2, ואז המשך.'))return;
   const btn=this,st=document.getElementById('dlyStatus');
   dlyLastPathResult=null;dlyLastSpeakerResult=null;delete st.dataset.delayResult;
-  pickSource(sourceKind=>runDelayCapture(btn,(res,silent)=>{
+  pickSource(()=>runDelayCapture(btn,(res,silent)=>{
     if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
-    const ok=Math.abs(res.ms)<=.30&&res.polarity>=0;
-    st.innerHTML=(ok?'✓ החיבור מסונכרן':res.polarity<0?'⚠ הקוטביות בין הכניסות הפוכה':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, קוטביות, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
-  },{maxDelayMs:20,mode:'loopback',signalType:sourceKind}),3800);
+    const ok=Math.abs(res.ms)<=.30;
+    st.innerHTML=(ok?'✓ החיבור מסונכרן':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
+  },{maxDelayMs:20,mode:'loopback'}),3800);
 });
 
 safeOn('dlyDistanceCalBtn','click',function(){
@@ -2423,7 +2211,7 @@ safeOn('dlyDistanceCalBtn','click',function(){
   if(input)input.value=known.toFixed(1);
   resetDistanceCalibration();
   st.textContent='הצב את המיקרופון בדיוק '+known.toFixed(1)+' מטר מהרמקול והשאר את אותו ניתוב.';
-  pickSource(sourceKind=>runDelayCapture(btn,(res,silent)=>{
+  pickSource(()=>runDelayCapture(btn,(res,silent)=>{
     if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
     const check=validateDistanceCalibration(res.ms,known);
     if(!check.ok){
@@ -2441,16 +2229,16 @@ safeOn('dlyDistanceCalBtn','click',function(){
     updateDlyUnitUi();
     const clampNote=check.clamped?' · סטייה של '+Math.abs(check.rawOffsetMs).toFixed(2)+'ms נוטרלה בתחום הסבילות':'';
     st.innerHTML='✓ כיול מרחק נשמר לסשן: <b>'+known.toFixed(1)+'m</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">נמדדו '+res.ms.toFixed(2)+'ms · זמן אקוסטי צפוי '+check.acousticMs.toFixed(2)+'ms · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'+clampNote+'.</span>';
-  },{maxDelayMs:delaySearchMs,mode:'distance-calibration',signalType:sourceKind}),3800);
+  },{maxDelayMs:delaySearchMs,mode:'distance-calibration'}),3800);
 });
 
 const DLY_NAMES=['Top','Sub','FF'];
 function dlyName(i){ return DLY_NAMES[i] || ('רמקול '+(i+1)); }
-let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null,polarity:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null,polarity:null}];
+let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null}];
 let dlyAnchor=0;
 function setDlyCount(n){
   const cur=dlySpeakers.length;
-  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null,confidence:0,spreadMs:null,polarity:null}); }
+  if(n>cur){ for(let i=cur;i<n;i++) dlySpeakers.push({name:dlyName(i),ms:null,confidence:0,spreadMs:null}); }
   else if(n<cur){ dlySpeakers=dlySpeakers.slice(0,n); if(dlyAnchor>=n) dlyAnchor=0; }
   renderDlySpk();
 }
@@ -2461,14 +2249,12 @@ function renderDlySpk(){
     if(s.ms!=null && dlySpeakers[dlyAnchor] && dlySpeakers[dlyAnchor].ms!=null){
       if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן · יעד</span>';
       else{ const d=dlySpeakers[dlyAnchor].ms - s.ms;
-        const equivalentM=delayMsToMeters(Math.abs(d));add='';
-        const polarityMismatch=s.polarity!=null&&dlySpeakers[dlyAnchor].polarity!=null&&s.polarity!==dlySpeakers[dlyAnchor].polarity;
-        if(polarityMismatch)add='<span style="color:var(--warn)">⚠ קוטביות הפוכה לעוגן</span><br>';
-        if(Math.abs(d)<=.05)add+='<b style="color:var(--accent)">✓ מיושר בזמן</b>';
-        else if(d>0)add+=dlyDisplayUnit==='m'
+        const equivalentM=delayMsToMeters(Math.abs(d));
+        if(Math.abs(d)<=.05)add='<b style="color:var(--accent)">✓ מיושר לעוגן</b>';
+        else if(d>0)add=dlyDisplayUnit==='m'
           ? '<b style="color:var(--accent)">דיליי שקול +'+equivalentM.toFixed(2)+'m</b>'
           : '<b style="color:var(--accent)">הוסף '+d.toFixed(2)+' ms</b>';
-        else add+=dlyDisplayUnit==='m'
+        else add=dlyDisplayUnit==='m'
           ? '<span style="color:var(--warn)">מאוחר ב־'+equivalentM.toFixed(2)+'m<br>בחר אותו כעוגן</span>'
           : '<span style="color:var(--warn)">מאוחר ב־'+Math.abs(d).toFixed(2)+'ms<br>בחר אותו כעוגן</span>'; }
     }
@@ -2490,20 +2276,20 @@ function renderDlySpk(){
   box.querySelectorAll('.dlyMeasOne').forEach(b=>b.addEventListener('click',function(){
     const i=+this.dataset.i, btn=this;
     const status=document.getElementById('dlyStatus');dlyLastPathResult=null;dlyLastSpeakerResult=null;if(status)delete status.dataset.delayResult;
-    pickSource(sourceKind=>runDelayCapture(btn,(res,silent)=>{
-      if(res==null){ btn.textContent='נכשל'; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent='מדוד',1500); return; }
+    pickSource(()=>runDelayCapture(btn,(res,silent)=>{
+      if(res==null){ btn.textContent='נכשל'; setTimeout(()=>btn.textContent='מדוד',1500); return; }
       if(!res.reliable){ btn.textContent='לא יציב'; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent='מדוד',1800); return; }
-      dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;dlySpeakers[i].polarity=res.polarity;
+      dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;
       dlyLastSpeakerResult={index:i,result:res};renderSpeakerMeasurementStatus(i,res);
       renderDlySpk();
-    },{maxDelayMs:delaySearchMs,mode:'speaker',repeatabilityKey:'speaker:'+i,signalType:sourceKind}),3800);
+    },{maxDelayMs:delaySearchMs,mode:'speaker'}),3800);
   }));
 }
 function renderSpeakerMeasurementStatus(i,res){
   const st=document.getElementById('dlyStatus');if(!st||!res)return;
   const displayed=delayDisplayValue(res.ms,dlyDisplayUnit,dlyDistanceOffsetMs);
   const value=displayed?(displayed.unit==='m'?displayed.value.toFixed(2)+'m':displayed.value.toFixed(2)+'ms'):'נשמר · נדרש כיול להצגת מטרים';
-  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+' נשמר: <b>'+value+'</b> '+delayChecksHtml(res)+(res.polarity<0?' · <span style="color:var(--warn)">קוטביות הפוכה</span>':'')+' · עכשיו מדוד את הרמקול הבא בלי להזיז את המיקרופון.';
+  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+' נשמר: <b>'+value+'</b> '+delayChecksHtml(res)+' · עכשיו מדוד את הרמקול הבא בלי להזיז את המיקרופון.';
   st.dataset.delayResult='speaker';
 }
 document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('click',function(){
@@ -2536,7 +2322,7 @@ function computeDelay(ref, mic, sr, options){
     win[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (chunkSize - 1)));
   }
 
-  const chunkLags=[],chunkPolarities=[];
+  const chunkLags=[];
   let activeBinSum=0;
   let validChunks = 0;
   for(let c = 0; c < numChunks; c++){
@@ -2583,15 +2369,14 @@ function computeDelay(ref, mic, sr, options){
       xi[k]=w*ci/mag;
     }
     fft(xr,xi,true);
-    let localBest=-Infinity,localLag=0,localValue=0;
+    let localBest=-Infinity,localLag=0;
     for(let lag=-maxLag;lag<=maxLag;lag++){
       const idx=lag<0?chunkSize+lag:lag;
       const v=xr[idx];
       avgCorr[idx]+=v;
-      if(Math.abs(v)>localBest){localBest=Math.abs(v);localLag=lag;localValue=v;}
+      if(v>localBest){localBest=v;localLag=lag;}
     }
     chunkLags.push(localLag);
-    chunkPolarities.push(localValue<0?-1:1);
     activeBinSum+=activeBins;
     validChunks++;
   }
@@ -2607,39 +2392,36 @@ function computeDelay(ref, mic, sr, options){
     const idx=lag<0?chunkSize+lag:lag;
     const prev=(lag-1)<0?chunkSize+lag-1:lag-1;
     const next=(lag+1)<0?chunkSize+lag+1:lag+1;
-    const v=avgCorr[idx],score=Math.abs(v);
-    if(score>=Math.abs(avgCorr[prev])&&score>Math.abs(avgCorr[next])) peaks.push({lag,v,score});
+    const v=avgCorr[idx];
+    if(v>=avgCorr[prev]&&v>avgCorr[next]) peaks.push({lag,v});
   }
   if(!peaks.length)return null;
-  peaks.sort((a,b)=>b.score-a.score);
+  peaks.sort((a,b)=>b.v-a.v);
   const strongest=peaks[0];
   // Prefer the earliest plausible arrival among near-equal correlation peaks.
   // A late room reflection or one extra bass cycle must not beat the direct sound.
-  const near=peaks.filter(p=>p.score>=strongest.score*.72).sort((a,b)=>Math.abs(a.lag)-Math.abs(b.lag));
+  const near=peaks.filter(p=>p.v>=strongest.v*.82).sort((a,b)=>Math.abs(a.lag)-Math.abs(b.lag));
   const chosen=near[0]||strongest;
   const idx=chosen.lag<0?chunkSize+chosen.lag:chosen.lag;
   const left=(chosen.lag-1)<0?chunkSize+chosen.lag-1:chosen.lag-1;
   const right=(chosen.lag+1)<0?chunkSize+chosen.lag+1:chosen.lag+1;
-  const leftV=Math.abs(avgCorr[left]),centerV=Math.abs(avgCorr[idx]),rightV=Math.abs(avgCorr[right]);
-  const denom=leftV-2*centerV+rightV;
-  const frac=Math.abs(denom)>1e-12?.5*(leftV-rightV)/denom:0;
+  const denom=avgCorr[left]-2*avgCorr[idx]+avgCorr[right];
+  const frac=Math.abs(denom)>1e-12?.5*(avgCorr[left]-avgCorr[right])/denom:0;
   const lag=chosen.lag+Math.max(-.5,Math.min(.5,frac));
   const sorted=chunkLags.slice().sort((a,b)=>a-b);
   const median=sorted[Math.floor(sorted.length/2)];
   const consistent=chunkLags.filter(v=>Math.abs(v-median)<=Math.max(3,sr*.0005)).length/validChunks;
-  const polarity=chosen.v<0?-1:1;
-  const polarityConsistent=chunkPolarities.filter(v=>v===polarity).length/validChunks;
   const deviations=chunkLags.map(v=>Math.abs(v-median)/sr*1000).sort((a,b)=>a-b);
   const chunkSpreadMs=deviations[Math.min(deviations.length-1,Math.floor(deviations.length*.9))]||0;
   const rival=peaks.find(p=>Math.abs(p.lag-chosen.lag)>Math.max(4,sr*.001));
-  const separation=rival?Math.max(0,Math.min(1,(chosen.score-rival.score)/(chosen.score+1e-12))):1;
-  const confidence=Math.max(0,Math.min(1,.55*consistent+.25*separation+.20*polarityConsistent));
+  const separation=rival?Math.max(0,Math.min(1,(chosen.v-rival.v)/(Math.abs(chosen.v)+1e-12))):1;
+  const confidence=Math.max(0,Math.min(1,.65*consistent+.35*separation));
   const activeBins=activeBinSum/validChunks;
   const broadbandScore=Math.max(0,Math.min(1,(activeBins-6)/30));
   const finalConfidence=confidence*broadbandScore;
-  const alternatives=peaks.filter(p=>p!==chosen&&p.score>=strongest.score*.65).slice(0,3).map(p=>p.lag/sr*1000);
+  const alternatives=peaks.filter(p=>p!==chosen&&p.v>=strongest.v*.65).slice(0,3).map(p=>p.lag/sr*1000);
   const bandwidthHz=activeBins*sr/chunkSize;
-  return {ms:lag/sr*1000,samples:lag,polarity,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&polarityConsistent>=.67&&activeBins>=18,alternatives,maxDelayMs,activeBins,bandwidthHz,consistent,polarityConsistent,validChunks,chunkSpreadMs,method:'noise'};
+  return {ms:lag/sr*1000,samples:lag,confidence:finalConfidence,reliable:finalConfidence>=.58&&consistent>=.55&&activeBins>=18,alternatives,maxDelayMs,activeBins,bandwidthHz,consistent,validChunks,chunkSpreadMs,method:'noise'};
 }
 
 // Full-capture GCC-PHAT for non-stationary excitation (swept sine). A sweep is
@@ -2710,10 +2492,10 @@ function computeSweepDelay(ref,mic,sr,options){
       xr[k]=w*cr/mag;xi[k]=w*ci/mag;
     }
     fft(xr,xi,true);
-    let best=-Infinity,bestLag=0,bestValue=0;
+    let best=-Infinity,bestLag=0;
     for(let lag=-maxLag;lag<=maxLag;lag++){
       const idx=lag<0?N+lag:lag,v=xr[idx];
-      if(Math.abs(v)>best){best=Math.abs(v);bestLag=lag;bestValue=v;}
+      if(v>best){best=v;bestLag=lag;}
     }
     const bandwidthHz=activeBins?Math.max(0,activeHi-activeLo):0;
     // A narrow-band sub sweep has a naturally wide correlation lobe. Do not
@@ -2724,7 +2506,7 @@ function computeSweepDelay(ref,mic,sr,options){
     let second=-Infinity;
     for(let lag=-maxLag;lag<=maxLag;lag++){
       if(Math.abs(lag-bestLag)<=guard)continue;
-      const idx=lag<0?N+lag:lag;if(Math.abs(xr[idx])>second)second=Math.abs(xr[idx]);
+      const idx=lag<0?N+lag:lag;if(xr[idx]>second)second=xr[idx];
     }
     const li=(bestLag-1)<0?N+bestLag-1:bestLag-1;
     const cidx=bestLag<0?N+bestLag:bestLag;
@@ -2734,20 +2516,20 @@ function computeSweepDelay(ref,mic,sr,options){
     const lag=bestLag+Math.max(-.5,Math.min(.5,frac));
     const separation=best>0?Math.max(0,Math.min(1,(best-Math.max(0,second))/best)):0;
     const toleranceMs=Math.min(1,Math.max(.30,resolutionMs*.10));
-    results.push({ms:lag/sr*1000,samples:lag,peak:best,polarity:bestValue<0?-1:1,separation,activeBins,bandwidthHz,resolutionMs,toleranceMs});
+    results.push({ms:lag/sr*1000,samples:lag,peak:best,separation,activeBins,bandwidthHz,resolutionMs,toleranceMs});
   }
 
   const full=results[0];
   if(!full)return null;
   const tol=full.toleranceMs;
-  const checks=results.map(r=>({reliable:!!(r&&r.polarity===full.polarity&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=70&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
+  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=70&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
   const validChecks=checks.filter(c=>c.reliable).length;
   const agreeMs=results.filter((r,i)=>checks[i].reliable).map(r=>r.ms);
   const spreadMs=agreeMs.length>1?Math.max.apply(null,agreeMs)-Math.min.apply(null,agreeMs):0;
   const reliable=!!(full.separation>=.40&&full.activeBins>=60&&full.bandwidthHz>=70&&validChecks>=2&&spreadMs<=tol);
   const confidence=Math.max(0,Math.min(1,full.separation*Math.min(1,full.activeBins/120)*Math.min(1,full.bandwidthHz/100)));
   return {
-    ms:full.ms,samples:full.samples,polarity:full.polarity,confidence,reliable,stable:reliable,
+    ms:full.ms,samples:full.samples,confidence,reliable,stable:reliable,
     checks,validChecks,spreadMs,fullMs:full.ms,alternatives:[],maxDelayMs,
     activeBins:full.activeBins,bandwidthHz:full.bandwidthHz,resolutionMs:full.resolutionMs,method:'sweep'
   };
@@ -2757,7 +2539,8 @@ function computeSweepDelay(ref,mic,sr,options){
 // accepted when at least two windows agree within 0.20ms and the full capture
 // points to the same arrival. This prevents a reflection or one bass cycle from
 // silently becoming the system delay. Non-stationary excitation (a sweep) is
-// routed to computeSweepDelay. Unknown external signals stay on the noise path.
+// routed to computeSweepDelay, and any signal type gets a full-capture rescue
+// pass when the per-chunk path cannot lock.
 function computeStableDelay(ref,mic,sr,options){
   options=options||{};
   const L=Math.min(ref.length,mic.length),maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
@@ -2777,10 +2560,7 @@ function computeStableDelay(ref,mic,sr,options){
     const start=i*third,end=i===2?L:(i+1)*third;
     checks.push(computeDelay(ref.subarray(start,end),mic.subarray(start,end),sr,{maxDelayMs}));
   }
-  const independentlyValid=checks.filter(r=>r&&r.reliable);
-  const polarity=full&&full.reliable?full.polarity:
-    (independentlyValid.filter(r=>r.polarity<0).length>independentlyValid.length/2?-1:1);
-  const valid=independentlyValid.filter(r=>r.polarity===polarity).sort((a,b)=>a.ms-b.ms);
+  const valid=checks.filter(r=>r&&r.reliable).sort((a,b)=>a.ms-b.ms);
 
   let chunkResult;
   if(!valid.length){
@@ -2788,14 +2568,14 @@ function computeStableDelay(ref,mic,sr,options){
   }else{
     const medianMs=valid[Math.floor(valid.length/2)].ms;
     const spreadMs=valid.length>1?valid[valid.length-1].ms-valid[0].ms:Infinity;
-    const fullAgrees=!!(full&&full.reliable&&full.polarity===polarity&&Math.abs(full.ms-medianMs)<=.25);
+    const fullAgrees=!!(full&&full.reliable&&Math.abs(full.ms-medianMs)<=.25);
     const stable=valid.length>=2&&spreadMs<=.20&&fullAgrees;
     const base=valid.reduce((best,r)=>Math.abs(r.ms-medianMs)<Math.abs(best.ms-medianMs)?r:best,valid[0]);
     const avgConfidence=valid.reduce((sum,r)=>sum+r.confidence,0)/valid.length;
     const confidence=Math.max(0,Math.min(1,avgConfidence*(stable?1:.55)));
     const alternatives=Array.from(new Set(valid.flatMap(r=>r.alternatives||[]).map(v=>Math.round(v*10)/10))).filter(v=>Math.abs(v-medianMs)>.5).slice(0,3);
     chunkResult=Object.assign({},base,{
-      ms:medianMs,samples:medianMs*sr/1000,polarity,confidence,reliable:stable,stable,
+      ms:medianMs,samples:medianMs*sr/1000,confidence,reliable:stable,stable,
       checks,validChecks:valid.length,spreadMs,fullMs:full?full.ms:null,alternatives,maxDelayMs,
       bandwidthHz:valid.reduce((sum,r)=>sum+(Number(r.bandwidthHz)||0),0)/valid.length,method:signalType==='noise'?'noise':(base.method||'noise')
     });
@@ -2812,7 +2592,7 @@ function computeStableDelay(ref,mic,sr,options){
 
 function measureBusy(){
   return measState==='measuring' || areaState==='measuring' || tfState==='measuring'
-      || managedSourcePending || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || tfTraceCapturePending || rt60State!=='idle';
+      || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || tfTraceCapturePending || rt60State!=='idle';
 }
 function unfreezeForMeasure(){
   if(!frozen) return;
@@ -2826,9 +2606,7 @@ function measurePosition(){
   const srcData = floatData;
   measAccum=new Float64Array(srcData.length); measFrames=0; measState='measuring';
   updateEqUI();
-  eqMeasureTimer=setTimeout(()=>{
-    eqMeasureTimer=null;
-    if(measState!=='measuring'||!running||!audioCtx||!measAccum)return;
+  setTimeout(()=>{
     const bins=measAccum.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
     const db=GEQ.map(fc=>10*Math.log10(binOverlapLinearPower(measAccum,fc/R6,fc*R6,nyq,measFrames)+1e-12));
     eqPositions.push({name:'מיקום '+(eqPositions.length+1), db}); measState='idle';
@@ -2951,9 +2729,9 @@ function startRT60(){
   unfreezeForMeasure();
   rt60State='arming';
   rtStatus.innerHTML='מכין… משמיע רעש ורוד';
-  rt60GeneratorRestore={on:genOn,type:genType};
-  genType='pink';setGenTypeUI('pink');
-  genStart({preserveTfSync:true,autoSync:false});
+  const prevGenOn = genOn;
+  const restoreType=genType; genType='pink';
+  if(!genOn){ genStart(); }
   const boost=rtLevel;
   if(genGain) genGain.gain.setTargetAtTime(Math.pow(10,boost/20),audioCtx.currentTime,0.1);
   const prevSmooth=analyser.smoothingTimeConstant; analyser.smoothingTimeConstant=0;
@@ -2988,7 +2766,8 @@ function startRT60(){
         rt60State='idle'; 
         if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
         analyser.smoothingTimeConstant=prevSmooth;
-        restoreRt60Generator(true);
+        if(!prevGenOn) genStop(); 
+        genType=restoreType;
         analyzeRT60();
       },2500);
     },400);
@@ -3096,12 +2875,6 @@ document.addEventListener('click',()=>{
   const chip=document.getElementById('v3ResChip');if(chip)chip.setAttribute('aria-expanded','false');
 });
 function setFft(n){
-  if(measureBusy()){
-    v3Toast('לא משנים FFT בזמן מדידה — המתן לסיום או אפס את הסשן');
-    const io=document.getElementById('v52FftSelect');if(io)io.value=String(fftSize);
-    document.querySelectorAll('#fftSeg button').forEach(b=>b.classList.toggle('on',Number(b.dataset.n)===fftSize));
-    return false;
-  }
   const supported=(window.GAL&&window.GAL.config&&window.GAL.config.supportedFft)||[8192,16384,32768];
   n=parseInt(n,10);
   fftSize=supported.includes(n)?n:16384;
@@ -3119,7 +2892,6 @@ function setFft(n){
     _pfx=null; _pfxRef=null; avgBuf.fill(NaN); _lastRtaSmoothTime=0;
   }
   setRtaResolution(curBpo);
-  return true;
 }
 document.querySelectorAll('#fftSeg button').forEach(b=>b.addEventListener('click',function(){
   document.querySelectorAll('#fftSeg button').forEach(x=>x.classList.remove('on'));
@@ -3148,9 +2920,6 @@ safeOn('startBtn', 'click',()=>start());
 safeOn('stopBtn', 'click',resetSession);
 function resetSession(){
   if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
-  cancelManagedSourceRun(true);cancelTimedMeasurements();abortRT60(false);
-  tfTraceCapturePending=false;if(tfTraceCaptureTimer){clearTimeout(tfTraceCaptureTimer);tfTraceCaptureTimer=null;}
-  pendingMeasureFn=null;pendingSourceOptions=null;srcOverlay.classList.remove('show');
   resetTfAutoDelay();
   const tr = stream && stream.getAudioTracks && stream.getAudioTracks()[0];
   if(running && (!tr || tr.readyState==='ended')){ stop(); start(); return; }
@@ -3188,7 +2957,7 @@ function setMode(m){
   document.getElementById('v53AnalysisToggle')?.classList.toggle('on',m==='rta');
   document.getElementById('v54WaterfallToggle')?.classList.toggle('on',m==='spec');
   if(specCtx){
-    specCtx.fillStyle=sunMode ? '#f8fafc' : '#010609';
+    specCtx.fillStyle=sunMode ? '#f8fafc' : '#0d1117';
     specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);
   }
 }
@@ -3206,7 +2975,6 @@ function buildWeighting(nyquist,bins){
 
 async function start(deviceId){
   errBox.style.display='none';
-  cancelDelayCapture();
   // Compensation is valid only for the current physical routing.
   resetTfAutoDelay();
   resetDistanceCalibration();
@@ -3243,9 +3011,6 @@ async function start(deviceId){
     const track = stream.getAudioTracks()[0];
     track.addEventListener('ended',()=>{
       if(!running) return;
-      cancelManagedSourceRun(true);cancelTimedMeasurements();cancelDelayCapture();abortRT60(false);
-      tfTraceCapturePending=false;if(tfTraceCaptureTimer){clearTimeout(tfTraceCaptureTimer);tfTraceCaptureTimer=null;}
-      cancelTfWorkflowVerification();resetTfAutoDelay();
       errBox.style.display='block';
       errBox.textContent='מקור הקלט נותק. חבר מחדש ולחץ "אפס סשן".';
     });
@@ -3273,11 +3038,11 @@ async function start(deviceId){
     analyserMeter = audioCtx.createAnalyser();
     analyserMeter.fftSize = 2048;
 
-    inputSplitter = audioCtx.createChannelSplitter(2);
-    source.connect(inputSplitter);
+    const splitter = audioCtx.createChannelSplitter(2);
+    source.connect(splitter);
 
-    inputSplitter.connect(analyser, measChannel);
-    refreshReferenceRouting();
+    splitter.connect(analyser, measChannel);
+    splitter.connect(analyserRef, refChannel);
     source.connect(analyserMeter);
 
     floatData = new Float32Array(analyser.frequencyBinCount);
@@ -3290,8 +3055,7 @@ async function start(deviceId){
     resize();
     peaks.fill(0); fbTrack.clear(); fbPanel.innerHTML = ''; lvlPeak = -120;
     leqSumP = 0; leqN = 0; splMax = -120;
-    smoothedDbfs = -120;meterSmoothAt=0;meterTextAt=0;
-    v52MeasDbfs=-120;v52RefDbfs=-120;v52MeasPeakDbfs=-120;v52RefPeakDbfs=-120;v52MeterUpdateAt=0;v52MeterPaintAt=0;
+    smoothedDbfs = -120;
     running = true; idle.style.display = 'none'; dot.classList.add('live'); v3UpdateStatus();
     meterEl.style.display = 'flex'; document.getElementById('stats').style.display = 'flex';
     document.getElementById('stopBtn').style.display = '';
@@ -3348,34 +3112,29 @@ safeOn('outSel', 'change',async e=>{
 
 async function switchInput(deviceId){
   if(!running) return;
-  await stop();
-  tfResult=null;
+  if(raf) cancelAnimationFrame(raf);
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  if(audioCtx) await audioCtx.close();
   await start(deviceId);
 }
 
 function stop(){
   running=false; if(raf) cancelAnimationFrame(raf);
-  cancelManagedSourceRun(true);cancelTimedMeasurements();abortRT60(false);
-  pendingMeasureFn=null;pendingSourceOptions=null;srcOverlay.classList.remove('show');
-  cancelDelayCapture();
-  tfSweepAcquiring=false;
-  tfTraceCapturePending=false;
-  if(tfTraceCaptureTimer){clearTimeout(tfTraceCaptureTimer);tfTraceCaptureTimer=null;}
-  cancelTfWorkflowVerification();
   resetTfAutoDelay();
   resetDistanceCalibration();
-  rt60State='idle';dlyState='idle';
-  analyserRef=null; inputSplitter=null; floatDataRef=null; tfState='idle'; eqCurveData=null;
+  if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
+  if(rt60ArmTimer){clearTimeout(rt60ArmTimer);rt60ArmTimer=null;}if(rt60CutTimer){clearTimeout(rt60CutTimer);rt60CutTimer=null;}if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
+  rt60State='idle'; measState='idle'; areaState='idle'; dlyState='idle';
+  analyserRef=null; floatDataRef=null; tfState='idle'; eqCurveData=null;
   genSrc=null; genOsc=null; genGain=null; genOn=false;
   const gb=document.getElementById('genOnBtn'); if(gb){gb.classList.remove('on');gb.textContent='▶ הפעל אות';}
   if(stream) stream.getTracks().forEach(t=>t.stop());
-  const closing=audioCtx&&audioCtx.state!=='closed'?audioCtx.close().catch(()=>{}):Promise.resolve();
+  if(audioCtx) audioCtx.close();
   dot.classList.remove('live'); idle.style.display='flex';
   document.getElementById('stopBtn').style.display='none';
   meterEl.style.display='none'; document.getElementById('stats').style.display='none';
   peakHzEl.textContent='—'; fbPanel.innerHTML='';
   ctx.clearRect(0,0,cv.clientWidth,cv.clientHeight);
-  return closing;
 }
 
 function norm(db){ return Math.max(0,Math.min(1,(db-floorDb)/(ceilDb-floorDb))); }
@@ -3430,36 +3189,25 @@ function heat(t){
   return 'rgb('+r+','+g+','+b+')';
 }
 function fLabel(f){return f>=1000?(f%1000?(f/1000).toFixed(1):f/1000)+'k':''+f;}
-const SHARED_FREQ_TICKS=[31.5,50,100,200,500,1000,2000,5000,10000,20000];
-function drawSharedFrequencyAxis(W,axisTop,xForFreq,lo,hi){
-  const axisH=23,ticks=SHARED_FREQ_TICKS.filter(f=>f>=lo&&f<=hi);
-  ctx.save();ctx.direction='ltr';
-  ctx.fillStyle=sunMode?'rgba(244,248,251,.96)':'rgba(3,14,20,.94)';ctx.fillRect(0,axisTop,W,axisH);
-  ctx.strokeStyle=sunMode?'rgba(55,92,112,.30)':'rgba(91,190,211,.30)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,axisTop+.5);ctx.lineTo(W,axisTop+.5);ctx.stroke();
-  ctx.font='700 11.5px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.fillStyle=sunMode?'#263f4d':'#d2e5ec';ctx.textBaseline='middle';
-  ticks.forEach((f,i)=>{const x=xForFreq(f);ctx.strokeStyle=sunMode?'#668594':'#5ea6b7';ctx.beginPath();ctx.moveTo(x,axisTop);ctx.lineTo(x,axisTop+5);ctx.stroke();ctx.textAlign=i===0?'left':i===ticks.length-1?'right':'center';ctx.fillText(fLabel(f)+'Hz',x,axisTop+14);});
-  ctx.restore();
-}
 
 function updateLevel(){
   if(!analyserMeter) return;
   analyserMeter.getFloatTimeDomainData(timeDataMeter);
   const dbfs = levelDb(timeDataMeter, 2048);
+
+  if (dbfs > smoothedDbfs) {
+    smoothedDbfs += (dbfs - smoothedDbfs) * 0.55;
+  } else {
+    smoothedDbfs += (dbfs - smoothedDbfs) * 0.035;
+  }
+
   const now=performance.now();
-  const dt=meterSmoothAt?Math.max(.008,Math.min(.2,(now-meterSmoothAt)/1000)):1/30;
-  meterSmoothAt=now;
-  const tau=dbfs>smoothedDbfs ? .075 : .42;
-  const alpha=1-Math.exp(-dt/tau);
-  smoothedDbfs=smoothedDbfs<=-119?dbfs:smoothedDbfs+(dbfs-smoothedDbfs)*alpha;
   if(smoothedDbfs>lvlPeak || now-lvlPeakT>1500){ lvlPeak=smoothedDbfs; lvlPeakT=now; }
   const pct=v=>Math.max(0,Math.min(100,(v+60)/60*100));
   meterFill.style.width=pct(smoothedDbfs)+'%';
   meterPeak.style.insetInlineStart=pct(lvlPeak)+'%';
-  if(now-meterTextAt>=100){
-    meterTextAt=now;
-    if(meterUnit==='SPL') meterVal.textContent=(smoothedDbfs+calib).toFixed(0)+' dB SPL≈';
-    else meterVal.textContent=smoothedDbfs.toFixed(1)+' dBFS';
-  }
+  if(meterUnit==='SPL') meterVal.textContent=(smoothedDbfs+calib).toFixed(0)+' dB SPL≈';
+  else meterVal.textContent=smoothedDbfs.toFixed(1)+' dBFS';
 
   const w = weightMode==='A'?weightA : weightMode==='C'?weightC : null;
   let p=0;
@@ -3496,7 +3244,7 @@ function draw(){
     for(let i=0;i<srcData.length;i++) areaAccum[i]+=db2lin(srcData[i]);
     areaFrames++;
   }
-  if(analyserRef && floatDataRef && (tfState==='measuring' || tfPanel.classList.contains('open') || v5WorkspaceMode==='tf' || alignOn || tfWorkflowVerifying || phMeasuring || tfTraceCapturePending)){
+  if(analyserRef && floatDataRef && (tfState==='measuring' || tfPanel.classList.contains('open'))){
     analyserRef.getFloatFrequencyData(floatDataRef);
     if(tfState==='measuring' && tfMic){
       const mic = tfSwap? floatDataRef : floatData;
@@ -3558,13 +3306,6 @@ function draw(){
   const nyquist=audioCtx.sampleRate/2, bins=floatData.length;
   const logMin=Math.log(ISO[0]), logMax=Math.log(ISO[BANDS-1]);
   const xForFreq=f=>((Math.log(f)-logMin)/(logMax-logMin))*W;
-  const tfEngineActive=!!(analyserRef&&floatDataRef&&(v5WorkspaceMode==='tf'||alignOn||tfWorkflowVerifying||phMeasuring||tfTraceCapturePending));
-  if(tfEngineActive&&tfHasReferenceSignal()){
-    computeComplexTf();
-    if(tfTraceCapturePending&&v5WorkspaceMode!=='tf'){
-      const backgroundTf=tfCurrentSnapshot({precomputed:true});if(backgroundTf)updateTfWorkingAverage(backgroundTf);
-    }
-  }
 
   if(mode==='rta'){
     drawRta(W,H,nyquist,bins,xForFreq);
@@ -3611,16 +3352,10 @@ function computeComplexTf(){
     const corrected=applyDelayPhaseToCross(rawRe,rawIm,k,N,tfDelaySamples);
     const pxyRe=corrected.re,pxyIm=corrected.im;
 
-    if(tfSweepAcquiring){
-      // A sweep visits each frequency once. Accumulate every visited bin so
-      // low frequencies are still present when the sweep reaches the highs.
-      tfPxx[k]+=pxx;tfPyy[k]+=pyy;tfPxyRe[k]+=pxyRe;tfPxyIm[k]+=pxyIm;
-    }else{
-      tfPxx[k] = alpha * tfPxx[k] + (1 - alpha) * pxx;
-      tfPyy[k] = alpha * tfPyy[k] + (1 - alpha) * pyy;
-      tfPxyRe[k] = alpha * tfPxyRe[k] + (1 - alpha) * pxyRe;
-      tfPxyIm[k] = alpha * tfPxyIm[k] + (1 - alpha) * pxyIm;
-    }
+    tfPxx[k] = alpha * tfPxx[k] + (1 - alpha) * pxx;
+    tfPyy[k] = alpha * tfPyy[k] + (1 - alpha) * pyy;
+    tfPxyRe[k] = alpha * tfPxyRe[k] + (1 - alpha) * pxyRe;
+    tfPxyIm[k] = alpha * tfPxyIm[k] + (1 - alpha) * pxyIm;
   }
 }
 
@@ -3628,12 +3363,6 @@ function applyDelayPhaseToCross(re,im,k,n,delaySamples){
   if(!delaySamples)return {re,im};
   const phase=2*Math.PI*k*delaySamples/n,c=Math.cos(phase),s=Math.sin(phase);
   return {re:re*c-im*s,im:re*s+im*c};
-}
-function tfH1MagnitudeDb(pxx,pxyRe,pxyIm){
-  return 20*Math.log10(Math.hypot(pxyRe,pxyIm)/(pxx+1e-20)+1e-20);
-}
-function tfCoherence(pxx,pyy,pxyRe,pxyIm){
-  return Math.max(0,Math.min(1,(pxyRe*pxyRe+pxyIm*pxyIm)/(pxx*pyy+1e-20)));
 }
 
 function drawRtaEqRange(W,H,xForFreq){
@@ -3692,7 +3421,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   [20,31.5,50,100,200,500,1000,2000,5000,10000,20000].filter(f=>f>=lo&&f<=hi).forEach(f=>{
     const x=xForFreq(f);
     ctx.globalAlpha=.6; ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,plotH);ctx.stroke(); ctx.globalAlpha=1;
-    // Frequency labels are redrawn above the spectrum at the end of the frame.
+    ctx.fillText(fLabel(f)+'Hz',x,labelY);
   });
   [0.25,0.5,0.75].forEach(p=>{ctx.globalAlpha=.3;ctx.strokeStyle=sunMode?'#cbd5e1':'#2b3646';ctx.beginPath();ctx.moveTo(0,plotH*p);ctx.lineTo(W,plotH*p);ctx.stroke();ctx.globalAlpha=1;});
 
@@ -3739,6 +3468,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       lastRefV[b]=lastRefV[b]*a+rv*(1-a);
     }
     
+    if(tfOpen)computeComplexTf();
     // V5.5.3 TF Pro: when TF is selected, the main graph is the transfer
     // magnitude response. Raw MIC/REF curves remain available before TF opens.
     if(!alignView){
@@ -3970,7 +3700,10 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     if(tfRequested && !alignOn && !tfHasReferenceSignal()){
       ctx.save();ctx.font='600 10px monospace';ctx.textAlign='right';
       const message='Reference low · MIC 1 + REF 2 remain live';
-      ctx.fillStyle=sunMode?'#475569':'#d4e2e7';ctx.fillText('○ '+message,W-12,36);ctx.restore();
+      const w=ctx.measureText(message).width+16;
+      ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(10,20,28,.88)';ctx.fillRect(W-w-8,8,w,24);
+      ctx.strokeStyle=sunMode?'#cbd5e1':'#385064';ctx.strokeRect(W-w-8,8,w,24);
+      ctx.fillStyle=sunMode?'#475569':'#b9c7d3';ctx.fillText(message,W-16,24);ctx.restore();
     }
   }
 
@@ -4065,8 +3798,6 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.fillStyle='rgba(80,230,140,.9)'; ctx.font='10px monospace'; ctx.textAlign='end';
     ctx.fillText(tfOpen?(targetMode==='house'?'Target House · TF':'Target 0dB · TF'):(targetMode==='house'?'יעד House':'יעד שטוח'), W-8, 12);
   }
-  // Keep the frequency scale readable above dense bars and filled TF spectra.
-  drawSharedFrequencyAxis(W,plotH-23,xForFreq,lo,hi);
   if(cursorX!=null && cursorX>=0 && cursorX<=W){
     const cf=freqForX(cursorX);
     const bi=Math.max(0,Math.min(BANDS-1,Math.floor(cursorX/bw)));
@@ -4157,28 +3888,6 @@ function interpolatedSpectrumHz(data,index,nyquist){
   }
   return (index+offset)*nyquist/data.length;
 }
-function medianNumber(values){
-  if(!values?.length)return 0;
-  const sorted=values.slice().sort((a,b)=>a-b),mid=sorted.length>>1;
-  return sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])*.5;
-}
-// Sub-bin peak position plus a robust local floor prevents broad programme
-// energy from pulling a narrow tone toward the centre of an ISO band.
-function spectralPeakCandidates(data,nyquist,minHz=20,maxHz=20000){
-  const bins=data?.length||0;if(bins<7||!nyquist)return [];
-  const binHz=nyquist/bins,lo=Math.max(2,Math.ceil(minHz/binHz)),hi=Math.min(bins-3,Math.floor(Math.min(maxHz,nyquist*.98)/binHz)),out=[];
-  for(let i=lo;i<=hi;i++){
-    const db=data[i];if(!Number.isFinite(db)||!(db>data[i-1]&&db>=data[i+1]))continue;
-    const radius=Math.max(10,Math.min(48,Math.round(i*.035))),noise=[];
-    for(let j=Math.max(1,i-radius);j<=Math.min(bins-2,i+radius);j++)if(Math.abs(j-i)>3&&Number.isFinite(data[j]))noise.push(data[j]);
-    const floor=medianNumber(noise),prom=db-floor;if(prom<2.5)continue;
-    const hz=interpolatedSpectrumHz(data,i,nyquist),edge=db-3;let left=i,right=i;
-    while(left>lo&&data[left]>edge)left--;while(right<hi&&data[right]>edge)right++;
-    const widthHz=Math.max(binHz,(right-left)*binHz),q=hz/widthHz;
-    out.push({index:i,hz,db,prom,floor,q,widthHz});
-  }
-  return out.sort((a,b)=>(b.prom+Math.min(18,b.q)*.18)-(a.prom+Math.min(18,a.q)*.18));
-}
 function preciseSpectrumPeakHz(data,centerHz,nyquist){
   const bins=data?.length||0;if(!bins||!centerHz)return centerHz||0;
   const radius=Math.pow(2,1/12);
@@ -4192,10 +3901,12 @@ function spectrumPeakDetail(data,centerHz,nyquist){
   const bins=data?.length||0;if(!bins)return {hz:centerHz||0,prom:0,db:-120};
   const radius=Math.pow(2,1/12),lo=Math.max(2,Math.floor(centerHz/radius/nyquist*bins));
   const hi=Math.min(bins-3,Math.ceil(centerHz*radius/nyquist*bins));
-  const best=spectralPeakCandidates(data,nyquist,centerHz/radius,centerHz*radius)[0];
-  if(best)return {hz:best.hz,prom:best.prom,db:best.db,q:best.q,widthHz:best.widthHz};
   let peak=lo;for(let i=lo+1;i<=hi;i++)if(data[i]>data[peak])peak=i;
-  return {hz:interpolatedSpectrumHz(data,peak,nyquist),prom:0,db:data[peak],q:0,widthHz:0};
+  let sum=0,n=0;
+  for(let i=Math.max(1,peak-24);i<=Math.min(bins-2,peak+24);i++){
+    if(Math.abs(i-peak)>3&&Number.isFinite(data[i])){sum+=data[i];n++;}
+  }
+  return {hz:interpolatedSpectrumHz(data,peak,nyquist),prom:data[peak]-(n?sum/n:data[peak]),db:data[peak]};
 }
 function updateWaterfallResonances(nyquist){
   if(!wfResonance.enabled||frozen||!floatData?.length)return;
@@ -4214,8 +3925,8 @@ function updateWaterfallResonances(nyquist){
     const local=neigh.reduce((a,v)=>a+v,0)/neigh.length,prom=db-local;
     const detail=spectrumPeakDetail(floatData,fc,nyquist);
     const measuredHz=(prom>=wfResonance.minPromDb*.65||detail.prom>=7)?detail.hz:fc;
-    let t=wfResonance.tracks.get(b)||{hz:measuredHz,hzSamples:[],ema:db,var:0,prom,narrowProm:detail.prom,score:0,hits:0,total:0};
-    t.hzSamples=(t.hzSamples||[]).concat(measuredHz).slice(-9);t.hz=medianNumber(t.hzSamples);
+    let t=wfResonance.tracks.get(b)||{hz:measuredHz,ema:db,var:0,prom,narrowProm:detail.prom,score:0,hits:0,total:0};
+    t.hz+=.38*(measuredHz-t.hz);
     const d=db-t.ema;t.ema+=.16*d;t.var=.86*t.var+.14*d*d;t.prom=.78*t.prom+.22*prom;
     t.narrowProm=.72*(t.narrowProm||0)+.28*detail.prom;t.total++;
     if((t.prom>=wfResonance.minPromDb||t.narrowProm>=7)&&Math.sqrt(Math.max(0,t.var))<3.2){t.hits++;t.score=Math.min(1,t.score+(t.narrowProm>=10?.10:.075));}
@@ -4295,24 +4006,14 @@ function drawWaterfallResonanceOverlay(W,specH,xForFreq){
     const q=waterfallConfidence(r);
     return r.validated||((r.score||0)>=.72&&((r.prom||0)>=4||(r.narrowProm||0)>=8)&&q>=.62);
   }).slice(0,3);
-  ctx.font='700 9px ui-monospace,SFMono-Regular,Menlo,monospace';
-  const occupied=[[],[],[]],labels=visible.map(r=>{
-    const x=xForFreq(r.hz),q=waterfallConfidence(r),text=Math.round(r.hz)+' Hz · '+Math.round(q*100)+'%',width=ctx.measureText(text).width+10;
-    let lane=0,labelX=Math.max(width/2+4,Math.min(W-width/2-4,x));
-    for(;lane<occupied.length;lane++){
-      const hit=occupied[lane].some(box=>labelX+width/2+6>box.left&&labelX-width/2-6<box.right);
-      if(!hit)break;
-    }
-    lane=Math.min(lane,occupied.length-1);occupied[lane].push({left:labelX-width/2,right:labelX+width/2});
-    return {r,x,q,text,labelX,labelY:11+lane*15};
-  });
-  labels.forEach(({r,x,q,text,labelX,labelY})=>{
-    if(x<0||x>W)return;
+  visible.forEach((r,i)=>{
+    const x=xForFreq(r.hz);if(x<0||x>W)return;
+    const q=waterfallConfidence(r),hz=Math.round(r.hz)+' Hz';
     ctx.strokeStyle=r.validated?'rgba(60,224,177,.34)':'rgba(245,190,70,.26)';ctx.lineWidth=1;ctx.setLineDash([3,7]);
     ctx.beginPath();ctx.moveTo(x,22);ctx.lineTo(x,specH-25);ctx.stroke();ctx.setLineDash([]);
-    ctx.beginPath();ctx.moveTo(x,20);ctx.lineTo(labelX,labelY+3);ctx.stroke();
     ctx.beginPath();ctx.arc(x,20,3.5,0,Math.PI*2);ctx.fillStyle=r.validated?'#48dfb4':'#e8bd55';ctx.fill();
-    ctx.textAlign='center';ctx.fillStyle=r.validated?'#8be8cd':'#d7bd78';ctx.fillText(text,labelX,labelY);
+    ctx.font='700 9px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';ctx.fillStyle=r.validated?'#8be8cd':'#d7bd78';
+    ctx.fillText(hz+' · '+Math.round(q*100)+'%',x,11);
   });
   ctx.restore();
   const metric=document.getElementById('uiCtxMetric');
@@ -4427,7 +4128,12 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     g.addColorStop(0,'rgba(255,45,82,.19)');g.addColorStop(.28,'rgba(255,194,0,.16)');g.addColorStop(.56,'rgba(0,232,151,.13)');g.addColorStop(1,'rgba(42,62,255,.09)');
     ctx.fillStyle=g;ctx.fill();
   }
-  drawSharedFrequencyAxis(W,H-23,xForFreq,ISO[0],Math.min(ISO[BANDS-1],nyquist*.96));
+  ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font='10px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';
+  [20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{
+    if(f>Math.min(20000,nyquist*.96))return;
+    const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left);
+    ctx.fillText(f>=1000?(f/1000)+'k':f,x,H-9);
+  });
   // Level scale inside the plot, matching the compact reference instrument style.
   ctx.textAlign='left';ctx.fillStyle=sunMode?'#475569':'#93a3ad';ctx.fillText('dB SPL',7,13);
   for(let j=0;j<=4;j++){
@@ -4477,23 +4183,38 @@ const FB_CONFIRM=18;
 const FB_MAXSWING=2.5;
 function detectFeedback(nyquist,bins){
   const PROM=fbProm;
+  const win=24;
   const seen=new Set();
-  const candidates=spectralPeakCandidates(floatData,nyquist,120,10000).filter(c=>c.db>=FB_MINDB&&c.prom>=PROM);
-  for(const candidate of candidates.slice(0,12)){
-    const d=candidate.db,prom=candidate.prom,hz=candidate.hz,q=Math.max(2,Math.min(60,candidate.q));
+  const iLo=Math.max(2,Math.floor(120/nyquist*bins));
+  const iHi=Math.min(bins-2,Math.floor(10000/nyquist*bins));
+  for(let i=iLo;i<=iHi;i++){
+    const d=floatData[i];
+    if(d<FB_MINDB) continue;
+    if(!(d>floatData[i-1]&&d>=floatData[i+1])) continue;
+    let sum=0,n=0;
+    for(let j=i-win;j<=i+win;j++){ if(Math.abs(j-i)>2&&j>=0&&j<bins){sum+=floatData[j];n++;} }
+    const avg=sum/Math.max(1,n);
+    const prom=d-avg;
+    if(prom<PROM) continue;
+    let li=i, ri=i;
+    while(li>1 && floatData[li]>d-3) li--;
+    while(ri<bins-1 && floatData[ri]>d-3) ri++;
+    const bw3=Math.max(1,(ri-li))*nyquist/bins;
+    const hz=Math.round(i*nyquist/bins);
+    const q=Math.max(2,Math.min(30, hz/bw3));
     if(q<FB_MINQ) continue;
     const cut=Math.max(3,Math.min(12, Math.round(prom*0.7)));
-    const tolerance=Math.max(nyquist/bins*2.2,hz*(Math.pow(2,12/1200)-1));
-    let key=null,rec=null,bestDistance=Infinity;
-    for(const [existingKey,existing] of fbTrack){const distance=Math.abs(hz-existing.hz);if(distance<=tolerance&&distance<bestDistance){key=existingKey;rec=existing;bestDistance=distance;}}
-    if(key==null)key=++fbTrackSerial;
+    const key=Math.round(hz/ (hz<300?4:hz<2000?10:40));
     seen.add(key);
+    const tol = hz<300?5:hz<2000?14:50;
+    const rec=fbTrack.get(key);
     if(rec){
-      rec.hold=Math.min(FB_CONFIRM+30,rec.hold+1);
+      if(Math.abs(hz-rec.hz)<=tol) rec.hold=Math.min(FB_CONFIRM+30, rec.hold+1);
+      else rec.hold=Math.max(0, rec.hold-3);
       rec.swing = rec.swing*0.8 + Math.abs(d-rec.db)*0.2;
-      rec.hzSamples=rec.hzSamples.concat(hz).slice(-11);rec.db=d;rec.hz=medianNumber(rec.hzSamples);rec.cut=cut;rec.q=q;rec.prom=prom;
+      rec.db=d; rec.hz=hz; rec.cut=cut; rec.q=q;
     } else {
-      fbTrack.set(key,{hold:1,swing:0,db:d,hz,hzSamples:[hz],cut,q,prom});
+      fbTrack.set(key,{hold:1, swing:0, db:d, hz:hz, cut:cut, q:q});
     }
   }
   for(const [k,rec] of fbTrack){ if(!seen.has(k)){ rec.hold-=3; if(rec.hold<=0) fbTrack.delete(k);} }
@@ -4672,7 +4393,7 @@ function updateAlignmentRecommendation(){
     document.getElementById('alignProResult')?.classList.remove('show');
     document.getElementById('alignProApply')?.classList.remove('show');
     if(!tfDelayReady) el.innerHTML='<strong>שלב 1:</strong><span>השאר טופ בלבד ובצע סנכרון TF</span>';
-    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר Sweep, רעש ורוד רחב־פס או מקור חיצוני</span>';
+    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר רעש ורוד פנימי או מקור חיצוני</span>';
     else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, לחץ מדוד טופ ובחר את אותו מקור אות</span>';
     scheduleAlignBarResize();
     return;
@@ -4727,8 +4448,9 @@ function tfPhaseSnapshot(){
   const n=TF_FFT_N/2, ph=new Float32Array(n), coh=new Float32Array(n), mag=new Float32Array(n);
   for(let k=0;k<n;k++){
     ph[k]=Math.atan2(tfPxyIm[k], tfPxyRe[k]);
-    coh[k]=tfCoherence(tfPxx[k],tfPyy[k],tfPxyRe[k],tfPxyIm[k]);
-    mag[k]=tfH1MagnitudeDb(tfPxx[k],tfPxyRe[k],tfPxyIm[k]);
+    const pxySq=tfPxyRe[k]*tfPxyRe[k]+tfPxyIm[k]*tfPxyIm[k];
+    coh[k]=Math.max(0,Math.min(1, pxySq/(tfPxx[k]*tfPyy[k]+1e-12)));
+    mag[k]=20*Math.log10(Math.hypot(tfPxyRe[k],tfPxyIm[k])/(tfPxx[k]+1e-12)+1e-12);
   }
   return {ph,coh,mag,sr:audioCtx?audioCtx.sampleRate:48000,fftN:TF_FFT_N};
 }
@@ -4753,22 +4475,18 @@ function syncSubTopWorkflowUi(){
 }
 function clearSubTopSnapshots(message){
   if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}
-  phMeasuring=false;tfSweepAcquiring=false;phaseSub=null;phaseTop=null;subTopSourceKind=null;showXover=false;alignRecommendation=null;
+  phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;
   const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
   const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
   const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב ואז טופ — בכל שלב בחר רעש ורוד פנימי או מקור חיצוני.';st.style.color='var(--dim)';}
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
 }
-function capturePhase(which,sourceKind='external'){
+function capturePhase(which){
   if(!analyser || !analyserRef){ alert('פאזה דורשת מדידת מיק/רפרנס פעילה (רפרנס בערוץ 2).'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   if(!tfDelayReady){ alert('תחילה בצע את שלב 1 — סנכרון TF.'); return; }
   if(which==='top'&&!phaseSub){ alert('תחילה בצע את שלב 2 — מדידת הסאב לבדו.'); return; }
-  if(which==='top'&&subTopSourceKind&&sourceKind!==subTopSourceKind){
-    alert('כדי להשוות נכון, מדוד את הסאב והטופ עם אותו מקור: '+(subTopSourceKind==='sweep'?'Sweep פנימי':subTopSourceKind==='external-sweep'?'Sweep חיצוני':subTopSourceKind==='pink'?'Pink Noise':'External'));
-    return;
-  }
   phMeasuring=true;
   const btn=document.getElementById(which==='sub'?'phSubBtn':'phTopBtn');
   const other=document.getElementById(which==='sub'?'phTopBtn':'phSubBtn');
@@ -4781,18 +4499,15 @@ function capturePhase(which,sourceKind='external'){
   updateAlignmentRecommendation();
   // אפס צוברים לחלון מדידה נקי
   tfPxx.fill(0); tfPyy.fill(0); tfPxyRe.fill(0); tfPxyIm.fill(0);
-  tfSweepAcquiring=isSweepSource(sourceKind);
-  let t=isSweepSource(sourceKind)?Math.max(4,Math.ceil(genSweepDur+.5)):3;
-  const sourceLabel=sourceKind==='sweep'?'Sweep פנימי מלא':sourceKind==='external-sweep'?'Sweep חיצוני מלא':sourceKind==='pink'?'Pink Noise רחב־פס':'מקור חיצוני';
-  const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+' עם '+sourceLabel+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
+  let t=3;
+  const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
   tick();
   phMeasureTimer=setInterval(()=>{
     t--;
     if(t>0){ tick(); return; }
     clearInterval(phMeasureTimer);phMeasureTimer=null;
-    const snap=tfPhaseSnapshot();tfSweepAcquiring=false;
-    snap.sourceKind=sourceKind;
-    if(which==='sub'){phaseSub=snap;subTopSourceKind=sourceKind;}else phaseTop=snap;
+    const snap=tfPhaseSnapshot();
+    if(which==='sub') phaseSub=snap; else phaseTop=snap;
     showXover=true;
     const N2=TF_FFT_N/2, nyq=(typeof audioCtx!=='undefined'&&audioCtx)?audioCtx.sampleRate/2:24000;
     const k=Math.min(N2-1, Math.round(xoverF/nyq*N2));
@@ -4810,8 +4525,8 @@ function capturePhase(which,sourceKind='external'){
     updateAlignmentRecommendation();
   },1000);
 }
-safeOn('phSubBtn','click',()=>pickSource(kind=>capturePhase('sub',kind),3200,{title:'אות למדידת הסאב לבדו · Pink Noise הוא רחב־פס; הסאב ישמיע רק את תחום העבודה שלו',allowed:['pink','sweep','external','external-sweep'],runOptions:{preserveTfSync:true}}));
-safeOn('phTopBtn','click',()=>pickSource(kind=>capturePhase('top',kind),3200,{title:'אות למדידת הטופ לבדו · השתמש באותו מקור שבו נמדד הסאב',allowed:['pink','sweep','external','external-sweep'],runOptions:{preserveTfSync:true}}));
+safeOn('phSubBtn','click',()=>pickSource(()=>capturePhase('sub'),3200,{title:'אות למדידת הסאב לבדו',allowed:['pink','external']}));
+safeOn('phTopBtn','click',()=>pickSource(()=>capturePhase('top'),3200,{title:'אות למדידת הטופ לבדו',allowed:['pink','external']}));
 safeOn('phClearBtn','click',function(){
   clearSubTopSnapshots();
 });
@@ -4831,7 +4546,7 @@ function snapshotState(name){
     target:targetMode,
     positions:eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
     areas:areas.map(a=>({name:a.name, color:a.color, db:Array.from(a.db), show:a.show})),
-    speakers:dlySpeakers.map(s=>({name:s.name,ms:s.ms,confidence:s.confidence,spreadMs:s.spreadMs,polarity:s.polarity})),
+    speakers:dlySpeakers.map(s=>({name:s.name, ms:s.ms})),
     anchor:dlyAnchor,
     calName: micCal ? (micCalList.find(c=>c.id===activeCalId)||{}).name||null : null
   };
@@ -4869,7 +4584,7 @@ function loadSave(id){
     return {name:p.name, db:new Float32Array(GEQ.length).fill(-120)};
   });
   areas=(s.areas||[]).map(a=>({name:a.name, color:a.color, db:Float32Array.from(a.db), show:a.show!==false}));
-  if(s.speakers&&s.speakers.length){ dlySpeakers=s.speakers.map(x=>({name:x.name,ms:x.ms,confidence:Number(x.confidence)||0,spreadMs:Number.isFinite(x.spreadMs)?x.spreadMs:null,polarity:x.polarity===-1?-1:x.polarity===1?1:null})); dlyAnchor=s.anchor||0; }
+  if(s.speakers&&s.speakers.length){ dlySpeakers=s.speakers.map(x=>({name:x.name, ms:x.ms})); dlyAnchor=s.anchor||0; }
   if(s.target) setTarget(s.target);
   renderEqList(); renderDlySpk(); updateEqUI();
   if(eqPositions.length) computeAndShow();
@@ -4973,7 +4688,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.78';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.59';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5119,7 +4834,7 @@ function v5RenderTraceRail(){
     '<div class="v5TraceRow" data-trace="'+i+'">'+
       '<span class="v5TraceNum">'+(i+1)+'</span>'+
       '<span class="v5TraceName" title="לחץ פעמיים לשינוי שם" style="color:'+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+ 
-      '<button class="v5TraceAction v5TraceVisibility'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" aria-pressed="'+(t.visible!==false)+'" title="הצג או הסתר Capture זה">'+(t.visible===false?'○ SHOW':'● VISIBLE')+'</button>'+
+      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" title="הצג/הסתר">◉</button>'+
       '<button class="v5TraceAction" data-trace-del="'+i+'" title="מחק">×</button>'+
     '</div>').join('');
   box.querySelectorAll('[data-trace-eye]').forEach(b=>b.addEventListener('click',()=>{const t=tfTraces[+b.dataset.traceEye];if(!t)return;t.visible=t.visible===false;renderTfTraceLegend();}));
@@ -5181,7 +4896,6 @@ setTimeout(v5InitWorkspace,0);
 let v52IoOpen=false;
 let v52MeasDbfs=-120, v52RefDbfs=-120;
 let v52MeasPeakDbfs=-120, v52RefPeakDbfs=-120, v52PeakAt=0;
-let v52MeterUpdateAt=0, v52MeterPaintAt=0;
 
 function v52SetIo(open){
   v52IoOpen=!!open;
@@ -5244,24 +4958,17 @@ function v52UpdateLiveMeters(){
     analyserRef.getFloatTimeDomainData(timeDataRef);
     ref=levelDb(timeDataRef,timeDataRef.length);
   }
-  const dt=v52MeterUpdateAt?Math.max(.008,Math.min(.2,(now-v52MeterUpdateAt)/1000)):1/30;
-  v52MeterUpdateAt=now;
-  const smooth=(old,next)=>old<=-119?next:old+(next-old)*(1-Math.exp(-dt/(next>old ? .085 : .48)));
-  // MIC already uses the time-smoothed main meter. Avoid a second filter that
-  // makes its movement uneven while REF uses the same time-domain response.
-  v52MeasDbfs=meas;
+  const smooth=(old,next)=>next>old ? old+(next-old)*.62 : old+(next-old)*.055;
+  v52MeasDbfs=smooth(v52MeasDbfs,meas);
   v52RefDbfs=smooth(v52RefDbfs,ref);
   if(v52MeasDbfs>v52MeasPeakDbfs || now-v52PeakAt>1400) v52MeasPeakDbfs=v52MeasDbfs;
   if(v52RefDbfs>v52RefPeakDbfs || now-v52PeakAt>1400) v52RefPeakDbfs=v52RefDbfs;
   if(now-v52PeakAt>1400) v52PeakAt=now;
-  if(now-v52MeterPaintAt<50)return;
-  v52MeterPaintAt=now;
   const paint=(fill,peak,value,quick,db,peakDb)=>{
     if(fill){fill.style.width=v52DbToPct(db)+'%';fill.classList.toggle('clip',db>-1);}
     if(peak)peak.style.left=v52DbToPct(peakDb)+'%';
-    const noSignal=db<=-110;
-    if(value)value.textContent=noSignal?'— dBFS':db.toFixed(1)+' dBFS';
-    if(quick)quick.textContent=noSignal?'NO SIG':db.toFixed(1)+' dB';
+    if(value)value.textContent=db.toFixed(1)+' dBFS';
+    if(quick)quick.textContent=db.toFixed(1)+' dB';
   };
   paint(document.getElementById('v52MeasMeter'),document.getElementById('v52MeasPeak'),document.getElementById('v52MeasDb'),document.getElementById('v52MeasQuick'),v52MeasDbfs,v52MeasPeakDbfs);
   paint(document.getElementById('v52RefMeter'),document.getElementById('v52RefPeak'),document.getElementById('v52RefDb'),document.getElementById('v52RefQuick'),v52RefDbfs,v52RefPeakDbfs);
@@ -5407,8 +5114,8 @@ const HELP={
   dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
   dlyReset:'נקה את מדידות הדיליי.',
   phSyncBtn:'שלב 1: השאר טופ בלבד. הסנכרון מודד ומפצה את הפרש הנתיבים בין המיקרופון ל־Reference.',
-  phSubBtn:'שלב 2: פותח בחירת Sweep, רעש ורוד רחב־פס או מקור חיצוני. בסוויפ חלון הלכידה מותאם לכל משך הסוויפ. הטופ חייב להיות מושתק.',
-  phTopBtn:'שלב 3: משתמש באותה בחירת אות ובאותו משך כמו מדידת הסאב. הסאב חייב להיות מושתק.',
+  phSubBtn:'שלב 2: פותח בחירת רעש ורוד פנימי או מקור חיצוני ולוכד שלוש שניות של הסאב לבדו. הטופ חייב להיות מושתק.',
+  phTopBtn:'שלב 3: פותח את אותה בחירת אות ולוכד שלוש שניות של הטופ לבדו. הסאב חייב להיות מושתק.',
   xoverF:'תדר החיתוך בפועל. האופטימייזר בודק שליש אוקטבה סביב הערך הזה.',
   phRecommendation:'המלצת יישור המחושבת מטווח החיתוך: רמקול לדיליי, ערך ms, פולריות, שיפור צפוי ואמינות.',
   rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',

@@ -1,17 +1,13 @@
 import fs from 'node:fs';
-const core=fs.readFileSync('app-core.js','utf8'), html=fs.readFileSync('index.html','utf8'), recorder=fs.readFileSync('recorder-worklet.js','utf8');
+const core=fs.readFileSync('app-core.js','utf8'), html=fs.readFileSync('index.html','utf8');
 const captureFn=core.slice(core.indexOf('function captureTfTrace()'),core.indexOf('function captureWorkspaceTrace()'));
-const delayCaptureFn=core.slice(core.indexOf('function runDelayCapture('),core.indexOf("safeOn('dlyLoopbackBtn'"));
-const areaMeasureFn=core.slice(core.indexOf('function measureArea()'),core.indexOf('function renderAreaList()'));
 const checks=[
  ['runtime core copies match',core===fs.readFileSync('js/app-core.js','utf8')],
  ['no undefined isoBands dependency',!core.includes('isoBands')],
  ['waterfall decay uses canonical FFT data',core.includes('binOverlapPowerDb(floatData,f/R,f*R,nyquist)')],
  ['waterfall confidence uses hz',core.includes('const f=c.hz||c.f||0')],
- ['waterfall marker has confidence',core.includes("Math.round(r.hz)+' Hz · '+Math.round(q*100)+'%'")],
- ['waterfall marker labels avoid collisions',core.includes('const occupied=[[],[],[]]')&&core.includes('labelY:11+lane*15')&&core.includes('ctx.lineTo(labelX,labelY+3)')],
+ ['waterfall marker has confidence',core.includes("hz+' · '+Math.round(q*100)+'%'")],
  ['waterfall frequency uses interpolated FFT peak',core.includes('spectrumPeakDetail(floatData,fc,nyquist)')&&core.includes('interpolatedSpectrumHz(data,index,nyquist)')],
- ['feedback and resonance use robust sub-bin peaks',core.includes('function spectralPeakCandidates(')&&core.includes('medianNumber(noise)')&&core.includes('rec.hz=medianNumber(rec.hzSamples)')],
  ['narrow tone can pass resonance display gate',core.includes('(r.narrowProm||0)>=8')],
  ['waterfall draws only measured slices',core.includes('Draw each measured slice once')&&!core.includes('visualSubdivisions')&&!core.includes('motionPhase')],
  ['waterfall display filter preserves peaks without blur frames',core.includes('short symmetric display filter')&&core.includes('3*v+2*raw')],
@@ -25,7 +21,7 @@ const checks=[
  ['generator has dual-channel meters',html.includes('id="gainMicFill"')&&html.includes('id="gainRefFill"')&&core.includes("document.getElementById('gainRefGain')")],
  ['right tools exposes every auxiliary measurement',Array.from(['tf','delay','rt60','spleq','align']).every(t=>html.includes('data-tool="'+t+'"'))],
  ['right tools has no duplicate settings',!html.includes('data-tool="settings"')],
- ['bottom bar contains only canonical actions',Array.from(['capture','traces','settings','correction']).every(t=>html.includes('data-tcb="'+t+'"'))],
+ ['bottom bar contains only canonical actions',Array.from(['capture','traces','settings']).every(t=>html.includes('data-tcb="'+t+'"'))],
  ['session reset is accessible in bottom bar',html.includes('class="tcb danger" id="v5ResetSession"')&&!html.includes('id="v5ResetSession" class="v5RailTool"')],
  ['right tools fill the rail in measurement order',(()=>{const rail=html.slice(html.indexOf('<aside id="uiRightTools"'),html.indexOf('</aside>',html.indexOf('<aside id="uiRightTools"')));return html.includes('grid-template-columns:1fr!important;grid-template-rows:22px repeat(5,minmax(0,1fr))')&&rail.indexOf('data-tool="tf"')<rail.indexOf('data-tool="delay"')&&rail.indexOf('data-tool="delay"')<rail.indexOf('data-tool="rt60"')&&rail.indexOf('data-tool="rt60"')<rail.indexOf('data-tool="spleq"')&&rail.indexOf('data-tool="spleq"')<rail.indexOf('data-tool="align"')})()],
  ['redundant measurement health row is hidden from header',html.indexOf('id="measurementHealth"')<html.indexOf('</header>')&&html.includes('header.uiRefreshed #measurementHealth{display:none!important}')],
@@ -77,17 +73,16 @@ const checks=[
  ,['rail collapse preferences persist',html.includes("gal_'+side+'_rail_open")&&html.includes("setAttribute('aria-expanded'")]
  ,['TF trace capture cannot silently fall back to RTA',core.includes("if(v5WorkspaceMode==='tf')")&&core.includes('requestTfTraceCapture();return;')]
  ,['TF capture is available without sync or verification',core.includes('if(trace)trace.disabled=busy;')&&!captureFn.includes('tfDelayReady||!tfWorkflowVerified')]
- ,['TF captures carry explicit trust state',core.includes("s.verified=hasRef&&verified")&&core.includes("verified?'Verified':'Unverified'")&&core.includes("captureKind:'mic-spectrum'")]
+ ,['TF captures carry explicit trust state',core.includes("s.verified=verified;s.status=verified?'Verified':'Unverified'")&&core.includes("captureKind:'mic-spectrum'")]
  ,['TF trace rail preserves controls and trust badge',core.includes('data-trace-eye')&&core.includes('data-trace-del')&&core.includes('v5TraceTrust')&&core.includes("addEventListener('dblclick'")]
  ,['legacy health guard permits TF source selection from a quiet input',html.includes("!(tfCapture&&['LOW SNR','LOW REF','LOW COHERENCE'].includes(h.reason))")]
  ,['M/R overlays blue microphone and red reference',core.includes('function drawDualInputRta(W,plotH,nyquist)')&&core.includes("fill(ref,'#ff4d5e',.32)")&&core.includes("fill(mic,'#258dff',.50)")]
  ,['M/R reads the live reference analyser only in its own mode',core.includes('analyserRef.getFloatFrequencyData(floatDataRef)')&&core.includes("v5WorkspaceMode==='mr'&&analyserRef)drawDualInputRta")]
- ,['M/R canvas uses inline legend and warning',core.includes("ctx.fillText('━ MIC 1',12,20)")&&core.includes("ctx.fillText('○ REF 2 · NO SIGNAL  ·  CHECK ROUTING / INPUT',W-12,38)")&&!core.includes('ctx.fillRect(10,10,232,27)')&&!core.includes('ctx.fillRect(W-244,10,232,36)')]
  ,['RTA retains its original presentation',core.includes("!(v5WorkspaceMode==='mr'&&analyserRef)")&&html.includes("v54SetAnalysisView('mr',event)")]
  ,['M/R has explicit input legend',core.includes("ctx.fillText('━ MIC 1'")&&core.includes("ctx.fillText('━ REF 2'")&&core.includes("ctx.fillText('M/R'")]
  ,['M/R uses canonical RTA band power',core.includes('const bandPoints=(data,history,isMic)')&&core.includes('binOverlapPowerDb(data,fc/R,fc*R,nyquist)')]
  ,['M/R and TF share the same speed coefficient',core.includes('old*tfSmoothA+raw*(1-tfSmoothA)')&&core.includes('const alpha = tfSmoothA')]
- ,['M/R reports a disconnected reference',core.includes('REF 2 · NO SIGNAL')&&core.includes('CHECK ROUTING / INPUT')]
+ ,['M/R reports a disconnected reference',core.includes('REF 2 · NO SIGNAL')&&core.includes('Check routing / input channel')]
  ,['responsive layout removes the legacy context bar',html.includes('@media(max-width:900px){')&&html.includes('.workspaceRailToggle,#uiContextBar{display:none!important}')]
  ,['responsive mode selector stays visible above graph',html.includes('#v5ModeTabs{display:flex!important;left:0!important;right:0!important;top:0!important;height:48px!important')&&html.includes('#stage>canvas#cv,#stage.measure-open>canvas#cv,#stage.bar-open>canvas#cv{top:76px!important;height:calc(100% - 76px)!important}')]
  ,['resolution strip exposes all canonical choices',html.includes('id="displayResolutionBar"')&&[3,6,12,24].every(n=>html.includes('data-display-bpo="'+n+'"'))]
@@ -99,7 +94,7 @@ const checks=[
  ,['rail controls have subtle touch-safe handles',html.includes('top:50%;width:28px;height:56px')&&html.includes('.workspaceRailToggle::before')&&html.includes('opacity:.46')&&html.includes('touch-action:manipulation')]
  ,['support and export actions are compact',html.includes('#uiMenu .uiMenuItem{')&&html.includes('min-height:38px!important;padding:6px 8px!important')]
  ,['day mode covers support and measurement internals',html.includes('body.sun-mode #uiMenu .uiMenuItem{background:#f8fbfd!important')&&html.includes('body.sun-mode .measureDock .tfProCard')&&html.includes('body.sun-mode .measureDock button.on')]
- ,['professional finish uses a shared restrained visual system',html.includes('--pro-radius:12px')&&html.includes('--pro-surface:#06151d')&&html.includes('V5.5.45 — professional finish')]
+ ,['professional finish uses a shared restrained visual system',html.includes('--pro-radius:8px')&&html.includes('--pro-surface:#07151c')&&html.includes('V5.5.45 — professional finish')]
  ,['waterfall palette is vivid but depth-aware',core.includes('const stops=[[0,42,62,255]')&&core.includes('Math.max(.34,1-age*.48)')&&core.includes('fillAlpha=sunMode?.12:.19')&&core.includes('rr===0?2:1.05')]
  ,['canvas click toggles both rails and closes overlays',html.includes("canvas?.addEventListener('pointerdown'")&&html.includes("const bothCollapsed=document.body.classList.contains('left-rail-collapsed')")&&html.includes("setRail('left',bothCollapsed);setRail('right',bothCollapsed)")&&html.includes("document.querySelectorAll('.measureDock.open,#tfPanel.open,#alignBar.show')")]
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
@@ -114,7 +109,7 @@ const checks=[
  ,['verified TF capture requires a stable working average',core.includes("tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'")&&core.includes("captureKind:'working-average'")]
  ,['collapsed EQ correction releases the canvas completely',core.includes("if(!keepExpanded){eqCorrectionVisible=false;dock.style.display='none'")&&core.includes("hideGeqDock();v3Toast('תיקון EQ נסגר")]
  ,['TF field guide explains continuous stimulus workflow',html.includes('id="tfFieldGuide"')&&html.includes('הפעל Pink Noise רציף')&&core.includes('function syncTfFieldGuide')]
- ,['measurement sweep runs exactly one deferred cycle',core.includes('genSweepSingleShot=false')&&core.includes('if(!genSweepSingleShot)sweepTimer=setTimeout')&&core.includes("sweepDelayMs:kind==='sweep'?650:0")]
+ ,['measurement sweep runs exactly one deferred cycle',core.includes('genSweepSingleShot=false')&&core.includes('if(!genSweepSingleShot)sweepTimer=setTimeout')&&core.includes("genStart(kind==='sweep'?{sweepDelayMs:650}:{})")]
  ,['TF working result remains held after stimulus ends',core.includes("tfHasReferenceSignal()||tfWorkingAverage")&&core.includes("stableHeld?'HELD · STABLE':'HELD · UNVERIFIED'")&&core.includes("'התוצאה המאומתת נשמרה על המסך'")]
  ,['TF display selector is mutually exclusive',core.includes("let tfViewMode = 'magnitude'")&&core.includes("['magnitude','phase','coherence'].includes(view)")&&html.includes('aria-label="בחר תצוגת TF"')]
  ,['TF renders one full-canvas quantity at a time',core.includes("if(tfViewMode==='phase')return tfDrawSelectedPhase")&&core.includes("if(tfViewMode==='coherence')return tfDrawSelectedCoherence")&&core.includes('return tfDrawSelectedMagnitude')]
@@ -124,54 +119,11 @@ const checks=[
  ,['TF correlation meter is removed from the interface',!html.includes('id="tfCorrCard"')&&!html.includes('id="tfCorrVal"')&&core.includes('let tfState=')&&core.includes('_tfCorr=0')]
  ,['Legacy TF EQ controls cannot occupy the workflow panel',html.includes('id="tfLegacyEqTools" hidden')&&html.includes('#tfPanel.measureDock #tfLegacyEqTools')&&html.includes('#tfPanel.measureDock #tfMeasBtn')]
  ,['TF advanced controls remain available under More',html.includes('#tfPanel.measureDock:not(.expanded) #tfAverageBar')&&html.includes('#tfPanel.measureDock:not(.expanded) #tfUtilityBtns')&&html.includes('#tfPanel.measureDock.expanded #tfInputLevels')&&core.includes("more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾'")]
- ,['TF capture asks for a source before saving',core.includes("safeOn('tfTraceBtn','click',requestTfTraceCapture)")&&core.includes("title:'איזה מקור להפעיל לצורך לכידת ה־Trace?'")&&core.includes("allowed:['pink','sweep','external','external-sweep']")]
- ,['TF source capture settles before saving and supports one-shot sweep',core.includes("isSweepSource(sourceKind)?Math.round(genSweepDur*1000+700):1800")&&core.includes('captureTfTraceFromSource')&&core.includes('tfTraceCapturePending')]
- ,['TF trust state is a compact inline status',core.includes("'UNVERIFIED · VERIFY BEFORE TUNING'")&&core.includes("ctx.fillText((verified?'● ':'○ ')+label,W-12,18)")&&!core.includes('const boxW=Math.min(230,W-20),boxH=25')]
+ ,['TF capture asks for a source before saving',core.includes("safeOn('tfTraceBtn','click',requestTfTraceCapture)")&&core.includes("title:'איזה מקור להפעיל לצורך לכידת ה־Trace?'")&&core.includes("allowed:['pink','sweep','external']")]
+ ,['TF source capture settles before saving and supports one-shot sweep',core.includes("sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800")&&core.includes('captureTfTraceFromSource')&&core.includes('tfTraceCapturePending')]
+ ,['TF trust warning is a compact single-line badge',core.includes('const boxW=Math.min(230,W-20),boxH=25')&&core.includes("'UNVERIFIED · verify before tuning'")&&!core.includes("'UNVERIFIED LIVE VIEW · do not tune from this yet'")]
  ,['Generator rail has a synchronized direct start stop action',html.includes('id="tlsGenToggle"')&&core.includes("safeOn('tlsGenToggle', 'click'")&&core.includes("'areaGenToggleBtn', 'tlsGenToggle'")]
- ,['graph selector follows RTA Waterfall M/R TF order',(()=>{const start=html.indexOf('id="v53AnalysisGroup"'),tabs=html.slice(start,html.indexOf('</div>',start));return start>=0&&tabs.indexOf('id="v53AnalysisToggle"')<tabs.indexOf('id="v54WaterfallToggle"')&&tabs.indexOf('id="v54WaterfallToggle"')<tabs.indexOf('id="v54MrToggle"')&&tabs.indexOf('id="v54MrToggle"')<tabs.indexOf('id="v54TfGraphToggle"')})()]
- ,['bottom bar opens the canonical correction graph',html.includes('data-tcb="correction"')&&html.includes('CORRECTION GRAPH')&&html.includes("window.openCorrectionGraph()")&&core.includes('window.openCorrectionGraph=function()')&&core.includes('if(openLatestEqWorkspace())return true;')]
- ,['trace visibility is explicit and accessible',core.includes('v5TraceVisibility')&&core.includes('aria-pressed="')&&core.includes("t.visible===false?'○ SHOW':'● VISIBLE'")]
- ,['trace visibility toggles canonical trace state',core.includes('t.visible=t.visible===false;renderTfTraceLegend();')]
- ,['frequency axis stays above dense graph content',core.includes('Keep the frequency scale readable above dense bars')&&core.includes("ctx.font='700 11.5px ui-monospace")&&core.includes('drawSharedFrequencyAxis(W,plotH-23')]
- ,['every measurement uses one shared frequency axis',core.includes('const SHARED_FREQ_TICKS=[31.5,50,100,200,500,1000,2000,5000,10000,20000]')&&core.includes('function drawSharedFrequencyAxis')&&core.includes('drawSharedFrequencyAxis(W,H-23,xForFreq')]
- ,['dark workspace uses white structural outlines and text',html.includes('--pro-line:rgba(224,239,246,.24)')&&html.includes('body:not(.sun-mode) .tlsHead')&&html.includes('color:#f1f7f9!important')]
- ,['dark workspace uses reference-like black surfaces',html.includes('V5.5.69 — deep-black measurement room')&&html.includes("'#010609'")&&html.includes('rgba(1,7,10,.995)')]
- ,['generator loopback is exposed in Audio settings',html.includes('id="uiSetLoopback"')&&html.includes('Generator Loopback → Reference')]
- ,['generator loopback replaces physical reference routing',core.includes('function refreshReferenceRouting(preserveTfSync=false)')&&core.includes('inputSplitter.disconnect(analyserRef)')&&core.includes('genGain.connect(analyserRef)')&&core.includes('inputSplitter.connect(analyserRef,refChannel)')]
- ,['generator loopback persists and resets TF state',core.includes("localStorage.setItem('gal_generator_loopback'")&&core.includes('tfWorkingAverage=null;tfAverageFrames=0')]
- ,['loopback automatically starts TF delay sync',core.includes('function scheduleLoopbackAutoSync()')&&core.includes('tfAutoDelay({loopbackAuto:true})')&&core.includes('scheduleLoopbackAutoSync();')]
- ,['loopback delay capture uses the generator reference',core.includes('numberOfInputs:generatorLoopback&&genGain?2:1')&&core.includes('genGain.connect(workletNode,0,1)')&&recorder.includes('const loopback = inputs[1] && inputs[1][0]')]
- ,['loopback automatically verifies after delay sync',core.includes('verifyTfWorkflow(genType,{loopbackAuto:true})')&&core.includes('if(options.loopbackAuto){loopbackAutoSyncActive=false')]
- ,['loopback auto-sync waits without modal alerts',delayCaptureFn.includes("if(options.silentBusy){cb(null,'busy');return;}")&&core.includes("automatic&&silent==='busy'")&&core.includes('loopbackAutoSyncRetries<12')]
- ,['area measurement keeps its independent busy guard',areaMeasureFn.includes("if(measureBusy()){ alert('מדידה אחרת פעילה")&&!areaMeasureFn.includes('options.silentBusy')]
- ,['loopback retry exits its preparation state',core.includes('loopbackAutoSyncActive=false;loopbackAutoSyncRetries=0;syncGeneratorLoopbackUi()')&&core.includes('המדידה הקודמת עדיין פעילה')]
- ,['TF hides misleading fragments during loopback preparation',core.includes("'LOOPBACK · AUTO SYNC'")&&core.includes('if(loopbackAutoSyncActive)')&&core.includes('Matching acoustic path delay…')]
- ,['TF magnitude stays continuous at low coherence',core.includes('Magnitude remains continuous even before verification')&&core.includes("ctx.strokeStyle='#87a9b4'")&&core.includes('points.forEach(p=>{if(p.coh<tfCohGate)')]
- ,['TF continuous contour uses compact spatial smoothing',core.includes('for(let j=-2;j<=2;j++')&&core.includes('visualDb*.58+raw*.42')]
- ,['TF canvas uses inline telemetry without floating boxes',core.includes("ctx.fillText('TF · MIC SPECTRUM ONLY',12,18)")&&core.includes("ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX,36)")&&!core.includes("ctx.fillRect(legendX,8,258,40)")]
- ,['Sub and Top expose the same four measurement sources',core.match(/allowed:\['pink','sweep','external','external-sweep'\]/g)?.length>=2&&core.includes("kind=>capturePhase('sub',kind)")&&core.includes("kind=>capturePhase('top',kind)")]
- ,['Sub Top sweep capture covers the complete sweep',core.includes("if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200)")&&core.includes("const startDelay=kind==='sweep'?250:450")&&core.includes("Math.ceil(genSweepDur+.5)")]
- ,['Sub Top requires one source for a valid comparison',core.includes("sourceKind!==subTopSourceKind")&&core.includes('מדוד את הסאב והטופ עם אותו מקור')&&core.includes('snap.sourceKind=sourceKind')]
- ,['Sub Top internal stimulus preserves TF synchronization',core.includes('runOptions:{preserveTfSync:true}')&&core.includes('refreshReferenceRouting(!!options.preserveTfSync)')&&core.includes('if(!preserveTfSync){resetTfAutoDelay()')]
- ,['TF uses one H1 magnitude estimator everywhere',core.includes('function tfH1MagnitudeDb(')&&core.match(/tfH1MagnitudeDb\(/g)?.length>=3&&!core.includes('10*Math.log10((pyy+1e-20)/(pxx+1e-20))')]
- ,['TF sweep retains every visited frequency bin',core.includes('if(tfSweepAcquiring)')&&core.includes('tfPxx[k]+=pxx')&&core.includes('tfSweepAcquiring=isSweepSource(sourceKind)')]
- ,['TF verification spans the complete sweep',core.includes("isSweepSource(sourceKind)?Math.round(genSweepDur*1000+850):3000")&&core.includes("לוכד את כל הסוויפ")]
- ,['TF verification requires broad coherent coverage',core.includes('Math.ceil(expected*.55)')&&core.includes('refCoverage>=.70')&&core.includes('checked>=8')]
- ,['TF acquisition continues outside the TF graph',core.includes('const tfEngineActive=')&&core.includes("v5WorkspaceMode==='tf'||alignOn||tfWorkflowVerifying||phMeasuring||tfTraceCapturePending")&&core.includes("tfTraceCapturePending&&v5WorkspaceMode!=='tf'")]
- ,['TF reference detector rejects spikes and has hysteresis',core.includes('activeBins>=5')&&core.includes('now-tfReferenceState.lastGood<450')&&core.includes('resetTfReferenceDetector()')]
- ,['TF capture labels missing reference as microphone spectrum',core.includes("const hasRef=!!(analyserRef&&tfHasReferenceSignal())")&&core.includes("s.type=hasRef?'tf':'mic-spectrum'")&&core.includes('נשמר MIC Spectrum בלבד')]
- ,['TF confidence is balanced on a logarithmic frequency grid',core.includes('const samples=64')&&core.includes('lo*Math.pow(hi/lo')]
- ,['TF resets confidence history between measurements',core.includes('tfConfidenceHistory.length=0')&&core.includes("resetTfWorkingAverage('NEW CAPTURE')")]
- ,['delay recorder never clones microphone into a missing reference',recorder.includes('const c1 = loopback || input[this.refChannel]')&&!recorder.includes('input[this.refChannel] || input[0]')&&recorder.includes('c1 ? c1[i] : 0')]
- ,['delay capture is armed before the sweep starts',core.includes("const startDelay=kind==='sweep'?250:450")&&core.includes("sweepDelayMs:kind==='sweep'?650:0")]
- ,['delay sweep capture is not clipped by a ten second cap',delayCaptureFn.includes("genSweepDur+0.8")&&!delayCaptureFn.includes('Math.min(10,Math.max(3.2')]
- ,['delay estimator locks signed polarity peaks',core.includes('chunkPolarities.push(localValue<0?-1:1)')&&core.includes('const polarity=chosen.v<0?-1:1')&&core.includes('polarityConsistent>=.67')]
- ,['sweep delay estimator reports polarity',core.includes('polarity:bestValue<0?-1:1')&&core.includes('r.polarity===full.polarity')&&core.includes('polarity:full.polarity')]
- ,['delay capture analyzes only received samples',delayCaptureFn.includes('mic.subarray(0,captured)')&&delayCaptureFn.includes('ref.subarray(0,captured)')&&delayCaptureFn.includes("cb(null,'capture')")]
- ,['delay capture is cancellable on stop and reset',core.includes('function cancelDelayCapture()')&&core.match(/cancelDelayCapture\(\);/g)?.length>=3&&delayCaptureFn.includes('dlyCaptureSession=session')]
- ,['delay repeatability is isolated by measurement target',html.includes('const delayHistories=new Map()')&&html.includes("scope='path'")&&core.includes("repeatabilityKey:'speaker:'+i")]
- ,['delay repeatability badge attaches to the real panel',html.includes("document.querySelector('#dlyPanel,#delayPanel")&&html.includes('window.resetDelayReliability=function()')]
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.5.78 regression validation passed (${checks.length} checks).`);
+console.log(`V5.5.59 regression validation passed (${checks.length} checks).`);

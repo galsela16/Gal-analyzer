@@ -189,7 +189,7 @@
   body.sun-mode .meter{ background:rgba(255,255,255,.85); }
   .meterFill{position:absolute;inset-inline-start:0;top:0;bottom:0;width:0%;
     background:linear-gradient(90deg,var(--accent) 0%,#5ab6ff 60%,#9fd4ff 80%,var(--hot) 100%);
-    opacity:.8}
+    opacity:.8;transition:width 0.08s ease-out}
   .meterPeak{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.9}
   body.sun-mode .meterPeak{ background:#0f172a; }
   .meterVal{position:relative;margin-inline-start:auto;padding-inline-end:10px;font-size:13px;font-weight:600;
@@ -378,7 +378,7 @@
   #tfPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
   .chBar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text)}
   .chBar .track{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
-  .chBar .fill{height:100%;width:0%;background:var(--accent)}
+  .chBar .fill{height:100%;width:0%;background:var(--accent);transition:width .1s linear}
   .chBar .fill.lo{background:var(--hot)}
   .chBar .fill.ok{background:#39d98a}
   .chBar .fill.hi{background:var(--warn)}
@@ -614,7 +614,7 @@
   }
   #v5TraceList{display:flex;flex-direction:column;gap:2px;overflow:auto;min-height:0;max-height:210px}
   .v5TraceRow{
-    display:grid;grid-template-columns:18px minmax(0,1fr) 64px 26px;align-items:center;gap:4px;
+    display:grid;grid-template-columns:18px 1fr 26px 26px;align-items:center;gap:4px;
     min-height:28px;padding:3px 4px;border-bottom:1px solid #17242f;font-size:10px;
   }
   .v5TraceNum{color:#6f8090}
@@ -623,9 +623,6 @@
   .v5TraceAction{border:0;background:transparent;color:#90a1af;cursor:pointer;padding:4px;border-radius:4px}
   .v5TraceAction:hover{color:var(--accent);background:rgba(62,166,255,.1)}
   .v5TraceAction.off{opacity:.35}
-  .v5TraceVisibility{min-width:64px;border:1px solid rgba(95,165,185,.20);font:750 8px ui-monospace,monospace;letter-spacing:.03em}
-  .v5TraceVisibility[aria-pressed="true"]{color:#72e6ef;background:rgba(27,193,211,.09);border-color:rgba(35,202,218,.34)}
-  .v5TraceVisibility[aria-pressed="false"]{color:#738a94;background:rgba(95,115,125,.05)}
   #v5AddTrace{
     margin-top:3px;border:1px solid #263745;background:#0d1923;color:#aebbc7;
     border-radius:5px;padding:7px;font:600 10px inherit;cursor:pointer;
@@ -1149,7 +1146,7 @@
     font-size:10px;
   }
   .v52MeterTrack{position:relative;height:8px;background:#15232e;border-radius:4px;overflow:hidden}
-  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6 0%,#42d57b 72%,#f6b64a 90%,#ff4d5d 100%)}
+  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6 0%,#42d57b 72%,#f6b64a 90%,#ff4d5d 100%);transition:width .045s linear}
   .v52MeterFill.clip{filter:brightness(1.16);box-shadow:inset 0 0 8px rgba(255,77,93,.7)}
   .v52MeterPeak{position:absolute;top:0;bottom:0;left:0;width:2px;background:#eef7ff;box-shadow:0 0 5px rgba(238,247,255,.9);transition:left .11s linear}
   .v52MeterValue{text-align:right;color:#9fb0bd;font-variant-numeric:tabular-nums}
@@ -1577,7 +1574,6 @@ body.ui-workspace-drawer #uiDrawerLabel{display:block}
 .uiSettingsRow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;border-bottom:1px solid rgba(148,163,184,.09);font-size:9px;color:#8999aa}
 .uiSettingsRow:last-child{border-bottom:0}.uiSettingsRow strong{color:var(--text);font-size:9px}
 .uiSettingsRow button{border:1px solid rgba(148,163,184,.16);background:#111923;color:#a9b5c2;border-radius:6px;padding:5px 7px;font-size:8px;font-weight:700}
-.uiSettingsRow #uiSetLoopback.on{color:#8ff0b9;border-color:rgba(69,220,146,.58);background:rgba(20,98,67,.28);box-shadow:0 0 14px rgba(69,220,146,.10)}
 body.sun-mode #uiSettingsPanel{background:#f8fafc}body.sun-mode .uiSettingsTabs button,body.sun-mode .uiSettingsRow button{background:#fff;color:#334155}
 
 
@@ -2282,50 +2278,33 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 }
 
 /* V5.5.45 — professional finish: one restrained visual system across the workspace. */
-:root{--pro-radius:12px;--pro-line:rgba(224,239,246,.24);--pro-surface:#06151d;--pro-raised:#0a202a;--pro-muted:#789aa8;--live-cyan:#33e1ed;--live-blue:#3d8fff;--live-violet:#a77cff;--live-green:#45dc92;--live-amber:#ffc857}
+:root{--pro-radius:8px;--pro-line:rgba(115,164,181,.22);--pro-surface:#07151c;--pro-raised:#0a1b23;--pro-muted:#78919c}
 body.sun-mode{--pro-line:#cbd9e1;--pro-surface:#fff;--pro-raised:#f6f9fb;--pro-muted:#637b87}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;-webkit-font-smoothing:antialiased}
-header.uiRefreshed{border-bottom-color:rgba(231,244,249,.24)!important;background:radial-gradient(circle at 18% -40%,rgba(61,143,255,.20),transparent 35%),linear-gradient(180deg,#08212b 0%,#04131a 100%)!important;box-shadow:0 8px 28px rgba(0,0,0,.24),inset 0 -1px 0 rgba(255,255,255,.06)!important}
+header.uiRefreshed{border-bottom-color:var(--pro-line)!important;box-shadow:0 2px 10px rgba(0,0,0,.18)!important}
 header.uiRefreshed h1{font-weight:720!important;letter-spacing:.13em!important}
 header.uiRefreshed #measurementHealth{display:none!important}
-#stage{border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;background:radial-gradient(circle at 50% 0%,rgba(21,86,104,.10),transparent 42%),#020d13!important;box-shadow:0 18px 55px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.025)!important}
+#stage{border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;box-shadow:0 10px 30px rgba(0,0,0,.24)!important}
 #targetLeftStatus{gap:10px!important}
 .tlsCard,#targetMeasurementPanel,#uiRightTools,#targetCommandBar{
-  border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;background:linear-gradient(155deg,rgba(10,34,44,.98),rgba(4,17,24,.98))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 10px 28px rgba(0,0,0,.18)!important
+  border-radius:var(--pro-radius)!important;border-color:var(--pro-line)!important;background:var(--pro-surface)!important
 }
-.tlsCard{padding:12px!important;position:relative;overflow:hidden}
-.tlsCard::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:1px;border-radius:2px;background:rgba(240,249,252,.68);box-shadow:0 0 9px rgba(220,244,250,.18)}
+.tlsCard{padding:12px!important}
 .tlsHead,.tmpHead,.uiRightToolsTitle{font-weight:760!important;letter-spacing:.11em!important;color:#aec1c9!important}
 .tlsLine,.tmpCell{font-weight:600!important;letter-spacing:.015em!important}
-body:not(.sun-mode) .tlsHead,body:not(.sun-mode) .tlsLine,body:not(.sun-mode) .tlsLine span,
-body:not(.sun-mode) .tmpHead,body:not(.sun-mode) .tmpCell,body:not(.sun-mode) .tmpCell span,
-body:not(.sun-mode) .tmpValue,body:not(.sun-mode) .uiRightToolsTitle,body:not(.sun-mode) #uiRightTools button,
-body:not(.sun-mode) .tlsOpen,body:not(.sun-mode) .tcb,body:not(.sun-mode) #v53AnalysisGroup button,
-body:not(.sun-mode) .v5RailTitle,body:not(.sun-mode) .v5Minor,body:not(.sun-mode) #v5RailHint,
-body:not(.sun-mode) .uiMenuTitle,body:not(.sun-mode) .uiMenuItem .txt,body:not(.sun-mode) .uiSettingsRow,
-body:not(.sun-mode) .measureDock h3,body:not(.sun-mode) .measureDock label{color:#f1f7f9!important}
 .tlsOpen,.tcb,#uiRightTools button{
   border-radius:6px!important;border-color:var(--pro-line)!important;background:var(--pro-raised)!important;
   transition:background .15s ease,border-color .15s ease,color .15s ease,transform .12s ease!important
 }
-.tlsOpen:hover,.tcb:hover,#uiRightTools button:hover{border-color:rgba(42,218,226,.62)!important;background:linear-gradient(145deg,rgba(25,181,200,.16),rgba(32,103,158,.09))!important;transform:translateY(-1px)}
+.tlsOpen:hover,.tcb:hover,#uiRightTools button:hover{border-color:rgba(31,190,204,.55)!important;background:rgba(31,190,204,.07)!important}
 #uiRightTools{gap:6px!important;padding:10px!important}
-#uiRightTools button{gap:7px!important;padding:9px!important;font-weight:720!important;letter-spacing:.045em!important;background:linear-gradient(145deg,rgba(13,43,55,.94),rgba(6,26,36,.94))!important}
-#uiRightTools .rtIcon{font-size:30px!important;line-height:1!important;opacity:.96;color:var(--tool-accent,var(--live-cyan))!important;filter:drop-shadow(0 0 10px color-mix(in srgb,var(--tool-accent,var(--live-cyan)) 38%,transparent))}
-#uiRightTools button:nth-of-type(1){--tool-accent:var(--live-cyan)}
-#uiRightTools button:nth-of-type(2){--tool-accent:var(--live-amber)}
-#uiRightTools button:nth-of-type(3){--tool-accent:var(--live-violet)}
-#uiRightTools button:nth-of-type(4){--tool-accent:var(--live-green)}
-#uiRightTools button:nth-of-type(5){--tool-accent:#ff7e9e}
-#uiRightTools button.on{color:#f4fdff!important;border-color:color-mix(in srgb,var(--tool-accent,var(--live-cyan)) 65%,transparent)!important;background:linear-gradient(145deg,color-mix(in srgb,var(--tool-accent,var(--live-cyan)) 20%,#09202a),rgba(7,24,34,.96))!important;box-shadow:inset 3px 0 0 var(--tool-accent,var(--live-cyan)),0 0 22px color-mix(in srgb,var(--tool-accent,var(--live-cyan)) 13%,transparent)!important}
-#targetCommandBar{height:52px!important;padding:6px!important;background:linear-gradient(180deg,rgba(7,25,33,.98),rgba(3,14,20,.99))!important;box-shadow:0 -10px 30px rgba(0,0,0,.22)!important}
+#uiRightTools button{gap:5px!important;padding:8px!important;font-weight:680!important;letter-spacing:.035em!important}
+#uiRightTools .rtIcon{font-size:24px!important;line-height:1!important;opacity:.88}
+#targetCommandBar{height:52px!important;padding:6px!important;box-shadow:0 -4px 18px rgba(0,0,0,.16)!important}
 .tcb{font-weight:700!important;letter-spacing:.045em!important}
-#targetCommandBar .tcb[data-tcb="correction"]{color:#bffaff!important;border-color:rgba(50,211,224,.40)!important;background:linear-gradient(145deg,rgba(22,171,190,.17),rgba(37,86,151,.12))!important}
-#targetCommandBar .tcb[data-tcb="correction"]::before{content:"⌁ ";font-size:15px;color:#56e5ee}
-#v53AnalysisGroup{border-radius:11px!important;border-color:rgba(224,239,246,.28)!important;background:rgba(2,13,19,.70)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 8px 22px rgba(0,0,0,.20)!important}
+#v53AnalysisGroup{border-radius:9px!important;box-shadow:none!important}
 #v53AnalysisGroup button{border-radius:6px!important;letter-spacing:.075em!important}
-#v53AnalysisGroup button.on{color:#eaffff!important;background:linear-gradient(135deg,rgba(51,225,237,.22),rgba(61,143,255,.15),rgba(167,124,255,.12))!important;box-shadow:inset 0 0 0 1px rgba(51,225,237,.36),0 0 20px rgba(46,186,224,.12)!important}
-#v53AnalysisGroup button.on::after{background:linear-gradient(90deg,var(--live-cyan),var(--live-blue),var(--live-violet))!important;box-shadow:0 0 9px rgba(51,225,237,.55)!important;height:2px!important}
+#v53AnalysisGroup button.on::after{box-shadow:none!important;height:1px!important}
 #uiMenu{border-radius:12px!important;box-shadow:0 24px 70px rgba(0,0,0,.34)!important}
 .uiMenuSectionLabel{letter-spacing:.14em!important;color:var(--pro-muted)!important}
 #uiSettingsPanel{border-radius:8px!important}
@@ -2453,19 +2432,6 @@ body.sun-mode #tfAverageBar{background:#f7fafc;border-color:#cad8e1}body.sun-mod
 body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFieldGuide[data-state="ready"]{background:#ecfdf5}
 @media(min-width:901px){#tfPanel.measureDock:not(.expanded){max-height:min(24vh,184px)!important}}
 @media(max-width:700px){#tfAverageBar{flex-wrap:wrap}#tfAverageState{width:100%}}
-
-/* V5.5.69 — deep-black measurement room inspired by the visual reference. */
-body:not(.sun-mode){background:radial-gradient(100% 70% at 50% -12%,#07151d 0%,#02070a 48%,#000 100%)!important}
-body:not(.sun-mode) header.uiRefreshed{background:linear-gradient(180deg,#061219 0%,#010609 100%)!important}
-body:not(.sun-mode) #stage{background:radial-gradient(circle at 50% 0%,rgba(16,72,87,.07),transparent 40%),#010609!important}
-body:not(.sun-mode) .tlsCard,body:not(.sun-mode) #targetMeasurementPanel,
-body:not(.sun-mode) #uiRightTools,body:not(.sun-mode) #targetCommandBar{
-  background:linear-gradient(155deg,rgba(5,18,24,.99),rgba(1,7,10,.995))!important
-}
-body:not(.sun-mode) #uiRightTools button,body:not(.sun-mode) .tlsOpen,body:not(.sun-mode) .tcb{
-  background:linear-gradient(155deg,#07161d,#02090d)!important
-}
-body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
 
 /* Tablet and phone: keep a single bottom navigation surface and no covering readout card. */
 @media(max-width:900px){
@@ -2620,7 +2586,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.78</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.59</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2640,7 +2606,6 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
       <div class="uiSettingsPage" data-settings-content="audio">
         <div class="uiSettingsRow"><span>Input / Reference / Calibration</span><button id="uiSetOpenIo">Open I/O</button></div>
         <div class="uiSettingsRow"><span>Generator</span><button id="uiSetOpenGen">Open Generator</button></div>
-        <div class="uiSettingsRow"><span>Generator Loopback → Reference</span><button id="uiSetLoopback" type="button" aria-pressed="false">OFF</button></div>
         <div class="uiSettingsRow"><span>Audio engine</span><strong id="uiSetAudioState">—</strong></div>
       </div>
     </div>
@@ -2651,7 +2616,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.78 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.59 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -2660,8 +2625,8 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
     <div id="v5ModeTabs" aria-label="Measurement modes">
       <div class="v53AnalysisGroup on" id="v53AnalysisGroup" aria-label="Analysis view">
         <button id="v53AnalysisToggle" data-v5mode="analysis" type="button" class="on" onclick="v54SetAnalysisView('rta',event)">RTA</button>
-        <button id="v54WaterfallToggle" type="button" onclick="v54SetAnalysisView('spec',event)">Waterfall</button>
         <button id="v54MrToggle" type="button" onclick="v54SetAnalysisView('mr',event)" title="Microphone / Reference comparison">M/R</button>
+        <button id="v54WaterfallToggle" type="button" onclick="v54SetAnalysisView('spec',event)">Waterfall</button>
         <button id="v54TfGraphToggle" type="button" onclick="v54SetAnalysisView('tf',event)">TF</button>
       </div>
       <div id="displayResolutionBar" aria-label="RTA resolution">
@@ -2719,8 +2684,8 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
     <div id="alignBar">
       <div id="phWorkflowSteps" aria-label="סדר מדידת סאב וטופ">
         <button id="phSyncBtn" title="שלב 1: מסנכרן את נתיבי המיקרופון והרפרנס">1 · סנכרון TF</button>
-        <button id="phSubBtn" title="שלב 2: בחר Sweep, רעש ורוד רחב־פס או מקור חיצוני ולכוד את הסאב לבדו" disabled>2 · מדוד סאב</button>
-        <button id="phTopBtn" title="שלב 3: בחר את אותו מקור שבו נמדד הסאב ולכוד את הטופ לבדו" disabled>3 · מדוד טופ</button>
+        <button id="phSubBtn" title="שלב 2: בחר רעש ורוד פנימי או מקור חיצוני ולכוד את הסאב לבדו" disabled>2 · מדוד סאב</button>
+        <button id="phTopBtn" title="שלב 3: בחר את אותו מקור אות ולכוד את הטופ לבדו" disabled>3 · מדוד טופ</button>
       </div>
       <button id="phClearBtn">נקה</button>
       <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);white-space:nowrap">חיתוך <b id="xoverFVal" style="color:var(--accent)">90Hz</b>
@@ -2772,11 +2737,11 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
         <div class="guideSections">
           <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
           <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
-          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>מומלץ בשטח:</strong> Pink Noise רציף למדידת TF חיה; Sweep נלכד במלואו במסלול מצטבר נפרד.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה, קוהרנטיות וכיסוי תדרים → 3 · לכידת Trace. האימות דורש Reference תקין וכיסוי רחב. ללא Reference נשמר MIC Spectrum בלבד ולא TF מטעה.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace. גם אימות וגם לכידה פותחים בחירת רעש ורוד, סוויפ או מקור חיצוני. בבחירת מקור פנימי האפליקציה מפעילה אותו, אוספת את המדידה ועוצרת אותו אוטומטית. Trace שלא עבר אימות נשמר עם סימון Unverified ברור.</p></details>
           <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע ומדוד מהמרכז האקוסטי של אותו רמקול ובאותו ניתוב. כיול שדורש קיזוז מערכת שלילי משמעותי יידחה. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
           <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
           <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
-          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו וקבע את תדר החיתוך. גם הסאב וגם הטופ מאפשרים Pink Noise, Sweep או מקור חיצוני. מדוד כל מקור לבדו, באותו סוג אות ובלי להזיז את המיקרופון; Sweep נלכד לכל אורכו. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
+          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו וקבע את תדר החיתוך. לחיצה על מדוד סאב או מדוד טופ תפתח בחירת רעש ורוד פנימי או מקור חיצוני; האפליקציה תפעיל את האות למשך הלכידה ותעצור אותו בסיום. מדוד כל מקור לבדו, באותו אות ובלי להזיז את המיקרופון. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
           <details><summary>Trace · לפני ואחרי</summary><p>שמור Trace לפני שינוי. לאחריו השווה באותו מיקום מיקרופון, אותה עוצמה ואותו אות בדיקה.</p></details>
         </div>
         <button id="guideClose" type="button">סגור</button>
@@ -2789,7 +2754,6 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
         <button class="toggle" data-src="pink">רעש ורוד</button>
         <button class="toggle" data-src="sweep">סוויפ</button>
         <button class="toggle" data-src="external">מקור חיצוני (אני מנגן)</button>
-        <button class="toggle" data-src="external-sweep">סוויפ חיצוני (אני מנגן)</button>
         <button class="toggle" data-src="cancel" style="opacity:.7">ביטול</button>
       </div>
     </div>
@@ -3367,7 +3331,7 @@ body:not(.sun-mode) #v53AnalysisGroup{background:rgba(0,5,8,.88)!important}
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.78</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.5.59</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3494,7 +3458,7 @@ window.addEventListener('load', function(){
     }
     if(a==='modeAction'){
       if(m==='tf'){(document.getElementById('tfProSync')||document.getElementById('tfAutoDelayBtn')||document.getElementById('tfSyncBtn'))?.click();}
-      else if(m==='waterfall'){window.resetWaterfallResonances?.();if(specCtx&&specCanvas){specCtx.fillStyle=sunMode?'#f8fafc':'#010609';specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);}}
+      else if(m==='waterfall'){window.resetWaterfallResonances?.();if(specCtx&&specCanvas){specCtx.fillStyle=sunMode?'#f8fafc':'#0d1117';specCtx.fillRect(0,0,specCanvas.width,specCanvas.height);}}
       else{(document.getElementById('peakHoldBtn')||document.getElementById('holdBtn'))?.click();}
     }
     if(a==='freeze'){const f=document.getElementById('freezeBtn')||document.getElementById('frzBtn');if(f)f.click();else document.getElementById('tfProFreeze')?.click();}
@@ -3561,7 +3525,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.78"></script>
+<script src="app.js?v=5.5.59"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -3706,15 +3670,13 @@ window.addEventListener('load', function(){
  setInterval(updateHealth,850);
 
  // Delay repeatability layer, callable by current/future delay UI.
- const delayHistories=new Map();window.recordDelayReliability=function(ms,confidence=1,scope='path'){
-   const key=String(scope||'path'),dh=delayHistories.get(key)||[],now=Date.now();
-   dh.push({t:now,ms,confidence});while(dh.length>5)dh.shift();delayHistories.set(key,dh);
-   if(dh.length<3)return {label:'PENDING',spread:null,count:dh.length,scope:key};
+ const dh=[];window.recordDelayReliability=function(ms,confidence=1){
+   const now=Date.now();dh.push({t:now,ms,confidence});while(dh.length>5)dh.shift();
+   if(dh.length<3)return {label:'PENDING',spread:null,count:dh.length};
    const a=dh.map(x=>x.ms),av=a.reduce((x,y)=>x+y,0)/a.length,sd=Math.sqrt(a.reduce((x,y)=>x+(y-av)**2,0)/a.length);
    const c=dh.reduce((x,y)=>x+y.confidence,0)/dh.length,label=sd<=.18&&c>=.7?'HIGH':sd<=.5&&c>=.55?'MEDIUM':'LOW';
-   return {label,spread:sd,mean:av,count:dh.length,scope:key};
+   return {label,spread:sd,mean:av,count:dh.length};
  };
- window.resetDelayReliability=function(){delayHistories.clear();window.lastDelayRepeatability=null;};
 
  function mode(){return document.querySelector('#v54TfGraphToggle.on')?'TF':document.querySelector('#v54WaterfallToggle.on')?'WATERFALL':document.querySelector('#v54MrToggle.on')?'M/R':'RTA'}
 
@@ -3723,7 +3685,7 @@ window.addEventListener('load', function(){
    const traces=v552GetTraces();box.innerHTML='';
    traces.forEach((t,i)=>{
      const r=document.createElement('div');r.className='tsRow';
-     r.innerHTML='<input type="checkbox" data-ts-select="'+i+'"><input class="tsInput" value="'+String(t.name||'Trace').replace(/"/g,'&quot;')+'"><span>'+(t.type==='tf'?('TF · '+(t.verified===true?'Verified':'Unverified')):t.type==='mic-spectrum'?'MIC Spectrum':'RTA')+(t.spatialAverage?' · AVG':'')+'</span><button class="tsBtn" data-eye="'+i+'">'+(t.visible===false?'SHOW':'HIDE')+'</button><button class="tsBtn" data-del="'+i+'">DEL</button>';
+     r.innerHTML='<input type="checkbox" data-ts-select="'+i+'"><input class="tsInput" value="'+String(t.name||'Trace').replace(/"/g,'&quot;')+'"><span>'+(t.type==='tf'?('TF · '+(t.verified===true?'Verified':'Unverified')):'RTA')+(t.spatialAverage?' · AVG':'')+'</span><button class="tsBtn" data-eye="'+i+'">'+(t.visible===false?'SHOW':'HIDE')+'</button><button class="tsBtn" data-del="'+i+'">DEL</button>';
      r.querySelector('.tsInput').onchange=e=>v552RenameTrace(i,e.target.value);
      r.querySelector('[data-eye]').onclick=()=>{v552ToggleTrace(i);renderTraceManager()};
      r.querySelector('[data-del]').onclick=()=>{v552DeleteTrace(i);renderTraceManager()};
@@ -3754,7 +3716,7 @@ window.addEventListener('load', function(){
 <script>
 (()=>{
  function ensureDelayRepeat(){
-   const host=document.querySelector('#dlyPanel,#delayPanel,#v5DelayPanel,[data-tool-panel="delay"],.delayCard');
+   const host=document.querySelector('#delayPanel,#v5DelayPanel,[data-tool-panel="delay"],.delayCard');
    if(!host)return null;let b=document.getElementById('delayRepeatBadge');
    if(!b){b=document.createElement('div');b.id='delayRepeatBadge';host.prepend(b)}return b;
  }
@@ -3890,8 +3852,8 @@ window.addEventListener('load', function(){
 <script>(()=>{const host=document.getElementById('persistentTraceHost'),list=document.getElementById('v5TraceList'),add=document.getElementById('v5AddTrace');if(host&&list&&add){host.append(list,add);document.body.classList.remove('ui-traces-open','ui-drawer-traces');}})();</script>
 
 <div id="targetLeftLabels" aria-hidden="true"><div class="tll">GENERATOR</div><div class="tll">I / O</div><div class="tll">TRACES</div></div>
-<div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="correction">CORRECTION GRAPH</button><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button><button class="tcb danger" id="v5ResetSession" type="button">↺ RESET SESSION</button></div>
-<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='correction'){if(typeof window.openCorrectionGraph==='function')window.openCorrectionGraph();else ca(['#v5ModeTabs [data-v5mode="spleq"]','#eqBtn'])}if(a==='traces'){window.focusPersistentTraces?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
+<div id="targetCommandBar"><button class="tcb primary" data-tcb="capture">CAPTURE</button><span class="tcb spacer"></span><button class="tcb" data-tcb="traces">TRACES</button><button class="tcb" data-tcb="settings">SETTINGS</button><button class="tcb danger" id="v5ResetSession" type="button">↺ RESET SESSION</button></div>
+<script>(()=>{const ca=s=>{for(const q of s){const x=document.querySelector(q);if(x){x.click();return true}}return false};document.getElementById('targetCommandBar')?.addEventListener('click',e=>{const b=e.target.closest('[data-tcb]');if(!b)return;const a=b.dataset.tcb;if(a==='capture'){if(typeof captureWorkspaceTrace==='function')captureWorkspaceTrace();else ca(['#tfTraceBtn','#v5AddTrace'])}if(a==='traces'){window.focusPersistentTraces?.()}if(a==='settings'){document.getElementById('uiMenu')?.classList.add('open');document.getElementById('uiMenuBackdrop')?.classList.add('open')}})})();</script>
 
 <script>
 (()=>{
@@ -3933,30 +3895,22 @@ window.addEventListener('load', function(){
 <script>
 (()=>{
  let peak=-Infinity;
- let shown={mic:null,snr:null,coh:null,headroom:null},last=performance.now();
- function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
- function follow(old,next,dt,tau){return old==null?next:old+(next-old)*(1-Math.exp(-dt/tau))}
  function syncMeasurementTarget(){
    const h=window.measurementHealth;if(!h)return;
-   const now=performance.now(),dt=Math.max(.04,Math.min(.3,(now-last)/1000));last=now;
-   const liveMic=typeof smoothedDbfs!=='undefined'&&Number.isFinite(smoothedDbfs)?smoothedDbfs:h.micDb;
-   shown.mic=follow(shown.mic,liveMic,dt,.32);
-   shown.snr=follow(shown.snr,h.snr,dt,.55);
-   shown.coh=follow(shown.coh,h.coh,dt,.55);
-   shown.headroom=follow(shown.headroom,Math.max(0,-shown.mic),dt,.4);
    const main=document.getElementById('tmpMain'),pk=document.getElementById('tmpPeak'),sn=document.getElementById('tmpSnr'),co=document.getElementById('tmpCoh'),hr=document.getElementById('tmpHeadroom');
-   if(Number.isFinite(shown.mic)){setText(main,shown.mic.toFixed(1));peak=Math.max(peak,shown.mic)}
-   if(Number.isFinite(peak))setText(pk,peak.toFixed(1)+' dBFS');
-   setText(sn,Number.isFinite(shown.snr)?Math.round(shown.snr)+' dB':'—');
-   setText(co,Number.isFinite(shown.coh)?shown.coh.toFixed(2):'—');
-   setText(hr,Number.isFinite(shown.headroom)?Math.round(shown.headroom)+' dB':'—');
-   const sec=document.getElementById('tmpSecondary');setText(sec,h.reason||'LIVE INPUT');
+   if(main&&Number.isFinite(h.micDb))main.textContent=h.micDb.toFixed(1);
+   if(Number.isFinite(h.micDb))peak=Math.max(peak,h.micDb);
+   if(pk&&Number.isFinite(peak))pk.textContent=peak.toFixed(1)+' dBFS';
+   if(sn)sn.textContent=Number.isFinite(h.snr)?Math.round(h.snr)+' dB':'—';
+   if(co)co.textContent=Number.isFinite(h.coh)?h.coh.toFixed(2):'—';
+   if(hr)hr.textContent=Number.isFinite(h.headroomDb)?Math.round(h.headroomDb)+' dB':'—';
+   const sec=document.getElementById('tmpSecondary');if(sec)sec.textContent=h.reason||'LIVE INPUT';
    // Mirror existing RTA peak/cursor text if present; do not invent spectral values.
    const source=document.querySelector('#peakInfo,#rtaPeak,#peakReadout,.peakReadout,[data-peak-readout]');
    const hz=document.getElementById('tpkHz'),meta=document.getElementById('tpkMeta');
    if(source&&hz){hz.textContent=(source.textContent||'PEAK —').trim().slice(0,34);if(meta)meta.textContent='PEAK / HOLD';}
  }
- setInterval(syncMeasurementTarget,100);syncMeasurementTarget();
+ setInterval(syncMeasurementTarget,650);syncMeasurementTarget();
 })();
 </script>
 
