@@ -31,12 +31,13 @@ class RecorderWorklet extends AudioWorkletProcessor {
     
     const input = inputs[0];
     if (input && input.length > 0) {
+      const loopback = inputs[1] && inputs[1][0];
       const c0 = input[this.micChannel] || input[0];
-      const c1 = input[this.refChannel] || input[0];
+      const c1 = loopback || input[this.refChannel] || null;
       
       for(let i = 0; i < c0.length; i++) {
         this.buffer.mic[this.pos] = c0[i];
-        this.buffer.ref[this.pos] = c1[i];
+        this.buffer.ref[this.pos] = c1 ? c1[i] : 0;
         this.pos++;
         
         if(this.pos >= 4096) {

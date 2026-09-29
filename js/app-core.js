@@ -132,6 +132,7 @@ function db2lin(db){
 let _pfxRef=null;
 let tfOverlay=false;
 let genSweepDur=4, sweepTimer=null, sweepStartT=0, genSweepSingleShot=false, genSweepStartTimer=null;
+let tfSweepAcquiring=false, subTopSourceKind=null;
 let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rtLevel=-6;
 let eqMarks=null;
 let eqCurveData=null;
@@ -260,7 +261,7 @@ function tfAutoDelay(event){
   const globalBtn=document.getElementById('v52AutoDelayBtn');
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
   const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
-  pickSource(()=>{
+  pickSource(sourceKind=>{
     cancelTfWorkflowVerification();
     tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
     clearSubTopSnapshots('סנכרון TF מתבצע…');
@@ -280,7 +281,7 @@ function tfAutoDelay(event){
     syncTfWorkflowUi();
     if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}
     v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
-  },{maxDelayMs:delaySearchMs,mode:'tf'});
+  },{maxDelayMs:delaySearchMs,mode:'tf',signalType:sourceKind});
   },3800);
 }
 
@@ -372,7 +373,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.5.59-capture-source-picker',
+    version: 'v5.5.59.1-subtop-loopback-fix',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1204,7 +1205,7 @@ const srcOverlay=document.getElementById('srcOverlay');
 function pickSource(fn, dur, options){
   if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
   pendingMeasureFn=fn;pendingDur=dur||5000;pendingSourceOptions=options||{};
-  const allowed=Array.isArray(pendingSourceOptions.allowed)?pendingSourceOptions.allowed:['pink','sweep','external'];
+  const allowed=Array.isArray(pendingSourceOptions.allowed)?pendingSourceOptions.allowed:['pink','sweep','external','external-sweep'];
   const title=document.querySelector('#srcBox .srcTitle');if(title)title.textContent=pendingSourceOptions.title||'איזה אות להשמיע למדידה?';
   document.querySelectorAll('#srcBox button[data-src]').forEach(btn=>{btn.style.display=btn.dataset.src==='cancel'||allowed.includes(btn.dataset.src)?'':'none';});
   srcOverlay.classList.add('show');
@@ -1221,10 +1222,11 @@ function setGenTypeUI(kind){
   document.getElementById('genFreqWrap').style.display='none';
   document.getElementById('genSweepWrap').style.display = kind==='sweep'?'flex':'none';
 }
+function isSweepSource(kind){return kind==='sweep'||kind==='external-sweep';}
 function runWithSource(kind, measureFn, durMs){
   durMs=durMs||5000;
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
-  if(kind==='external'){ measureFn(kind); return; }
+  if(kind==='external'||kind==='external-sweep'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
   genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650}:{});
   setTimeout(()=>measureFn(kind), kind==='sweep'?100:450);
@@ -2136,7 +2138,12 @@ function runDelayCapture(btn, cb, options){
   const sr=audioCtx.sampleRate;
   const maxDelayMs=Math.max(20,Math.min(100,Number(options.maxDelayMs)||delaySearchMs));
   const minCapture=delayChunkSize(sr,maxDelayMs)*3/sr+.35;
-  const captureSec = (genOn && genType==='sweep') ? Math.min(10,Math.max(3.2,minCapture,genSweepDur+0.6)) : Math.max(3.2,minCapture);
+  const requestedSignal=options.signalType;
+  const signalType=isSweepSource(requestedSignal)?'sweep'
+    :(requestedSignal==='pink'||requestedSignal==='noise')?'noise'
+    :(genOn&&genType==='sweep')?'sweep'
+    :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
+  const captureSec = signalType==='sweep' ? Math.max(3.2,minCapture,genSweepDur+0.8) : Math.max(3.2,minCapture);
   const want=Math.floor(sr*captureSec);
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
@@ -2175,8 +2182,6 @@ function runDelayCapture(btn, cb, options){
       // correlated across the whole capture instead of per-chunk. Pink/white
       // noise stays on the proven per-chunk path; anything else ('auto') tries
       // the chunk path first and falls back to full-capture correlation.
-      const signalType=(genOn&&genType==='sweep')?'sweep'
-        :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
       const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
       if(delayResult&&delayResult.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
         delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);
@@ -2191,11 +2196,11 @@ safeOn('dlyLoopbackBtn','click',function(){
   if(!confirm('בדיקת חיבור דורשת שאותו אות בדיוק יגיע לשתי הכניסות.\nחבר/נתב את אותו Reference ל־MIC 1 ול־REF 2, ואז המשך.'))return;
   const btn=this,st=document.getElementById('dlyStatus');
   dlyLastPathResult=null;dlyLastSpeakerResult=null;delete st.dataset.delayResult;
-  pickSource(()=>runDelayCapture(btn,(res,silent)=>{
+  pickSource(sourceKind=>runDelayCapture(btn,(res,silent)=>{
     if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
     const ok=Math.abs(res.ms)<=.30;
     st.innerHTML=(ok?'✓ החיבור מסונכרן':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
-  },{maxDelayMs:20,mode:'loopback'}),3800);
+  },{maxDelayMs:20,mode:'loopback',signalType:sourceKind}),3800);
 });
 
 safeOn('dlyDistanceCalBtn','click',function(){
@@ -3352,10 +3357,14 @@ function computeComplexTf(){
     const corrected=applyDelayPhaseToCross(rawRe,rawIm,k,N,tfDelaySamples);
     const pxyRe=corrected.re,pxyIm=corrected.im;
 
-    tfPxx[k] = alpha * tfPxx[k] + (1 - alpha) * pxx;
-    tfPyy[k] = alpha * tfPyy[k] + (1 - alpha) * pyy;
-    tfPxyRe[k] = alpha * tfPxyRe[k] + (1 - alpha) * pxyRe;
-    tfPxyIm[k] = alpha * tfPxyIm[k] + (1 - alpha) * pxyIm;
+    if(tfSweepAcquiring){
+      tfPxx[k] += pxx;tfPyy[k] += pyy;tfPxyRe[k] += pxyRe;tfPxyIm[k] += pxyIm;
+    }else{
+      tfPxx[k] = alpha * tfPxx[k] + (1 - alpha) * pxx;
+      tfPyy[k] = alpha * tfPyy[k] + (1 - alpha) * pyy;
+      tfPxyRe[k] = alpha * tfPxyRe[k] + (1 - alpha) * pxyRe;
+      tfPxyIm[k] = alpha * tfPxyIm[k] + (1 - alpha) * pxyIm;
+    }
   }
 }
 
@@ -4475,18 +4484,19 @@ function syncSubTopWorkflowUi(){
 }
 function clearSubTopSnapshots(message){
   if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}
-  phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;
+  phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;tfSweepAcquiring=false;subTopSourceKind=null;
   const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
   const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
   const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב ואז טופ — בכל שלב בחר רעש ורוד פנימי או מקור חיצוני.';st.style.color='var(--dim)';}
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
 }
-function capturePhase(which){
+function capturePhase(which,sourceKind='external'){
   if(!analyser || !analyserRef){ alert('פאזה דורשת מדידת מיק/רפרנס פעילה (רפרנס בערוץ 2).'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
   if(!tfDelayReady){ alert('תחילה בצע את שלב 1 — סנכרון TF.'); return; }
   if(which==='top'&&!phaseSub){ alert('תחילה בצע את שלב 2 — מדידת הסאב לבדו.'); return; }
+  if(which==='top'&&subTopSourceKind&&sourceKind!==subTopSourceKind){alert('מדוד את הסאב והטופ עם אותו מקור אות.');return;}
   phMeasuring=true;
   const btn=document.getElementById(which==='sub'?'phSubBtn':'phTopBtn');
   const other=document.getElementById(which==='sub'?'phTopBtn':'phSubBtn');
@@ -4499,15 +4509,18 @@ function capturePhase(which){
   updateAlignmentRecommendation();
   // אפס צוברים לחלון מדידה נקי
   tfPxx.fill(0); tfPyy.fill(0); tfPxyRe.fill(0); tfPxyIm.fill(0);
-  let t=3;
-  const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
+  tfSweepAcquiring=isSweepSource(sourceKind);
+  let t=isSweepSource(sourceKind)?Math.max(5,Math.ceil(genSweepDur+1)):3;
+  const sourceLabel=sourceKind==='sweep'?'סוויפ פנימי':sourceKind==='external-sweep'?'סוויפ חיצוני':sourceKind==='pink'?'רעש ורוד':'מקור חיצוני';
+  const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+' עם '+sourceLabel+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
   tick();
   phMeasureTimer=setInterval(()=>{
     t--;
     if(t>0){ tick(); return; }
     clearInterval(phMeasureTimer);phMeasureTimer=null;
     const snap=tfPhaseSnapshot();
-    if(which==='sub') phaseSub=snap; else phaseTop=snap;
+    if(which==='sub'){phaseSub=snap;subTopSourceKind=sourceKind;}else phaseTop=snap;
+    tfSweepAcquiring=false;
     showXover=true;
     const N2=TF_FFT_N/2, nyq=(typeof audioCtx!=='undefined'&&audioCtx)?audioCtx.sampleRate/2:24000;
     const k=Math.min(N2-1, Math.round(xoverF/nyq*N2));
@@ -4525,8 +4538,8 @@ function capturePhase(which){
     updateAlignmentRecommendation();
   },1000);
 }
-safeOn('phSubBtn','click',()=>pickSource(()=>capturePhase('sub'),3200,{title:'אות למדידת הסאב לבדו',allowed:['pink','external']}));
-safeOn('phTopBtn','click',()=>pickSource(()=>capturePhase('top'),3200,{title:'אות למדידת הטופ לבדו',allowed:['pink','external']}));
+safeOn('phSubBtn','click',()=>pickSource(kind=>capturePhase('sub',kind),3200,{title:'אות למדידת הסאב לבדו · נבדק רק תחום הקרוסאובר',allowed:['pink','sweep','external','external-sweep']}));
+safeOn('phTopBtn','click',()=>pickSource(kind=>capturePhase('top',kind),3200,{title:'אות למדידת הטופ לבדו · השתמש באותו מקור',allowed:['pink','sweep','external','external-sweep']}));
 safeOn('phClearBtn','click',function(){
   clearSubTopSnapshots();
 });
@@ -4688,7 +4701,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.59';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.5.59.1';
   v3UpdateStatus();
 })();
 (function initAccent(){
