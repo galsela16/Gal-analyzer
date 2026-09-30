@@ -67,7 +67,7 @@ for(const delaySafetyCheck of [
   if(!core.includes(delaySafetyCheck)) throw new Error(`Sweep-delay safety guard missing: ${delaySafetyCheck}`);
 }
 if(core.includes("signalType!=='noise')sweepResult=computeSweepDelay")) throw new Error('Unknown external audio can still fall through to the sweep estimator');
-if(!html.includes('GAL Analyzer V5.6.1')||!config.includes("version:'5.6.1-premium-rack'")||!worker.includes('v5-6-1-premium-rack')) throw new Error('V5.6.1 release identifiers are inconsistent');
+if(!html.includes('GAL Analyzer V5.6.2')||!config.includes("version:'5.6.2-discrete-input-routing'")||!worker.includes('v5-6-2-discrete-input-routing')) throw new Error('V5.6.2 release identifiers are inconsistent');
 const recorder=await readFile('recorder-worklet.js','utf8');
 if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
 if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');

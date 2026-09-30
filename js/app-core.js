@@ -374,7 +374,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.6.1-premium-rack',
+    version: 'v5.6.2-discrete-input-routing',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3011,8 +3011,10 @@ async function start(deviceId){
     }
 
     source = audioCtx.createMediaStreamSource(stream);
-    source.channelCount = 2;
+    // Keep interface channels independent. "speakers" interpretation may
+    // up-mix a mono browser stream into two identical channels.
     source.channelCountMode = 'explicit';
+    source.channelInterpretation = 'discrete';
 
     const track = stream.getAudioTracks()[0];
     track.addEventListener('ended',()=>{
@@ -3021,7 +3023,7 @@ async function start(deviceId){
       errBox.textContent='מקור הקלט נותק. חבר מחדש ולחץ "אפס סשן".';
     });
     const settings = track.getSettings ? track.getSettings() : {};
-    chReceived = settings.channelCount || source.channelCount || 1;
+    chReceived = Number(settings.channelCount) || 1;
     const isSafari=/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
     const ci = document.getElementById('chCount');
     if(ci){
@@ -3035,26 +3037,31 @@ async function start(deviceId){
     analyser.minDecibels = -100; 
     analyser.maxDecibels = -10;
 
-    analyserRef = audioCtx.createAnalyser();
-    analyserRef.fftSize = fftSize; 
-    analyserRef.smoothingTimeConstant = 0;
-    analyserRef.minDecibels = -100; 
-    analyserRef.maxDecibels = -10;
+    analyserRef = chReceived>=2 ? audioCtx.createAnalyser() : null;
+    if(analyserRef){
+      analyserRef.fftSize = fftSize;
+      analyserRef.smoothingTimeConstant = 0;
+      analyserRef.minDecibels = -100;
+      analyserRef.maxDecibels = -10;
+    }
 
     analyserMeter = audioCtx.createAnalyser();
     analyserMeter.fftSize = 2048;
 
     const splitter = audioCtx.createChannelSplitter(2);
+    splitter.channelInterpretation = 'discrete';
     source.connect(splitter);
 
     splitter.connect(analyser, measChannel);
-    splitter.connect(analyserRef, refChannel);
-    source.connect(analyserMeter);
+    if(analyserRef) splitter.connect(analyserRef, refChannel);
+    // The main meter must follow the selected measurement input, not a
+    // stereo down-mix that can make an empty channel look active.
+    splitter.connect(analyserMeter, measChannel);
 
     floatData = new Float32Array(analyser.frequencyBinCount);
-    floatDataRef = new Float32Array(analyserRef.frequencyBinCount);
+    floatDataRef = analyserRef ? new Float32Array(analyserRef.frequencyBinCount) : null;
     timeData = new Float32Array(analyser.fftSize);
-    timeDataRef = new Float32Array(analyserRef.fftSize);
+    timeDataRef = analyserRef ? new Float32Array(analyserRef.fftSize) : null;
     timeDataMeter = new Float32Array(2048);
     
     buildWeighting(audioCtx.sampleRate / 2, analyser.frequencyBinCount);
@@ -4703,7 +4710,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6.1';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6.2';
   v3UpdateStatus();
 })();
 (function initAccent(){
