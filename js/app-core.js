@@ -19,6 +19,7 @@ let tfWorkflowVerifying = false;
 let tfWorkflowVerifyTimer = null;
 let tfTraceCapturePending = false;
 let tfTraceCaptureTimer = null;
+let tfSweepAcquiring=false;
 let tfTraces=[];
 const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
 let tfDelaySamples = 0;
@@ -132,8 +133,9 @@ function db2lin(db){
 let _pfxRef=null;
 let tfOverlay=false;
 let genSweepDur=4, sweepTimer=null, sweepStartT=0, genSweepSingleShot=false, genSweepStartTimer=null;
-let tfSweepAcquiring=false, subTopSourceKind=null;
+let subTopSourceKind=null;
 let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rtLevel=-6;
+let rt60PreviousGenerator=null;
 let eqMarks=null;
 let eqCurveData=null;
 let eqCorrectionVisible=false;
@@ -145,6 +147,8 @@ const AREA_NAMES=['צפון','דרום','מזרח','מערב'];
 let areas=[];
 let areaState='idle', areaAccum=null, areaFrames=0;
 let measState='idle', measAccum=null, measFrames=0;
+let areaMeasureTimer=null,eqMeasureTimer=null,tfMeasureTimer=null;
+let managedSourceStartTimer=null,managedSourceRestoreTimer=null;
 let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
@@ -261,6 +265,7 @@ safeOn('tfPhaseToggleBtn','click',()=>setTfViewMode('phase'));
 function tfAutoDelay(event){
   const globalBtn=document.getElementById('v52AutoDelayBtn');
   if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
+  if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
   const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
   pickSource(sourceKind=>{
     cancelTfWorkflowVerification();
@@ -271,9 +276,12 @@ function tfAutoDelay(event){
     runDelayCapture(trigger||globalBtn,(res,silent)=>{
     if(!res || !res.reliable){
       resetTfAutoDelay();
-      const msg=silent==='mic'?'אין אות במיקרופון'
+      const fallback=silent==='mic'?'אין אות במיקרופון'
         :silent==='ref'?'אין אות ב־Reference'
         :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
+      const msg=typeof delayFailureText==='function'?delayFailureText(res,silent):fallback;
+      syncTfWorkflowUi(msg,'warn');
+      const phStatus=document.getElementById('phStatus');if(phStatus)phStatus.textContent=msg;
       v3Toast(msg); return;
     }
     tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
@@ -374,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.0-professional-ui',
+    version: 'v5.7.1-professional-console',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -569,8 +577,17 @@ function genStart(options={}){
     const wait=Math.max(0,Number(options.sweepDelayMs)||0);
     if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
   }
+  if(typeof refreshReferenceRouting==='function')refreshReferenceRouting(!!options.preserveTfSync);
+  if(options.autoSync!==false&&typeof scheduleLoopbackAutoSync==='function')scheduleLoopbackAutoSync();
   syncInlineGenBtns();
   const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.add('on'); btn.textContent='⏹ עצור אות';}
+}
+
+function cancelManagedSourceRun(stopGenerator=false){
+  if(managedSourceStartTimer){clearTimeout(managedSourceStartTimer);managedSourceStartTimer=null;}
+  if(managedSourceRestoreTimer){clearTimeout(managedSourceRestoreTimer);managedSourceRestoreTimer=null;}
+  genSweepSingleShot=false;
+  if(stopGenerator&&genOn)genStop();
 }
 
 function syncInlineGenBtns(){
@@ -1167,7 +1184,15 @@ function showModal(p){
   if(p.classList.contains('measureDock')){modalBg.classList.remove('show');setTimeout(updateMeasureDockHeight,0);}
   else modalBg.classList.add('show');
 }
-function abortRT60(){
+function restoreRt60Generator(previous=rt60PreviousGenerator){
+  if(previous===false)return;
+  previous=previous&&typeof previous==='object'?previous:rt60PreviousGenerator;
+  if(!previous)return;
+  if(previous.on){genType=previous.type;setGenTypeUI(genType);genStart({preserveTfSync:true,autoSync:false});}
+  else genStop();
+  rt60PreviousGenerator=null;
+}
+function abortRT60(restoreGenerator=true){
   if(rt60State==='idle'&&!rt60Timer&&!rt60ArmTimer&&!rt60CutTimer&&!rt60FinishTimer)return;
   rt60State='idle';
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
@@ -1175,7 +1200,7 @@ function abortRT60(){
   if(rt60CutTimer){clearTimeout(rt60CutTimer);rt60CutTimer=null;}
   if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
   if(analyser) analyser.smoothingTimeConstant=parseFloat(document.getElementById('smooth').value);
-  genStop();
+  restoreRt60Generator(restoreGenerator);
   if(rtStatus) rtStatus.textContent='המדידה בוטלה.';
 }
 function closeModals(){
@@ -1225,14 +1250,16 @@ function setGenTypeUI(kind){
 }
 function isSweepSource(kind){return kind==='sweep'||kind==='external-sweep';}
 function runWithSource(kind, measureFn, durMs){
+  cancelManagedSourceRun(false);
   durMs=durMs||5000;
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
   if(kind==='external'||kind==='external-sweep'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
-  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650}:{});
-  setTimeout(()=>measureFn(kind), kind==='sweep'?100:450);
-  setTimeout(()=>{
-    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart(); }
+  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650,preserveTfSync:false,autoSync:false}:{preserveTfSync:false,autoSync:false});
+  managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(kind);}, kind==='sweep'?100:450);
+  managedSourceRestoreTimer=setTimeout(()=>{
+    managedSourceRestoreTimer=null;
+    genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart({preserveTfSync:true,autoSync:false}); }
     else genStop();
   }, 450+durMs+300);
 }
@@ -1276,7 +1303,8 @@ function measureArea(){
   const srcData = floatData;
   areaAccum=new Float64Array(srcData.length); areaFrames=0; areaState='measuring';
   updateAreaMeasBtn();
-  setTimeout(()=>{
+  areaMeasureTimer=setTimeout(()=>{
+    areaMeasureTimer=null;if(!running||!audioCtx){areaState='idle';updateAreaMeasBtn();return;}
     const bins=areaAccum.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
     const db=GEQ.map(fc=>10*Math.log10(binOverlapLinearPower(areaAccum,fc/R6,fc*R6,nyq,areaFrames)+1e-12));
     const idx=areas.length;
@@ -1381,17 +1409,19 @@ function syncTfWorkflowUi(message,tone){
 }
 function cancelTfWorkflowVerification(){
   if(tfWorkflowVerifyTimer){clearTimeout(tfWorkflowVerifyTimer);tfWorkflowVerifyTimer=null;}
-  tfWorkflowVerifying=false;
+  tfWorkflowVerifying=false;tfSweepAcquiring=false;
 }
-function verifyTfWorkflow(){
+function verifyTfWorkflow(sourceKind='external',options={}){
   if(!tfDelayReady){v3Toast('תחילה בצע סנכרון TF');return;}
   if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
+  const verifyMs=isSweepSource(sourceKind)?Math.max(3000,(genSweepDur+1)*1000):2000;
   setTfPhaseAndCoherence(true);
   tfWorkflowVerified=false;tfWorkflowVerifying=true;
+  tfSweepAcquiring=isSweepSource(sourceKind);
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
   syncTfWorkflowUi('<b>שלב 2:</b> אוסף נתוני פאזה וקוהרנטיות במשך 2 שניות…');
   tfWorkflowVerifyTimer=setTimeout(()=>{
-    tfWorkflowVerifyTimer=null;tfWorkflowVerifying=false;
+    tfWorkflowVerifyTimer=null;tfWorkflowVerifying=false;tfSweepAcquiring=false;
     const q=tfWorkflowQuality();
     tfWorkflowVerified=!!q.ok;
     if(q.ok){
@@ -1401,7 +1431,7 @@ function verifyTfWorkflow(){
       syncTfWorkflowUi('<b>שלב 2 לא עבר:</b> '+q.reason+' · בדוק רמות, ניתוב ו־Reference ונסה שוב','warn');
       v3Toast(q.reason);
     }
-  },2000);
+  },verifyMs);
 }
 safeOn('tfVerifyBtn','click',()=>pickSource(verifyTfWorkflow,3000));
 
@@ -1853,7 +1883,7 @@ function updateTfLevels(){
     }
   }
 }
-function tfMeasure(){
+function tfMeasure(sourceKind='external'){
   if(!running||!analyserRef){ alert('הפעל מיקרופון עם כרטיס קול (input סטריאו).'); return; }
   if(!tfDelayReady||!tfWorkflowVerified){ alert('תחילה השלם סנכרון ואימות TF.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
@@ -1861,10 +1891,13 @@ function tfMeasure(){
   const bins=floatData.length;
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
   tfMic=new Float64Array(bins); tfRef=new Float64Array(bins); tfFrames=0; tfState='measuring';
+  tfSweepAcquiring=isSweepSource(sourceKind);
   const btn=document.getElementById('tfMeasBtn'); btn.textContent='מודד EQ…'; btn.style.opacity=.5;
   syncTfWorkflowUi();
-  setTimeout(()=>{
+  tfMeasureTimer=setTimeout(()=>{
+    tfMeasureTimer=null;if(!running||!audioCtx){tfState='idle';tfSweepAcquiring=false;syncTfWorkflowUi();return;}
     tfState='idle'; btn.textContent='3ב · מדוד EQ שוב'; btn.style.opacity=1;
+    tfSweepAcquiring=false;
     tfCompute();
     syncTfWorkflowUi();
   },6000);
@@ -2603,6 +2636,16 @@ function measureBusy(){
   return measState==='measuring' || areaState==='measuring' || tfState==='measuring'
       || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || tfTraceCapturePending || rt60State!=='idle';
 }
+function cancelTimedMeasurements(){
+  if(areaMeasureTimer){clearTimeout(areaMeasureTimer);areaMeasureTimer=null;}
+  if(eqMeasureTimer){clearTimeout(eqMeasureTimer);eqMeasureTimer=null;}
+  if(tfMeasureTimer){clearTimeout(tfMeasureTimer);tfMeasureTimer=null;}
+  areaState='idle';areaAccum=null;areaFrames=0;
+  measState='idle';measAccum=null;measFrames=0;
+  tfState='idle';tfMic=null;tfRef=null;tfFrames=0;tfSweepAcquiring=false;
+  if(typeof updateAreaMeasBtn==='function')updateAreaMeasBtn();
+  if(typeof updateEqUI==='function')updateEqUI();
+}
 function unfreezeForMeasure(){
   if(!frozen) return;
   frozen=false; snapCurve=null;
@@ -2615,7 +2658,8 @@ function measurePosition(){
   const srcData = floatData;
   measAccum=new Float64Array(srcData.length); measFrames=0; measState='measuring';
   updateEqUI();
-  setTimeout(()=>{
+  eqMeasureTimer=setTimeout(()=>{
+    eqMeasureTimer=null;if(!running||!audioCtx){measState='idle';updateEqUI();return;}
     const bins=measAccum.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
     const db=GEQ.map(fc=>10*Math.log10(binOverlapLinearPower(measAccum,fc/R6,fc*R6,nyq,measFrames)+1e-12));
     eqPositions.push({name:'מיקום '+(eqPositions.length+1), db}); measState='idle';
@@ -2738,9 +2782,8 @@ function startRT60(){
   unfreezeForMeasure();
   rt60State='arming';
   rtStatus.innerHTML='מכין… משמיע רעש ורוד';
-  const prevGenOn = genOn;
-  const restoreType=genType; genType='pink';
-  if(!genOn){ genStart(); }
+  rt60PreviousGenerator={on:genOn,type:genType};
+  genType='pink';setGenTypeUI('pink');genStart({preserveTfSync:true,autoSync:false});
   const boost=rtLevel;
   if(genGain) genGain.gain.setTargetAtTime(Math.pow(10,boost/20),audioCtx.currentTime,0.1);
   const prevSmooth=analyser.smoothingTimeConstant; analyser.smoothingTimeConstant=0;
@@ -2775,8 +2818,7 @@ function startRT60(){
         rt60State='idle'; 
         if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
         analyser.smoothingTimeConstant=prevSmooth;
-        if(!prevGenOn) genStop(); 
-        genType=restoreType;
+        restoreRt60Generator();
         analyzeRT60();
       },2500);
     },400);
@@ -2884,6 +2926,7 @@ document.addEventListener('click',()=>{
   const chip=document.getElementById('v3ResChip');if(chip)chip.setAttribute('aria-expanded','false');
 });
 function setFft(n){
+  if(measureBusy()){alert('לא ניתן לשנות FFT בזמן מדידה פעילה.');return;}
   const supported=(window.GAL&&window.GAL.config&&window.GAL.config.supportedFft)||[8192,16384,32768];
   n=parseInt(n,10);
   fftSize=supported.includes(n)?n:16384;
@@ -2928,6 +2971,8 @@ safeOn('alignClose','click',()=>setAlign(false));
 safeOn('startBtn', 'click',()=>start());
 safeOn('stopBtn', 'click',resetSession);
 function resetSession(){
+  cancelManagedSourceRun(true);
+  cancelTimedMeasurements();
   if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
   resetTfAutoDelay();
   const tr = stream && stream.getAudioTracks && stream.getAudioTracks()[0];
@@ -3130,13 +3175,13 @@ safeOn('outSel', 'change',async e=>{
 
 async function switchInput(deviceId){
   if(!running) return;
-  if(raf) cancelAnimationFrame(raf);
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  if(audioCtx) await audioCtx.close();
+  await stop();
   await start(deviceId);
 }
 
-function stop(){
+async function stop(){
+  cancelManagedSourceRun(true);
+  cancelTimedMeasurements();
   running=false; if(raf) cancelAnimationFrame(raf);
   resetTfAutoDelay();
   resetDistanceCalibration();
@@ -3147,7 +3192,7 @@ function stop(){
   genSrc=null; genOsc=null; genGain=null; genOn=false;
   const gb=document.getElementById('genOnBtn'); if(gb){gb.classList.remove('on');gb.textContent='▶ הפעל אות';}
   if(stream) stream.getTracks().forEach(t=>t.stop());
-  if(audioCtx) audioCtx.close();
+  if(audioCtx) await audioCtx.close();
   dot.classList.remove('live'); idle.style.display='flex';
   document.getElementById('stopBtn').style.display='none';
   meterEl.style.display='none'; document.getElementById('stats').style.display='none';
@@ -4715,7 +4760,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.1';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4807,7 +4852,7 @@ function v54SetAnalysisView(view,event){
   }
 }
 function v5OpenTf(extra){
-  if(v5WorkspaceMode!=='tf')v54SetAnalysisView('tf');else{setMode('rta');setTfOverlay(true);}
+  v54SetAnalysisView('tf');
   showModal(tfPanel);
   if(extra==='phase')setTfViewMode('phase');
   else if(extra==='coh')setTfViewMode('coherence');

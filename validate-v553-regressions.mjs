@@ -108,7 +108,7 @@ const checks=[
  ,['verified TF capture requires a stable working average',core.includes("tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'")&&core.includes("captureKind:'working-average'")]
  ,['collapsed EQ correction releases the canvas completely',core.includes("if(!keepExpanded){eqCorrectionVisible=false;dock.style.display='none'")&&core.includes("hideGeqDock();v3Toast('תיקון EQ נסגר")]
  ,['TF field guide explains continuous stimulus workflow',html.includes('id="tfFieldGuide"')&&html.includes('הפעל Pink Noise רציף')&&core.includes('function syncTfFieldGuide')]
- ,['measurement sweep runs exactly one deferred cycle',core.includes('genSweepSingleShot=false')&&core.includes('if(!genSweepSingleShot)sweepTimer=setTimeout')&&core.includes("genStart(kind==='sweep'?{sweepDelayMs:650}:{})")]
+ ,['measurement sweep runs exactly one deferred cycle',core.includes('genSweepSingleShot=false')&&core.includes('if(!genSweepSingleShot)sweepTimer=setTimeout')&&core.includes("genStart(kind==='sweep'?{sweepDelayMs:650,preserveTfSync:false,autoSync:false}:{preserveTfSync:false,autoSync:false})")]
  ,['TF working result remains held after stimulus ends',core.includes("tfHasReferenceSignal()||tfWorkingAverage")&&core.includes("stableHeld?'HELD · STABLE':'HELD · UNVERIFIED'")&&core.includes("'התוצאה המאומתת נשמרה על המסך'")]
  ,['TF display selector is mutually exclusive',core.includes("let tfViewMode = 'magnitude'")&&core.includes("['magnitude','phase','coherence'].includes(view)")&&html.includes('aria-label="בחר תצוגת TF"')]
  ,['TF renders one full-canvas quantity at a time',core.includes("if(tfViewMode==='phase')return tfDrawSelectedPhase")&&core.includes("if(tfViewMode==='coherence')return tfDrawSelectedCoherence")&&core.includes('return tfDrawSelectedMagnitude')]
@@ -125,4 +125,4 @@ const checks=[
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.7 regression validation passed (${checks.length} checks).`);
+console.log(`V5.7.1 regression validation passed (${checks.length} checks).`);
