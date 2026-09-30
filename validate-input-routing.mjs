@@ -10,5 +10,8 @@ assert(core.includes('analyserRef = audioCtx.createAnalyser()'),'Reference analy
 assert(core.includes('splitter.connect(analyserRef, refChannel)'),'Reference analyser must follow the selected discrete input');
 assert(core.includes('splitter.connect(analyserMeter, measChannel)'),'Main meter must follow the selected measurement channel');
 assert(!core.includes('source.connect(analyserMeter)'),'Main meter must not down-mix the complete input stream');
+assert(core.includes('function tfNormalizedMagnitude(snap,k)'),'TF must normalize fixed analog input gain differences');
+assert(core.includes('const yy=y(tfNormalizedMagnitude(s,k))'),'Live TF magnitude must use normalized response');
+assert(core.includes("delta=tfNormalizedMagnitude(s,k)"),'TF cursor must report normalized system response');
 
 console.log('Discrete input routing validation passed.');

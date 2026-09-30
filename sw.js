@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-6-3-interface-channel-detection-20260930';
+const CACHE = 'gal-analyzer-v5-6-4-tf-level-normalization-20260930';
 const ASSETS = [
   './',
   './index.html',

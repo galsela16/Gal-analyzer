@@ -374,7 +374,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.6.3-interface-channel-detection',
+    version: 'v5.6.4-tf-level-normalization',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1472,6 +1472,9 @@ function tfCurrentSnapshot(){
   const refOffset=refVals.length?refVals[Math.floor(refVals.length/2)]:0;
   const snap={mag,ph,coh,offset,refDb,micDb,refOffset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()}; snap.confidence=tfBandConfidence(snap); return snap;
 }
+function tfNormalizedMagnitude(snap,k){
+  return (snap?.mag?.[k]||0)-(Number.isFinite(snap?.offset)?snap.offset:0);
+}
 
 function syncTfAverageUi(state='waiting',detail='WAITING'){
   const el=document.getElementById('tfAverageState');if(!el)return;
@@ -1655,10 +1658,10 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   // Dense deviation columns expose narrow peaks, cancellations and comb filtering at field resolution.
   const zeroY=deltaY(0);ctx.beginPath();let pen=false;
   const deviationBars=TF_DELTA_COLORS.map(()=>new Path2D());
-  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N))),c=live.coh[k];if(c<tfCohGate){pen=false;continue;}const db=live.mag[k],y=deltaY(db),path=deviationBars[tfDeltaBucket(db)];path.moveTo(px,zeroY);path.lineTo(px,y);}
+  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N))),c=live.coh[k];if(c<tfCohGate){pen=false;continue;}const db=tfNormalizedMagnitude(live,k),y=deltaY(db),path=deviationBars[tfDeltaBucket(db)];path.moveTo(px,zeroY);path.lineTo(px,y);}
   ctx.save();ctx.globalAlpha=.30;ctx.lineWidth=1.3;deviationBars.forEach((path,i)=>{ctx.strokeStyle=TF_DELTA_COLORS[i];ctx.stroke(path);});ctx.restore();
-  ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(live.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42;ctx.lineWidth=1;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
-  if(working){ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(working.mag.length-1,Math.max(1,Math.round(f/working.sr*TF_FFT_N)));if(working.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(working.mag[k]);pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.8;ctx.shadowColor='rgba(82,217,255,.30)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;}
+  ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(tfNormalizedMagnitude(live,k));pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42;ctx.lineWidth=1;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
+  if(working){ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(working.mag.length-1,Math.max(1,Math.round(f/working.sr*TF_FFT_N)));if(working.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(tfNormalizedMagnitude(working,k));pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.8;ctx.shadowColor='rgba(82,217,255,.30)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;}
   tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
   ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('TOP · INPUTS — REF (source) vs MIC (system)',8,14);ctx.fillText('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE',8,deltaTop-9);
   ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#8fb6c2';ctx.fillText('━ LIVE',410,14);ctx.fillStyle='#52d9ff';ctx.fillText('━ WORKING AVG',470,14);
@@ -1684,9 +1687,9 @@ function tfDrawSelectedMagnitude(W,plotH,xForFreq){
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';
   [18,12,6,0,-6,-12,-18].forEach(db=>{const yy=y(db);ctx.strokeStyle=db===0?'rgba(226,236,241,.62)':'rgba(120,145,160,.15)';ctx.lineWidth=db===0?1.5:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((db>0?'+':'')+db+' dB',5,yy-3);});
   const fill=new Path2D(),line=new Path2D();let pen=false;fill.moveTo(0,zero);
-  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(s.mag[k]);if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
+  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(tfNormalizedMagnitude(s,k));if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
   fill.lineTo(W,zero);fill.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.25)');grad.addColorStop(.5,'rgba(82,217,255,.08)');grad.addColorStop(1,'rgba(37,99,235,.25)');ctx.fillStyle=grad;ctx.fill(fill);ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.7;ctx.lineJoin='round';ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke(line);ctx.shadowBlur=0;
-  tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const yy=y(t.mag[k]);p?ctx.lineTo(px,yy):ctx.moveTo(px,yy);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
+  tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const yy=y(tfNormalizedMagnitude(t,k));p?ctx.lineTo(px,yy):ctx.moveTo(px,yy);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
   tfViewHeader('MAGNITUDE · MIC − REF','0 dB = no change · above = boost · below = loss','#52d9ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedPhase(W,plotH,xForFreq){
@@ -3825,7 +3828,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.beginPath();ctx.moveTo(cursorX,0);ctx.lineTo(cursorX,plotH);ctx.stroke(); ctx.setLineDash([]);
     const fl=cf>=1000?(cf/1000).toFixed(2)+'kHz':Math.round(cf)+'Hz';
     let label;
-    if(tfOpen&&tfDisplaySnapshot){const s=tfDisplaySnapshot,k=Math.min(s.mag.length-1,Math.max(1,Math.round(cf/s.sr*TF_FFT_N))),rd=s.refDb[k]-s.refOffset,md=s.micDb[k]-s.refOffset;label=fl+'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+s.mag[k].toFixed(1)+' dB';}
+    if(tfOpen&&tfDisplaySnapshot){const s=tfDisplaySnapshot,k=Math.min(s.mag.length-1,Math.max(1,Math.round(cf/s.sr*TF_FFT_N))),rd=s.refDb[k]-s.refOffset,md=s.micDb[k]-s.refOffset,delta=tfNormalizedMagnitude(s,k);label=fl+'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+delta.toFixed(1)+' dB';}
     else{const lvl=(lastBandDb[bi]!=null&&lastBandDb[bi]>-119)?('  '+Math.round(lastBandDb[bi])+'dB'):'';label=fl+lvl;}
     ctx.font='12px monospace'; ctx.textAlign='left';
     const tw=ctx.measureText(label).width+12;
@@ -4712,7 +4715,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6.3';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6.4';
   v3UpdateStatus();
 })();
 (function initAccent(){

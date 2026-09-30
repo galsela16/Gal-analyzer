@@ -1,6 +1,6 @@
 window.GAL=window.GAL||{};
 window.GAL.config=Object.freeze({
-  version:'5.6.3-interface-channel-detection',
+  version:'5.6.4-tf-level-normalization',
   appName:'GAL Analyzer',
   maxTraces:6,
   supportedFft:[8192,16384,32768]

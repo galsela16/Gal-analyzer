@@ -47,7 +47,7 @@ const checks=[
  ,['TF snapshot retains reference and microphone spectra',core.includes('refDb=new Float32Array(n),micDb=new Float32Array(n)')&&core.includes('refDb,micDb,refOffset')]
  ,['TF graph separates input comparison and system difference',core.includes('TOP · INPUTS — REF (source) vs MIC (system)')&&core.includes('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE')&&core.includes('drawInput(\'refDb\'')&&core.includes('drawInput(\'micDb\'')]
  ,['TF graph shades the live input gap',core.includes('audible system difference between mixer reference and microphone')&&core.includes("p.delta>=0?'rgba(239,82,104,.15)':'rgba(51,198,222,.15)'")]
- ,['TF cursor reports both inputs and delta',core.includes("'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+s.mag[k].toFixed(1)+' dB'")]
+ ,['TF cursor reports both inputs and normalized delta',core.includes("delta=tfNormalizedMagnitude(s,k)")&&core.includes("'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+delta.toFixed(1)+' dB'")]
  ,['TF difference uses dense frequency columns',core.includes('Dense deviation columns expose narrow peaks')&&core.includes('for(let px=0;px<=W;px+=2)')&&core.includes('path.moveTo(px,zeroY);path.lineTo(px,y)')]
  ,['TF difference colors show direction and severity',core.includes('TF_DELTA_COLORS')&&core.includes('function tfDeltaBucket')&&core.includes('rgba(239,68,68,.82)')&&core.includes('rgba(37,99,235,.82)')]
  ,['TF dense columns are batched for smooth rendering',core.includes('TF_DELTA_COLORS.map(()=>new Path2D())')&&core.includes('deviationBars.forEach')]
@@ -125,4 +125,4 @@ const checks=[
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.6.3 regression validation passed (${checks.length} checks).`);
+console.log(`V5.6.4 regression validation passed (${checks.length} checks).`);
