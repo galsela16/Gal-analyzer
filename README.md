@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.2 — Professional Measurement Console
+# GAL Analyzer V5.7.3 — Aged Metal Measurement Console
 
-V5.7.2 keeps the professional measurement console focused: TF controls live only inside the TF workspace, while the dedicated MIC/REF meters use the live audio-frame path for smooth, responsive ballistics. It preserves the proven V5.6.4 audio and measurement engine.
+V5.7.3 adds a restrained aged-metal grain to the console shell, control panels and buttons while keeping the analysis canvas clean and readable. TF controls remain inside the TF workspace, and the MIC/REF meters continue to use the live audio-frame path.
 
 V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
 
