@@ -1,6 +1,6 @@
-# GAL Analyzer V5.6.2 — Discrete Audio Input Routing
+# GAL Analyzer V5.6.3 — Reliable Interface Channel Detection
 
-V5.6.2 keeps interface channels discrete so a mono browser stream cannot be up-mixed into two false input signals. The main meter now follows the selected Measurement channel, and the application exposes Reference only when the browser reports a real second channel.
+V5.6.3 keeps the Reference analyser available for multichannel interfaces that under-report their browser channel count. The inputs remain discrete, so Input 2 can serve as Measurement or Reference while an empty Input 1 stays silent.
 
 V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
 

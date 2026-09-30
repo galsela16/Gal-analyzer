@@ -374,7 +374,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.6.2-discrete-input-routing',
+    version: 'v5.6.3-interface-channel-detection',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3037,13 +3037,15 @@ async function start(deviceId){
     analyser.minDecibels = -100; 
     analyser.maxDecibels = -10;
 
-    analyserRef = chReceived>=2 ? audioCtx.createAnalyser() : null;
-    if(analyserRef){
-      analyserRef.fftSize = fftSize;
-      analyserRef.smoothingTimeConstant = 0;
-      analyserRef.minDecibels = -100;
-      analyserRef.maxDecibels = -10;
-    }
+    // Some multichannel interfaces (including EVO devices in Chromium)
+    // report channelCount=1 even though the requested stream exposes channel 2.
+    // Keep the reference analyser connected; a truly absent discrete channel
+    // remains silent instead of being duplicated.
+    analyserRef = audioCtx.createAnalyser();
+    analyserRef.fftSize = fftSize;
+    analyserRef.smoothingTimeConstant = 0;
+    analyserRef.minDecibels = -100;
+    analyserRef.maxDecibels = -10;
 
     analyserMeter = audioCtx.createAnalyser();
     analyserMeter.fftSize = 2048;
@@ -3053,15 +3055,15 @@ async function start(deviceId){
     source.connect(splitter);
 
     splitter.connect(analyser, measChannel);
-    if(analyserRef) splitter.connect(analyserRef, refChannel);
+    splitter.connect(analyserRef, refChannel);
     // The main meter must follow the selected measurement input, not a
     // stereo down-mix that can make an empty channel look active.
     splitter.connect(analyserMeter, measChannel);
 
     floatData = new Float32Array(analyser.frequencyBinCount);
-    floatDataRef = analyserRef ? new Float32Array(analyserRef.frequencyBinCount) : null;
+    floatDataRef = new Float32Array(analyserRef.frequencyBinCount);
     timeData = new Float32Array(analyser.fftSize);
-    timeDataRef = analyserRef ? new Float32Array(analyserRef.fftSize) : null;
+    timeDataRef = new Float32Array(analyserRef.fftSize);
     timeDataMeter = new Float32Array(2048);
     
     buildWeighting(audioCtx.sampleRate / 2, analyser.frequencyBinCount);
@@ -4710,7 +4712,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6.2';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6.3';
   v3UpdateStatus();
 })();
 (function initAccent(){
