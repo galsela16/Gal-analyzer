@@ -3,9 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 
 const core=readFileSync('js/app-core.js','utf8');
-const rootCore=readFileSync('app-core.js','utf8');
 const html=readFileSync('index.html','utf8');
-assert.equal(rootCore,core,'Both runtime core copies must match');
 
 function extract(name){
   const start=core.indexOf(`function ${name}(`);assert(start>=0,`Missing ${name}`);

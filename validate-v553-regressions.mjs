@@ -1,8 +1,7 @@
 import fs from 'node:fs';
-const core=fs.readFileSync('app-core.js','utf8'), html=fs.readFileSync('index.html','utf8');
+const core=fs.readFileSync('js/app-core.js','utf8'), html=fs.readFileSync('index.html','utf8');
 const captureFn=core.slice(core.indexOf('function captureTfTrace()'),core.indexOf('function captureWorkspaceTrace()'));
 const checks=[
- ['runtime core copies match',core===fs.readFileSync('js/app-core.js','utf8')],
  ['no undefined isoBands dependency',!core.includes('isoBands')],
  ['waterfall decay uses canonical FFT data',core.includes('binOverlapPowerDb(floatData,f/R,f*R,nyquist)')],
  ['waterfall confidence uses hz',core.includes('const f=c.hz||c.f||0')],

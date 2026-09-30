@@ -38,5 +38,4 @@ Object.assign(ctx,{measureBusy:()=>false,cancelTfWorkflowVerification(){},clearS
 ctx.tfAutoDelay();
 assert.equal(failure,'diagnostic:capture');
 assert.match(nodes.get('phStatus').textContent,/diagnostic:capture/);
-assert.equal(readFileSync('app-core.js','utf8'),source,'Both delivered core copies must match');
 console.log('TF sync lifecycle passed: managed pink/sweep, restoration, busy guard, persistent capture diagnostics.');

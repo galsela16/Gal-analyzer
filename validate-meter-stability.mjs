@@ -2,10 +2,8 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 
 const core=readFileSync('js/app-core.js','utf8');
-const rootCore=readFileSync('app-core.js','utf8');
 const html=readFileSync('index.html','utf8');
 
-assert.equal(rootCore,core,'Both runtime core copies must match');
 assert(core.includes('1-Math.exp(-dt/tau)'),'Main meter smoothing must be time based');
 assert(core.includes('if(now-meterTextAt>=100)'),'Main numeric meter must have a stable refresh interval');
 assert(core.includes('if(now-v52MeterPaintAt<50)return'),'I/O meters must paint at a bounded rate');

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const html=fs.readFileSync('index.html','utf8');
-const core=fs.readFileSync('app-core.js','utf8');
+const core=fs.readFileSync('js/app-core.js','utf8');
 const all=html+'\n'+core;
 const ids=[...html.matchAll(/<(button|input|select|textarea)\b([^>]*)>/gis)]
  .map(m=>({tag:m[1].toLowerCase(),attrs:m[2],id:(m[2].match(/\bid=["']([^"']+)/i)||[])[1],type:(m[2].match(/\btype=["']([^"']+)/i)||[])[1]})).filter(x=>x.id);

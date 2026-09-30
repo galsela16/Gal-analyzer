@@ -7,6 +7,12 @@ const required=[
   'sw.js','recorder-worklet.js','manifest.webmanifest'
 ];
 for(const file of required) await access(file,constants.R_OK);
+try{
+  await access('app-core.js',constants.F_OK);
+  throw new Error('Legacy root app-core.js must stay removed; js/app-core.js is canonical');
+}catch(error){
+  if(error?.code!=='ENOENT') throw error;
+}
 
 for(const file of ['app.js','js/app-core.js','js/core/config.js','js/core/diagnostics.js','sw.js','recorder-worklet.js']){
   execFileSync(process.execPath,['--check',file],{stdio:'inherit'});

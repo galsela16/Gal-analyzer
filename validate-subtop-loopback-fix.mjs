@@ -2,11 +2,9 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 
 const core=readFileSync('js/app-core.js','utf8');
-const rootCore=readFileSync('app-core.js','utf8');
 const html=readFileSync('index.html','utf8');
 const recorder=readFileSync('recorder-worklet.js','utf8');
 
-assert.equal(rootCore,core,'Both runtime core copies must match');
 assert(html.includes('data-src="external-sweep"'),'External sweep must be selectable');
 assert(core.includes("function isSweepSource(kind){return kind==='sweep'||kind==='external-sweep';}"));
 assert(core.includes("function capturePhase(which,sourceKind='external')"));
