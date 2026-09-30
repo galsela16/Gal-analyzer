@@ -2534,6 +2534,119 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   #tfPanel.measureDock.expanded{display:flex!important}
 }
 
+/* V5.6 — studio rack finish inspired by classic channel strips. */
+body:not(.sun-mode){
+  --rack-edge:#4d5961;--rack-edge-dark:#11171b;--rack-face:#151c21;--rack-face-2:#0b1115;
+  --rack-blue:#35a9ff;--rack-blue-hot:#84d4ff;--rack-amber:#f0bd62;--rack-red:#e2554d;
+  background:
+    radial-gradient(circle at 48% -12%,rgba(65,91,105,.18),transparent 34%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.009) 0 1px,transparent 1px 4px),
+    #050708!important;
+}
+body:not(.sun-mode)::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.18;mix-blend-mode:soft-light;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,rgba(0,0,0,.025) 1px 3px)
+}
+body:not(.sun-mode) header.uiRefreshed{
+  background:linear-gradient(180deg,#222b31 0%,#10171b 44%,#080d10 100%)!important;
+  border-bottom:1px solid #59666d!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 #000,0 5px 18px rgba(0,0,0,.55)!important
+}
+body:not(.sun-mode) header.uiRefreshed h1{color:#dbe4e8!important;text-shadow:0 1px 0 #000,0 0 12px rgba(53,169,255,.16)}
+body:not(.sun-mode) #stage{
+  background:linear-gradient(180deg,rgba(9,17,22,.97),rgba(2,7,10,.99))!important;
+  border:1px solid #46535a!important;border-radius:6px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 3px #080d10,inset 0 0 30px rgba(0,0,0,.70),0 14px 38px rgba(0,0,0,.45)!important
+}
+body:not(.sun-mode) .tlsCard,
+body:not(.sun-mode) #targetMeasurementPanel,
+body:not(.sun-mode) #uiRightTools,
+body:not(.sun-mode) #targetCommandBar,
+body:not(.sun-mode) .measureDock,
+body:not(.sun-mode) #tfPanel.tfPro,
+body:not(.sun-mode) #v52IODock,
+body:not(.sun-mode) #genPanel,
+body:not(.sun-mode) #v5SideRail{
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    linear-gradient(155deg,#1b242a 0%,#11191e 48%,#090f13 100%)!important;
+  border:1px solid #4a565d!important;border-radius:6px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 2px rgba(0,0,0,.48),0 8px 20px rgba(0,0,0,.42)!important
+}
+body:not(.sun-mode) .tlsCard,body:not(.sun-mode) #targetMeasurementPanel{position:relative}
+body:not(.sun-mode) .tlsCard::before,body:not(.sun-mode) #targetMeasurementPanel::before{
+  content:"";position:absolute;left:5px;top:5px;width:5px;height:5px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#9ca7ad 0 12%,#465057 20% 45%,#11171a 55% 100%);
+  box-shadow:0 0 0 1px #050708,calc(100% + var(--desktop-left,176px) - 23px) 0 0 0 #465057
+}
+body:not(.sun-mode) .tlsHead,body:not(.sun-mode) .tmpHead,body:not(.sun-mode) .uiRightToolsTitle{
+  color:#d0d8dc!important;text-shadow:0 1px 0 #000;letter-spacing:.16em!important
+}
+body:not(.sun-mode) .tlsLine,body:not(.sun-mode) .tmpCell{color:#83929a!important}
+body:not(.sun-mode) .tlsLine strong,body:not(.sun-mode) .tmpCell strong{color:#e0e7ea!important;text-shadow:0 1px 0 #000}
+body:not(.sun-mode) #v53AnalysisGroup{
+  padding:3px!important;background:linear-gradient(180deg,#222c32,#0c1317)!important;
+  border:1px solid #53616a!important;border-radius:5px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 #000!important
+}
+body:not(.sun-mode) #v53AnalysisGroup button,
+body:not(.sun-mode) .seg button,
+body:not(.sun-mode) .toggle,
+body:not(.sun-mode) .tlsOpen,
+body:not(.sun-mode) .tlsGenToggle,
+body:not(.sun-mode) .tcb,
+body:not(.sun-mode) #uiRightTools button,
+body:not(.sun-mode) .uiSettingsRow button{
+  color:#aebbc1!important;background:linear-gradient(180deg,#263139 0%,#121a1f 48%,#0a1014 100%)!important;
+  border:1px solid #4b5860!important;border-radius:4px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 3px rgba(0,0,0,.55),0 1px 2px #000!important;
+  text-shadow:0 1px 0 #000
+}
+body:not(.sun-mode) #v53AnalysisGroup button.on,
+body:not(.sun-mode) .seg button.on,
+body:not(.sun-mode) .toggle.on,
+body:not(.sun-mode) #uiRightTools button.on,
+body:not(.sun-mode) .tlsGenToggle.on{
+  color:#dff5ff!important;border-color:#329de5!important;
+  background:linear-gradient(180deg,#176da6 0%,#0d4771 52%,#092c47 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(190,231,255,.38),inset 0 0 12px rgba(70,180,255,.22),0 0 9px rgba(35,151,235,.38)!important;
+  text-shadow:0 0 7px rgba(141,216,255,.70)
+}
+body:not(.sun-mode) .tlsOpen:hover,body:not(.sun-mode) .toggle:hover,body:not(.sun-mode) .tcb:hover,body:not(.sun-mode) #uiRightTools button:hover{
+  color:#e7f5fb!important;border-color:#71818a!important;background:linear-gradient(180deg,#303c43,#141e23)!important
+}
+body:not(.sun-mode) .tcb.primary{
+  color:#e7f7ff!important;border-color:#2e99df!important;background:linear-gradient(180deg,#176b9f,#0b3858)!important;
+  box-shadow:inset 0 1px 0 rgba(196,235,255,.30),0 0 8px rgba(42,157,226,.26)!important
+}
+body:not(.sun-mode) .tcb.danger{color:#ffb2ac!important;border-color:#7d3b38!important;background:linear-gradient(180deg,#452521,#231312)!important}
+body:not(.sun-mode) .tmpValue{color:#f4ead7!important;text-shadow:0 0 9px rgba(240,189,98,.20);font-variant-numeric:tabular-nums}
+body:not(.sun-mode) .tmpDot,body:not(.sun-mode) .tlsDot{
+  background:#58d97c!important;border:1px solid #9ff0b3;box-shadow:0 0 9px rgba(74,224,115,.75),inset 0 1px 1px #e2ffe9!important
+}
+body:not(.sun-mode) .meter,body:not(.sun-mode) .v52MeterTrack,body:not(.sun-mode) .chBar .track{
+  background:#030608!important;border:1px solid #303a40!important;box-shadow:inset 0 2px 5px #000!important
+}
+body:not(.sun-mode) .meterFill,body:not(.sun-mode) .v52MeterFill,body:not(.sun-mode) .chBar .fill{
+  background:linear-gradient(90deg,#1e72b5 0%,#28b9eb 58%,#77d684 78%,#e8bc57 92%,#e2554d 100%)!important;
+  box-shadow:0 0 7px rgba(54,181,240,.38)
+}
+body:not(.sun-mode) input,body:not(.sun-mode) select{
+  color:#d7e0e4!important;background:linear-gradient(180deg,#070c0f,#11191e)!important;border:1px solid #445158!important;
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
+}
+body:not(.sun-mode) .measureDock h3,body:not(.sun-mode) #tfPanel h3{
+  color:#d8e0e4!important;border-bottom-color:#4b565d!important;text-shadow:0 1px 0 #000
+}
+body:not(.sun-mode) .measureDock .ctrl,body:not(.sun-mode) .measureDock .tfProCard,body:not(.sun-mode) .measureDock .alignProCard{
+  background:linear-gradient(180deg,rgba(35,45,51,.82),rgba(10,16,20,.88))!important;
+  border:1px solid #3f4a50!important;border-radius:4px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 #000!important
+}
+body:not(.sun-mode) #uiRightTools .rtIcon{filter:drop-shadow(0 0 5px currentColor);opacity:1!important}
+body:not(.sun-mode) #uiMenu,body:not(.sun-mode) #uiSettingsPanel{
+  background:linear-gradient(155deg,#212a30,#0b1115)!important;border:1px solid #59656c!important;border-radius:6px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 55px rgba(0,0,0,.65)!important
+}
 </style>
 </head>
 <body>
@@ -2586,7 +2699,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.5.59.1</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.6</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2616,7 +2729,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.5.59.1 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.6 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3332,7 +3445,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.5.59.1</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.6</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3526,7 +3639,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.5.59.1"></script>
+<script src="app.js?v=5.6"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
