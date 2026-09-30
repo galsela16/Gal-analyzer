@@ -1,6 +1,6 @@
-# GAL Analyzer V5.6 — Studio Rack Interface
+# GAL Analyzer V5.6.1 — Premium Studio Rack Interface
 
-V5.6 keeps the proven 5.5.59 measurement engine and adds the Sub/Top sweep and loopback fixes from 5.5.59.1. The interface now uses a hardware-inspired studio rack finish with layered metal panels, illuminated blue active controls, inset meters and clearer operational states.
+V5.6.1 keeps the proven 5.5.59 measurement engine, the Sub/Top sweep and loopback fixes from 5.5.59.1, and adds a richer studio rack finish with deeper metal faceplates, double rims, illuminated blue controls and an amber measurement display. It also keeps the Measurement and Tools panels correctly anchored in the right rail at reduced window heights.
 
 V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
 

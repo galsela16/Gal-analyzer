@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-6-studio-rack-20260930';
+const CACHE = 'gal-analyzer-v5-6-1-premium-rack-20260930';
 const ASSETS = [
   './',
   './index.html',

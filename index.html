@@ -189,7 +189,7 @@
   body.sun-mode .meter{ background:rgba(255,255,255,.85); }
   .meterFill{position:absolute;inset-inline-start:0;top:0;bottom:0;width:0%;
     background:linear-gradient(90deg,var(--accent) 0%,#5ab6ff 60%,#9fd4ff 80%,var(--hot) 100%);
-    opacity:.8;transition:width 0.08s ease-out}
+    opacity:.8}
   .meterPeak{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.9}
   body.sun-mode .meterPeak{ background:#0f172a; }
   .meterVal{position:relative;margin-inline-start:auto;padding-inline-end:10px;font-size:13px;font-weight:600;
@@ -1146,7 +1146,7 @@
     font-size:10px;
   }
   .v52MeterTrack{position:relative;height:8px;background:#15232e;border-radius:4px;overflow:hidden}
-  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6 0%,#42d57b 72%,#f6b64a 90%,#ff4d5d 100%);transition:width .045s linear}
+  .v52MeterFill{height:100%;width:0;background:linear-gradient(90deg,#2997d6 0%,#42d57b 72%,#f6b64a 90%,#ff4d5d 100%)}
   .v52MeterFill.clip{filter:brightness(1.16);box-shadow:inset 0 0 8px rgba(255,77,93,.7)}
   .v52MeterPeak{position:absolute;top:0;bottom:0;left:0;width:2px;background:#eef7ff;box-shadow:0 0 5px rgba(238,247,255,.9);transition:left .11s linear}
   .v52MeterValue{text-align:right;color:#9fb0bd;font-variant-numeric:tabular-nums}
@@ -2534,7 +2534,7 @@ body.sun-mode #tfFieldGuide{background:#fff8e8;color:#334155}body.sun-mode #tfFi
   #tfPanel.measureDock.expanded{display:flex!important}
 }
 
-/* V5.6 — studio rack finish inspired by classic channel strips. */
+/* V5.6.1 — premium studio rack finish inspired by classic channel strips. */
 body:not(.sun-mode){
   --rack-edge:#4d5961;--rack-edge-dark:#11171b;--rack-face:#151c21;--rack-face-2:#0b1115;
   --rack-blue:#35a9ff;--rack-blue-hot:#84d4ff;--rack-amber:#f0bd62;--rack-red:#e2554d;
@@ -2573,7 +2573,8 @@ body:not(.sun-mode) #v5SideRail{
   border:1px solid #4a565d!important;border-radius:6px!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 2px rgba(0,0,0,.48),0 8px 20px rgba(0,0,0,.42)!important
 }
-body:not(.sun-mode) .tlsCard,body:not(.sun-mode) #targetMeasurementPanel{position:relative}
+body:not(.sun-mode) .tlsCard{position:relative}
+body:not(.sun-mode) #targetMeasurementPanel{position:fixed}
 body:not(.sun-mode) .tlsCard::before,body:not(.sun-mode) #targetMeasurementPanel::before{
   content:"";position:absolute;left:5px;top:5px;width:5px;height:5px;border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#9ca7ad 0 12%,#465057 20% 45%,#11171a 55% 100%);
@@ -2647,6 +2648,30 @@ body:not(.sun-mode) #uiMenu,body:not(.sun-mode) #uiSettingsPanel{
   background:linear-gradient(155deg,#212a30,#0b1115)!important;border:1px solid #59656c!important;border-radius:6px!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 55px rgba(0,0,0,.65)!important
 }
+/* Premium faceplates: deeper metal, double rims and restrained chrome highlights. */
+body:not(.sun-mode) .tlsCard,
+body:not(.sun-mode) #targetMeasurementPanel,
+body:not(.sun-mode) #uiRightTools,
+body:not(.sun-mode) #targetCommandBar{
+  border-color:#68747b!important;
+  background:
+    linear-gradient(105deg,transparent 0 44%,rgba(255,255,255,.025) 47%,transparent 50% 100%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+    linear-gradient(160deg,#232c31 0%,#12191d 46%,#080d10 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 #000,inset 0 0 0 3px rgba(0,0,0,.38),0 9px 24px rgba(0,0,0,.52)!important
+}
+body:not(.sun-mode) #v53AnalysisGroup button.on,
+body:not(.sun-mode) #uiRightTools button.on,
+body:not(.sun-mode) .tcb.primary{
+  border-color:#65bded!important;
+  background:linear-gradient(180deg,#2b8ec6 0%,#12517a 45%,#092d46 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(222,247,255,.52),inset 0 -2px 4px rgba(0,0,0,.52),0 0 12px rgba(45,169,240,.42)!important
+}
+body:not(.sun-mode) .tmpValue{
+  padding:5px 7px;border:1px solid #34302a;border-radius:3px;
+  background:linear-gradient(180deg,#0b0906,#171109);color:#f5d497!important;
+  box-shadow:inset 0 2px 7px #000,0 1px 0 rgba(255,255,255,.08);letter-spacing:.04em
+}
 </style>
 </head>
 <body>
@@ -2699,7 +2724,7 @@ body:not(.sun-mode) #uiMenu,body:not(.sun-mode) #uiSettingsPanel{
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.6</div><div class="uiMenuSub">Field measurement workspace</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.6.1</div><div class="uiMenuSub">Field measurement workspace</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2729,7 +2754,7 @@ body:not(.sun-mode) #uiMenu,body:not(.sun-mode) #uiSettingsPanel{
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.6 UI</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.6.1 UI</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3445,7 +3470,7 @@ body:not(.sun-mode) #uiMenu,body:not(.sun-mode) #uiSettingsPanel{
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.6</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.6.1</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3639,7 +3664,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.6"></script>
+<script src="app.js?v=5.6.1"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -4009,10 +4034,14 @@ window.addEventListener('load', function(){
 <script>
 (()=>{
  let peak=-Infinity;
+ let measurementTargetAt=0;
+ function setText(el,text){if(el&&el.textContent!==text)el.textContent=text;}
  function syncMeasurementTarget(){
+   const now=performance.now();if(now-measurementTargetAt<100)return;measurementTargetAt=now;
    const h=window.measurementHealth;if(!h)return;
    const main=document.getElementById('tmpMain'),pk=document.getElementById('tmpPeak'),sn=document.getElementById('tmpSnr'),co=document.getElementById('tmpCoh'),hr=document.getElementById('tmpHeadroom');
-   if(main&&Number.isFinite(h.micDb))main.textContent=h.micDb.toFixed(1);
+   const liveDb=typeof smoothedDbfs!=='undefined'&&Number.isFinite(smoothedDbfs)?smoothedDbfs:h.micDb;
+   if(main&&Number.isFinite(liveDb))setText(main,liveDb.toFixed(1));
    if(Number.isFinite(h.micDb))peak=Math.max(peak,h.micDb);
    if(pk&&Number.isFinite(peak))pk.textContent=peak.toFixed(1)+' dBFS';
    if(sn)sn.textContent=Number.isFinite(h.snr)?Math.round(h.snr)+' dB':'—';
@@ -4024,7 +4053,7 @@ window.addEventListener('load', function(){
    const hz=document.getElementById('tpkHz'),meta=document.getElementById('tpkMeta');
    if(source&&hz){hz.textContent=(source.textContent||'PEAK —').trim().slice(0,34);if(meta)meta.textContent='PEAK / HOLD';}
  }
- setInterval(syncMeasurementTarget,650);syncMeasurementTarget();
+ setInterval(syncMeasurementTarget,100);syncMeasurementTarget();
 })();
 </script>
 

@@ -156,6 +156,7 @@ const wf3d={rows:[],frame:0,maxRows:85,maxHz:20000,intervalMs:120,lastCapture:0}
 let fbTrack=new Map();
 let fbFrameCounter = 0;
 let smoothedDbfs = -120;
+let meterUpdateAt=0, meterTextAt=0;
 
 function resize(){
   const r=cv.getBoundingClientRect();
@@ -373,7 +374,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.6-studio-rack',
+    version: 'v5.6.1-premium-rack',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3200,19 +3201,20 @@ function updateLevel(){
   analyserMeter.getFloatTimeDomainData(timeDataMeter);
   const dbfs = levelDb(timeDataMeter, 2048);
 
-  if (dbfs > smoothedDbfs) {
-    smoothedDbfs += (dbfs - smoothedDbfs) * 0.55;
-  } else {
-    smoothedDbfs += (dbfs - smoothedDbfs) * 0.035;
-  }
-
   const now=performance.now();
+  const dt=meterUpdateAt?Math.min(.25,Math.max(.001,(now-meterUpdateAt)/1000)):1/60;
+  meterUpdateAt=now;
+  const tau=dbfs>smoothedDbfs?.045:.34;
+  smoothedDbfs+=(dbfs-smoothedDbfs)*(1-Math.exp(-dt/tau));
   if(smoothedDbfs>lvlPeak || now-lvlPeakT>1500){ lvlPeak=smoothedDbfs; lvlPeakT=now; }
   const pct=v=>Math.max(0,Math.min(100,(v+60)/60*100));
   meterFill.style.width=pct(smoothedDbfs)+'%';
   meterPeak.style.insetInlineStart=pct(lvlPeak)+'%';
-  if(meterUnit==='SPL') meterVal.textContent=(smoothedDbfs+calib).toFixed(0)+' dB SPL≈';
-  else meterVal.textContent=smoothedDbfs.toFixed(1)+' dBFS';
+  if(now-meterTextAt>=100){
+    meterTextAt=now;
+    if(meterUnit==='SPL') meterVal.textContent=(smoothedDbfs+calib).toFixed(0)+' dB SPL≈';
+    else meterVal.textContent=smoothedDbfs.toFixed(1)+' dBFS';
+  }
 
   const w = weightMode==='A'?weightA : weightMode==='C'?weightC : null;
   let p=0;
@@ -4701,7 +4703,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.6.1';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4908,7 +4910,7 @@ setTimeout(v5InitWorkspace,0);
 /* ===== V5.2 Clean Bottom Bar + I/O Dock ===== */
 let v52IoOpen=false;
 let v52MeasDbfs=-120, v52RefDbfs=-120;
-let v52MeasPeakDbfs=-120, v52RefPeakDbfs=-120, v52PeakAt=0;
+let v52MeasPeakDbfs=-120, v52RefPeakDbfs=-120, v52PeakAt=0, v52MeterPaintAt=0;
 
 function v52SetIo(open){
   v52IoOpen=!!open;
@@ -4977,11 +4979,14 @@ function v52UpdateLiveMeters(){
   if(v52MeasDbfs>v52MeasPeakDbfs || now-v52PeakAt>1400) v52MeasPeakDbfs=v52MeasDbfs;
   if(v52RefDbfs>v52RefPeakDbfs || now-v52PeakAt>1400) v52RefPeakDbfs=v52RefDbfs;
   if(now-v52PeakAt>1400) v52PeakAt=now;
+  if(now-v52MeterPaintAt<50)return;
+  v52MeterPaintAt=now;
   const paint=(fill,peak,value,quick,db,peakDb)=>{
     if(fill){fill.style.width=v52DbToPct(db)+'%';fill.classList.toggle('clip',db>-1);}
     if(peak)peak.style.left=v52DbToPct(peakDb)+'%';
-    if(value)value.textContent=db.toFixed(1)+' dBFS';
-    if(quick)quick.textContent=db.toFixed(1)+' dB';
+    const noSignal=db<=-110;
+    if(value)value.textContent=noSignal?'NO SIG':db.toFixed(1)+' dBFS';
+    if(quick)quick.textContent=noSignal?'NO SIG':db.toFixed(1)+' dB';
   };
   paint(document.getElementById('v52MeasMeter'),document.getElementById('v52MeasPeak'),document.getElementById('v52MeasDb'),document.getElementById('v52MeasQuick'),v52MeasDbfs,v52MeasPeakDbfs);
   paint(document.getElementById('v52RefMeter'),document.getElementById('v52RefPeak'),document.getElementById('v52RefDb'),document.getElementById('v52RefQuick'),v52RefDbfs,v52RefPeakDbfs);
