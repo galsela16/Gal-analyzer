@@ -1,6 +1,6 @@
-# GAL Analyzer V5.6.4 — TF Level Normalization
+# GAL Analyzer V5.7 — Professional Measurement Interface
 
-V5.6.4 normalizes the constant gain difference between the analog loopback and microphone inputs in live, averaged, saved and cursor TF magnitude displays. Raw MIC and REF levels remain available while the response graph stays centered around 0 dB.
+V5.7 introduces a restrained professional measurement interface on the dedicated design branch. It uses a near-monochrome instrument palette, precise compact controls, calibrated status readouts and contextual TF workflow actions while preserving the V5.6.4 audio and measurement engine.
 
 V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
 
