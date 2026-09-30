@@ -382,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.1-professional-console',
+    version: 'v5.7.2-professional-console',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -4760,7 +4760,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.1';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.2';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4938,10 +4938,6 @@ function v5InitWorkspace(){
   safeOn('v54SideToggle','click',()=>v54SetSideRail(document.body.classList.contains('v54-rail-collapsed')));
 
   safeOn('v5AddTrace','click',captureWorkspaceTrace);
-  safeOn('v5ResetSession','click',()=>{
-    if(confirm('לאפס את הסשן? הפעולה תנקה מדידות, Traces ותוצאות EQ.')){resetSession();v3Toast('הסשן אופס');}
-  });
-
   // Header TF button now opens the working TF dock instead of only overlaying lines.
   const oldTf=document.getElementById('tfOverlayHdr');
   if(oldTf){
@@ -5051,6 +5047,15 @@ function v52UpdateLiveMeters(){
   if(ml){ml.classList.toggle('live',true);ml.classList.toggle('clip',v52MeasDbfs>-1);}
   if(rl){rl.classList.toggle('live',!!analyserRef);rl.classList.toggle('clip',v52RefDbfs>-1);}
 }
+window.getLiveInputMeterSnapshot=function(){
+  return {
+    running:!!running,
+    micDb:running&&Number.isFinite(v52MeasDbfs)?v52MeasDbfs:-120,
+    refDb:running&&analyserRef&&Number.isFinite(v52RefDbfs)?v52RefDbfs:-120,
+    micPeakDb:running&&Number.isFinite(v52MeasPeakDbfs)?v52MeasPeakDbfs:-120,
+    refPeakDb:running&&analyserRef&&Number.isFinite(v52RefPeakDbfs)?v52RefPeakDbfs:-120
+  };
+};
 function v52UpdateUi(){
   if(running) v52UpdateLiveMeters();
 

@@ -20,12 +20,12 @@ const checks=[
  ['generator has dual-channel meters',html.includes('id="gainMicFill"')&&html.includes('id="gainRefFill"')&&core.includes("document.getElementById('gainRefGain')")],
  ['right tools exposes every auxiliary measurement',Array.from(['tf','delay','rt60','spleq','align']).every(t=>html.includes('data-tool="'+t+'"'))],
  ['right tools has no duplicate settings',!html.includes('data-tool="settings"')],
- ['bottom bar contains only canonical actions',Array.from(['capture','traces','settings']).every(t=>html.includes('data-tcb="'+t+'"'))],
- ['session reset is accessible in bottom bar',html.includes('class="tcb danger" id="v5ResetSession"')&&!html.includes('id="v5ResetSession" class="v5RailTool"')],
+ ['duplicate bottom command surface is removed',!html.includes('id="targetCommandBar"')&&!html.includes('data-tcb-action=')],
+ ['session reset remains accessible from the live control strip',html.includes('id="stopBtn"')&&core.includes("safeOn('stopBtn', 'click',resetSession)")],
  ['right tools fill the rail in measurement order',(()=>{const rail=html.slice(html.indexOf('<aside id="uiRightTools"'),html.indexOf('</aside>',html.indexOf('<aside id="uiRightTools"')));return html.includes('grid-template-columns:1fr!important;grid-template-rows:22px repeat(5,minmax(0,1fr))')&&rail.indexOf('data-tool="tf"')<rail.indexOf('data-tool="delay"')&&rail.indexOf('data-tool="delay"')<rail.indexOf('data-tool="rt60"')&&rail.indexOf('data-tool="rt60"')<rail.indexOf('data-tool="spleq"')&&rail.indexOf('data-tool="spleq"')<rail.indexOf('data-tool="align"')})()],
  ['redundant measurement health row is hidden from header',html.indexOf('id="measurementHealth"')<html.indexOf('</header>')&&html.includes('header.uiRefreshed #measurementHealth{display:none!important}')],
  ['accent colors are available in settings',Array.from(['#3ea6ff','#40d17a','#b57bff','#ff9d3c']).every(c=>html.includes('data-ui-color="'+c+'"'))],
- ['day theme covers canonical workspace surfaces',html.includes('Complete daylight palette')&&html.includes('body.sun-mode #targetMeasurementPanel')&&html.includes('body.sun-mode #targetCommandBar')&&html.includes('body.sun-mode #uiMenu')],
+ ['day theme covers canonical workspace surfaces',html.includes('Complete daylight palette')&&html.includes('body.sun-mode #targetMeasurementPanel')&&html.includes('body.sun-mode #uiMenu')],
  ['bottom bar removes dead display controls',Array.from(['startstop','freeze','average','smooth','hold','peak']).every(t=>!html.includes('data-tcb="'+t+'"'))],
  ['I/O drawer has compact responsive grid',html.includes('body.ui-workspace-drawer #v52IODock .v52IOGrid')&&html.includes('width:min(500px,calc(100vw - 24px))')&&html.includes('grid-template-columns:88px minmax(0,1fr)')],
  ['traces drawer cannot reveal I/O content',html.includes('body.ui-workspace-drawer #v52IODock{display:none!important}')&&html.includes('body.ui-workspace-drawer.ui-drawer-io #v52IODock')&&html.includes("'ui-drawer-'+kind")],
@@ -63,7 +63,7 @@ const checks=[
  ,['right tool icons use reference-scale sizing',html.includes('#uiRightTools .rtIcon{font-size:30px!important')]
  ,['workspace drawers keep the live graph visible',html.includes('Workspace drawers are non-modal')&&html.includes('body.ui-workspace-drawer #uiWorkspaceBackdrop,body.ui-workspace-drawer #uiTraceBackdrop{display:none!important')]
  ,['traces are permanently embedded in the left rail',html.includes('id="targetTraceCard"')&&html.includes('id="persistentTraceHost"')&&html.includes('host.append(list,add)')&&!html.includes('data-tls-open="traces"')]
- ,['bottom traces action focuses and reopens the persistent rail',html.includes("if(a==='traces'){window.focusPersistentTraces?.()}")&&html.includes("setRail('left',true)")]
+ ,['persistent trace rail can be focused and reopened',html.includes('window.focusPersistentTraces=')&&html.includes("setRail('left',true)")]
  ,['tool cards place centered icon below label',html.includes('flex-direction:column!important;gap:8px!important')&&html.includes('<span>TF Measurement</span><span class="rtIcon">◎</span>')&&html.includes('text-align:center!important;justify-content:center!important')]
  ,['desktop generator and I/O cannot resize the canvas',html.includes('#stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv')&&html.includes('height:calc(100% - 76px)!important')&&html.includes('#stage.v52-io-open .meter,#stage.v53-gen-open .meter{bottom:8px!important}')]
  ,['all traces entry points focus the persistent rail',html.includes("if(kind==='traces'){")&&html.includes('window.focusPersistentTraces?.()')]
@@ -125,4 +125,4 @@ const checks=[
 ];
 let bad=0;for(const [n,ok] of checks){console.log((ok?'PASS ':'FAIL ')+n);if(!ok)bad++}
 if(bad)process.exit(1);
-console.log(`V5.7.1 regression validation passed (${checks.length} checks).`);
+console.log(`V5.7.2 regression validation passed (${checks.length} checks).`);
