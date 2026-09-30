@@ -2807,7 +2807,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   #stage>canvas#cv,#stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv{top:58px!important;height:calc(100% - 58px)!important}
   #stage.measure-open>canvas#cv{height:calc(100% - 58px - var(--measure-h,0px))!important}
   #stage.bar-open>canvas#cv{height:calc(100% - 58px - var(--bar-h,0px))!important}
-  #v5ModeTabs{height:58px!important;padding:6px 8px!important;background:linear-gradient(180deg,#151c20,#0b1013)!important;border-bottom:1px solid #414b50!important}
+  #v5ModeTabs{height:58px!important;padding:6px 8px!important;background:#071016!important;border:0!important;box-shadow:none!important}
   #v53AnalysisGroup{width:100%!important;max-width:none!important;height:44px!important;padding:0!important;gap:5px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
   #v53AnalysisGroup button{height:36px!important;border:1px solid #343e43!important;border-radius:2px!important;background:linear-gradient(180deg,#1c2428,#0f1518)!important;color:#acb6bb!important;font-size:11px!important;letter-spacing:.15em!important;box-shadow:inset 0 1px rgba(255,255,255,.05)!important}
   #v53AnalysisGroup button.on{border-color:#31c8e5!important;background:linear-gradient(180deg,#17343c,#0c2026)!important;color:#e5fbff!important;box-shadow:inset 0 0 0 1px rgba(49,200,229,.20),0 0 8px rgba(49,200,229,.12)!important}
@@ -2850,22 +2850,24 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   header.uiRefreshed h1{font-size:16px!important}header.uiRefreshed h1 span{font-size:21px!important}
 }
 
-/* V5.7.3 — restrained aged-metal grain inspired by physical rack hardware. */
+/* V5.7.4 — coarse aged-metal grain inspired by physical rack hardware. */
 @media(min-width:901px){
   :root{
-    --rack-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' seed='17' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.58'/%3E%3C/svg%3E");
-    --rack-scratches:repeating-linear-gradient(176deg,transparent 0 17px,rgba(255,255,255,.018) 18px,transparent 19px 37px,rgba(0,0,0,.045) 38px,transparent 40px);
+    --rack-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.46' numOctaves='4' seed='17' stitchTiles='stitch' result='fine'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.055' numOctaves='3' seed='41' stitchTiles='stitch' result='coarse'/%3E%3CfeBlend in='fine' in2='coarse' mode='multiply'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='1.85' intercept='-.42'/%3E%3CfeFuncG type='linear' slope='1.85' intercept='-.42'/%3E%3CfeFuncB type='linear' slope='1.85' intercept='-.42'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.88'/%3E%3C/svg%3E");
+    --rack-scratches:repeating-linear-gradient(177deg,transparent 0 10px,rgba(255,255,255,.035) 11px,transparent 12px 27px,rgba(0,0,0,.10) 28px,transparent 30px 47px);
+    --rack-wear:radial-gradient(ellipse at 12% 18%,rgba(255,255,255,.11),transparent 23%),radial-gradient(ellipse at 86% 76%,rgba(0,0,0,.28),transparent 31%),radial-gradient(ellipse at 48% 105%,rgba(128,91,61,.09),transparent 38%);
   }
   body:not(.sun-mode){
     background-color:#080b0d!important;
-    background-image:var(--rack-grain),radial-gradient(ellipse at 48% 18%,#20272a 0,#0d1113 43%,#050708 100%)!important;
-    background-blend-mode:soft-light,normal!important;
+    background-image:var(--rack-grain),var(--rack-wear),radial-gradient(ellipse at 48% 18%,#20272a 0,#0d1113 43%,#050708 100%)!important;
+    background-blend-mode:overlay,normal,normal!important;
   }
   body:not(.sun-mode) header.uiRefreshed{
-    background-image:var(--rack-grain),var(--rack-scratches),linear-gradient(180deg,#252b2e 0%,#121719 54%,#080b0d 100%)!important;
-    background-blend-mode:soft-light,overlay,normal!important;
+    background-image:var(--rack-grain),var(--rack-scratches),var(--rack-wear),linear-gradient(180deg,#252b2e 0%,#121719 54%,#080b0d 100%)!important;
+    background-blend-mode:overlay,overlay,normal,normal!important;
   }
-  body:not(.sun-mode) #v53AnalysisGroup{
+  body:not(.sun-mode) #v5ModeTabs #v53AnalysisGroup,
+  body:not(.sun-mode) #v5ModeTabs #v53AnalysisGroup.on{
     padding:0!important;gap:5px!important;border:0!important;border-radius:0!important;
     background:transparent!important;box-shadow:none!important;
   }
@@ -2875,15 +2877,15 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   body:not(.sun-mode) #uiMenu,
   body:not(.sun-mode) #v52IODock,
   body:not(.sun-mode) #genPanel{
-    background-image:var(--rack-grain),var(--rack-scratches),radial-gradient(ellipse at 35% 0,rgba(255,255,255,.07),transparent 42%),linear-gradient(180deg,#1c2225,#0b1012 74%)!important;
-    background-blend-mode:soft-light,overlay,screen,normal!important;
+    background-image:var(--rack-grain),var(--rack-scratches),var(--rack-wear),linear-gradient(180deg,#202629,#0a0f11 76%)!important;
+    background-blend-mode:overlay,overlay,normal,normal!important;
   }
   body:not(.sun-mode) #v53AnalysisGroup button,
   body:not(.sun-mode) #uiRightTools button,
   body:not(.sun-mode) .tlsPatchActions button,
   body:not(.sun-mode) .uiMenuItem{
     background-image:var(--rack-grain),linear-gradient(180deg,rgba(38,45,48,.96),rgba(13,18,20,.98))!important;
-    background-blend-mode:soft-light,normal!important;
+    background-blend-mode:overlay,normal!important;
   }
   body:not(.sun-mode) #v53AnalysisGroup button.on,
   body:not(.sun-mode) #uiRightTools button.on{
@@ -2942,7 +2944,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.3</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.4</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -2972,7 +2974,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.3</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.4</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3688,7 +3690,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.3</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.4</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3882,7 +3884,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.3"></script>
+<script src="app.js?v=5.7.4"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

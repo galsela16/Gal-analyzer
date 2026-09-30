@@ -1,6 +1,6 @@
 window.GAL=window.GAL||{};
 window.GAL.config=Object.freeze({
-  version:'5.7.3-aged-metal-console',
+  version:'5.7.4-coarse-metal-console',
   appName:'GAL Analyzer',
   maxTraces:6,
   supportedFft:[8192,16384,32768]
