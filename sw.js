@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-7-4-coarse-metal-20260930';
+const CACHE = 'gal-analyzer-v5-7-5-satin-rack-20260930';
 const ASSETS = [
   './',
   './index.html',

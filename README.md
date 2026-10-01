@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.4 — Coarse Metal Measurement Console
+# GAL Analyzer V5.7.5 — Satin Rack Measurement Console
 
-V5.7.4 strengthens the physical rack character with coarse and fine grain, irregular wear and subtle scratches across the console shell, control panels and buttons. The analysis selector has no surrounding frame or tinted container, while the canvas remains clean and readable.
+V5.7.5 replaces the distressed surface with a clean premium rack finish: very fine brushed metal, controlled satin highlights, crisp bevels and precise cyan active states. The analysis selector remains free of a surrounding frame or tinted container, while the canvas stays clean and readable.
 
 V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
 
