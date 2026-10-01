@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.6 — Studio Plugin Measurement Console
+# GAL Analyzer V5.7.7 — Studio Plugin Measurement Console
 
-V5.7.6 moves the console closer to the supplied studio-plugin reference with recessed blue-black panels, machined borders, glossy illuminated active controls, subtle corner screws and blue-to-green segmented input meters. The interface keeps only analyzer-specific controls and preserves a clean measurement canvas.
+V5.7.7 keeps the studio-plugin console and fixes HPF/LPF range dragging so grabbing a filter handle no longer collapses the side rails.
 
 V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
 
