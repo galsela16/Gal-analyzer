@@ -6,8 +6,8 @@ const config=readFileSync('js/core/config.js','utf8');
 const worker=readFileSync('sw.js','utf8');
 
 assert(html.includes('V5.7 — professional measurement UI'));
-assert(config.includes("version:'5.7.7-range-drag-fix'"));
-assert(worker.includes('v5-7-7-range-drag'));
+assert(config.includes("version:'5.7.8-range-drag-order-fix'"));
+assert(worker.includes('v5-7-8-range-drag-order'));
 assert(html.includes('body:not(.sun-mode) #targetMeasurementPanel{position:fixed}'));
 assert(!html.includes('.tlsCard,body:not(.sun-mode) #targetMeasurementPanel{position:relative}'));
 assert(html.includes('--rack-blue:#35a9ff')&&html.includes('--rack-amber:#f0bd62'));
@@ -27,4 +27,4 @@ assert(html.includes('#v5ModeTabs{height:58px!important;padding:6px 8px!importan
 assert(html.includes('V5.7.6 — premium studio-plugin detailing'),'Studio-plugin detail layer must be present');
 assert(html.includes('#1595e8 0 46%')&&html.includes('#3bd576 82%'),'Input meters must use the reference-inspired blue-to-green palette');
 assert(html.includes('radial-gradient(circle at 35% 30%,#b9c2c6'),'Rack panels must include restrained machined corner screws');
-console.log('V5.7.7 studio-plugin professional console validation passed.');
+console.log('V5.7.8 studio-plugin professional console validation passed.');

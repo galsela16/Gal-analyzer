@@ -67,8 +67,8 @@ for(const delaySafetyCheck of [
   if(!core.includes(delaySafetyCheck)) throw new Error(`Sweep-delay safety guard missing: ${delaySafetyCheck}`);
 }
 if(core.includes("signalType!=='noise')sweepResult=computeSweepDelay")) throw new Error('Unknown external audio can still fall through to the sweep estimator');
-if(!html.includes('GAL Analyzer V5.7.7')||!config.includes("version:'5.7.7-range-drag-fix'")||!worker.includes('v5-7-7-range-drag')) throw new Error('V5.7.7 release identifiers are inconsistent');
-if(!html.includes('if(e.defaultPrevented)return;')) throw new Error('Canvas rail collapse must ignore captured HPF/LPF handle drags');
+if(!html.includes('GAL Analyzer V5.7.8')||!config.includes("version:'5.7.8-range-drag-order-fix'")||!worker.includes('v5-7-8-range-drag-order')) throw new Error('V5.7.8 release identifiers are inconsistent');
+if(!html.includes('queueMicrotask(()=>{')||!html.includes('if(e.defaultPrevented)return;')) throw new Error('Canvas rail collapse must wait for HPF/LPF handle capture regardless of listener order');
 const recorder=await readFile('recorder-worklet.js','utf8');
 if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
 if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');
