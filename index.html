@@ -2804,7 +2804,15 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
     border:1px solid #4b565c!important;border-radius:3px!important;background:#071016!important;
     box-shadow:inset 0 0 0 3px #11171a,inset 0 0 30px rgba(0,0,0,.7),0 4px 13px rgba(0,0,0,.55)!important
   }
-  #stage>canvas#cv,#stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv{top:58px!important;height:calc(100% - 58px)!important}
+  #stage>canvas#cv,#stage.v52-io-open>canvas#cv,#stage.v53-gen-open>canvas#cv{top:58px!important;height:calc(100% - 58px)!important;touch-action:none!important}
+  .eqCanvasHandle{
+    display:none;position:absolute;z-index:18;top:65px;min-width:98px;height:26px;padding:0 10px;
+    border:1px solid currentColor;border-radius:4px;background:rgba(7,19,27,.97);box-shadow:inset 0 1px rgba(255,255,255,.06),0 2px 6px rgba(0,0,0,.55);
+    font:800 10px ui-monospace,monospace;letter-spacing:.03em;white-space:nowrap;cursor:ew-resize;touch-action:none;user-select:none
+  }
+  #eqHpfHandle{color:#38bdf8;transform:translateX(5px)}
+  #eqLpfHandle{color:#f59e0b;transform:translateX(calc(-100% - 5px))}
+  .eqCanvasHandle.dragging{background:#102733;box-shadow:inset 0 0 10px currentColor,0 0 9px currentColor}
   #stage.measure-open>canvas#cv{height:calc(100% - 58px - var(--measure-h,0px))!important}
   #stage.bar-open>canvas#cv{height:calc(100% - 58px - var(--bar-h,0px))!important}
   #v5ModeTabs{height:58px!important;padding:6px 8px!important;background:#071016!important;border:0!important;box-shadow:none!important}
@@ -3019,7 +3027,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.8</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.9</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3049,11 +3057,13 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.8</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.9</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
     <canvas id="cv"></canvas>
+    <button id="eqHpfHandle" class="eqCanvasHandle" type="button" role="slider" aria-label="גרור תדר High Pass Filter">HPF</button>
+    <button id="eqLpfHandle" class="eqCanvasHandle" type="button" role="slider" aria-label="גרור תדר Low Pass Filter">LPF</button>
 
     <div id="v5ModeTabs" aria-label="Measurement modes">
       <div class="v53AnalysisGroup on" id="v53AnalysisGroup" aria-label="Analysis view">
@@ -3765,7 +3775,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.8</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.9</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3959,7 +3969,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.8"></script>
+<script src="app.js?v=5.7.9"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -4283,6 +4293,8 @@ window.addEventListener('load', function(){
    // Defer the background action until every pointerdown listener can claim the drag.
    queueMicrotask(()=>{
      if(e.defaultPrevented)return;
+     const y=e.clientY-canvas.getBoundingClientRect().top;
+     if(y<canvas.clientHeight-84)return;
      const bothCollapsed=document.body.classList.contains('left-rail-collapsed')&&document.body.classList.contains('right-rail-collapsed');
      setRail('left',bothCollapsed);setRail('right',bothCollapsed);
      if(typeof window.closeWorkspaceDrawer==='function')window.closeWorkspaceDrawer();

@@ -67,8 +67,11 @@ for(const delaySafetyCheck of [
   if(!core.includes(delaySafetyCheck)) throw new Error(`Sweep-delay safety guard missing: ${delaySafetyCheck}`);
 }
 if(core.includes("signalType!=='noise')sweepResult=computeSweepDelay")) throw new Error('Unknown external audio can still fall through to the sweep estimator');
-if(!html.includes('GAL Analyzer V5.7.8')||!config.includes("version:'5.7.8-range-drag-order-fix'")||!worker.includes('v5-7-8-range-drag-order')) throw new Error('V5.7.8 release identifiers are inconsistent');
+if(!html.includes('GAL Analyzer V5.7.9')||!config.includes("version:'5.7.9-direct-range-handles'")||!worker.includes('v5-7-9-direct-range-handles')) throw new Error('V5.7.9 release identifiers are inconsistent');
 if(!html.includes('queueMicrotask(()=>{')||!html.includes('if(e.defaultPrevented)return;')) throw new Error('Canvas rail collapse must wait for HPF/LPF handle capture regardless of listener order');
+if(!core.includes('},{capture:true});')||!core.includes('Math.min(dl,dh)<=42')||!core.includes('e.stopImmediatePropagation()')) throw new Error('HPF/LPF handles must use capture priority and a generous grab zone');
+if(!html.includes('if(y<canvas.clientHeight-84)return;')) throw new Error('Side rails must fold only from the lower graph zone');
+if(!html.includes('id="eqHpfHandle"')||!html.includes('id="eqLpfHandle"')||!core.includes("bindEqRangeDomHandle('eqHpfHandle','min')")||!core.includes("bindEqRangeDomHandle('eqLpfHandle','max')")) throw new Error('HPF/LPF must expose real draggable DOM handles');
 const recorder=await readFile('recorder-worklet.js','utf8');
 if(!recorder.includes('e.data.micChannel')||!recorder.includes('e.data.refChannel')) throw new Error('Delay recorder does not follow I/O channel mapping');
 if(!core.includes("micChannel:measChannel, refChannel:refChannel")) throw new Error('Delay capture does not pass selected I/O channels');

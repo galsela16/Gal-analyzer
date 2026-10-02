@@ -382,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.8-range-drag-order-fix',
+    version: 'v5.7.9-direct-range-handles',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -486,15 +486,57 @@ function eqRtaRangeFreq(px){
 function eqRangeWorkspaceOpen(){
   return !!((eqPanel&&eqPanel.classList.contains('open'))||(tfPanel&&tfPanel.classList.contains('open')));
 }
+function syncEqRangeDomHandles(){
+  const hpf=document.getElementById('eqHpfHandle'),lpf=document.getElementById('eqLpfHandle');
+  if(!hpf||!lpf)return;
+  const visible=mode==='rta'&&eqRangeWorkspaceOpen();
+  hpf.style.display=lpf.style.display=visible?'block':'none';
+  if(!visible)return;
+  const top=cv.offsetTop+7;
+  hpf.style.left=(cv.offsetLeft+eqRtaRangeX(eqMinFreq))+'px';
+  lpf.style.left=(cv.offsetLeft+eqRtaRangeX(eqMaxFreq))+'px';
+  hpf.style.top=lpf.style.top=top+'px';
+  hpf.textContent='HPF · '+fLabel(eqMinFreq)+' Hz';
+  lpf.textContent='LPF · '+fLabel(eqMaxFreq)+' Hz';
+  hpf.setAttribute('aria-valuenow',String(eqMinFreq));lpf.setAttribute('aria-valuenow',String(eqMaxFreq));
+}
+function bindEqRangeDomHandle(id,side){
+  const el=document.getElementById(id);if(!el)return;
+  el.addEventListener('pointerdown',e=>{
+    if(e.button!==undefined&&e.button!==0)return;
+    eqRtaRangeDrag=side;el.classList.add('dragging');
+    try{el.setPointerCapture(e.pointerId);}catch(_){}
+    e.preventDefault();e.stopPropagation();
+  });
+  el.addEventListener('pointermove',e=>{
+    if(eqRtaRangeDrag!==side)return;
+    const f=eqRtaRangeFreq(e.clientX-cv.getBoundingClientRect().left);
+    setEqCorrectionRange(side==='min'?f:eqMinFreq,side==='max'?f:eqMaxFreq,false);syncEqRangeDomHandles();
+    e.preventDefault();e.stopPropagation();
+  });
+  const finish=e=>{
+    if(eqRtaRangeDrag!==side)return;
+    eqRtaRangeDrag=null;el.classList.remove('dragging');setEqCorrectionRange(eqMinFreq,eqMaxFreq,true);syncEqRangeDomHandles();
+    e?.preventDefault();e?.stopPropagation();
+  };
+  el.addEventListener('pointerup',finish);el.addEventListener('pointercancel',finish);
+}
+bindEqRangeDomHandle('eqHpfHandle','min');bindEqRangeDomHandle('eqLpfHandle','max');
+setInterval(syncEqRangeDomHandles,250);
 cv.addEventListener('pointerdown',e=>{
-  if(!running||mode!=='rta') return;
+  if(mode!=='rta') return;
   if(eqRangeWorkspaceOpen()){
-    const dl=Math.abs(e.offsetX-eqRtaRangeX(eqMinFreq)),dh=Math.abs(e.offsetX-eqRtaRangeX(eqMaxFreq));
-    if(Math.min(dl,dh)<=28){eqRtaRangeDrag=dl<=dh?'min':'max';try{cv.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}
+    const px=e.clientX-cv.getBoundingClientRect().left;
+    const dl=Math.abs(px-eqRtaRangeX(eqMinFreq)),dh=Math.abs(px-eqRtaRangeX(eqMaxFreq));
+    if(Math.min(dl,dh)<=42){
+      eqRtaRangeDrag=dl<=dh?'min':'max';
+      try{cv.setPointerCapture(e.pointerId);}catch(_){}
+      e.preventDefault();e.stopImmediatePropagation();return;
+    }
   }
   dragging=true; dragX0=dragX1=e.offsetX;
   try{cv.setPointerCapture(e.pointerId);}catch(_){}
-});
+},{capture:true});
 cv.addEventListener('pointermove',e=>{
   cursorX=e.offsetX;
   if(mode==='spec')cv.style.cursor='crosshair';
@@ -3436,6 +3478,7 @@ function applyDelayPhaseToCross(re,im,k,n,delaySamples){
 function drawRtaEqRange(W,H,xForFreq){
   const meterH=(meterEl&&meterEl.style.display!=='none')?28:6,plotH=H-meterH-6;
   const xLo=xForFreq(eqMinFreq),xHi=xForFreq(eqMaxFreq);
+  syncEqRangeDomHandles();
   ctx.save();ctx.setLineDash([]);
   const handle=(x,label,side,color)=>{
     const active=eqRtaRangeDrag===side;
@@ -4760,7 +4803,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.8';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.9';
   v3UpdateStatus();
 })();
 (function initAccent(){

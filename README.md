@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.8 — Studio Plugin Measurement Console
+# GAL Analyzer V5.7.9 — Studio Plugin Measurement Console
 
-V5.7.8 makes HPF/LPF dragging independent of asynchronous script-listener order, so grabbing a filter handle cannot collapse the side rails.
+V5.7.9 gives HPF/LPF handles capture priority, a larger grab zone and touch-safe dragging. Side rails fold only when the lower 84 pixels of the graph are pressed.
 
 V5.5.59 makes TF Trace capture use the same explicit source picker as the other measurement actions. Pink Noise and Sweep start the internal generator, allow the measurement to settle, capture the trace, and stop automatically; External captures after a short settling period without controlling playback. The saved trace still carries its real Verified or Unverified trust state. The canvas trust warning is now a compact corner badge, and the Generator rail includes a direct start/stop button.
 

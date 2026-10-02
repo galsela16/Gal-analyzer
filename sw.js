@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-7-8-range-drag-order-20261002';
+const CACHE = 'gal-analyzer-v5-7-9-direct-range-handles-20261002';
 const ASSETS = [
   './',
   './index.html',
