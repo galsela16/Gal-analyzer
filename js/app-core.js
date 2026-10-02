@@ -382,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.9-direct-range-handles',
+    version: 'v5.7.10-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3295,6 +3295,22 @@ function heat(t){
 }
 function fLabel(f){return f>=1000?(f%1000?(f/1000).toFixed(1):f/1000)+'k':''+f;}
 
+const SHARED_FREQUENCY_TICKS=[20,31.5,50,100,200,500,1000,2000,5000,10000,20000];
+function drawSharedFrequencyAxis(W,plotH,xForFreq){
+  const lo=ISO[0],hi=ISO[BANDS-1],y=Math.max(12,plotH-6);
+  ctx.save();ctx.direction='ltr';ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.font='700 10px ui-monospace,SFMono-Regular,Menlo,monospace';
+  SHARED_FREQUENCY_TICKS.filter(f=>f>=lo&&f<=hi).forEach(f=>{
+    const x=Math.max(14,Math.min(W-14,xForFreq(f))),label=fLabel(f);
+    ctx.lineWidth=3.5;ctx.lineJoin='round';
+    ctx.strokeStyle=sunMode?'rgba(248,250,252,.94)':'rgba(3,11,16,.94)';ctx.strokeText(label,x,y);
+    ctx.fillStyle=sunMode?'#475569':'#aebbc6';ctx.fillText(label,x,y);
+    ctx.strokeStyle=sunMode?'rgba(71,85,105,.45)':'rgba(174,187,198,.42)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,plotH-3);ctx.lineTo(x,plotH);ctx.stroke();
+  });
+  ctx.restore();
+}
+
 function updateLevel(){
   if(!analyserMeter) return;
   analyserMeter.getFloatTimeDomainData(timeDataMeter);
@@ -3524,7 +3540,6 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   const smoothAlpha=tau>0?Math.exp(-dt/tau):0;
   const meterH = (meterEl && meterEl.style.display!=='none') ? 28 : 6;
   const plotH = H - meterH - 6;
-  const labelY = H - meterH - 4;
   ctx.strokeStyle=sunMode ? '#cbd5e1' : '#2b3646'; 
   ctx.fillStyle=sunMode ? '#475569' : '#aeb9c7'; 
   ctx.font='11px monospace'; ctx.textAlign='center';
@@ -3532,7 +3547,6 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   [20,31.5,50,100,200,500,1000,2000,5000,10000,20000].filter(f=>f>=lo&&f<=hi).forEach(f=>{
     const x=xForFreq(f);
     ctx.globalAlpha=.6; ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,plotH);ctx.stroke(); ctx.globalAlpha=1;
-    ctx.fillText(fLabel(f)+'Hz',x,labelY);
   });
   [0.25,0.5,0.75].forEach(p=>{ctx.globalAlpha=.3;ctx.strokeStyle=sunMode?'#cbd5e1':'#2b3646';ctx.beginPath();ctx.moveTo(0,plotH*p);ctx.lineTo(W,plotH*p);ctx.stroke();ctx.globalAlpha=1;});
 
@@ -3964,6 +3978,9 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.fillStyle='#dc2626'; ctx.fillText(lbl, tx+tw/2, y-16);
     });
   }
+  // Keep one readable logarithmic frequency scale above the level meter in
+  // RTA, M/R and TF. Drawing it last prevents response overlays from hiding it.
+  drawSharedFrequencyAxis(W,plotH,xForFreq);
   let exactHz=0;
   if(peakBand>=0 && peakVal>0.05){
     const fc=ISO[peakBand];
@@ -4803,7 +4820,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.9';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.10';
   v3UpdateStatus();
 })();
 (function initAccent(){

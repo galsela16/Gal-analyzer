@@ -2048,7 +2048,8 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   #stage{
     top:auto!important;flex:1 1 auto!important;min-height:0!important;
     margin:8px calc(var(--desktop-right) + 12px) calc(var(--desktop-bottom) + 8px) calc(var(--desktop-left) + 12px)!important;
-    border-radius:11px!important;overflow:hidden!important
+    border-radius:11px!important;overflow:hidden!important;
+    transition:margin-left .24s cubic-bezier(.2,.75,.25,1),margin-right .24s cubic-bezier(.2,.75,.25,1)!important
   }
   #stage>canvas#cv{
     left:0!important;right:0!important;top:76px!important;bottom:0!important;
@@ -2090,7 +2091,9 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   /* Compact left rail: status plus one canonical entry point per drawer. */
   #targetLeftStatus{
     display:flex;position:fixed;left:12px;top:60px;bottom:calc(var(--desktop-bottom) + 12px);
-    width:var(--desktop-left);z-index:23;flex-direction:column;gap:8px;pointer-events:auto
+    width:var(--desktop-left);z-index:23;flex-direction:column;gap:8px;pointer-events:auto;
+    opacity:1;transform:translateX(0);visibility:visible;
+    transition:opacity .2s ease,transform .24s cubic-bezier(.2,.75,.25,1),visibility 0s linear 0s
   }
   .tlsCard{display:flex;flex-direction:column;border:1px solid rgba(103,168,189,.20);border-radius:10px;background:rgba(5,16,23,.96);padding:10px 12px;min-height:108px}
   .tlsHead{font:800 10px ui-monospace,monospace;color:#c7d9df;letter-spacing:.08em;margin-bottom:8px}
@@ -2108,7 +2111,9 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   /* Compact right column: Measurement first, then Tools only. */
   #targetMeasurementPanel{
     display:block;position:fixed;right:12px;top:60px;width:var(--desktop-right);height:192px;z-index:29;
-    border:1px solid rgba(104,170,192,.24);border-radius:10px;background:rgba(5,16,23,.97);padding:11px 12px
+    border:1px solid rgba(104,170,192,.24);border-radius:10px;background:rgba(5,16,23,.97);padding:11px 12px;
+    opacity:1;transform:translateX(0);visibility:visible;
+    transition:opacity .2s ease,transform .24s cubic-bezier(.2,.75,.25,1),visibility 0s linear 0s
   }
   .workspaceRailToggle{
     display:grid;position:fixed;z-index:46;top:50%;width:28px;height:56px;place-items:center;
@@ -2126,10 +2131,10 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   .workspaceRailToggle:active{transform:translateY(-50%) scale(.94)}
   #leftRailToggle{left:calc(12px + var(--desktop-left) - 7px)}
   #rightRailToggle{right:calc(12px + var(--desktop-right) - 7px)}
-  body.left-rail-collapsed #targetLeftStatus{display:none!important}
+  body.left-rail-collapsed #targetLeftStatus{opacity:0;transform:translateX(calc(-100% - 18px));visibility:hidden;pointer-events:none;transition-delay:0s,0s,.24s}
   body.left-rail-collapsed #stage{margin-left:12px!important}
   body.left-rail-collapsed #leftRailToggle{left:-4px;opacity:.68}
-  body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{display:none!important}
+  body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{opacity:0!important;transform:translateX(calc(100% + 18px));visibility:hidden!important;pointer-events:none!important;transition-delay:0s,0s,.24s!important}
   body.right-rail-collapsed #stage{margin-right:12px!important}
   body.right-rail-collapsed #rightRailToggle{right:-4px;opacity:.68}
   .tmpHead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid rgba(110,170,190,.14);font:800 9px ui-monospace,monospace;letter-spacing:.1em;color:#c8d8de}
@@ -2143,7 +2148,9 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     display:grid!important;position:fixed!important;right:12px!important;top:260px!important;
     bottom:calc(var(--desktop-bottom) + 12px)!important;width:var(--desktop-right)!important;height:auto!important;
     grid-template-columns:1fr!important;grid-template-rows:22px repeat(5,minmax(0,1fr))!important;
-    align-content:stretch!important;padding:9px!important;gap:7px!important;border-radius:10px!important;z-index:23!important
+    align-content:stretch!important;padding:9px!important;gap:7px!important;border-radius:10px!important;z-index:23!important;
+    opacity:1;transform:translateX(0);visibility:visible;
+    transition:opacity .2s ease,transform .24s cubic-bezier(.2,.75,.25,1),visibility 0s linear 0s!important
   }
   #uiRightTools .uiRightToolsTitle{display:flex!important;grid-column:1/-1!important;height:22px!important}
   #uiRightTools button{
@@ -2636,6 +2643,33 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   color:#d7e0e4!important;background:linear-gradient(180deg,#070c0f,#11191e)!important;border:1px solid #445158!important;
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
+
+/* V5.7.10 — readable compact Delay workspace. */
+@media(min-width:901px){
+  #dlyPanel.measureDock:not(.expanded){
+    grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
+    grid-template-areas:"title" "inputs" "measure"!important;
+    min-height:154px!important;max-height:190px!important;padding:8px 12px 10px!important;gap:6px!important;overflow:hidden!important
+  }
+  #dlyPanel.measureDock:not(.expanded) h3{position:static!important;grid-area:title!important;width:auto!important;padding:0 0 5px!important;margin:0!important;text-align:right!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyInputs{grid-area:inputs!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:0!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyInputs .chBar{min-width:0!important;max-width:none!important;width:auto!important;min-height:32px!important;padding:5px 8px!important;overflow:hidden!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard{
+    grid-area:measure!important;display:grid!important;width:100%!important;box-sizing:border-box!important;
+    grid-template-columns:minmax(150px,.85fr) minmax(220px,1.35fr) minmax(210px,1fr) minmax(150px,.75fr)!important;
+    grid-template-areas:"start result range unit"!important;gap:9px!important;align-items:center!important;padding:8px!important;overflow:hidden!important
+  }
+  #dlyPanel.measureDock:not(.expanded) #dlyMeasBtn{grid-area:start!important;width:100%!important;min-height:34px!important}
+  #dlyPanel.measureDock:not(.expanded) #dlyStatus{grid-area:result!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:32px!important;margin:0!important;white-space:normal!important;line-height:1.25!important}
+  #dlyPanel.measureDock:not(.expanded) .delayRangeControl{grid-area:range!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyUnitControl{grid-area:unit!important}
+  #dlyPanel.measureDock:not(.expanded) .delayRangeControl,
+  #dlyPanel.measureDock:not(.expanded) .dlyUnitControl{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;flex-wrap:nowrap!important;white-space:nowrap!important}
+  #dlyPanel.measureDock:not(.expanded) #dlyDistanceCal,
+  #dlyPanel.measureDock:not(.expanded) #dlyInfo,
+  #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard>.sub{display:none!important}
+  #dlyPanel.measureDock:not(.expanded) .dlyActions{position:absolute!important;left:10px!important;top:6px!important;width:auto!important;padding:0!important;margin:0!important}
+}
 body:not(.sun-mode) .measureDock h3,body:not(.sun-mode) #tfPanel h3{
   color:#d8e0e4!important;border-bottom-color:#4b565d!important;text-shadow:0 1px 0 #000
 }
@@ -2824,7 +2858,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   #displayResolutionBar .drLabel{display:none!important}
   #displayResolutionBar button{min-width:58px!important;height:28px!important;border-radius:1px!important;font-size:10px!important}
 
-  #targetLeftStatus{display:grid!important;grid-template-rows:minmax(148px,1fr) minmax(148px,1fr) auto!important;left:8px!important;top:74px!important;bottom:calc(var(--console-bottom) + 10px)!important;width:var(--console-left)!important;gap:5px!important}
+  #targetLeftStatus{display:grid!important;grid-template-rows:minmax(128px,.85fr) minmax(128px,.85fr) minmax(166px,1fr)!important;left:8px!important;top:74px!important;bottom:calc(var(--console-bottom) + 10px)!important;width:var(--console-left)!important;gap:5px!important}
   .tlsCard{min-height:0!important;border:1px solid #4b555a!important;border-radius:3px!important;background:linear-gradient(180deg,#171e22,#0c1215)!important;box-shadow:inset 0 1px rgba(255,255,255,.06),inset 0 0 12px rgba(0,0,0,.5)!important;padding:8px!important}
   .tlsInputCard{display:grid!important;grid-template-rows:auto 1fr auto!important}
   .tlsInputCard .tlsHead{font-size:9px!important;margin:0 0 6px!important;padding-bottom:6px!important;border-bottom:1px solid #354046!important;color:#d3dade!important;white-space:nowrap}
@@ -2835,11 +2869,13 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   .tlsMeterTrack i{position:absolute!important;left:3px!important;right:3px!important;bottom:3px!important;height:0;background:linear-gradient(to top,#1bcf68 0 68%,#d2df31 82%,#e85552 100%)!important;box-shadow:0 0 7px rgba(31,214,107,.32)!important;will-change:height!important}
   .tlsMeterTrack em{position:absolute!important;left:1px!important;right:1px!important;bottom:0;height:2px!important;background:#ecf7f9!important;box-shadow:0 0 4px #fff!important;will-change:bottom!important}
   .tlsMeterRead{text-align:center!important;font:700 9px ui-monospace,monospace!important;color:#cbd5d9!important}
-  .tlsPatchCard{padding:8px!important;min-height:105px!important;max-height:128px!important}
+  .tlsPatchCard{padding:8px!important;min-height:166px!important;max-height:none!important}
   .tlsPatchCard .tlsHead{margin-bottom:4px!important}.tlsPatchCard .tlsLine{margin:3px 0!important;font-size:8px!important}
   .tlsPatchActions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:4px!important;margin-top:5px!important}.tlsPatchActions button{min-height:25px!important;margin:0!important;font-size:7px!important}
   .tlsTraceCount{display:grid!important;grid-template-columns:1fr auto 1fr auto!important;gap:4px!important;margin-top:5px!important;padding-top:5px!important;border-top:1px solid #354046!important;font:700 7px ui-monospace,monospace!important;color:#7e8c92!important}.tlsTraceCount strong{color:#cfd8db!important}
-  #persistentTraceHost{display:none!important}
+  #persistentTraceHost{display:flex!important;min-height:64px!important;overflow:hidden!important}
+  #persistentTraceHost #v5TraceList{min-height:28px!important;overflow:auto!important}
+  #persistentTraceHost #v5AddTrace{display:block!important;min-height:28px!important;font-size:8px!important}
   #leftRailToggle,#rightRailToggle{display:none!important}
 
   #targetMeasurementPanel{right:8px!important;top:74px!important;width:var(--console-right)!important;height:220px!important;border:1px solid #4b555a!important;border-radius:3px!important;background:linear-gradient(180deg,#171e22,#0b1114)!important;box-shadow:inset 0 1px rgba(255,255,255,.06),inset 0 0 14px rgba(0,0,0,.45)!important;padding:9px!important}
@@ -2975,6 +3011,29 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
     box-shadow:inset 0 2px 8px #000,0 1px rgba(255,255,255,.045)!important;
   }
 }
+/* Final desktop Delay layout override: keep controls separated at every width. */
+@media(min-width:901px){
+ body #dlyPanel.measureDock:not(.expanded){grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;grid-template-areas:"title" "inputs" "measure"!important;min-height:154px!important;max-height:190px!important;padding:8px 12px 10px!important;gap:6px!important;overflow:hidden!important}
+ body #dlyPanel.measureDock:not(.expanded) h3{position:static!important;grid-area:title!important;width:auto!important;padding:0 0 5px!important;margin:0!important;text-align:right!important}
+ body #dlyPanel.measureDock:not(.expanded) .dlyInputs{grid-area:inputs!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:0!important}
+ body #dlyPanel.measureDock:not(.expanded) .dlyInputs .chBar{min-width:0!important;max-width:none!important;width:auto!important;min-height:32px!important;padding:5px 8px!important;overflow:hidden!important}
+ body #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard{grid-area:measure!important;display:grid!important;width:100%!important;box-sizing:border-box!important;grid-template-columns:minmax(150px,.85fr) minmax(220px,1.35fr) minmax(210px,1fr) minmax(150px,.75fr)!important;grid-template-areas:"start result range unit"!important;gap:9px!important;align-items:center!important;padding:8px!important;overflow:hidden!important}
+ body #dlyPanel.measureDock:not(.expanded) #dlyMeasBtn{grid-area:start!important;width:100%!important;min-height:34px!important}
+ body #dlyPanel.measureDock:not(.expanded) #dlyStatus{grid-area:result!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:32px!important;margin:0!important;white-space:normal!important;line-height:1.25!important}
+ body #dlyPanel.measureDock:not(.expanded) .delayRangeControl{grid-area:range!important}
+ body #dlyPanel.measureDock:not(.expanded) .dlyUnitControl{grid-area:unit!important}
+ body #dlyPanel.measureDock:not(.expanded) .delayRangeControl,body #dlyPanel.measureDock:not(.expanded) .dlyUnitControl{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;flex-wrap:nowrap!important;white-space:nowrap!important}
+ body #dlyPanel.measureDock:not(.expanded) #dlyDistanceCal,body #dlyPanel.measureDock:not(.expanded) #dlyInfo,body #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard>.sub{display:none!important}
+ body #dlyPanel.measureDock:not(.expanded) .dlyActions{position:absolute!important;left:10px!important;top:6px!important;width:auto!important;padding:0!important;margin:0!important}
+}
+/* Accent swatches must keep their actual color above the global button skin. */
+.uiSettingsRow .uiMenuColors button.sw[data-ui-color="#3ea6ff"]{background:#3ea6ff!important}
+.uiSettingsRow .uiMenuColors button.sw[data-ui-color="#40d17a"]{background:#40d17a!important}
+.uiSettingsRow .uiMenuColors button.sw[data-ui-color="#b57bff"]{background:#b57bff!important}
+.uiSettingsRow .uiMenuColors button.sw[data-ui-color="#ff9d3c"]{background:#ff9d3c!important}
+.uiSettingsRow .uiMenuColors button.sw{width:24px!important;height:24px!important;padding:0!important;border:2px solid rgba(255,255,255,.18)!important;border-radius:50%!important;box-shadow:inset 0 1px 2px rgba(255,255,255,.42),0 2px 5px rgba(0,0,0,.45)!important;letter-spacing:0!important}
+.uiSettingsRow .uiMenuColors button.sw:hover{transform:scale(1.1)}
+.uiSettingsRow .uiMenuColors button.sw.on{border-color:#fff!important;box-shadow:0 0 0 2px #0a1115,0 0 0 4px currentColor,0 0 11px currentColor!important}
 </style>
 </head>
 <body>
@@ -3027,7 +3086,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.9</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.10</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3057,7 +3116,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.9</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.10</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3775,7 +3834,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.9</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.10</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3842,7 +3901,12 @@ window.addEventListener('load', function(){
   document.getElementById('uiHelp').onclick=()=>{close();click('helpBtn')};
   document.getElementById('uiPng').onclick=()=>{close();click('pngBtn')};
   document.getElementById('uiCsv').onclick=()=>{close();click('csvBtn')};
-  document.querySelectorAll('[data-ui-color]').forEach(b=>b.addEventListener('click',()=>{const old=document.querySelector('#swatches .sw[data-c="'+b.dataset.uiColor+'"]');if(old)old.click();setTimeout(syncStates,30)}));
+  document.querySelectorAll('[data-ui-color]').forEach(b=>b.addEventListener('click',()=>{
+    const color=b.dataset.uiColor,old=document.querySelector('#swatches .sw[data-c="'+color+'"]');
+    if(old)old.click();
+    document.querySelectorAll('[data-ui-color]').forEach(x=>x.classList.toggle('on',x.dataset.uiColor===color));
+    setTimeout(syncStates,30);
+  }));
 
   const bottomTools=document.getElementById('uiBottomTools');
   function setBottomTool(name){bottomTools?.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.uiAction===name));}
@@ -3918,6 +3982,8 @@ window.addEventListener('load', function(){
     document.getElementById('uiTargetToggle')?.classList.toggle('on',!!target?.classList.contains('on'));
     const text=document.getElementById('v3ResChip')?.textContent||'';
     document.querySelectorAll('[data-ui-bpo]').forEach(x=>x.classList.toggle('on',text.includes(x.dataset.uiBpo==='3'?'1/3':x.dataset.uiBpo==='6'?'1/6':x.dataset.uiBpo==='12'?'1/12':'1/24')));
+    let accent='';try{accent=localStorage.getItem('rta_accent')||'#3ea6ff'}catch(_){accent='#3ea6ff'}
+    document.querySelectorAll('[data-ui-color]').forEach(x=>x.classList.toggle('on',x.dataset.uiColor.toLowerCase()===accent.toLowerCase()));
     setState(document.body.classList.contains('sun-mode')?'Day mode':'Night mode');
   }
   setTimeout(syncStates,600);
@@ -3969,7 +4035,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.9"></script>
+<script src="app.js?v=5.7.10"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
