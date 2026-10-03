@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-7-10-axis-rails-traces-20261002';
+const CACHE = 'gal-analyzer-v5-7-10-axis-rails-traces-delay-meter-status-20261003';
 const ASSETS = [
   './',
   './index.html',

@@ -1837,7 +1837,15 @@ function drawDualInputRta(W,plotH,nyquist){
   const stroke=(pts,color,width)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();};
   fill(ref,'#ff4d5e',.32);fill(mic,'#258dff',.50);stroke(ref,'#ff4d5e',2.1);stroke(mic,'#45a5ff',2.1);
   ctx.save();ctx.font='800 10px ui-monospace,monospace';ctx.fillStyle='rgba(3,13,19,.78)';ctx.fillRect(10,10,232,27);ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',20,28);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',112,28);ctx.fillStyle=sunMode?'#334b58':'#b6c8cf';ctx.fillText('M/R',202,28);ctx.restore();
-  if(!tfHasReferenceSignal()){ctx.save();ctx.fillStyle='rgba(70,22,27,.92)';ctx.fillRect(W-244,10,232,36);ctx.strokeStyle='#ff4d5e';ctx.strokeRect(W-243.5,10.5,231,35);ctx.fillStyle='#ff9aa4';ctx.font='800 10px ui-monospace,monospace';ctx.fillText('REF 2 · NO SIGNAL',W-232,26);ctx.fillStyle='#d9e5ea';ctx.font='9px ui-monospace,monospace';ctx.fillText('Check routing / input channel',W-232,39);ctx.restore();}
+  if(!tfHasReferenceSignal()){
+    ctx.save();
+    // Keep the reference status visible without covering the plot with an alert box.
+    ctx.font='500 10px ui-monospace,monospace';
+    ctx.fillStyle=sunMode?'#526674':'#94a8b3';
+    ctx.textAlign='right';
+    ctx.fillText('REF 2 · No input signal',W-12,W<480?52:27);
+    ctx.restore();
+  }
   return true;
 }
 
@@ -5087,9 +5095,10 @@ function v52UpdateLiveMeters(){
     ref=levelDb(timeDataRef,timeDataRef.length);
   }
   const smooth=(old,next)=>next>old ? old+(next-old)*.62 : old+(next-old)*.055;
-  v52MeasDbfs=smooth(v52MeasDbfs,meas);
+  // Share the bottom microphone meter envelope without a second smoothing pass.
+  v52MeasDbfs=meas;
   v52RefDbfs=smooth(v52RefDbfs,ref);
-  if(v52MeasDbfs>v52MeasPeakDbfs || now-v52PeakAt>1400) v52MeasPeakDbfs=v52MeasDbfs;
+  v52MeasPeakDbfs=lvlPeak;
   if(v52RefDbfs>v52RefPeakDbfs || now-v52PeakAt>1400) v52RefPeakDbfs=v52RefDbfs;
   if(now-v52PeakAt>1400) v52PeakAt=now;
   if(now-v52MeterPaintAt<50)return;
@@ -5110,9 +5119,9 @@ function v52UpdateLiveMeters(){
 window.getLiveInputMeterSnapshot=function(){
   return {
     running:!!running,
-    micDb:running&&Number.isFinite(v52MeasDbfs)?v52MeasDbfs:-120,
+    micDb:running&&Number.isFinite(smoothedDbfs)?smoothedDbfs:-120,
     refDb:running&&analyserRef&&Number.isFinite(v52RefDbfs)?v52RefDbfs:-120,
-    micPeakDb:running&&Number.isFinite(v52MeasPeakDbfs)?v52MeasPeakDbfs:-120,
+    micPeakDb:running&&Number.isFinite(lvlPeak)?lvlPeak:-120,
     refPeakDb:running&&analyserRef&&Number.isFinite(v52RefPeakDbfs)?v52RefPeakDbfs:-120
   };
 };

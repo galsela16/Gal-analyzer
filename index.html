@@ -3034,6 +3034,21 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 .uiSettingsRow .uiMenuColors button.sw{width:24px!important;height:24px!important;padding:0!important;border:2px solid rgba(255,255,255,.18)!important;border-radius:50%!important;box-shadow:inset 0 1px 2px rgba(255,255,255,.42),0 2px 5px rgba(0,0,0,.45)!important;letter-spacing:0!important}
 .uiSettingsRow .uiMenuColors button.sw:hover{transform:scale(1.1)}
 .uiSettingsRow .uiMenuColors button.sw.on{border-color:#fff!important;box-shadow:0 0 0 2px #0a1115,0 0 0 4px currentColor,0 0 11px currentColor!important}
+
+/* Delay header controls must sit above the full-width title hit area. */
+#dlyPanel.measureDock .dlyActions{
+  position:relative;
+  z-index:3;
+}
+#dlyPanel.measureDock .dlyActions .dockMoreBtn,
+#dlyPanel.measureDock .dlyActions .dockClose{
+  position:relative;
+  z-index:1;
+}
+#dlyPanel.measureDock:not(.expanded) h3{
+  padding-left:130px!important;
+  box-sizing:border-box;
+}
 </style>
 </head>
 <body>
