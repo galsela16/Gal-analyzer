@@ -3049,6 +3049,41 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   padding-left:130px!important;
   box-sizing:border-box;
 }
+
+/* Pair both input meters so levels can be compared at a glance. */
+@media(min-width:901px){
+  #targetLeftStatus{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    grid-template-rows:minmax(180px,.85fr) minmax(166px,1fr)!important;
+    align-items:stretch!important;
+  }
+  #targetLeftStatus .tlsInputCard{min-width:0!important;padding:8px 5px!important}
+  #targetLeftStatus .tlsInputCard .tlsHead{
+    display:flex;align-items:flex-start;gap:4px;
+    font-size:9px!important;letter-spacing:.04em!important;
+  }
+  #targetLeftStatus .tlsInputCard .tlsHead b{display:block;margin-top:3px;font-size:7px!important}
+  #targetLeftStatus .tlsVerticalMeter{gap:5px!important}
+  #targetLeftStatus .tlsMeterTrack{width:26px!important;flex-shrink:0}
+  #targetLeftStatus .tlsMeterRead{font-size:8px!important;white-space:nowrap}
+  #targetLeftStatus .tlsPatchCard{grid-column:1 / -1}
+}
+
+/* Keep explicit rail controls available in the studio layout. */
+@media(min-width:901px){
+  #leftRailToggle,#rightRailToggle{
+    display:grid!important;width:24px;height:42px;opacity:1;
+    color:#b9cbd3;background:#101b22;border:1px solid #3c515d;
+    border-radius:4px;font-size:21px;padding:0;
+  }
+  #leftRailToggle::before,#rightRailToggle::before{display:none}
+  #leftRailToggle{left:calc(var(--console-left) + 4px)}
+  #rightRailToggle{right:calc(var(--console-right) + 4px)}
+  body.left-rail-collapsed #leftRailToggle{left:4px;opacity:1}
+  body.right-rail-collapsed #rightRailToggle{right:4px;opacity:1}
+  #leftRailToggle:hover,#rightRailToggle:hover{color:#ecfaff;border-color:#28aefa}
+  #leftRailToggle:focus-visible,#rightRailToggle:focus-visible{outline:2px solid #28aefa;outline-offset:2px}
+}
 </style>
 </head>
 <body>
