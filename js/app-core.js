@@ -1709,9 +1709,11 @@ let tfLiveVisualDb=[];
 const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
 function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
 function tfDrawTrustGuide(W,plotH,verified,reason){
-  const boxW=Math.min(230,W-20),boxH=25,x=W-boxW-10,y=32;
-  ctx.save();ctx.fillStyle=verified?'rgba(10,68,46,.88)':'rgba(70,42,8,.92)';ctx.strokeStyle=verified?'#45d47b':'#f5b942';ctx.lineWidth=1;ctx.fillRect(x,y,boxW,boxH);ctx.strokeRect(x+.5,y+.5,boxW-1,boxH-1);
-  ctx.fillStyle=verified?'#8ff0b9':'#ffd783';ctx.font='800 9px ui-monospace,monospace';ctx.fillText(verified?'VERIFIED · safe to tune':'UNVERIFIED · verify before tuning',x+8,y+16);
+  ctx.save();
+  ctx.textAlign='right';
+  ctx.fillStyle=verified?(sunMode?'#278052':'#8bbba1'):(sunMode?'#7b6847':'#b5a17c');
+  ctx.font='500 9px ui-monospace,monospace';
+  ctx.fillText(verified?'Verified · ready to tune':'Unverified · verify before tuning',W-12,W<640?68:46);
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
@@ -1810,11 +1812,10 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.font='700 11px monospace';ctx.textAlign='left';
   const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
   const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
-  const legendX=50;
-  ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(7,16,24,.86)';ctx.fillRect(legendX,8,258,40);
-  ctx.strokeStyle=sunMode?'#cbd5e1':'#294052';ctx.strokeRect(legendX,8,258,40);
-  ctx.fillStyle='#38bdf8';ctx.fillText('● MIC 1  '+micLevel.toFixed(1)+' dBFS',legendX+9,24);
-  ctx.fillStyle='#f59e0b';ctx.fillText('● REF 2  '+refLevel.toFixed(1)+' dBFS',legendX+9,41);
+  const legendX=12;
+  ctx.font='500 10px ui-monospace,monospace';
+  ctx.fillStyle=sunMode?'#167fa0':'#75b5cf';ctx.fillText('MIC 1 · '+micLevel.toFixed(1)+' dBFS',legendX,34);
+  ctx.fillStyle=sunMode?'#85692f':'#b5a17c';ctx.fillText(refLevel<=-110?'REF 2 · No input signal':'REF 2 · '+refLevel.toFixed(1)+' dBFS',legendX,50);
   ctx.textAlign='right';ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8193a2';
   ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
@@ -3832,11 +3833,9 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     });
     if(tfRequested && !alignOn && !tfHasReferenceSignal()){
       ctx.save();ctx.font='600 10px monospace';ctx.textAlign='right';
-      const message='Reference low · MIC 1 + REF 2 remain live';
-      const w=ctx.measureText(message).width+16;
-      ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(10,20,28,.88)';ctx.fillRect(W-w-8,8,w,24);
-      ctx.strokeStyle=sunMode?'#cbd5e1':'#385064';ctx.strokeRect(W-w-8,8,w,24);
-      ctx.fillStyle=sunMode?'#475569':'#b9c7d3';ctx.fillText(message,W-16,24);ctx.restore();
+      ctx.font='500 10px ui-monospace,monospace';
+      ctx.fillStyle=sunMode?'#526674':'#94a8b3';
+      ctx.fillText('Reference low · check input',W-12,W<640?84:27);ctx.restore();
     }
   }
 
