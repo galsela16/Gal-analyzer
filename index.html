@@ -2644,7 +2644,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
 
-/* V5.7.11 — readable compact Delay workspace. */
+/* V5.7.12 — readable compact Delay workspace. */
 @media(min-width:901px){
   #dlyPanel.measureDock:not(.expanded){
     grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
@@ -3084,6 +3084,27 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   #leftRailToggle:hover,#rightRailToggle:hover{color:#ecfaff;border-color:#28aefa}
   #leftRailToggle:focus-visible,#rightRailToggle:focus-visible{outline:2px solid #28aefa;outline-offset:2px}
 }
+
+/* Quiet rail handles, with a generous invisible click target. */
+@media(min-width:901px){
+  #leftRailToggle,#rightRailToggle{
+    width:22px;height:48px;border:0!important;border-radius:0;
+    background:transparent!important;color:#8da5af;opacity:.8;
+    font-size:19px;font-weight:400;box-shadow:none!important;
+    transition:color .16s ease,opacity .16s ease,left .2s ease,right .2s ease;
+  }
+  #leftRailToggle:hover,#rightRailToggle:hover{color:#bceaf5;opacity:1}
+  #leftRailToggle:focus-visible,#rightRailToggle:focus-visible{
+    outline:1px solid #71b6c9;outline-offset:-2px;border-radius:5px;
+  }
+  body.left-rail-collapsed #leftRailToggle,
+  body.right-rail-collapsed #rightRailToggle{opacity:1}
+}
+
+#v5TraceActions{display:flex;gap:5px;margin-top:auto;flex:0 0 auto}
+#v5TraceActions button{min-width:0;flex:1;min-height:28px;font-size:8px;padding:5px 3px}
+#v5TraceActions #v5AddTrace{margin-top:0!important}
+#v5ClearTraces:disabled{opacity:.35;cursor:default}
 </style>
 </head>
 <body>
@@ -3136,7 +3157,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.11</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.12</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3166,7 +3187,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.11</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.12</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3219,7 +3240,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       </div>
       <div class="v5RailTitle">Traces</div>
       <div id="v5TraceList"></div>
-      <button id="v5AddTrace">＋ Capture Trace</button>
+      <div id="v5TraceActions"><button id="v5AddTrace">＋ Capture Trace</button><button id="v5ClearTraces" type="button" title="נקה את כל הטרייסים שנלכדו">נקה הכול</button></div>
       <button id="v5EqWorkspace" class="v5RailTool" type="button" onclick="return window.openLatestEqWorkspaceFromRail(event)">EQ · תצוגת תיקונים</button>
       <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
     </aside>
@@ -3884,7 +3905,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.11</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.12</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -4085,7 +4106,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.11"></script>
+<script src="app.js?v=5.7.12"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -4429,7 +4450,7 @@ window.addEventListener('load', function(){
 })();
 </script>
 
-<script>(()=>{const host=document.getElementById('persistentTraceHost'),list=document.getElementById('v5TraceList'),add=document.getElementById('v5AddTrace');if(host&&list&&add){host.append(list,add);document.body.classList.remove('ui-traces-open','ui-drawer-traces');}})();</script>
+<script>(()=>{const host=document.getElementById('persistentTraceHost'),list=document.getElementById('v5TraceList'),add=document.getElementById('v5TraceActions');if(host&&list&&add){host.append(list,add);document.body.classList.remove('ui-traces-open','ui-drawer-traces');}})();</script>
 
 <div id="targetLeftLabels" aria-hidden="true"><div class="tll">GENERATOR</div><div class="tll">I / O</div><div class="tll">TRACES</div></div>
 <script>

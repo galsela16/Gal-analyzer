@@ -382,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.11-shared-frequency-axis',
+    version: 'v5.7.12-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -4827,7 +4827,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.11';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.12';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4964,6 +4964,7 @@ function v5SyncRail(){
   if(lat) lat.textContent=audioCtx?('Audio: '+Math.round(audioCtx.sampleRate/1000)+'k / '+fftSize):'Audio: —';
 }
 function v5RenderTraceRail(){
+  const clear=document.getElementById('v5ClearTraces');if(clear)clear.disabled=!tfTraces.length;
   const box=document.getElementById('v5TraceList'); if(!box)return;
   if(!tfTraces.length){
     box.innerHTML='<div class="v5Minor" style="padding:8px 4px">No captured traces</div>';
@@ -5005,6 +5006,14 @@ function v5InitWorkspace(){
   safeOn('v54SideToggle','click',()=>v54SetSideRail(document.body.classList.contains('v54-rail-collapsed')));
 
   safeOn('v5AddTrace','click',captureWorkspaceTrace);
+  safeOn('v5ClearTraces','click',()=>{
+    if(!tfTraces.length)return;
+    tfTraces=[];
+    renderTfTraceLegend();
+    const rows=document.getElementById('tsRows');if(rows)rows.replaceChildren();
+    ['tlsTraces','tlsVisible'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='0';});
+    v3Toast('כל הטרייסים נוקו');
+  });
   // Header TF button now opens the working TF dock instead of only overlaying lines.
   const oldTf=document.getElementById('tfOverlayHdr');
   if(oldTf){
