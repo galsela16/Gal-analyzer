@@ -2644,7 +2644,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
 
-/* V5.7.19 — readable compact Delay workspace. */
+/* V5.7.20 — readable compact Delay workspace. */
 @media(min-width:901px){
   #dlyPanel.measureDock:not(.expanded){
     grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
@@ -3119,6 +3119,23 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
 body.reference-unassigned #targetLeftStatus .tlsInputCard[data-input="ref"]{display:none!important}
 body.reference-unassigned #targetLeftStatus .tlsInputCard[data-input="mic"]{grid-column:1/-1}
 #targetLeftStatus .tlsInputCard .tlsHead b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style><style>
+/* A real header row and responsive controls replace the legacy absolute dock actions. */
+body #dlyPanel.measureDock:not(.expanded){container-type:inline-size;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto auto!important;grid-template-areas:"title tools" "inputs inputs" "measure measure"!important;min-height:0!important;max-height:min(40vh,310px)!important;overflow:auto!important}
+body #dlyPanel.measureDock:not(.expanded) h3{padding:0!important;align-self:center;min-width:0;line-height:1.4;white-space:normal}
+body #dlyPanel.measureDock:not(.expanded) .dlyActions{position:static!important;grid-area:tools!important;display:flex!important;align-items:center;gap:6px;justify-self:end;left:auto!important;top:auto!important;max-width:100%}
+body #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-areas:"start result" "range unit"!important;overflow:visible!important;min-width:0!important}
+body #dlyPanel.measureDock:not(.expanded) .delayRangeControl,body #dlyPanel.measureDock:not(.expanded) .dlyUnitControl{flex-wrap:wrap!important;white-space:normal!important;min-width:0!important}
+body #dlyPanel.measureDock .seg{flex-shrink:0;max-width:100%}
+body #dlyPanel.measureDock.expanded{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"title" "inputs" "measure" "align" "actions"!important;max-height:65vh!important;overflow:auto!important}
+body #dlyPanel.measureDock.expanded .dlyActions{position:static!important;grid-area:actions!important;flex-wrap:wrap!important;left:auto!important;top:auto!important}
+body #dlyPanel.measureDock.expanded h3{padding:0!important}
+body #dlyPanel.measureDock.expanded .dlyInputs{grid-area:inputs!important}
+body #dlyPanel.measureDock.expanded .dlyMeasureCard{grid-area:measure!important;min-width:0!important}
+body #dlyPanel.measureDock.expanded .dlyAlignment{grid-area:align!important;min-width:0!important}
+</style><style>
+body.reference-unassigned #dlyPanel .dlyInputs .chBar:last-child{display:none!important}
+body.reference-unassigned #dlyPanel.measureDock .dlyInputs{grid-template-columns:minmax(0,1fr)!important}
 </style></head>
 <body>
   <div id="sigTint"></div>
@@ -3171,7 +3188,7 @@ body.reference-unassigned #targetLeftStatus .tlsInputCard[data-input="mic"]{grid
   <div id="uiMenu" role="dialog" aria-label="Tools and settings">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.19</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.20</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3201,7 +3218,7 @@ body.reference-unassigned #targetLeftStatus .tlsInputCard[data-input="mic"]{grid
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.19</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.20</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3932,7 +3949,7 @@ body.reference-unassigned #targetLeftStatus .tlsInputCard[data-input="mic"]{grid
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.19</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.20</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -4133,7 +4150,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.19"></script>
+<script src="app.js?v=5.7.20"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

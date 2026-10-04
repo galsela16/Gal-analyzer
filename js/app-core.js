@@ -384,7 +384,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.19-shared-frequency-axis',
+    version: 'v5.7.20-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -494,7 +494,7 @@ function syncEqRangeDomHandles(){
   const visible=mode==='rta'&&eqRangeWorkspaceOpen();
   hpf.style.display=lpf.style.display=visible?'block':'none';
   if(!visible)return;
-  const top=cv.offsetTop+7;
+  const top=cv.offsetTop+(v5WorkspaceMode==='tf'?110:54);
   hpf.style.left=(cv.offsetLeft+eqRtaRangeX(eqMinFreq))+'px';
   lpf.style.left=(cv.offsetLeft+eqRtaRangeX(eqMaxFreq))+'px';
   hpf.style.top=lpf.style.top=top+'px';
@@ -1716,7 +1716,7 @@ function tfDrawTrustGuide(W,plotH,verified,reason){
   ctx.textAlign='right';
   ctx.fillStyle=verified?(sunMode?'#278052':'#8bbba1'):(sunMode?'#7b6847':'#b5a17c');
   ctx.font="500 9px Arial";
-  ctx.fillText(verified?'Verified · ready to tune':'Unverified · verify before tuning',W-12,W<640?68:46);
+  ctx.fillText(verified?'Verified · ready to tune':'Unverified · verify before tuning',W-12,80,W*.42);
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
@@ -1757,10 +1757,10 @@ function tfPrepareSelectedView(){
   return {snap,liveSignal,verified};
 }
 function tfViewHeader(label,detail,color){
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="800 11px Arial";ctx.fillStyle=color;ctx.fillText(label,12,18);ctx.font="9px Arial";ctx.fillStyle=sunMode?'#526776':'#91a4b1';ctx.fillText(detail,12,34);ctx.restore();
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="800 11px Arial";ctx.fillStyle=color;ctx.fillText(label,12,60,cv.clientWidth*.52);ctx.font="9px Arial";ctx.fillStyle=sunMode?'#526776':'#91a4b1';ctx.fillText(detail,12,78,cv.clientWidth*.52);ctx.restore();
 }
 function tfDrawSelectedMagnitude(W,plotH,xForFreq){
-  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=148,bottom=plotH-14,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";
   [18,12,6,0,-6,-12,-18].forEach(db=>{const yy=y(db);ctx.strokeStyle=db===0?'rgba(226,236,241,.62)':'rgba(120,145,160,.15)';ctx.lineWidth=db===0?1.5:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((db>0?'+':'')+db+' dB',5,yy-3);});
   const fill=new Path2D(),line=new Path2D();let pen=false;fill.moveTo(0,zero);
@@ -1770,7 +1770,7 @@ function tfDrawSelectedMagnitude(W,plotH,xForFreq){
   tfViewHeader('MAGNITUDE · MIC − REF','0 dB = no change · above = boost · below = loss','#52d9ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedPhase(W,plotH,xForFreq){
-  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=42,bottom=plotH-14,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=148,bottom=plotH-14,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";
   const labels=unwrap?[-720,-360,0,360,720]:[-180,-90,0,90,180];labels.forEach(d=>{const yy=y(d);ctx.strokeStyle=d===0?'rgba(80,230,140,.38)':'rgba(120,145,160,.15)';ctx.lineWidth=d===0?1.4:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((d>0?'+':'')+d+'°',5,yy-3);});
   ctx.beginPath();let pen=false,have=false,prev=0,cum=0;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.ph.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),coh=s.coh[k]||0;if(gateOn&&coh<tfCohGate){pen=false;have=false;continue;}const raw=s.ph[k]||0;let ph=raw;if(unwrap){if(have){let d=raw-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;ph=cum;prev=raw;have=true;}let deg=ph*180/Math.PI;if(window.tfPhaseZeroAtCursor){const hz=Number(window.tfPhaseCursorHz)||1000,k0=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N)));deg-=(s.ph[k0]||0)*180/Math.PI;}const yy=y(deg);pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}ctx.strokeStyle='#50e68c';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.shadowColor='rgba(80,230,140,.26)';ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
@@ -1778,7 +1778,7 @@ function tfDrawSelectedPhase(W,plotH,xForFreq){
   tfViewHeader('PHASE','cursor '+(hz>=1000?(hz/1000).toFixed(2)+' kHz':Math.round(hz)+' Hz')+' · '+(gateOn?'coherence gate on':'all data'),'#50e68c');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedCoherence(W,plotH,xForFreq){
-  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=v=>bottom-Math.max(0,Math.min(1,v))*(bottom-top);
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=148,bottom=plotH-14,y=v=>bottom-Math.max(0,Math.min(1,v))*(bottom-top);
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";[0,.25,.5,.75,1].forEach(v=>{const yy=y(v);ctx.strokeStyle='rgba(120,145,160,.15)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText(v.toFixed(2),5,yy-3);});const gy=y(tfCohGate);ctx.setLineDash([6,4]);ctx.strokeStyle='#f5b942';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f5b942';ctx.fillText('GATE '+tfCohGate.toFixed(2),W-72,gy-5);
   const area=new Path2D(),line=new Path2D();area.moveTo(0,bottom);for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.coh.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),yy=y(s.coh[k]||0);px?line.lineTo(px,yy):line.moveTo(px,yy);area.lineTo(px,yy);}area.lineTo(W,bottom);area.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(80,230,140,.30)');grad.addColorStop(.55,'rgba(245,185,66,.16)');grad.addColorStop(1,'rgba(255,82,104,.22)');ctx.fillStyle=grad;ctx.fill(area);ctx.strokeStyle='#50e68c';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke(line);
   const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.coh.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),cv=s.coh[k]||0,cy=y(cv);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=cv>=tfCohGate?'#50e68c':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
@@ -1807,7 +1807,7 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.beginPath();ctx.moveTo(0,plotH);mic.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=.26;ctx.fillStyle=spectrumGradient;ctx.fill();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>{ctx.moveTo(p.x,plotH);ctx.lineTo(p.x,p.y);});ctx.strokeStyle=spectrumGradient;ctx.globalAlpha=.48;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#b7f34a';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
-  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font="700 10px Arial";ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',8,16);ctx.restore();
+  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font="700 10px Arial";ctx.textAlign='left';ctx.direction='ltr';ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',12,60,W*.52);ctx.restore();
   tfDrawTrustGuide(W,plotH,false,'Next: connect a Reference channel, run Delay Sync, then Verify.');
   const drawCurve=(values,color,dash=[])=>{const bw=W/BANDS;ctx.beginPath();values.forEach((v,b)=>{const x=b*bw+bw/2,y=plotH-Math.max(0,Math.min(1,v))*plotH;b?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);};
   ctx.save();
@@ -1817,8 +1817,8 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
   const legendX=12;
   ctx.font="500 10px Arial";
-  ctx.fillStyle=sunMode?'#167fa0':'#75b5cf';ctx.fillText('MIC 1 · '+micLevel.toFixed(1)+' dBFS',legendX,34);
-  ctx.fillStyle=sunMode?'#85692f':'#b5a17c';ctx.fillText(refLevel<=-110?'REF 2 · No input signal':'REF 2 · '+refLevel.toFixed(1)+' dBFS',legendX,50);
+  ctx.fillStyle=sunMode?'#167fa0':'#75b5cf';ctx.fillText('MIC '+(measChannel+1)+' · '+micLevel.toFixed(1)+' dBFS',legendX,78);
+  ctx.fillStyle=sunMode?'#85692f':'#b5a17c';ctx.fillText(refChannel<0?'REF · Not assigned':refLevel<=-110?'REF '+(refChannel+1)+' · No input signal':'REF '+(refChannel+1)+' · '+refLevel.toFixed(1)+' dBFS',legendX,94);
   ctx.textAlign='right';ctx.font="9px Arial";ctx.fillStyle=sunMode?'#64748b':'#8193a2';
   ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
@@ -3165,6 +3165,8 @@ async function start(deviceId){
     if(refChannel === measChannel) refChannel = receivedChannels > 1 ? (measChannel === 0 ? 1 : 0) : -1;
     v52RefDbfs = -120; v52RefPeakDbfs = -120;
     document.body.classList.toggle('reference-unassigned', refChannel < 0);
+    document.getElementById('dlyL1').textContent='Input '+(measChannel+1)+' · MIC';
+    document.getElementById('dlyL2').textContent=refChannel < 0 ? 'REF · Not assigned' : 'Input '+(refChannel+1)+' · REF';
     for(const [id,selected] of [['v52MeasSelect',measChannel],['v52RefSelect',refChannel]]){
       const select=document.getElementById(id);if(!select)continue;
       select.replaceChildren();
@@ -3550,13 +3552,13 @@ function drawRtaEqRange(W,H,xForFreq){
   const handle=(x,label,side,color)=>{
     const active=eqRtaRangeDrag===side;
     ctx.globalAlpha=active?1:.72;ctx.strokeStyle=color;ctx.lineWidth=active?2.4:1.35;ctx.setLineDash(active?[]:[4,4]);
-    ctx.beginPath();ctx.moveTo(x,31);ctx.lineTo(x,plotH);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(x,(v5WorkspaceMode==='tf'?110:54)+24);ctx.lineTo(x,plotH);ctx.stroke();ctx.setLineDash([]);
     ctx.font="700 10px Arial";
-    const bw=Math.max(68,ctx.measureText(label).width+16),bh=20,bx=side==='min'?Math.min(x+5,W-bw-4):Math.max(4,x-bw-5),by=7,r=7;
+    const bw=Math.max(68,ctx.measureText(label).width+16),bh=20,bx=side==='min'?Math.min(x+5,W-bw-4):Math.max(4,x-bw-5),by=v5WorkspaceMode==='tf'?110:54,r=7;
     ctx.beginPath();ctx.moveTo(bx+r,by);ctx.lineTo(bx+bw-r,by);ctx.quadraticCurveTo(bx+bw,by,bx+bw,by+r);ctx.lineTo(bx+bw,by+bh-r);ctx.quadraticCurveTo(bx+bw,by+bh,bx+bw-r,by+bh);ctx.lineTo(bx+r,by+bh);ctx.quadraticCurveTo(bx,by+bh,bx,by+bh-r);ctx.lineTo(bx,by+r);ctx.quadraticCurveTo(bx,by,bx+r,by);ctx.closePath();
     ctx.fillStyle=sunMode?'rgba(255,255,255,.94)':'rgba(8,19,28,.92)';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1;ctx.stroke();
     ctx.fillStyle=sunMode?'#1e293b':'#dce8f0';ctx.textAlign='center';ctx.fillText(label,bx+bw/2,by+13.5);
-    ctx.beginPath();ctx.arc(x,31,active?4.5:3.2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;
+    ctx.beginPath();ctx.arc(x,by+24,active?4.5:3.2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;
   };
   handle(xLo,'HPF · '+fLabel(eqMinFreq)+' Hz','min','#38bdf8');
   handle(xHi,'LPF · '+fLabel(eqMaxFreq)+' Hz','max','#f59e0b');
@@ -3882,7 +3884,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.save();ctx.font="600 10px Arial";ctx.textAlign='right';
       ctx.font="500 10px Arial";
       ctx.fillStyle=sunMode?'#526674':'#94a8b3';
-      ctx.fillText('Reference low · check input',W-12,W<640?84:27);ctx.restore();
+      ctx.fillText('Reference low · check input',W-12,60,W*.42);ctx.restore();
     }
   }
 
@@ -3989,9 +3991,9 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.font="12px Arial"; ctx.textAlign='left';
     const tw=ctx.measureText(label).width+12;
     let tx=Math.max(2,Math.min(W-tw-2, cursorX-tw/2));
-    ctx.fillStyle=sunMode?'#ffffff':'rgba(13,17,23,.92)'; ctx.fillRect(tx,plotH-22,tw,18);
-    ctx.strokeStyle='rgba(47,155,255,.7)'; ctx.strokeRect(tx,plotH-22,tw,18);
-    ctx.fillStyle=sunMode?'#0f172a':'#e6ecf3'; ctx.fillText(label,tx+6,plotH-9);
+    ctx.fillStyle=sunMode?'#ffffff':'rgba(13,17,23,.92)'; ctx.fillRect(tx,plotH-42,tw,18);
+    ctx.strokeStyle='rgba(47,155,255,.7)'; ctx.strokeRect(tx,plotH-42,tw,18);
+    ctx.fillStyle=sunMode?'#0f172a':'#e6ecf3'; ctx.fillText(label,tx+6,plotH-29);
   }
   const visAreas=areas.filter(a=>a.show);
   if(visAreas.length){
@@ -4874,7 +4876,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.19';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.20';
   v3UpdateStatus();
 })();
 (function initAccent(){

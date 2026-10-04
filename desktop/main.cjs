@@ -46,7 +46,7 @@ app.whenReady().then(async () => {
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.5'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.6'),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');
@@ -121,6 +121,28 @@ app.whenReady().then(async () => {
         return {version:GAL.config.version,canvases:document.querySelectorAll('canvas').length,worklet:true,parallelInputs:8,monoReference:false};
       })()`);
       if(errors.length)throw Error(errors.join('\n'));
+      for(const [width,height] of [[1440,940],[1080,760]]){
+        window.setSize(width,height);
+        await window.webContents.executeJavaScript(`(async()=>{
+          const check=(ok,message)=>{if(!ok)throw Error(message)};
+          const rect=node=>node.getBoundingClientRect();
+          const intersects=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+          const panel=document.getElementById('dlyPanel');showModal(panel);
+          panel.classList.remove('expanded');resize();updateMeasureDockHeight();
+          await new Promise(resolve=>setTimeout(resolve,150));
+          check(!intersects(rect(panel.querySelector('h3')),rect(panel.querySelector('.dlyActions'))),'Delay title and actions overlap');
+          const card=rect(panel.querySelector('.dlyMeasureCard'));
+          for(const selector of ['#dlyMeasBtn','#dlyStatus','.delayRangeControl','.dlyUnitControl']){
+            const control=rect(panel.querySelector(selector));
+            check(control.left>=card.left-1&&control.right<=card.right+1,'Delay control clipped: '+selector);
+          }
+          const range=rect(panel.querySelector('.delayRangeControl')),unit=rect(panel.querySelector('.dlyUnitControl'));
+          check(!intersects(range,unit),'Delay controls overlap');
+          panel.classList.add('expanded');updateMeasureDockHeight();await new Promise(resolve=>setTimeout(resolve,100));
+          check(panel.scrollWidth<=panel.clientWidth+1,'Expanded delay overflow');
+          panel.classList.remove('open','expanded');updateMeasureDockHeight();
+        })()`);
+      }
       console.log('Desktop integration passed:',JSON.stringify(result)); app.exit(0);
     }catch(error){console.error(error);app.exit(1);}
   }
