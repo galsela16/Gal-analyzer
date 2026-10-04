@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>com.galanalyzer.native.preview</string>
+<key>CFBundleName</key><string>GAL Analyzer Native</string>
+<key>CFBundleDisplayName</key><string>GAL Analyzer Native</string>
+<key>CFBundleExecutable</key><string>GALAnalyzerNative</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>6.0.0</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>LSMinimumSystemVersion</key><string>13.0</string>
+<key>NSMicrophoneUsageDescription</key><string>GAL Analyzer captures audio from your selected microphone or audio interface to display live input levels and frequency response. Audio stays on this Mac.</string>
+<key>NSHighResolutionCapable</key><true/>
+</dict></plist>
