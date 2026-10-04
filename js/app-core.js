@@ -382,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.13-shared-frequency-axis',
+    version: 'v5.7.14-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2943,7 +2943,7 @@ function drawRTPlot(post, steady, slope, intercept){
   }
 }
 function setRtaResolution(value){
-  const allowed=[3,6,12,24];
+  const allowed=[3,6,12,24,48];
   const requested=parseInt(value,10);
   const bpo=allowed.reduce((best,n)=>Math.abs(n-requested)<Math.abs(best-requested)?n:best,6);
   const slider=document.getElementById('res');if(slider)slider.value=String(bpo);
@@ -4827,7 +4827,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.13';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.14';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5254,7 +5254,7 @@ const HELP={
   genFreqNum:'הקלד תדר סינוס מדויק.',
   genSweep:'משך מחזור הסוויפ.',
   smooth:'החלקה: מרכך קפיצות בתצוגה.',
-  res:'רזולוציה: פסים לאוקטבה (1/3 עד 1/24).',
+  res:'רזולוציה: פסים לאוקטבה (1/3 עד 1/48).',
   respModeSeg:'חד־ערוצי (מיק\' מול יעד) או\nדו־ערוצי (מיק\'+רפרנס = TF אמיתי).',
   eqModeSeg:'תצוגת התיקון: גרפיק (31 פסים)\nאו פרמטרי (תדר/גיין/Q).',
   tfModeSeg:'תצוגת התיקון: גרפיק או פרמטרי.',
@@ -5291,7 +5291,7 @@ const HELP={
   cutOnlySeg:'חיתוך בלבד: EQ מוריד תדרים בלבד,\nבלי הגברות — חוסך הדרוּם ומגן על הדרייברים.',
   geqShowBtn:'הצג/הסתר את תצוגת תיקון ה-EQ\n(בנק הפיידרים מתחת לגרף).',
   combBtn:'בדיקת ביטולי פאזה (comb): מזהה אדוות\nתקופתיות בגרף ומעריך את הפרש הזמן שגורם להן.',
-  v3ResChip:'רזולוציית RTA: בחר 1/3, 1/6, 1/12 או 1/24 אוקטבה.',
+  v3ResChip:'רזולוציית RTA: בחר 1/3, 1/6, 1/12, 1/24 או 1/48 אוקטבה.',
   v5TargetToggle:'Target: מציג או מסתיר את עקומת היעד על הגרף.',
   v5AddTrace:'Capture Trace: שומר צילום של העקומה הנוכחית להשוואה.',
   v5EqWorkspace:'מציג או מסתיר לחלוטין את תצוגת ה-EQ. החץ שבתוך הפאנל מיועד רק לקיפול התוכן.',

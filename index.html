@@ -2644,7 +2644,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
 
-/* V5.7.13 — readable compact Delay workspace. */
+/* V5.7.14 — readable compact Delay workspace. */
 @media(min-width:901px){
   #dlyPanel.measureDock:not(.expanded){
     grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
@@ -3134,6 +3134,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
           <button type="button" data-bpo="6">1/6 octave</button>
           <button type="button" data-bpo="12">1/12 octave</button>
           <button type="button" data-bpo="24">1/24 octave</button>
+        <button type="button" data-bpo="48">1/48 octave</button>
         </div>
       </div>
     </div>
@@ -3157,7 +3158,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.13</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.14</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3167,7 +3168,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
         <div class="uiSettingsRow"><span>Theme</span><button id="uiSetTheme">Day / Night</button></div>
         <div class="uiSettingsRow"><span>Accent color</span><span class="uiMenuColors"><button class="sw" data-ui-color="#3ea6ff" style="background:#3ea6ff" aria-label="Blue"></button><button class="sw" data-ui-color="#40d17a" style="background:#40d17a" aria-label="Green"></button><button class="sw" data-ui-color="#b57bff" style="background:#b57bff" aria-label="Purple"></button><button class="sw" data-ui-color="#ff9d3c" style="background:#ff9d3c" aria-label="Orange"></button></span></div>
         <div class="uiSettingsRow"><span>Target curve</span><button id="uiSetTarget">Show / Hide</button></div>
-        <div class="uiSettingsRow"><span>RTA resolution</span><span><button data-set-bpo="3">1/3</button> <button data-set-bpo="6">1/6</button> <button data-set-bpo="12">1/12</button> <button data-set-bpo="24">1/24</button></span></div>
+        <div class="uiSettingsRow"><span>RTA resolution</span><span><button data-set-bpo="3">1/3</button> <button data-set-bpo="6">1/6</button> <button data-set-bpo="12">1/12</button> <button data-set-bpo="24">1/24</button> <button data-set-bpo="48">1/48</button></span></div>
       </div>
       <div class="uiSettingsPage" data-settings-content="measurement">
         <div class="uiSettingsRow"><span>Analysis speed · All graphs</span><span><button data-analysis-speed="slow">Slow</button> <button class="on" data-analysis-speed="normal">Normal</button> <button data-analysis-speed="fast">Fast</button></span><strong id="analysisSpeedValue">Normal</strong></div>
@@ -3187,7 +3188,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.13</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.14</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3208,6 +3209,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
         <button type="button" data-display-bpo="6" class="on" aria-pressed="true">1/6</button>
         <button type="button" data-display-bpo="12" aria-pressed="false">1/12</button>
         <button type="button" data-display-bpo="24" aria-pressed="false">1/24</button>
+        <button type="button" data-display-bpo="48" aria-pressed="false">1/48</button>
       </div>
       <button data-v5mode="delay">Delay</button>
       <button data-v5mode="rt60">RT60</button>
@@ -3680,6 +3682,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
               <option value="6">1/6 octave</option>
               <option value="12">1/12 octave</option>
               <option value="24">1/24 octave</option>
+              <option value="48">1/48 octave</option>
             </select>
           </div>
           <div class="v52CalState"><strong>Audio</strong><span id="v52AudioState">Stopped</span></div>
@@ -3787,7 +3790,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <div class="trow">
         <div class="ctrl">
           <label>רזולוציה <b id="resVal">1/6 אוקטבה</b></label>
-          <input type="range" id="res" min="3" max="24" step="1" value="6">
+          <input type="range" id="res" min="3" max="48" step="1" value="6">
         </div>
         <div class="ctrl">
           <label>החלקה <b id="smoothVal">0.7</b></label>
@@ -3905,7 +3908,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.13</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.14</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -4052,7 +4055,7 @@ window.addEventListener('load', function(){
     const target=document.getElementById('v5TargetToggle');
     document.getElementById('uiTargetToggle')?.classList.toggle('on',!!target?.classList.contains('on'));
     const text=document.getElementById('v3ResChip')?.textContent||'';
-    document.querySelectorAll('[data-ui-bpo]').forEach(x=>x.classList.toggle('on',text.includes(x.dataset.uiBpo==='3'?'1/3':x.dataset.uiBpo==='6'?'1/6':x.dataset.uiBpo==='12'?'1/12':'1/24')));
+    document.querySelectorAll('[data-ui-bpo]').forEach(x=>x.classList.toggle('on',text.includes('1/'+x.dataset.uiBpo)));
     let accent='';try{accent=localStorage.getItem('rta_accent')||'#3ea6ff'}catch(_){accent='#3ea6ff'}
     document.querySelectorAll('[data-ui-color]').forEach(x=>x.classList.toggle('on',x.dataset.uiColor.toLowerCase()===accent.toLowerCase()));
     setState(document.body.classList.contains('sun-mode')?'Day mode':'Night mode');
@@ -4106,7 +4109,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.13"></script>
+<script src="app.js?v=5.7.14"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
