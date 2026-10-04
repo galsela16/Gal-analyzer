@@ -223,3 +223,7 @@ GitHub Actions מריץ את אותה בדיקה בכל Commit/Push.
 - Advanced I/O כגשר זמני להגדרות הישנות
 
 ה-controls הישנים נשארו ב-DOM כדי לא לשבור פונקציות קיימות, אבל אינם מוצגים בממשק הראשי.
+
+## Mac desktop edition
+
+The preferred desktop path packages this same interface and measurement code locally. See [desktop/README.md](desktop/README.md) for the free Mac build, setup and verification. The earlier SwiftUI `native/` edition is an experimental engine foundation rather than the interface being continued.
