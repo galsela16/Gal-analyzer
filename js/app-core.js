@@ -6,6 +6,7 @@ let ISO=[], BANDS=0, R=1;
 let peaks=[];
 let avgBuf=[], snapCurve=null, lastV=[], lastRefV=[], lastBandDb=[], frozen=false;
 let _lastRtaSmoothTime=0;
+let rtaVisualDb=[];
 let refCurve=null;
 let abA=null, abB=null, abView='off';
 let sunMode=false;
@@ -69,6 +70,7 @@ function buildBands(bpo){
   lastV=new Array(BANDS).fill(0);
   lastRefV=new Array(BANDS).fill(0);
   lastBandDb=new Array(BANDS).fill(-120);
+  rtaVisualDb=new Array(BANDS).fill(NaN);
   snapCurve=null; frozen=false; _lastRtaSmoothTime=0;
   refCurve=null;
   { const rb=document.getElementById("refCurveBtn"); if(rb){ rb.classList.remove("on"); rb.textContent="Save Before"; } }
@@ -382,7 +384,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.16-shared-frequency-axis',
+    version: 'v5.7.17-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -3295,6 +3297,17 @@ function smoothBandDb(index,nextDb,alpha){
   avgBuf[index]=power;
   return 10*Math.log10(power+1e-12);
 }
+// Presentation-only ballistics: keep measured/exported band levels unchanged.
+function smoothRtaVisualDb(previous,nextDb,dt,frequency,responseMs){
+  if(!Number.isFinite(previous))return nextDb;
+  const delta=nextDb-previous;
+  const lowFrequencyWeight=Math.max(0,Math.min(1,Math.log2(250/Math.max(20,frequency))/Math.log2(250/20)));
+  const speed=Math.max(.5,Math.min(1.4,Math.sqrt(responseMs/420)));
+  let tau=(delta>0?.07+.09*lowFrequencyWeight:.18+.14*lowFrequencyWeight)*speed;
+  // Large level changes must remain obvious; suppress small frame-to-frame jitter.
+  if(Math.abs(delta)>6)tau=Math.min(tau,delta>0?.045:.09);
+  return previous+delta*(1-Math.exp(-Math.max(0,dt)/tau));
+}
 function heat(t){
   t=Math.max(0,Math.min(1,t));
   const r=Math.round(255*Math.max(0,Math.min(1,1.3*t-0.35)));
@@ -3543,6 +3556,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.fillRect(0,0,W,H);
   }
   const now=performance.now();
+  const firstVisualFrame=!_lastRtaSmoothTime;
   const dt=_lastRtaSmoothTime?Math.max(.001,Math.min(.25,(now-_lastRtaSmoothTime)/1000)):1/30;
   _lastRtaSmoothTime=now;
   const tau=rtaTimeConstant();
@@ -3576,15 +3590,18 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     lastBandDb[b]=displayDb;
     let v=norm(displayDb);
     lastV[b]=v;
+    if(tfRequested||abCompare||(v5WorkspaceMode==='mr'&&analyserRef))rtaVisualDb[b]=NaN;
     if(v>peakVal){peakVal=v;peakBand=b;}
     
     if(!tfRequested && !abCompare && !(v5WorkspaceMode==='mr'&&analyserRef)){
+      if(!frozen||!Number.isFinite(rtaVisualDb[b]))rtaVisualDb[b]=smoothRtaVisualDb(firstVisualFrame?NaN:rtaVisualDb[b],displayDb,dt,fc,rtaResponseMs);
+      const barV=norm(rtaVisualDb[b]);
       const x=b*bw+gap/2, barW=bw-gap;
-      const barH=v*plotH, y=plotH-barH;
-      let col= v<0.85?'rgba('+accentRgb[0]+','+accentRgb[1]+','+accentRgb[2]+','+(0.4+v).toFixed(2)+')' : 'var(--hot)';
+      const barH=barV*plotH, y=plotH-barH;
+      let col= barV<0.85?'rgba('+accentRgb[0]+','+accentRgb[1]+','+accentRgb[2]+','+(0.4+barV).toFixed(2)+')' : 'var(--hot)';
       ctx.fillStyle=col; ctx.fillRect(x,y,barW,barH);
       if(peakHold){
-        if(v>=peaks[b]) peaks[b]=v; else peaks[b]=Math.max(0,peaks[b]-0.005);
+        if(!frozen){if(barV>=peaks[b])peaks[b]=barV;else peaks[b]=Math.max(barV,peaks[b]-dt*.15);}
         const py=plotH-peaks[b]*plotH;
         ctx.fillStyle=sunMode?'#0f172a':'rgba(255,255,255,.85)'; ctx.fillRect(x,py-2,barW,2);
       }
@@ -4827,7 +4844,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.16';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.17';
   v3UpdateStatus();
 })();
 (function initAccent(){
