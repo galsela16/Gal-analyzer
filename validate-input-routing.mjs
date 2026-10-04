@@ -6,7 +6,7 @@ const core=readFileSync('js/app-core.js','utf8');
 assert(core.includes("source.channelInterpretation = 'discrete'"),'Media input must not use speaker-style mono up-mixing');
 assert(core.includes("splitter.channelInterpretation = 'discrete'"),'Channel splitter must preserve independent interface channels');
 assert(core.includes('chReceived = Number(settings.channelCount) || 1'),'Missing browser channel metadata must not invent stereo');
-assert(core.includes('analyserRef = audioCtx.createAnalyser()'),'Reference analyser must remain available when an interface under-reports channelCount');
+assert(core.includes('analyserRef = audioCtx.createAnalyser()'),'A dormant reference analyser preserves drawing compatibility without inventing availability');
 assert(core.includes('splitter.connect(analyserRef, refChannel)'),'Reference analyser must follow the selected discrete input');
 assert(core.includes('splitter.connect(analyserMeter, measChannel)'),'Main meter must follow the selected measurement channel');
 assert(!core.includes('source.connect(analyserMeter)'),'Main meter must not down-mix the complete input stream');
@@ -14,4 +14,8 @@ assert(core.includes('function tfNormalizedMagnitude(snap,k)'),'TF must normaliz
 assert(core.includes('const yy=y(tfNormalizedMagnitude(s,k))'),'Live TF magnitude must use normalized response');
 assert(core.includes("delta=tfNormalizedMagnitude(s,k)"),'TF cursor must report normalized system response');
 
+assert(core.includes("source = audioCtx.createGain()"),'Capture needs an explicit channel-count boundary');
+assert(core.includes("source.channelCountMode = 'explicit'"),'Routing boundary must enforce metadata channel count');
+assert(core.includes('if(refChannel >= 0) splitter.connect(analyserRef, refChannel)'),'Unassigned REF must have no audio connection');
+assert(core.includes('if(refChannel < 0) return false'),'TF must reject unassigned reference');
 console.log('Discrete input routing validation passed.');

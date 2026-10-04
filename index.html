@@ -2644,7 +2644,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
 
-/* V5.7.18 — readable compact Delay workspace. */
+/* V5.7.19 — readable compact Delay workspace. */
 @media(min-width:901px){
   #dlyPanel.measureDock:not(.expanded){
     grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
@@ -3110,8 +3110,15 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 html,body,button,input,select,textarea{font-family:Arial,sans-serif}
 </style>
 <style>
-#multiInputPanel{margin:10px 0;font:11px Arial;color:#b9cbd2}#multiInputRows{max-height:155px;overflow:auto}
-.multiInputRow{display:flex;align-items:center;gap:4px;margin:6px 0;font:10px Arial}.multiInputRow>span:first-of-type{width:42px;flex-shrink:0}.multiInputTrack{flex:1;height:5px;background:#03090b;overflow:hidden;border-radius:3px}.multiInputTrack i{display:block;height:100%;width:0}.multiInputRead{width:70px;text-align:right;font-variant-numeric:tabular-nums}
+#multiInputPanel[hidden]{display:none!important}
+#multiInputPanel{font-family:Arial,sans-serif}#multiInputRows{max-height:200px;overflow:auto;padding-right:4px}
+.multiInputSwitch,.multiInputHint{font:11px Arial;color:var(--dim)}.multiInputSwitch{display:flex;align-items:center;gap:7px}.multiInputHint{margin:8px 0 12px}
+.multiInputRow{display:grid;grid-template-columns:16px 54px minmax(32px,1fr) 78px;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(120,150,165,.12);font:11px Arial}
+.multiInputRow input,.multiInputSwitch input{appearance:auto!important;accent-color:#39bed3;width:13px!important;height:13px!important;min-width:0!important;margin:0!important;padding:0!important}
+.multiInputTrack{height:5px;background:#03090b;overflow:hidden;border-radius:3px}.multiInputTrack i{display:block;height:100%;width:0}.multiInputRead{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+body.reference-unassigned #targetLeftStatus .tlsInputCard[data-input="ref"]{display:none!important}
+body.reference-unassigned #targetLeftStatus .tlsInputCard[data-input="mic"]{grid-column:1/-1}
+#targetLeftStatus .tlsInputCard .tlsHead b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style></head>
 <body>
   <div id="sigTint"></div>
@@ -3164,7 +3171,7 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
   <div id="uiMenu" role="dialog" aria-label="Tools and settings">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.18</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.19</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3194,7 +3201,7 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.18</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.19</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3672,6 +3679,12 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
           </div>
         </div>
 
+        <div class="v52IOCard" id="multiInputPanel" hidden>
+          <h4>Parallel inputs · <span id="multiInputCount">Audio off</span></h4>
+          <label class="multiInputSwitch"><input type="checkbox" id="multiInputOverlay" checked> Show input curves</label>
+          <p class="multiInputHint">Independent levels and curves · raw dBFS</p>
+          <div id="multiInputRows"></div>
+        </div>
         <div class="v52IOCard">
           <h4>Engine</h4>
           <div class="v52Field">
@@ -3919,7 +3932,7 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.18</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.19</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -4120,7 +4133,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.18"></script>
+<script src="app.js?v=5.7.19"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -4229,13 +4242,13 @@ window.addEventListener('load', function(){
        if(!window.__mhMic||window.__mhMic.length!==analyser.fftSize)window.__mhMic=new Float32Array(analyser.fftSize);
        analyser.getFloatTimeDomainData(window.__mhMic);ma=window.__mhMic;
      }
-     if(typeof analyserRef!=='undefined'&&analyserRef){
+     if(typeof analyserRef!=='undefined'&&analyserRef&&typeof refChannel!=='undefined'&&refChannel>=0){
        if(!window.__mhRef||window.__mhRef.length!==analyserRef.fftSize)window.__mhRef=new Float32Array(analyserRef.fftSize);
        analyserRef.getFloatTimeDomainData(window.__mhRef);ra=window.__mhRef;
      }
      if(ma?.length){micDb=db(rms(ma));for(let i=0;i<ma.length;i+=16)if(Math.abs(ma[i])>.985){clip=true;break}}
      if(ra?.length){refDb=db(rms(ra));for(let i=0;i<ra.length;i+=16)if(Math.abs(ra[i])>.985){clip=true;break}}
-     if(typeof tfCurrentSnapshot==='function'){const s=tfCurrentSnapshot();if(s?.confidence)coh=s.confidence.meanCoh||0}
+     if(typeof tfCurrentSnapshot==='function'){const s=tfCurrentSnapshot();if(ra&&s?.confidence)coh=s.confidence.meanCoh||0}
    }catch(_){}
    health.micDb=micDb;health.refDb=refDb;health.mic=micDb>-75;health.ref=refDb>-75;health.clip=clip;health.coh=coh;
    health.headroomDb=Math.max(0,-micDb);
@@ -4401,8 +4414,6 @@ window.addEventListener('load', function(){
   <div class="tlsHead">SIGNAL PATH</div>
   <div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div>
   <div class="tlsPatchActions"><button class="tlsGenToggle" id="tlsGenToggle" type="button">▶ Start signal</button><button class="tlsOpen" id="tlsGenOpen" type="button" data-tls-open="generator" aria-controls="genPanel" title="Open generator settings">Open generator</button><button class="tlsOpen" type="button" data-tls-open="io">I / O</button></div>
-  <details id="multiInputPanel" open><summary>LIVE INPUTS · <span id="multiInputCount">Audio off</span></summary>
-  <label style="display:block;margin:8px 0;font-size:11px"><input type="checkbox" id="multiInputOverlay" checked> Show all input curves (raw dBFS)</label><div id="multiInputRows"></div></details>
   <div class="tlsTraceCount"><span>TRACES</span><strong id="tlsTraces">0</strong><span>VISIBLE</span><strong id="tlsVisible">0</strong></div><div id="persistentTraceHost"></div>
  </section>
 </div>
@@ -4524,7 +4535,7 @@ window.addEventListener('load', function(){
    if(Number.isFinite(h.micDb))peak=Math.max(peak,h.micDb);
    if(pk&&Number.isFinite(peak))pk.textContent=peak.toFixed(1)+' dBFS';
    if(sn)sn.textContent=Number.isFinite(h.snr)?Math.round(h.snr)+' dB':'—';
-   if(co)co.textContent=Number.isFinite(h.coh)?h.coh.toFixed(2):'—';
+   if(co)co.textContent=h.ref&&Number.isFinite(h.coh)?h.coh.toFixed(2):'—';
    if(hr)hr.textContent=Number.isFinite(h.headroomDb)?Math.round(h.headroomDb)+' dB':'—';
    const sec=document.getElementById('tmpSecondary');if(sec)sec.textContent=h.reason||'LIVE INPUT';
    // Mirror existing RTA peak/cursor text if present; do not invent spectral values.

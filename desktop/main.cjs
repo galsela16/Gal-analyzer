@@ -1,4 +1,4 @@
-const { app, BrowserWindow, protocol, net, session, Menu } = require('electron');
+const { app, BrowserWindow, protocol, net, session, Menu, nativeTheme } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const fs = require('node:fs');
@@ -8,6 +8,7 @@ protocol.registerSchemesAsPrivileged([{scheme:'gal', privileges:{standard:true,s
 let window;
 const local = url => { try { const u=new URL(url); return u.protocol==='gal:' && u.hostname==='app'; } catch { return false; } };
 app.whenReady().then(async () => {
+  nativeTheme.themeSource = 'dark';
   const root = path.join(__dirname, 'web');
   protocol.handle('gal', request => {
     const url = new URL(request.url);
@@ -45,7 +46,7 @@ app.whenReady().then(async () => {
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.4'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.5'),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');
@@ -74,9 +75,50 @@ app.whenReady().then(async () => {
         GalMultiInput.setFFT(16384);assert(GalMultiInput.snapshot().length===8,'FFT change retains channels');
         GalMultiInput.dispose();assert(GalMultiInput.snapshot().length===0,'Stop clears channels');
         for(const oscillator of oscillators)oscillator.stop();await synthetic.close();
+        // Reproduce a driver exposing a stereo stream while reporting one input.
+        // Only the reported MIC may enter measurement; REF must remain absent.
+        const monoTest=new AudioContext();await monoTest.resume();
+        const destination=monoTest.createMediaStreamDestination();destination.channelCount=2;
+        destination.channelCountMode='explicit';destination.channelInterpretation='discrete';
+        const pair=monoTest.createChannelMerger(2);pair.connect(destination);
+        const tones=[];
+        for(let i=0;i<2;i++){
+          const tone=monoTest.createOscillator();tone.frequency.value=600+i*800;
+          const gain=monoTest.createGain();gain.gain.value=i ? .1 : .25;
+          tone.connect(gain);gain.connect(pair,0,i);tone.start();tones.push(tone);
+        }
+        const track=destination.stream.getAudioTracks()[0];
+        Object.defineProperty(track,'getSettings',{value:()=>({channelCount:1,sampleRate:monoTest.sampleRate})});
+        const original=navigator.mediaDevices.getUserMedia;
+        navigator.mediaDevices.getUserMedia=async()=>destination.stream;
+        try {
+          await start();await new Promise(resolve=>setTimeout(resolve,600));
+          const reference=new Float32Array(analyserRef.fftSize);analyserRef.getFloatTimeDomainData(reference);
+          assert(reference.every(x=>x===0),'No phantom reference audio');
+          const capture=new AudioWorkletNode(audioCtx,'recorder-worklet',{channelCount:1,channelCountMode:'explicit',channelInterpretation:'discrete'});
+          const silent=audioCtx.createGain();silent.gain.value=0;source.connect(capture);capture.connect(silent);silent.connect(audioCtx.destination);
+          const recorded=await new Promise((resolve,reject)=>{
+            const timeout=setTimeout(()=>reject(Error('Mono recorder timeout')),2000);
+            capture.port.onmessage=event=>{clearTimeout(timeout);resolve(event.data)};
+            capture.port.postMessage({cmd:'start',micChannel:0,refChannel:-1});
+          });
+          assert(recorded.ref.every(x=>x===0),'Recorder must not substitute MIC for REF None');
+          assert(recorded.mic.some(x=>Math.abs(x)>.01),'Recorder keeps real MIC');
+          capture.port.postMessage({cmd:'stop'});source.disconnect(capture);capture.disconnect();silent.disconnect();
+          const live=getLiveInputMeterSnapshot();assert(live.refDb===-120&&live.refPeakDb===-120,'No phantom reference meter');
+          assert(document.getElementById('v52RefSelect').value==='-1','REF None for mono');
+          assert(document.getElementById('v52MeasSelect').options.length===1,'Only one selectable input');
+          assert(getComputedStyle(document.querySelector('[data-input="ref"]')).display==='none','Hide unassigned REF card');
+          assert(document.getElementById('multiInputPanel').hidden,'No duplicate mono input list');
+          assert(document.getElementById('targetTraceCard').scrollWidth<=document.getElementById('targetTraceCard').clientWidth+1,'No sidebar overflow');
+          assert(document.getElementById('tlsMicInput').getBoundingClientRect().right<=document.querySelector('[data-input="mic"]').getBoundingClientRect().right,'Input label fits meter card');
+        } finally {
+          await stop();navigator.mediaDevices.getUserMedia=original;
+          for(const tone of tones)tone.stop();await monoTest.close();
+        }
         const code=await fetch('js/app-core.js').then(r=>r.text());
         assert(code.includes('Desktop updates ship'),'Desktop cache policy');
-        return {version:GAL.config.version,canvases:document.querySelectorAll('canvas').length,worklet:true,parallelInputs:8};
+        return {version:GAL.config.version,canvases:document.querySelectorAll('canvas').length,worklet:true,parallelInputs:8,monoReference:false};
       })()`);
       if(errors.length)throw Error(errors.join('\n'));
       console.log('Desktop integration passed:',JSON.stringify(result)); app.exit(0);

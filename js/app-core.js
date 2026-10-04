@@ -384,7 +384,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.18-shared-frequency-axis',
+    version: 'v5.7.19-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1699,6 +1699,7 @@ safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast(
 
 function tfMagY(db,plotH){ const range=18; return plotH/2 - Math.max(-range,Math.min(range,db))/range*(plotH*.46); }
 function tfHasReferenceSignal(){
+  if(refChannel < 0) return false;
   if(!floatDataRef || !floatDataRef.length) return false;
   let peak=-120;
   // A sparse scan is enough to distinguish an actual reference feed from the
@@ -3139,10 +3140,8 @@ async function start(deviceId){
     analyser.minDecibels = -100; 
     analyser.maxDecibels = -10;
 
-    // Some multichannel interfaces (including EVO devices in Chromium)
-    // report channelCount=1 even though the requested stream exposes channel 2.
-    // Keep the reference analyser connected; a truly absent discrete channel
-    // remains silent instead of being duplicated.
+    // Keep a dormant reference analyser for existing rendering/measurement code.
+    // Connect it only to an explicitly assigned, reported input channel.
     analyserRef = audioCtx.createAnalyser();
     analyserRef.fftSize = fftSize;
     analyserRef.smoothingTimeConstant = 0;
@@ -3153,28 +3152,39 @@ async function start(deviceId){
     analyserMeter.fftSize = 2048;
 
     const receivedChannels = Math.max(1, Math.min(32, chReceived));
-    const routingChannels = Math.max(2, receivedChannels);
+    // Stream-source channelCount does not constrain its output. A discrete gain
+    // explicitly drops channels that are not present in the device metadata.
+    const captureSource = source;
+    source = audioCtx.createGain();
     source.channelCount = receivedChannels;
-    measChannel = Math.min(measChannel, receivedChannels - 1);
-    refChannel = Math.min(refChannel, routingChannels - 1);
-    if(measChannel === refChannel) refChannel = measChannel === 0 ? 1 : 0;
+    source.channelCountMode = 'explicit';
+    source.channelInterpretation = 'discrete';
+    captureSource.connect(source);
+    measChannel = Math.max(0, Math.min(measChannel, receivedChannels - 1));
+    if(receivedChannels < 2 || refChannel >= receivedChannels) refChannel = -1;
+    if(refChannel === measChannel) refChannel = receivedChannels > 1 ? (measChannel === 0 ? 1 : 0) : -1;
+    v52RefDbfs = -120; v52RefPeakDbfs = -120;
+    document.body.classList.toggle('reference-unassigned', refChannel < 0);
     for(const [id,selected] of [['v52MeasSelect',measChannel],['v52RefSelect',refChannel]]){
       const select=document.getElementById(id);if(!select)continue;
       select.replaceChildren();
-      for(let channel=0;channel<routingChannels;channel++){
-        const option=document.createElement('option');option.value=String(channel);
-        option.textContent=channel<receivedChannels ? 'Input '+(channel+1) : 'Input '+(channel+1)+' (unavailable)';
-        option.disabled=channel>=receivedChannels;select.append(option);
+      if(id === 'v52RefSelect'){
+        const none=document.createElement('option');none.value='-1';none.textContent='None';select.append(none);
+      }
+      for(let channel=0;channel<receivedChannels;channel++){
+        const option=document.createElement('option');option.value=String(channel);option.textContent='Input '+(channel+1);
+        if(id === 'v52RefSelect' && channel === measChannel) option.disabled=true;
+        select.append(option);
       }
       select.value=String(selected);
     }
     window.GalMultiInput?.start(audioCtx,source,receivedChannels,fftSize);
-    const splitter = audioCtx.createChannelSplitter(routingChannels);
+    const splitter = audioCtx.createChannelSplitter(receivedChannels);
     splitter.channelInterpretation = 'discrete';
     source.connect(splitter);
 
     splitter.connect(analyser, measChannel);
-    splitter.connect(analyserRef, refChannel);
+    if(refChannel >= 0) splitter.connect(analyserRef, refChannel);
     // The main meter must follow the selected measurement input, not a
     // stereo down-mix that can make an empty channel look active.
     splitter.connect(analyserMeter, measChannel);
@@ -3253,7 +3263,7 @@ async function switchInput(deviceId){
 async function stop(){
   cancelManagedSourceRun(true);
   cancelTimedMeasurements();
-  running=false; window.GalMultiInput?.dispose(); if(raf) cancelAnimationFrame(raf);
+  running=false; v52RefDbfs=-120; v52RefPeakDbfs=-120; window.GalMultiInput?.dispose(); if(raf) cancelAnimationFrame(raf);
   resetTfAutoDelay();
   resetDistanceCalibration();
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
@@ -4864,7 +4874,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.18';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.19';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5134,7 +5144,7 @@ function v52UpdateLiveMeters(){
   const now=performance.now();
   const meas=Number.isFinite(smoothedDbfs)?smoothedDbfs:-120;
   let ref=-120;
-  if(analyserRef){
+  if(analyserRef && refChannel >= 0){
     if(!timeDataRef || timeDataRef.length!==analyserRef.fftSize) timeDataRef=new Float32Array(analyserRef.fftSize);
     analyserRef.getFloatTimeDomainData(timeDataRef);
     ref=levelDb(timeDataRef,timeDataRef.length);
@@ -5142,7 +5152,8 @@ function v52UpdateLiveMeters(){
   const smooth=(old,next)=>next>old ? old+(next-old)*.62 : old+(next-old)*.055;
   // Share the bottom microphone meter envelope without a second smoothing pass.
   v52MeasDbfs=meas;
-  v52RefDbfs=smooth(v52RefDbfs,ref);
+  v52RefDbfs=refChannel < 0 ? -120 : smooth(v52RefDbfs,ref);
+  if(refChannel < 0) v52RefPeakDbfs = -120;
   v52MeasPeakDbfs=lvlPeak;
   if(v52RefDbfs>v52RefPeakDbfs || now-v52PeakAt>1400) v52RefPeakDbfs=v52RefDbfs;
   if(now-v52PeakAt>1400) v52PeakAt=now;
@@ -5159,15 +5170,15 @@ function v52UpdateLiveMeters(){
   paint(document.getElementById('v52RefMeter'),document.getElementById('v52RefPeak'),document.getElementById('v52RefDb'),document.getElementById('v52RefQuick'),v52RefDbfs,v52RefPeakDbfs);
   const ml=document.getElementById('v52MeasLed'), rl=document.getElementById('v52RefLed');
   if(ml){ml.classList.toggle('live',true);ml.classList.toggle('clip',v52MeasDbfs>-1);}
-  if(rl){rl.classList.toggle('live',!!analyserRef);rl.classList.toggle('clip',v52RefDbfs>-1);}
+  if(rl){rl.classList.toggle('live',!!analyserRef && refChannel>=0);rl.classList.toggle('clip',v52RefDbfs>-1);}
 }
 window.getLiveInputMeterSnapshot=function(){
   return {
     running:!!running,
     micDb:running&&Number.isFinite(smoothedDbfs)?smoothedDbfs:-120,
-    refDb:running&&analyserRef&&Number.isFinite(v52RefDbfs)?v52RefDbfs:-120,
+    refDb:running&&analyserRef&&refChannel>=0&&Number.isFinite(v52RefDbfs)?v52RefDbfs:-120,
     micPeakDb:running&&Number.isFinite(lvlPeak)?lvlPeak:-120,
-    refPeakDb:running&&analyserRef&&Number.isFinite(v52RefPeakDbfs)?v52RefPeakDbfs:-120
+    refPeakDb:running&&analyserRef&&refChannel>=0&&Number.isFinite(v52RefPeakDbfs)?v52RefPeakDbfs:-120
   };
 };
 function v52UpdateUi(){
@@ -5238,7 +5249,7 @@ function v52Init(){
   safeOn('multiInputOverlay','change',e=>window.GalMultiInput?.setEnabled(e.target.checked));
   safeOn('multiInputRequested','change',async()=>{if(running)await switchInput(activeInId);});
   safeOn('v52MeasSelect','change',async e=>{measChannel=parseInt(e.target.value,10)||0;if(measChannel===refChannel){refChannel=measChannel?0:1;document.getElementById('v52RefSelect').value=String(refChannel);}if(running)await switchInput(activeInId);});
-  safeOn('v52RefSelect','change',async e=>{refChannel=parseInt(e.target.value,10)||0;if(refChannel===measChannel){measChannel=refChannel?0:1;document.getElementById('v52MeasSelect').value=String(measChannel);}if(running)await switchInput(activeInId);});
+  safeOn('v52RefSelect','change',async e=>{refChannel=Number(e.target.value);if(refChannel===measChannel){measChannel=refChannel?0:1;document.getElementById('v52MeasSelect').value=String(measChannel);}if(running)await switchInput(activeInId);});
   safeOn('v53SplOffset','input',e=>{calib=parseFloat(e.target.value)||0;const old=document.getElementById('cal');if(old){old.value=String(calib);old.dispatchEvent(new Event('input',{bubbles:true}));}prefSet('rta_cal',calib);v52UpdateUi();});
   safeOn('v53OutputSelect','change',async e=>{const ok=await applyOutput(e.target.value);if(!ok)v3Toast("Output selection is not supported in this browser");});
   safeOn('v53ExportPng','click',()=>document.getElementById('pngBtn')?.click());

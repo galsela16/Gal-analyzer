@@ -67,7 +67,7 @@ for(const delaySafetyCheck of [
   if(!core.includes(delaySafetyCheck)) throw new Error(`Sweep-delay safety guard missing: ${delaySafetyCheck}`);
 }
 if(core.includes("signalType!=='noise')sweepResult=computeSweepDelay")) throw new Error('Unknown external audio can still fall through to the sweep estimator');
-if(!html.includes('GAL Analyzer V5.7.18')||!config.includes("version:'5.7.18-shared-frequency-axis'")||!worker.includes('v5-7-18-multichannel-inputs')) throw new Error('V5.7.18 release identifiers are inconsistent');
+if(!html.includes('GAL Analyzer V5.7.19')||!config.includes("version:'5.7.19-shared-frequency-axis'")||!worker.includes('v5-7-19-mono-routing')) throw new Error('V5.7.19 release identifiers are inconsistent');
 if(!html.includes('queueMicrotask(()=>{')||!html.includes('if(e.defaultPrevented)return;')) throw new Error('Canvas rail collapse must wait for HPF/LPF handle capture regardless of listener order');
 if(!core.includes('},{capture:true});')||!core.includes('Math.min(dl,dh)<=42')||!core.includes('e.stopImmediatePropagation()')) throw new Error('HPF/LPF handles must use capture priority and a generous grab zone');
 if(!html.includes('if(y<canvas.clientHeight-84)return;')) throw new Error('Side rails must fold only from the lower graph zone');

@@ -10,7 +10,7 @@ class RecorderWorklet extends AudioWorkletProcessor {
     this.port.onmessage = (e) => {
       if (e.data.cmd === 'start') {
         this.micChannel = Math.max(0, Number(e.data.micChannel) || 0);
-        this.refChannel = Math.max(0, Number(e.data.refChannel) || 0);
+        this.refChannel = Number.isInteger(Number(e.data.refChannel)) ? Number(e.data.refChannel) : -1;
         this.isRecording = true;
         this.pos = 0;
       } else if (e.data.cmd === 'stop') {

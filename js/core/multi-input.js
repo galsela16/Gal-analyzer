@@ -6,6 +6,7 @@ window.GalMultiInput = (() => {
     for(const c of channels)c.node.disconnect();
     splitter?.disconnect();sink?.disconnect();
     channels=[];splitter=null;sink=null;lastTime=0;
+    const panel=document.getElementById('multiInputPanel');if(panel)panel.hidden=true;
     const count=document.getElementById('multiInputCount');if(count)count.textContent='Audio off';
     const host=document.getElementById('multiInputRows');if(host)host.replaceChildren();
   }
@@ -13,6 +14,7 @@ window.GalMultiInput = (() => {
     dispose();count=Math.max(1,Math.min(32,count));
     splitter=context.createChannelSplitter(count);splitter.channelInterpretation='discrete';source.connect(splitter);
     sink=context.createGain();sink.gain.value=0;sink.connect(context.destination);
+    const panel=document.getElementById('multiInputPanel');if(panel)panel.hidden=count<3;
     const host=document.getElementById('multiInputRows');
     for(let i=0;i<count;i++){
       const node=context.createAnalyser();node.fftSize=fftSize;node.smoothingTimeConstant=0;node.minDecibels=-120;node.maxDecibels=0;
@@ -43,7 +45,7 @@ window.GalMultiInput = (() => {
     delta=dt;return dt;
   }
   function draw(ctx,height,nyquist,xForFreq,iso,ratio,norm,powerDb,frozen){
-    if(!enabled)return;
+    if(!enabled || channels.length<3)return;
     ctx.save();ctx.lineWidth=1.5;
     for(const c of channels){
       if(!c.visible)continue;
