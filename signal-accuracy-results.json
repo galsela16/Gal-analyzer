@@ -1,0 +1,210 @@
+{
+  "scope": "Synthetic numerical validation; physical hardware not tested",
+  "cases": [
+    {
+      "kind": "meter",
+      "sr": 44100,
+      "inputPeakDb": -6,
+      "rmsDb": -9.01029996620576,
+      "peakDb": -6.000000473345155
+    },
+    {
+      "kind": "meter",
+      "sr": 44100,
+      "inputPeakDb": -20,
+      "rmsDb": -23.01029977020611,
+      "peakDb": -19.999999783711264
+    },
+    {
+      "kind": "meter",
+      "sr": 44100,
+      "inputPeakDb": -60,
+      "rmsDb": -63.01028761179726,
+      "peakDb": -59.99999090155751
+    },
+    {
+      "kind": "TF gain",
+      "sr": 44100,
+      "gainDb": -12,
+      "maxErrorDb": 0
+    },
+    {
+      "kind": "TF gain",
+      "sr": 44100,
+      "gainDb": 0,
+      "maxErrorDb": 0
+    },
+    {
+      "kind": "TF gain",
+      "sr": 44100,
+      "gainDb": 6,
+      "maxErrorDb": 4.76837158203125e-7
+    },
+    {
+      "kind": "TF phase",
+      "sr": 44100,
+      "compensate": false,
+      "errorDeg": 0.0000015298075015391076
+    },
+    {
+      "kind": "TF phase",
+      "sr": 44100,
+      "compensate": true,
+      "errorDeg": 4.023341559567869e-8
+    },
+    {
+      "kind": "uncorrelated reference rejected",
+      "sr": 44100,
+      "coherence": [
+        0.14020965993404388,
+        0.22290584444999695,
+        0.09288648515939713,
+        0.20597994327545166
+      ]
+    },
+    {
+      "kind": "silent and weak reference rejected",
+      "sr": 44100
+    },
+    {
+      "kind": "meter",
+      "sr": 48000,
+      "inputPeakDb": -6,
+      "rmsDb": -9.01029996620576,
+      "peakDb": -6.000000473345155
+    },
+    {
+      "kind": "meter",
+      "sr": 48000,
+      "inputPeakDb": -20,
+      "rmsDb": -23.01029977020611,
+      "peakDb": -19.999999783711264
+    },
+    {
+      "kind": "meter",
+      "sr": 48000,
+      "inputPeakDb": -60,
+      "rmsDb": -63.01028761179726,
+      "peakDb": -59.99999090155751
+    },
+    {
+      "kind": "TF gain",
+      "sr": 48000,
+      "gainDb": -12,
+      "maxErrorDb": 9.5367431640625e-7
+    },
+    {
+      "kind": "TF gain",
+      "sr": 48000,
+      "gainDb": 0,
+      "maxErrorDb": 0
+    },
+    {
+      "kind": "TF gain",
+      "sr": 48000,
+      "gainDb": 6,
+      "maxErrorDb": 0
+    },
+    {
+      "kind": "TF phase",
+      "sr": 48000,
+      "compensate": false,
+      "errorDeg": 0.0000015298075015391076
+    },
+    {
+      "kind": "TF phase",
+      "sr": 48000,
+      "compensate": true,
+      "errorDeg": 4.023341559567869e-8
+    },
+    {
+      "kind": "uncorrelated reference rejected",
+      "sr": 48000,
+      "coherence": [
+        0.33146530389785767,
+        0.01879989542067051,
+        0.0611206479370594,
+        0.012878727167844772
+      ]
+    },
+    {
+      "kind": "silent and weak reference rejected",
+      "sr": 48000
+    },
+    {
+      "kind": "meter",
+      "sr": 96000,
+      "inputPeakDb": -6,
+      "rmsDb": -9.01029996620576,
+      "peakDb": -6.000000473345155
+    },
+    {
+      "kind": "meter",
+      "sr": 96000,
+      "inputPeakDb": -20,
+      "rmsDb": -23.01029977020611,
+      "peakDb": -19.999999783711264
+    },
+    {
+      "kind": "meter",
+      "sr": 96000,
+      "inputPeakDb": -60,
+      "rmsDb": -63.01028761179726,
+      "peakDb": -59.99999090155751
+    },
+    {
+      "kind": "TF gain",
+      "sr": 96000,
+      "gainDb": -12,
+      "maxErrorDb": 9.5367431640625e-7
+    },
+    {
+      "kind": "TF gain",
+      "sr": 96000,
+      "gainDb": 0,
+      "maxErrorDb": 0
+    },
+    {
+      "kind": "TF gain",
+      "sr": 96000,
+      "gainDb": 6,
+      "maxErrorDb": 0
+    },
+    {
+      "kind": "TF phase",
+      "sr": 96000,
+      "compensate": false,
+      "errorDeg": 0.0000015298075015391076
+    },
+    {
+      "kind": "TF phase",
+      "sr": 96000,
+      "compensate": true,
+      "errorDeg": 4.023341559567869e-8
+    },
+    {
+      "kind": "uncorrelated reference rejected",
+      "sr": 96000,
+      "coherence": [
+        0.08627141267061234,
+        0.07058046013116837,
+        0.07025479525327682,
+        0.03863857686519623
+      ]
+    },
+    {
+      "kind": "silent and weak reference rejected",
+      "sr": 96000
+    },
+    {
+      "kind": "capture verification",
+      "qualityOk": false,
+      "verified": false
+    },
+    {
+      "kind": "capture verification",
+      "qualityOk": true,
+      "verified": true
+    }
+  ]
+}

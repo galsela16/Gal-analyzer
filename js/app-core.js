@@ -382,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.12-shared-frequency-axis',
+    version: 'v5.7.13-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1653,7 +1653,7 @@ function tfMicOnlySnapshot(){
 function captureTfTrace(){
   if(!running){ alert('הפעל Audio קודם.'); return; }
   if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
-  const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH');
+  const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'&&tfWorkflowQuality().ok);
   const current=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot();
   const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:current; if(!s) return;
   const idx=tfTraces.length+1;
@@ -4827,7 +4827,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.12';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.13';
   v3UpdateStatus();
 })();
 (function initAccent(){
