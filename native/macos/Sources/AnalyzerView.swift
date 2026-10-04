@@ -9,6 +9,8 @@ private func levelText(_ value: Double) -> String { value <= -110 ? "NO SIGNAL" 
 
 struct AnalyzerView: View {
     @StateObject private var model = AnalyzerModel()
+    @StateObject private var generator = GeneratorModel()
+    @State private var generatorVisible = false
     @State private var leftVisible = true
     @State private var ioVisible = true
     @State private var compareInputs = false
@@ -75,7 +77,8 @@ struct AnalyzerView: View {
             model.configurationChanged()
             if restart { model.start() }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.stop() }
+        .sheet(isPresented: $generatorVisible) { GeneratorView(model: generator) }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in model.stop(); generator.stop(immediate: true) }
     }
 
     private var header: some View {
@@ -144,10 +147,17 @@ struct AnalyzerView: View {
                 }
             }
             Divider()
+            Text("SIGNAL GENERATOR").font(typeface(11, .bold)).foregroundStyle(cyan)
+            Button("Open generator…") { generatorVisible = true }
+            Button(generator.running ? "Stop signal" : "Start signal") {
+                if generator.running { generator.stop() } else { generator.start() }
+            }.disabled(generator.stopping || generator.deviceID == 0)
+            Text(generator.running ? "OUTPUT LIVE" : "OUTPUT OFF").font(typeface(10, .bold)).foregroundStyle(generator.running ? cyan : .gray)
+            Divider()
             Text("NATIVE PREVIEW").font(typeface(11, .bold)).foregroundStyle(cyan)
             Text("Real audio capture, paired meters, RTA, MIC/REF comparison and trace export.").foregroundStyle(.secondary)
             Text("Levels are dBFS. Physical SPL calibration is not included in this preview.").foregroundStyle(.secondary)
-            Text("TF, delay, RT60 and the generator will be added in following milestones.").foregroundStyle(.secondary)
+            Text("TF, delay and RT60 will be added in following milestones.").foregroundStyle(.secondary)
             Spacer()
             Text("Free · Local · Offline").font(typeface(11, .bold)).foregroundStyle(cyan)
         }.padding(14).background(panel, in: RoundedRectangle(cornerRadius: 8))
@@ -225,5 +235,59 @@ private struct SpectrumChart: View {
         var path = Path()
         for i in levels.indices { let point = CGPoint(x: x(frequencies[i]), y: y(levels[i])); if i == 0 { path.move(to: point) } else { path.addLine(to: point) } }
         context.stroke(path, with: .color(color), lineWidth: 1.5)
+    }
+}
+
+private struct GeneratorView: View {
+    @ObservedObject var model: GeneratorModel
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("Signal generator").font(typeface(22, .bold))
+                Spacer()
+                Button("Done") { dismiss() }
+            }
+            Text("Output device").font(typeface(12, .bold))
+            HStack {
+                Picker("Output device", selection: $model.deviceID) {
+                    if model.devices.isEmpty { Text("No output available").tag(AudioDeviceID(0)) }
+                    ForEach(model.devices) { device in Text(device.name).tag(device.id) }
+                }.labelsHidden()
+                Button { model.refreshDevices() } label: { Image(systemName: "arrow.clockwise") }.help("Refresh audio outputs")
+            }
+            Picker("Channel", selection: $model.channel) {
+                ForEach(0..<max(1, model.channelCount), id: \.self) { channel in Text("Output \(channel + 1)").tag(channel) }
+            }
+            Text("Only the selected output channel receives the signal.").foregroundStyle(.secondary)
+            Picker("Signal", selection: $model.waveform) {
+                Text("Sine").tag(0); Text("White noise").tag(1); Text("Pink noise").tag(2)
+            }.pickerStyle(.segmented)
+            if model.waveform == 0 {
+                HStack {
+                    Text("Frequency (Hz)")
+                    TextField("Frequency", value: $model.frequency, format: .number).frame(width: 95)
+                    Stepper("", value: $model.frequency, in: 20...20000, step: 10).labelsHidden()
+                }
+            }
+            HStack { Text("Peak ceiling"); Spacer(); Text(String(format: "%.0f dBFS", model.level)).monospacedDigit() }
+            Slider(value: $model.level, in: -80 ... -6, step: 1)
+            Text("Noise RMS is lower than its peak ceiling. This level is digital dBFS, not calibrated SPL.").foregroundStyle(.secondary)
+            HStack {
+                Circle().fill(model.running ? cyan : .gray).frame(width: 8, height: 8)
+                Text(model.running ? "OUTPUT LIVE" : "OUTPUT OFF").font(typeface(11, .bold))
+                Spacer()
+                Button(model.running ? "Stop signal" : "Start signal") {
+                    if model.running { model.stop() } else { model.start() }
+                }.buttonStyle(.borderedProminent).tint(model.running ? .red : cyan)
+                    .disabled(model.stopping || model.deviceID == 0)
+            }
+            Text(model.message).foregroundStyle(.secondary).frame(minHeight: 35, alignment: .topLeading)
+        }.font(typeface(12)).padding(24).frame(width: 490).background(panel).preferredColorScheme(.dark)
+            .onChange(of: model.deviceID) { _ in model.settingsChanged() }
+            .onChange(of: model.channel) { _ in model.settingsChanged() }
+            .onChange(of: model.waveform) { _ in model.settingsChanged() }
+            .onChange(of: model.frequency) { _ in model.settingsChanged() }
+            .onChange(of: model.level) { _ in model.settingsChanged() }
     }
 }

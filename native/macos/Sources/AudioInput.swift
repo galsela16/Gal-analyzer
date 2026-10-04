@@ -10,7 +10,7 @@ struct InputDevice: Identifiable, Hashable {
 }
 
 enum AudioInputs {
-    static func devices() -> [InputDevice] {
+    static func devices(scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeInput) -> [InputDevice] {
         var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDevices,
             mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
         var size: UInt32 = 0
@@ -39,8 +39,8 @@ enum AudioInputs {
         }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    static func defaultDeviceID() -> AudioDeviceID {
-        var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultInputDevice,
+    static func defaultDeviceID(output: Bool = false) -> AudioDeviceID {
+        var address = AudioObjectPropertyAddress(mSelector: output ? kAudioHardwarePropertyDefaultOutputDevice : kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
         var id: AudioDeviceID = 0
         var size = UInt32(MemoryLayout<AudioDeviceID>.size)

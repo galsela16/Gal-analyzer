@@ -21,3 +21,17 @@
 10. Close the app while audio is active; the tap and engine must stop.
 
 Public field-readiness requires passing the physical-interface tests. The initial preview must not claim calibrated SPL or delay/TF/RT60 accuracy before those engines and tests are implemented.
+
+## Generator acceptance (preview.2)
+
+Automated: `GalGeneratorTests` checks sine RMS, noise ceiling/spectral slope, callback-size continuity, three sample rates, ramp to silence and invalid settings. `--generator-test` renders through the production AVAudioSourceNode callback in offline mode; it verifies both stereo destinations and silence on the other channel. Neither check plays audio.
+
+Manual hardware checks:
+
+1. Opening/closing the generator sheet must preserve output state. App startup must never play sound.
+2. Select an output device and channel, then start at the default −30 dBFS ceiling. Verify only that channel receives signal. Check channels above 2 on a multichannel interface.
+3. Check sine frequency and peak/RMS level in an electrical loopback. Capture MIC/REF while the generator runs; stopping capture must not stop output, and the generator Stop must not stop capture.
+4. Check white/pink spectra. Digital ceiling must not be displayed as a noise RMS or physical SPL calibration.
+5. Changing waveform, frequency, level or routing stops output until explicitly restarted. Rapid changes during a stop must not restart a stale configuration.
+6. Disconnect/change the output device while active. Output must stop with an actionable message, without falling back to another speaker automatically.
+7. Stop signal and quit while active; verify no stuck output or abrupt transient. Closing the settings sheet intentionally keeps an already-running signal active, visibly indicated in the side panel.

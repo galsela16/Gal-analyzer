@@ -21,13 +21,13 @@ The native DSP foundation is platform independent. UI and device capture are imp
 
 Local execution and command-line builds use no paid SDKs or subscription services. Store publishing and public distribution signing are separate from local development.
 
-## macOS preview 6.0.0-preview.1
+## macOS preview 6.0.0-preview.2
 
 The first executable preview uses SwiftUI, AVAudioEngine/Core Audio and the shared C++ DSP engine. No browser, web server or web view is required.
 
-Implemented: input-device enumeration, MIC/REF channel selection from one device, live RMS/peak readouts, RTA and MIC/REF spectrum comparison, all five octave resolutions, Freeze/Resume, capture/rename/show/hide/delete/clear traces, and JSON trace export. The horizontal MIC meter and the left MIC meter use the exact same smoothed level.
+Implemented: input-device enumeration, MIC/REF channel selection from one device, live RMS/peak readouts, RTA and MIC/REF spectrum comparison, all five octave resolutions, Freeze/Resume, capture/rename/show/hide/delete/clear traces, JSON trace export, and a native sine/white-noise/pink-noise generator with a separate settings sheet and Start/Stop controls. The horizontal MIC meter and the left MIC meter use the exact same smoothed level.
 
-Not yet implemented: signal generator, calibrated SPL, calibration-file import, transfer function/coherence, arrival-time measurement, RT60 and Sub/Top alignment. Trace JSON currently uses the native-preview schema and is not advertised as a web-session import format.
+Not yet implemented: calibrated SPL, calibration-file import, transfer function/coherence, arrival-time measurement, RT60 and Sub/Top alignment. Trace JSON currently uses the native-preview schema and is not advertised as a web-session import format.
 
 ### Build and run
 
@@ -45,3 +45,13 @@ Click **Start audio** to request microphone access. Select one input device, ass
 ### Validation
 
 `native/core/tests/GalDSPTests.cpp` covers 45 combinations of sample rate, level and octave resolution, plus silence, invalid configurations and spectral power conservation. `GALAnalyzerNative --smoke-test` enumerates input devices without starting capture. Apple Silicon execution is tested on the development Mac; the Intel binary is cross-compiled but has not been run on Intel hardware. A live physical-interface capture and channel/latency loopback test remain necessary before describing this as a validated field-measurement release.
+
+### Signal generator
+
+Open **Open generator…** in the side panel to choose an output device, one hardware output channel, sine/white/pink waveform, sine frequency and digital peak ceiling. Opening or dismissing the sheet does not start or stop the signal. **Start signal** and **Stop signal** are available both in the sheet and side panel. Input capture and output generation run independently.
+
+Output starts off, defaults to −30 dBFS peak ceiling and is limited to −80…−6 dBFS. Changes to routing or signal settings stop playback; start again to apply them. A 20 ms envelope ramps the signal up/down. Only the selected channel is populated; other channels are explicitly zeroed. Device configuration changes stop output. App termination stops both engines. No system default audio device is changed.
+
+Sine level is peak dBFS; RMS is about 3.01 dB lower. White noise is bounded uniform noise; pink uses a 16-row Voss-McCartney approximation. Noise level indicates its sample ceiling, not normalized RMS. Pink spectral accuracy is approximate and is tested across 200 Hz–6.4 kHz; it is not a calibrated full-band test-source specification.
+
+The build also runs generator numerical tests and the executable's `--generator-test` using AVAudioEngine manual offline rendering. It verifies left/right routing, silent unselected channels, level and ramp to silence without opening a hardware output or playing sound. Live hardware playback, simultaneous capture/output and disconnect behavior still require the manual checks below; no audible playback was performed during automated validation.

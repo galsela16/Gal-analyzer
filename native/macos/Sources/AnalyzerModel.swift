@@ -13,7 +13,7 @@ struct CapturedTrace: Identifiable, Codable {
 }
 
 @MainActor final class AnalyzerModel: ObservableObject {
-    static let version = "6.0.0-preview.1"
+    static let version = "6.0.0-preview.2"
     @Published var devices: [InputDevice] = []
     @Published var deviceID: AudioDeviceID = 0
     @Published var micChannel = 0

@@ -11,6 +11,12 @@ size_t gal_band_count(int bands_per_octave);
 int gal_analyze(const float *samples, size_t count, double sample_rate,
                 int bands_per_octave, double *band_frequencies, double *band_dbfs,
                 size_t capacity, GalAnalysis *result);
+// Immutable signal configuration. Level is sine peak / noise sample ceiling, not RMS.
+typedef struct GalGenerator GalGenerator;
+GalGenerator *gal_generator_create(double sample_rate, int waveform, double frequency, double peak_dbfs);
+void gal_generator_render(GalGenerator *generator, float *output, size_t frames);
+void gal_generator_stop(GalGenerator *generator);
+void gal_generator_destroy(GalGenerator *generator);
 #ifdef __cplusplus
 }
 #endif
