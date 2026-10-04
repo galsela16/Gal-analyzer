@@ -1,5 +1,5 @@
 // bump CACHE version whenever you change files
-const CACHE = 'gal-analyzer-v5-7-17-axis-rails-traces-delay-meter-status-tf-clean-paired-meters-rail-controls-20261003';
+const CACHE = 'gal-analyzer-v5-7-18-multichannel-inputs-delay-meter-status-tf-clean-paired-meters-rail-controls-20261003';
 const ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   './js/app-core.js',
   './js/core/config.js',
   './js/core/diagnostics.js',
+  './js/core/multi-input.js',
   './recorder-worklet.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

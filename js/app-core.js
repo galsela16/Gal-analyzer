@@ -384,7 +384,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.17-shared-frequency-axis',
+    version: 'v5.7.18-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -2983,6 +2983,7 @@ function setFft(n){
   const supported=(window.GAL&&window.GAL.config&&window.GAL.config.supportedFft)||[8192,16384,32768];
   n=parseInt(n,10);
   fftSize=supported.includes(n)?n:16384;
+  window.GalMultiInput?.setFFT(fftSize);
   const hadAlignment=!!(phaseSub||phaseTop);
   configureTfFft(fftSize);
   if(hadAlignment)clearSubTopSnapshots("FFT resolution changed — measure sub and top again.");
@@ -3091,7 +3092,7 @@ async function start(deviceId){
       echoCancellation: false,
       noiseSuppression: false,
       autoGainControl: false,
-      channelCount: { ideal: 2 }
+      channelCount: { ideal: Number(document.getElementById('multiInputRequested')?.value) || 8 }
     };
     if(deviceId && typeof deviceId === 'string') audio.deviceId = { exact: deviceId };
     activeInId = deviceId || '';
@@ -3114,7 +3115,7 @@ async function start(deviceId){
     source = audioCtx.createMediaStreamSource(stream);
     // Keep interface channels independent. "speakers" interpretation may
     // up-mix a mono browser stream into two identical channels.
-    source.channelCountMode = 'explicit';
+    source.channelCountMode = 'max';
     source.channelInterpretation = 'discrete';
 
     const track = stream.getAudioTracks()[0];
@@ -3128,7 +3129,7 @@ async function start(deviceId){
     const isSafari=/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
     const ci = document.getElementById('chCount');
     if(ci){
-      if(chReceived>=2){ ci.textContent="Channels: "+chReceived+" ✓ Stereo"; ci.style.color='#39d98a'; }
+      if(chReceived>=2){ ci.textContent="Channels: "+chReceived+" active"; ci.style.color='#39d98a'; }
       else { ci.innerHTML="Channels: 1 ⚠ Mono — no channel 2"+(!isSafari?" · For channel 2 use Safari":''); ci.style.color='var(--hot)'; }
     }
 
@@ -3151,7 +3152,24 @@ async function start(deviceId){
     analyserMeter = audioCtx.createAnalyser();
     analyserMeter.fftSize = 2048;
 
-    const splitter = audioCtx.createChannelSplitter(2);
+    const receivedChannels = Math.max(1, Math.min(32, chReceived));
+    const routingChannels = Math.max(2, receivedChannels);
+    source.channelCount = receivedChannels;
+    measChannel = Math.min(measChannel, receivedChannels - 1);
+    refChannel = Math.min(refChannel, routingChannels - 1);
+    if(measChannel === refChannel) refChannel = measChannel === 0 ? 1 : 0;
+    for(const [id,selected] of [['v52MeasSelect',measChannel],['v52RefSelect',refChannel]]){
+      const select=document.getElementById(id);if(!select)continue;
+      select.replaceChildren();
+      for(let channel=0;channel<routingChannels;channel++){
+        const option=document.createElement('option');option.value=String(channel);
+        option.textContent=channel<receivedChannels ? 'Input '+(channel+1) : 'Input '+(channel+1)+' (unavailable)';
+        option.disabled=channel>=receivedChannels;select.append(option);
+      }
+      select.value=String(selected);
+    }
+    window.GalMultiInput?.start(audioCtx,source,receivedChannels,fftSize);
+    const splitter = audioCtx.createChannelSplitter(routingChannels);
     splitter.channelInterpretation = 'discrete';
     source.connect(splitter);
 
@@ -3235,7 +3253,7 @@ async function switchInput(deviceId){
 async function stop(){
   cancelManagedSourceRun(true);
   cancelTimedMeasurements();
-  running=false; if(raf) cancelAnimationFrame(raf);
+  running=false; window.GalMultiInput?.dispose(); if(raf) cancelAnimationFrame(raf);
   resetTfAutoDelay();
   resetDistanceCalibration();
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
@@ -3445,6 +3463,7 @@ function draw(){
     setGainEl(document.getElementById('rtLvlFill'), document.getElementById('rtLvlGain'), levelDb(timeData,2048));
   }
   updateLevel();
+  window.GalMultiInput?.update(frozen);
   v52UpdateLiveMeters();
   const W=cv.clientWidth,H=cv.clientHeight;
   const nyquist=audioCtx.sampleRate/2, bins=floatData.length;
@@ -3608,6 +3627,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     }
   }
 
+  if(!tfRequested&&!abCompare&&v5WorkspaceMode==='rta')window.GalMultiInput?.draw(ctx,plotH,nyquist,xForFreq,ISO,R,norm,binOverlapPowerDb,frozen);
   if(!tfRequested&&!abCompare&&v5WorkspaceMode==='mr'&&analyserRef)drawDualInputRta(W,plotH,nyquist);
   
   if(tfRequested){
@@ -4844,7 +4864,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.17';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.18';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5215,6 +5235,8 @@ function v52Init(){
     v52UpdateUi();
   });
   safeOn('v52DeviceSelect','change',async e=>{activeInId=e.target.value||'';userPickedIn=!!activeInId;if(running)await switchInput(activeInId);else v3Toast("The input will start when you click Start microphone");});
+  safeOn('multiInputOverlay','change',e=>window.GalMultiInput?.setEnabled(e.target.checked));
+  safeOn('multiInputRequested','change',async()=>{if(running)await switchInput(activeInId);});
   safeOn('v52MeasSelect','change',async e=>{measChannel=parseInt(e.target.value,10)||0;if(measChannel===refChannel){refChannel=measChannel?0:1;document.getElementById('v52RefSelect').value=String(refChannel);}if(running)await switchInput(activeInId);});
   safeOn('v52RefSelect','change',async e=>{refChannel=parseInt(e.target.value,10)||0;if(refChannel===measChannel){measChannel=refChannel?0:1;document.getElementById('v52MeasSelect').value=String(measChannel);}if(running)await switchInput(activeInId);});
   safeOn('v53SplOffset','input',e=>{calib=parseFloat(e.target.value)||0;const old=document.getElementById('cal');if(old){old.value=String(calib);old.dispatchEvent(new Event('input',{bubbles:true}));}prefSet('rta_cal',calib);v52UpdateUi();});

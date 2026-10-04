@@ -10,7 +10,7 @@ for (const file of ['index.html','app.js','js','recorder-worklet.js','icons','br
 // Desktop packaging is a generated copy. Web sources stay shared and unchanged.
 for (const file of ['index.html', 'app.js', 'js/core/config.js', 'js/app-core.js']) {
   const target = path.join(out,file);
-  let content = fs.readFileSync(target,'utf8').replaceAll('5.7.17','6.0.0-preview.3');
+  let content = fs.readFileSync(target,'utf8').replaceAll('5.7.18','6.0.0-preview.4');
   if (file === 'js/app-core.js') content = content.replace("if('serviceWorker' in navigator){", "if(false){ // Desktop updates ship in the bundle, not a hosted service worker.");
   fs.writeFileSync(target, content);
 }

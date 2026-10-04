@@ -2644,7 +2644,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
 
-/* V5.7.17 — readable compact Delay workspace. */
+/* V5.7.18 — readable compact Delay workspace. */
 @media(min-width:901px){
   #dlyPanel.measureDock:not(.expanded){
     grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
@@ -3109,7 +3109,10 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 /* One typeface for controls, labels and numeric readouts. */
 html,body,button,input,select,textarea{font-family:Arial,sans-serif}
 </style>
-</head>
+<style>
+#multiInputPanel{margin:10px 0;font:11px Arial;color:#b9cbd2}#multiInputRows{max-height:155px;overflow:auto}
+.multiInputRow{display:flex;align-items:center;gap:4px;margin:6px 0;font:10px Arial}.multiInputRow>span:first-of-type{width:42px;flex-shrink:0}.multiInputTrack{flex:1;height:5px;background:#03090b;overflow:hidden;border-radius:3px}.multiInputTrack i{display:block;height:100%;width:0}.multiInputRead{width:70px;text-align:right;font-variant-numeric:tabular-nums}
+</style></head>
 <body>
   <div id="sigTint"></div>
   <header class="uiRefreshed">
@@ -3161,7 +3164,7 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
   <div id="uiMenu" role="dialog" aria-label="Tools and settings">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.17</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.18</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3191,7 +3194,7 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.17</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.18</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3649,6 +3652,11 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
             <select id="v52DeviceSelect"><option>Default browser input</option></select>
           </div>
           <div class="v52Field">
+            <label>Requested inputs</label>
+            <select id="multiInputRequested"><option value="2">2</option><option value="4">4</option><option value="8" selected>8</option><option value="16">16</option><option value="32">32</option></select>
+          </div>
+          <p style="font-size:11px;color:var(--dim)">Available channels depend on the selected device and audio driver.</p>
+          <div class="v52Field">
             <label>Measurement</label>
             <select id="v52MeasSelect"><option value="0">Input 1</option><option value="1">Input 2</option></select>
           </div>
@@ -3911,7 +3919,7 @@ html,body,button,input,select,textarea{font-family:Arial,sans-serif}
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.17</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.18</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -4112,7 +4120,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.17"></script>
+<script src="app.js?v=5.7.18"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -4393,6 +4401,8 @@ window.addEventListener('load', function(){
   <div class="tlsHead">SIGNAL PATH</div>
   <div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div>
   <div class="tlsPatchActions"><button class="tlsGenToggle" id="tlsGenToggle" type="button">▶ Start signal</button><button class="tlsOpen" id="tlsGenOpen" type="button" data-tls-open="generator" aria-controls="genPanel" title="Open generator settings">Open generator</button><button class="tlsOpen" type="button" data-tls-open="io">I / O</button></div>
+  <details id="multiInputPanel" open><summary>LIVE INPUTS · <span id="multiInputCount">Audio off</span></summary>
+  <label style="display:block;margin:8px 0;font-size:11px"><input type="checkbox" id="multiInputOverlay" checked> Show all input curves (raw dBFS)</label><div id="multiInputRows"></div></details>
   <div class="tlsTraceCount"><span>TRACES</span><strong id="tlsTraces">0</strong><span>VISIBLE</span><strong id="tlsVisible">0</strong></div><div id="persistentTraceHost"></div>
  </section>
 </div>

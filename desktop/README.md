@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.3
+# GAL Analyzer Desktop — 6.0.0-preview.4
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.3-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.4-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Audio access uses the existing Chromium/Web Audio implementation; packaging alone does not claim a faster RTA or native multichannel Core Audio routing.
 
@@ -30,3 +30,9 @@ The generated bundle contains Chromium and is consequently larger than the Swift
 The renderer has no Node access; it is sandboxed with context isolation. Only bundled `gal://app` assets are served; remote HTTP requests and remote navigation are blocked. Camera and screen-capture permissions are denied; microphone permission is confined to the local analyzer. Export downloads remain initiated through the existing user controls.
 
 Manual acceptance still requires real microphone capture, electrical loopback, generator playback, session import/export and comparison with the browser edition. Intel packaging and native DSP bridging are future work. No speed improvement is claimed from the wrapper alone.
+
+## Parallel input monitoring (preview.4)
+
+I/O now offers requested input counts 2/4/8/16/32. The received stream's reported channel count controls the available inputs; unavailable channels are never invented. Each received channel has an independent digital RMS meter and raw dBFS RTA curve. Use the input checkboxes to hide individual curves, or Show all input curves to hide the overlay. MIC/REF can be selected from the received channels; TF/delay still operate on this selected pair. Extra RTA curves do not inherit the MIC calibration file.
+
+The integration test sends eight distinct frequencies/levels through a real Chromium ChannelMerger and verifies individual meters and spectra, FFT changes and disposal. This does not establish physical-interface multichannel support: if Chromium or the driver delivers only two channels, this build can monitor only those two. A future Core Audio capture bridge will be needed for interfaces whose full channels are not exposed through Web Audio.
