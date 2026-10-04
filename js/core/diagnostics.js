@@ -6,9 +6,9 @@
     if(box){ box.textContent=message; box.style.display='block'; }
   };
   window.addEventListener('error',event=>{
-    GAL.fail('אירעה שגיאה בממשק. רענן את העמוד ואם היא חוזרת—שלח צילום מסך.',event.error);
+    GAL.fail("An interface error occurred. Refresh the page and if it comes back - send a screenshot.",event.error);
   });
   window.addEventListener('unhandledrejection',event=>{
-    GAL.fail('פעולה לא הושלמה. נסה שוב או רענן את העמוד.',event.reason);
+    GAL.fail("Action not completed. Try again or refresh the page.",event.reason);
   });
 })();

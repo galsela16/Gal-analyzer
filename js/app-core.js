@@ -33,11 +33,11 @@ let dlyLastSpeakerResult = null;
 let showTfPhase = false;
 let showTfCoh = false;
 let tfViewMode = 'magnitude';
-let tfSmoothA = 0.93;   // מיצוע TF: גבוה=יציב/איטי, נמוך=מהיר/רועד
-let tfCohGate = 0.4;    // סף קוהרנטיות שמתחתיו לא מציגים פאזה
+let tfSmoothA = 0.93;   // TF averaging: higher is steadier/slower; lower is faster
+let tfCohGate = 0.4;    // Hide phase below this coherence threshold
 let tfWorkingAverage=null,tfAverageFrames=0,tfAverageMode='normal',tfAverageLastUpdate=0;
-let phaseSub=null, phaseTop=null;  // צילומי פאזה: {ph:Float32Array, coh:Float32Array}
-let xoverF=90, showXover=false;    // סמן תדר חיתוך
+let phaseSub=null, phaseTop=null;  // Phase snapshots: {ph:Float32Array, coh:Float32Array}
+let xoverF=90, showXover=false;    // Crossover frequency marker
 let alignRecommendation=null;
 
 let TF_FFT_N = 16384;
@@ -71,8 +71,8 @@ function buildBands(bpo){
   lastBandDb=new Array(BANDS).fill(-120);
   snapCurve=null; frozen=false; _lastRtaSmoothTime=0;
   refCurve=null;
-  { const rb=document.getElementById("refCurveBtn"); if(rb){ rb.classList.remove("on"); rb.textContent="שמור כ״לפני״"; } }
-  const clr=document.getElementById('freezeBtn'); if(clr){clr.classList.remove('on');clr.textContent='הקפא';}
+  { const rb=document.getElementById("refCurveBtn"); if(rb){ rb.classList.remove("on"); rb.textContent="Save Before"; } }
+  const clr=document.getElementById('freezeBtn'); if(clr){clr.classList.remove('on');clr.textContent="Freeze";}
 }
 buildBands(6);
 
@@ -143,7 +143,7 @@ let eqMode='graphic', lastEqCorr=null;
 let cutOnly=false;
 let tfMode='graphic';
 const AREA_COLORS=['#2f9bff','#ffa53b','#ff5cc8','#50e68c'];
-const AREA_NAMES=['צפון','דרום','מזרח','מערב'];
+const AREA_NAMES=["North","South","East","West"];
 let areas=[];
 let areaState='idle', areaAccum=null, areaFrames=0;
 let measState='idle', measAccum=null, measFrames=0;
@@ -221,12 +221,12 @@ safeOn('cal', 'input',e=>{
 safeOn('autoCalBtn', 'click', autoCal1kHz);
 
 function autoCal1kHz(){
-  if(!running || !analyser){ alert('קודם הפעל את המיקרופון.'); return; }
-  const choice = prompt('בחר עוצמת כיול פיסטונפון (SPL):\n1 = 94 dB\n2 = 114 dB', '1');
+  if(!running || !analyser){ alert("First turn on the microphone."); return; }
+  const choice = prompt("Select calibrator level (SPL):\n1 = 94 dB\n2 = 114 dB", '1');
   if(!choice) return;
   const targetSpl = choice === '2' ? 114 : 94;
 
-  alert('חבר את המכייל למים/מיקרופון והפעל אותו על 1kHz.\nלחץ אישור כשהאות יציב.');
+  alert("Fit the calibrator to the microphone and run it at 1 kHz.\nClick OK when the signal is steady.");
 
   analyser.getFloatFrequencyData(floatData);
   const nyq = audioCtx.sampleRate / 2, bins = floatData.length;
@@ -236,7 +236,7 @@ function autoCal1kHz(){
   for(let i=iLo; i<=iHi; i++){ if(floatData[i] > peakVal) peakVal = floatData[i]; }
 
   if(peakVal < -60){
-    alert('לא זוהה אות 1kHz מספיק חזק (נקלט: '+peakVal.toFixed(1)+' dBFS).\nודא שהמכייל פועל ומחובר היטב.');
+    alert("A strong enough 1kHz signal was not detected (received: "+peakVal.toFixed(1)+" dBFS).\nMake sure the calibrator is working and connected well.");
     return;
   }
 
@@ -246,7 +246,7 @@ function autoCal1kHz(){
   document.getElementById('calVal').textContent = (calib>=0?'+':'')+calib+'dB';
   prefSet('rta_cal', calib);
 
-  alert('✓ הכיול הושלם בהצלחה!\nנקלט אות ב: '+peakVal.toFixed(1)+' dBFS\nכיול SPL עודכן ל: +'+calib+' dB');
+  alert("✓ Calibration complete!\nMeasured signal: "+peakVal.toFixed(1)+" dBFS\nSPL calibration updated to: +"+calib+' dB');
 }
 
 // ---- TF Controls: Auto-Delay, Phase, Coherence (floating bar only) ----
@@ -264,32 +264,32 @@ safeOn('tfPhaseToggleBtn','click',()=>setTfViewMode('phase'));
 
 function tfAutoDelay(event){
   const globalBtn=document.getElementById('v52AutoDelayBtn');
-  if(!running || !analyserRef){ v3Toast('הפעל כרטיס קול סטריאו עם MIC 1 ו-REF 2'); return; }
-  if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
+  if(!running || !analyserRef){ v3Toast("Start audio with a stereo interface: MIC 1 and REF 2"); return; }
+  if(measureBusy()){v3Toast("Another measurement is active - wait for it to end");return;}
   const trigger=event&&event.currentTarget?event.currentTarget:globalBtn;
   pickSource(sourceKind=>{
     cancelTfWorkflowVerification();
     tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';
-    clearSubTopSnapshots('סנכרון TF מתבצע…');
+    clearSubTopSnapshots("TF sync is in progress…");
     syncSubTopWorkflowUi();
-    syncTfWorkflowUi('<b>שלב 1:</b> מבצע שלוש בדיקות סנכרון…');
+    syncTfWorkflowUi("<b>Step 1:</b> Running three synchronization checks…");
     runDelayCapture(trigger||globalBtn,(res,silent)=>{
     if(!res || !res.reliable){
       resetTfAutoDelay();
-      const fallback=silent==='mic'?'אין אות במיקרופון'
-        :silent==='ref'?'אין אות ב־Reference'
-        :res&&res.validChecks?'הסנכרון לא יציב — '+res.validChecks+'/3 בדיקות התאימו':'לא נמצא דיליי ברור — נסה Sweep או Pink Noise';
+      const fallback=silent==='mic'?"There is no signal in the microphone"
+        :silent==='ref'?"No signal on Reference"
+        :res&&res.validChecks?"The sync is unstable — "+res.validChecks+"/3 tests matched":"No obvious delay found — try Sweep or Pink Noise";
       const msg=typeof delayFailureText==='function'?delayFailureText(res,silent):fallback;
       syncTfWorkflowUi(msg,'warn');
       const phStatus=document.getElementById('phStatus');if(phStatus)phStatus.textContent=msg;
       v3Toast(msg); return;
     }
     tfDelayMs=res.ms; tfDelaySamples=res.samples; tfDelayReady=true;
-    tfDelayQualityText='· '+res.validChecks+'/3 בדיקות · פיזור '+res.spreadMs.toFixed(2)+'ms';
-    clearSubTopSnapshots('סנכרון TF השתנה — מדוד שוב סאב וטופ.');
+    tfDelayQualityText='· '+res.validChecks+"/3 checks · spread "+res.spreadMs.toFixed(2)+'ms';
+    clearSubTopSnapshots("TF sync changed — measure sub and top again.");
     syncTfWorkflowUi();
     if(globalBtn){globalBtn.classList.remove('on');globalBtn.classList.add('has-result');globalBtn.textContent=`TF ${tfDelayMs.toFixed(2)} ms`;}
-    v3Toast(`סנכרון TF יציב: ${tfDelayMs.toFixed(2)} ms`);
+    v3Toast(`Stable TF sync: ${tfDelayMs.toFixed(2)} ms`);
   },{maxDelayMs:delaySearchMs,mode:'tf',signalType:sourceKind});
   },3800);
 }
@@ -297,14 +297,14 @@ function tfAutoDelay(event){
 function resetTfAutoDelay(){
   cancelTfWorkflowVerification();
   tfDelayMs=0;tfDelaySamples=0;tfDelayReady=false;tfWorkflowVerified=false;tfDelayQualityText='';resetTfWorkingAverage('DELAY UNLOCKED');
-  clearSubTopSnapshots('סנכרון TF אופס — סנכרן ואז מדוד שוב סאב וטופ.');
+  clearSubTopSnapshots("TF sync reset. Sync again, then remeasure Sub and Top.");
   syncTfWorkflowUi();
-  const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent='⏱ סנכרון TF';}
+  const globalBtn=document.getElementById('v52AutoDelayBtn');if(globalBtn){globalBtn.classList.remove('on','has-result');globalBtn.textContent="⏱ TF sync";}
 }
 
 safeOn('fbSens', 'input',e=>{
   fbProm = 26 - parseFloat(e.target.value);
-  document.getElementById('fbSensVal').textContent = fbProm>=15?'נמוכה':fbProm>=10?'בינונית':'גבוהה';
+  document.getElementById('fbSensVal').textContent = fbProm>=15?"Low":fbProm>=10?"Medium":"High";
   prefSet('rta_fbSens', e.target.value);
 });
 safeOn('peakBtn', 'click',function(){
@@ -318,12 +318,12 @@ safeOn('avgBtn', 'click',function(){
 });
 safeOn('freezeBtn', 'click',function(){
   frozen=!frozen;
-  if(frozen){ snapCurve=lastV.slice(); this.classList.add('on'); this.textContent='הפשר תצוגה'; }
-  else { snapCurve=null; this.classList.remove('on'); this.textContent='הקפא'; }
+  if(frozen){ snapCurve=lastV.slice(); this.classList.add('on'); this.textContent="Resume display"; }
+  else { snapCurve=null; this.classList.remove('on'); this.textContent="Freeze"; }
 });
 safeOn('resetPeakBtn','click',()=>{
   peaks.fill(0);
-  v3Toast('Peaks אופסו');
+  v3Toast("Peaks reset");
 });
 document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.addEventListener('click',function(){
   document.querySelectorAll('#avgSpeedSeg button').forEach(x=>x.classList.remove('on'));
@@ -331,7 +331,7 @@ document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.addEventListener('
   avgAlpha=Math.max(0.5,Math.min(0.995,parseFloat(this.dataset.a)||0.90));
   prefSet('rta_avg_alpha', avgAlpha);
   avgBuf.fill(NaN); _lastRtaSmoothTime=0;
-  v3Toast('מהירות מיצוע עודכנה');
+  v3Toast("Averaging speed updated");
 }));
 function setAnalysisSpeed(name,persist=true){
   const key=['fast','normal','slow'].includes(name)?name:'normal';
@@ -348,7 +348,7 @@ function setAnalysisSpeed(name,persist=true){
   const out=document.getElementById('analysisSpeedValue');if(out)out.textContent=preset.label;
   const tfSlider=document.getElementById('tfSmooth');if(tfSlider){tfSlider.value=String(Math.round(tfSmoothA*100));tfSlider.dispatchEvent(new Event('input'));}
   avgBuf.fill(NaN);_lastRtaSmoothTime=0;
-  if(persist){prefSet('analysis_speed',key);v3Toast('מהירות ניתוח: '+preset.label);}
+  if(persist){prefSet('analysis_speed',key);v3Toast("Analysis speed: "+preset.label);}
 }
 window.setAnalysisSpeed=setAnalysisSpeed;
 document.querySelectorAll('[data-analysis-speed]').forEach(b=>b.addEventListener('click',()=>setAnalysisSpeed(b.dataset.analysisSpeed)));
@@ -382,7 +382,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.15-shared-frequency-axis',
+    version: 'v5.7.16-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -407,7 +407,7 @@ function importSessionJson(e){
   reader.onload = function(evt){
     try {
       const data = JSON.parse(evt.target.result);
-      if(!data || typeof data !== 'object'){ throw new Error('קובץ לא תקין'); }
+      if(!data || typeof data !== 'object'){ throw new Error("Invalid file"); }
       
       if(data.saves) saves = data.saves;
       if(data.eqPositions) eqPositions = data.eqPositions.map(p=>({name:p.name, db:Float32Array.from(p.db)}));
@@ -435,9 +435,9 @@ function importSessionJson(e){
       renderAreaList();
       renderDlySpk();
       if(eqPositions.length) computeAndShow();
-      alert('✓ הסשן נטען בהצלחה!');
+      alert("✓ The session has been loaded successfully!");
     } catch(err) {
-      alert('שגיאה שטעינת הקובץ: ' + err.message);
+      alert("Error loading file: " + err.message);
     }
   };
   reader.readAsText(file);
@@ -584,7 +584,7 @@ function genStop(){
     try{ if(g) g.disconnect(); }catch(_){}
   },250);
   genSrc=null; genOsc=null; genGain=null; genOn=false;
-  const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.remove('on'); btn.textContent='▶ הפעל אות';}
+  const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.remove('on'); btn.textContent="▶ Start signal";}
   syncInlineGenBtns();
 }
 function scheduleSweepCycle(){
@@ -599,7 +599,7 @@ function scheduleSweepCycle(){
   if(!genSweepSingleShot)sweepTimer=setTimeout(scheduleSweepCycle, genSweepDur*1000);
 }
 function genStart(options={}){
-  if(!running||!audioCtx){ alert('קודם הפעל את המיקרופון (כדי שהאודיו יהיה פעיל).'); return; }
+  if(!running||!audioCtx){ alert("First turn on the microphone (so that the audio is active)."); return; }
   if(audioCtx.state==='suspended') audioCtx.resume();
   genStop();
   genGain=audioCtx.createGain(); genGain.gain.value=0;
@@ -622,7 +622,7 @@ function genStart(options={}){
   if(typeof refreshReferenceRouting==='function')refreshReferenceRouting(!!options.preserveTfSync);
   if(options.autoSync!==false&&typeof scheduleLoopbackAutoSync==='function')scheduleLoopbackAutoSync();
   syncInlineGenBtns();
-  const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.add('on'); btn.textContent='⏹ עצור אות';}
+  const btn=document.getElementById('genOnBtn'); if(btn){btn.classList.add('on'); btn.textContent="⏹ Stop signal";}
 }
 
 function cancelManagedSourceRun(stopGenerator=false){
@@ -638,7 +638,7 @@ function syncInlineGenBtns(){
     if(b){
       const rail=id==='tlsGenToggle';
       b.classList.toggle('on', rail?genOn:(genOn && genType==='pink'));
-      b.textContent = rail?(genOn?'■ עצור אות':'▶ הפעל אות'):((genOn && genType==='pink') ? '⏹ עצור רעש' : '▶ רעש ורוד');
+      b.textContent = rail?(genOn?"■ Stop signal":"▶ Start signal"):((genOn && genType==='pink') ? "⏹ Stop noise" : "▶ Pink noise");
     }
   });
 }
@@ -688,7 +688,7 @@ document.querySelectorAll('#genType button').forEach(b=>b.addEventListener('clic
 }));
 safeOn('genSweep', 'input',e=>{
   genSweepDur=parseFloat(e.target.value);
-  document.getElementById('genSweepVal').textContent=genSweepDur.toFixed(1)+'ש\'';
+  document.getElementById('genSweepVal').textContent=genSweepDur.toFixed(1)+"s";
 });
 safeOn('genLvl', 'input',e=>{
   genDb=parseFloat(e.target.value);
@@ -821,8 +821,8 @@ safeOn('combBtn', 'click',()=>runCombCheck('combResult'));
 
 function updateEqUI(){
   const meas = measState==='measuring';
-  document.getElementById('eqSub').textContent = meas ? 'מודד… החזק יציב' : ('מיקומים שנמדדו: '+eqPositions.length);
-  document.getElementById('eqMeasBtn').textContent = meas ? 'מודד…' : (eqPositions.length?'מדוד מיקום נוסף':'מדוד מיקום (5ש\')');
+  document.getElementById('eqSub').textContent = meas ? "Measuring… hold steady" : ("Measured positions: "+eqPositions.length);
+  document.getElementById('eqMeasBtn').textContent = meas ? "Measuring…" : (eqPositions.length?"Measure another location":"Measure position (5s)");
   document.getElementById('eqMeasBtn').style.opacity = meas?0.5:1;
 }
 
@@ -881,13 +881,13 @@ function corrGridHtml(corr, rel){
     const cls=v<0?'cut':(v>0?'boost':''), sign=v>0?'+':'';
     html+=`<div class="tfItem ${cls}"><span class="f">${fStr}</span><span class="g">${sign}${v.toFixed(1)} dB</span></div>`;
   }
-  if(!shown)html+='<div class="tfItem off"><span class="f">אין תיקון משמעותי</span><span class="g">מאוזן</span></div>';
+  if(!shown)html+="<div class=\"tfItem off\"><span class=\"f\">No significant correction</span><span class=\"g\">Balanced</span></div>";
   return html+'</div>';
 }
 function corrParamHtml(corr){
   const list=paramFromCorr(corr);
-  if(!list.length) return '<div class="sub">מאוזן 👌</div>';
-  return '<div class="sub" style="margin-bottom:6px">פתרון מיטבי · '+list.length+'/6 מסנני Bell</div>'+list.map(s=>{
+  if(!list.length) return "<div class=\"sub\">balanced 👌</div>";
+  return "<div class=\"sub\" style=\"margin-bottom:6px\">Optimized solution · "+list.length+"/6 Bell filters</div>"+list.map(s=>{
     const f=s.f>=1000?(s.f/1000).toFixed(2)+'kHz':Math.round(s.f)+'Hz';
     const g=(s.gain>0?'+':'')+s.gain.toFixed(1)+'dB';
     return '<div class="eqRow '+s.type+'"><span class="f">'+f+'</span><span class="g">'+g+'</span><span class="q">Q '+s.q.toFixed(1)+'</span></div>';
@@ -901,18 +901,18 @@ function showGeqDock(title,expanded){
   if(!keepExpanded){eqCorrectionVisible=false;dock.style.display='none';dock.classList.add('collapsed');syncGeqBtn();return;}
   eqCorrectionVisible=true;
   dock.style.display='block';dock.classList.remove('collapsed');
-  const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent=keepExpanded?'הסתר פירוט':'הצג פירוט';
+  const toggle=document.getElementById('geqDockToggle');if(toggle)toggle.textContent=keepExpanded?"Hide details":"Show details";
   syncGeqBtn();
 }
 function latestEqWorkspace(){
-  if(eqCurveData&&eqCurveData.freqs&&eqCurveData.corr)return {data:eqCurveData,title:document.getElementById('geqDockTitle')?.textContent||'תיקון EQ'};
-  if(tfResult&&tfResult.corr)return {data:{freqs:GEQ.slice(),corr:tfResult.corr.slice()},title:'תיקון EQ · דו־ערוצי'};
-  if(lastEqCorr)return {data:{freqs:GEQ.slice(),corr:lastEqCorr.slice()},title:'תיקון EQ · חד־ערוצי'};
+  if(eqCurveData&&eqCurveData.freqs&&eqCurveData.corr)return {data:eqCurveData,title:document.getElementById('geqDockTitle')?.textContent||"EQ correction"};
+  if(tfResult&&tfResult.corr)return {data:{freqs:GEQ.slice(),corr:tfResult.corr.slice()},title:"Two-channel EQ correction"};
+  if(lastEqCorr)return {data:{freqs:GEQ.slice(),corr:lastEqCorr.slice()},title:"Single-channel EQ correction"};
   return null;
 }
 function openLatestEqWorkspace(){
   const latest=latestEqWorkspace();
-  if(!latest){v3Toast('עדיין אין תוצאת EQ — בצע מדידה קודם');return false;}
+  if(!latest){v3Toast("No EQ result yet — take a measurement first");return false;}
   eqCurveData={freqs:latest.data.freqs.slice(),corr:latest.data.corr.slice()};
   showGeqDock(latest.title,true);
   const dock=document.getElementById('geqDock');if(dock){dock.style.display='block';dock.classList.remove('collapsed');}
@@ -926,7 +926,7 @@ window.openLatestEqWorkspaceFromRail=function(event){
   if(event){event.preventDefault();event.stopPropagation();}
   const dock=document.getElementById('geqDock');
   if(eqCorrectionVisible&&dock&&getComputedStyle(dock).display!=='none'){
-    hideGeqDock();v3Toast('תצוגת ה-EQ הוסתרה');return false;
+    hideGeqDock();v3Toast("The EQ display has been hidden");return false;
   }
   openLatestEqWorkspace();
   return false;
@@ -936,7 +936,7 @@ function syncGeqBtn(){
   const legacy=document.getElementById('geqShowBtn'),rail=document.getElementById('v5EqWorkspace'),d=document.getElementById('geqDock');
   const visible=!!(eqCorrectionVisible&&d&&getComputedStyle(d).display!=='none');
   if(legacy)legacy.classList.toggle('on',visible);
-  if(rail){rail.classList.toggle('on',visible);rail.textContent=visible?'EQ · הסתר תיקונים':'EQ · תצוגת תיקונים';rail.setAttribute('aria-pressed',visible?'true':'false');}
+  if(rail){rail.classList.toggle('on',visible);rail.textContent=visible?"EQ · Hide corrections":"EQ · Corrections";rail.setAttribute('aria-pressed',visible?'true':'false');}
 }
 safeOn('geqShowBtn', 'click',function(){
   const d=document.getElementById('geqDock');
@@ -945,7 +945,7 @@ safeOn('geqShowBtn', 'click',function(){
 });
 safeOn('geqDockToggle', 'click',function(){
   const d=document.getElementById('geqDock');
-  if(!d)return;hideGeqDock();v3Toast('תיקון EQ נסגר · ניתן לפתוח שוב מ־SPL / EQ');
+  if(!d)return;hideGeqDock();v3Toast("EQ workspace closed. Reopen it from SPL / EQ.");
 });
 function drawGEQ(c, freqs, corr){
   if(c && c.parentElement && c.parentElement.classList.contains('collapsed')) return;
@@ -993,11 +993,11 @@ function drawGEQ(c, freqs, corr){
         actionable.push({f,v,cls:v<0?'cut':'boost'});
       }
       actionable.sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
-      const card=a=>'<div class="eqAction '+a.cls+'"><span class="freq">'+a.f+'</span><span class="hint">'+(a.v<0?'להנמיך':'להגביר')+'</span><b class="gain">'+(a.v>0?'+':'')+a.v.toFixed(1)+' dB</b></div>';
-      if(!actionable.length) values.innerHTML='<span class="geqValue neutral">אין תיקון משמעותי — התגובה מאוזנת</span>';
+      const card=a=>'<div class="eqAction '+a.cls+'"><span class="freq">'+a.f+'</span><span class="hint">'+(a.v<0?"Cut":"Boost")+'</span><b class="gain">'+(a.v>0?'+':'')+a.v.toFixed(1)+' dB</b></div>';
+      if(!actionable.length) values.innerHTML="<span class=\"geqValue neutral\">No significant correction — the response is balanced</span>";
       else{
         const primary=actionable.slice(0,6), extra=actionable.slice(6);
-        values.innerHTML='<div class="eqActionHead"><strong>מה לתקן עכשיו</strong><span>'+actionable.length+' פסים משמעותיים · לפי סדר עדיפות</span></div><div class="eqActionGrid">'+primary.map(card).join('')+'</div>'+(extra.length?'<details class="eqActionMore"><summary>הצג עוד '+extra.length+' תיקונים קטנים</summary><div class="eqActionGrid">'+extra.map(card).join('')+'</div></details>':'');
+        values.innerHTML="<div class=\"eqActionHead\"><strong>Recommended adjustments</strong><span>"+actionable.length+" significant bands · ordered by priority</span></div><div class=\"eqActionGrid\">"+primary.map(card).join('')+'</div>'+(extra.length?"<details class=\"eqActionMore\"><summary>Show more "+extra.length+" minor corrections</summary><div class=\"eqActionGrid\">"+extra.map(card).join('')+'</div></details>':'');
       }
     }
   }
@@ -1020,7 +1020,7 @@ function drawGEQ(c, freqs, corr){
   x.fillStyle=sunMode?'rgba(100,116,139,.13)':'rgba(2,8,14,.52)';
   if(rangeLo>left)x.fillRect(left,top,rangeLo-left,plotH);
   if(rangeHi<W-right)x.fillRect(rangeHi,top,W-right-rangeHi,plotH);
-  x.font='9px monospace';x.textAlign='right';
+  x.font="9px Arial";x.textAlign='right';
   [-6,0,6].forEach(db=>{const yy=fy(db);x.strokeStyle=db===0?(sunMode?'rgba(15,23,42,.38)':'rgba(132,172,205,.55)'):(sunMode?'rgba(15,23,42,.10)':'rgba(132,172,205,.14)');x.setLineDash(db===0?[]:[3,4]);x.beginPath();x.moveTo(left,yy);x.lineTo(W-right,yy);x.stroke();x.fillStyle=sunMode?'#64748b':'#8093a3';x.fillText((db>0?'+':'')+db+' dB',left-5,yy+3);});
   x.setLineDash([]);
   [31.5,63,125,250,500,1000,2000,4000,8000,16000].filter(f=>f>=fMin&&f<=fMax).forEach(f=>{const xx=fx(f);x.strokeStyle=sunMode?'rgba(15,23,42,.08)':'rgba(132,172,205,.10)';x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bot);x.stroke();x.textAlign='center';x.fillStyle=sunMode?'#64748b':'#8093a3';x.fillText(f>=1000?(f/1000)+'k':String(f),xx,H-8);});
@@ -1035,9 +1035,9 @@ function drawGEQ(c, freqs, corr){
       const p=points.find(point=>point.k===c._geqHover);
       if(p){
         const f=freqs[p.k],fLabel=f>=1000?((f/1000)%1?(f/1000).toFixed(2):(f/1000).toFixed(0))+' kHz':(f%1?f.toFixed(1):Math.round(f))+' Hz';
-        const value=(p.v>0?'+':'')+p.v.toFixed(1)+' dB',action=p.v<-.05?'להנמיך':p.v>.05?'להגביר':'ללא שינוי';
+        const value=(p.v>0?'+':'')+p.v.toFixed(1)+' dB',action=p.v<-.05?"Cut":p.v>.05?"Boost":"No change";
         x.beginPath();x.arc(p.x,p.y,5,0,Math.PI*2);x.fillStyle=p.v<-.05?'#ff5a78':p.v>.05?'#50e68c':'#d5dee6';x.fill();x.strokeStyle='#fff';x.lineWidth=1.5;x.stroke();
-        x.font='700 10px monospace';const label=fLabel+'  ·  '+value+'  ·  '+action,tw=x.measureText(label).width+18,th=25;
+        x.font="700 10px Arial";const label=fLabel+'  ·  '+value+'  ·  '+action,tw=x.measureText(label).width+18,th=25;
         let tx=Math.max(4,Math.min(W-tw-4,p.x-tw/2)),ty=p.y-th-10;if(ty<3)ty=p.y+10;
         x.fillStyle=sunMode?'rgba(255,255,255,.97)':'rgba(5,14,21,.96)';x.fillRect(tx,ty,tw,th);
         x.strokeStyle=p.v<-.05?'#ff5a78':p.v>.05?'#50e68c':'#8292a0';x.lineWidth=1;x.strokeRect(tx+.5,ty+.5,tw-1,th-1);
@@ -1048,7 +1048,7 @@ function drawGEQ(c, freqs, corr){
   if(c.id==='eqCurveCanvas'){
     const handle=(xx,label,side,color)=>{
       x.save();x.strokeStyle=color;x.lineWidth=3;x.setLineDash([]);x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bot);x.stroke();
-      x.font='800 10px monospace';const bw=Math.max(62,x.measureText(label).width+12),bh=18,bx=side==='min'?xx:xx-bw;
+      x.font="800 10px Arial";const bw=Math.max(62,x.measureText(label).width+12),bh=18,bx=side==='min'?xx:xx-bw;
       x.fillStyle=color;x.fillRect(bx,top,bw,bh);x.fillStyle='#06111a';x.textAlign='center';x.fillText(label,bx+bw/2,top+12);
       x.beginPath();x.moveTo(xx,top+bh);x.lineTo(xx+(side==='min'?11:-11),top+bh);x.lineTo(xx,top+bh+11);x.closePath();x.fillStyle=color;x.fill();x.restore();
     };
@@ -1059,8 +1059,8 @@ function drawGEQ(c, freqs, corr){
   for(let k=0;k<freqs.length;k++){ const v=corr[k]; if(v==null) continue; if(!worst||Math.abs(v)>Math.abs(worst.v)) worst={v,k}; }
   if(worst && Math.abs(worst.v)>=0.5){
     const f=freqs[worst.k];
-    x.textAlign='right';x.font='600 9px monospace';x.fillStyle=worst.v>0?'#50c878':'#ff6b83';
-    x.fillText('תיקון מרבי: '+(f>=1000?(f/1000).toFixed(1)+'k':Math.round(f))+'Hz  '+(worst.v>0?'+':'')+worst.v.toFixed(1)+'dB',W-right,11);
+    x.textAlign='right';x.font="600 9px Arial";x.fillStyle=worst.v>0?'#50c878':'#ff6b83';
+    x.fillText("Maximum correction: "+(f>=1000?(f/1000).toFixed(1)+'k':Math.round(f))+'Hz  '+(worst.v>0?'+':'')+worst.v.toFixed(1)+'dB',W-right,11);
   }
 }
 function micCalAt(f){
@@ -1084,15 +1084,15 @@ function saveCalStore(){
 function deriveActiveCal(){
   const c=micCalList.find(x=>x.id===activeCalId);
   micCal = c ? {f:c.f, g:c.g} : null;
-  const nm = c ? ('כיול פעיל: '+c.name) : 'כיול פעיל: ללא';
+  const nm = c ? ("Active calibration: "+c.name) : "Active calibration: none";
   const el=document.getElementById('eqCalName'); if(el) el.textContent=nm;
 }
 
 function renderCalList(){
   const box=document.getElementById('calList');
-  let html='<div class="calRow'+(activeCalId===null?' on':'')+'" data-id=""><span class="nm">ללא כיול</span></div>';
+  let html='<div class="calRow'+(activeCalId===null?' on':'')+"\" data-id=\"\"><span class=\"nm\">no calibration</span></div>";
   html+=micCalList.map(c=>'<div class="calRow'+(c.id===activeCalId?' on':'')+'" data-id="'+c.id+'">'+
-    '<span class="nm" title="'+escapeHtml(c.name)+'">'+escapeHtml(c.name)+'</span><span class="sub">'+c.f.length+' נק\'</span><span class="del" data-del="'+c.id+'" title="מחק">🗑</span></div>').join('');
+    '<span class="nm" title="'+escapeHtml(c.name)+'">'+escapeHtml(c.name)+'</span><span class="sub">'+c.f.length+" points</span><span class=\"del\" data-del=\""+c.id+"\" title=\"delete\">🗑</span></div>").join('');
   box.innerHTML=html;
   box.querySelectorAll('.calRow').forEach(row=>row.addEventListener('click',e=>{
     if(e.target.dataset.del!==undefined) return;
@@ -1104,7 +1104,7 @@ function renderCalList(){
     e.stopPropagation();
     const id=d.dataset.del;
     const c=micCalList.find(x=>x.id===id);
-    if(!confirm('למחוק את הכיול "'+(c?c.name:'')+'"?')) return;
+    if(!confirm("Delete calibration \""+(c?c.name:'')+'"?')) return;
     micCalList=micCalList.filter(c=>c.id!==id);
     if(activeCalId===id) activeCalId=null;
     deriveActiveCal(); saveCalStore(); renderCalList();
@@ -1128,7 +1128,7 @@ function parseCalText(text, fname){
       F2.push(f); G2.push(g);
     }
     const id='c'+Date.now();
-    micCalList.push({id, name:(fname||'כיול').replace(/\.[^.]+$/,''), f:F2, g:G2});
+    micCalList.push({id, name:(fname||"Calibration").replace(/\.[^.]+$/,''), f:F2, g:G2});
     activeCalId=id; deriveActiveCal(); saveCalStore(); renderCalList();
     if(eqPositions.length) computeAndShow();
     return true;
@@ -1142,10 +1142,10 @@ async function addCalFromFile(file){
     if(text==null){ text=await new Promise((res,rej)=>{ const r=new FileReader();
       r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); r.readAsText(file); }); }
     if(!parseCalText(text, file.name)){
-      alert('לא זיהיתי נתוני כיול בקובץ.\nהפורמט הצפוי: כל שורה = תדר [רווח/טאב/פסיק] dB. לדוגמה: 1000  -1.5');
+      alert("I did not detect calibration data in the file.\nThe expected format: each line = frequency [space/tab/comma] dB. For example: 1000 -1.5");
     }
   }catch(err){
-    alert('לא הצלחתי לקרוא את הקובץ.\nאם הוא ב־iCloud — הורד אותו מקומית קודם, ונסה קובץ בסיומת .txt / .cal / .frd.');
+    alert("I could not read the file.\nIf it's in iCloud — download it locally first, and try a file with the extension .txt / .cal / .frd.");
   }
 }
 const calPanel=document.getElementById('calPanel');
@@ -1154,9 +1154,9 @@ safeOn('calClose', 'click',closeModals);
 safeOn('calAdd', 'change',e=>{ if(e.target.files[0]) addCalFromFile(e.target.files[0]); e.target.value=''; });
 safeOn('calPasteBtn', 'click',()=>{
   const t=document.getElementById('calPaste').value;
-  if(!t.trim()){ alert('הדבק קודם את תוכן הקובץ.'); return; }
-  if(parseCalText(t,'כיול מודבק')) document.getElementById('calPaste').value='';
-  else alert('לא זיהיתי נתונים. כל שורה צריכה להיות: תדר [רווח/טאב] dB.');
+  if(!t.trim()){ alert("Paste the contents of the file first."); return; }
+  if(parseCalText(t,"Pasted calibration")) document.getElementById('calPaste').value='';
+  else alert("I did not recognize any data. Each line should be: Frequency [space/tab] dB.");
 });
 calPanel.addEventListener('dragover',e=>{ e.preventDefault(); calPanel.style.borderColor='var(--accent)'; });
 calPanel.addEventListener('dragleave',()=>{ calPanel.style.borderColor=''; });
@@ -1164,7 +1164,7 @@ calPanel.addEventListener('drop',e=>{ e.preventDefault(); calPanel.style.borderC
   const f=e.dataTransfer.files[0]; if(f) addCalFromFile(f); });
 safeOn('calResetBtn', 'click',()=>{
   if(!micCalList.length){ return; }
-  if(!confirm('לאפס ולמחוק את כל קבצי הכיולים?')) return;
+  if(!confirm("Reset and delete all calibration files?")) return;
   micCalList=[]; activeCalId=null; deriveActiveCal(); saveCalStore(); renderCalList();
 });
 
@@ -1182,13 +1182,13 @@ function setupMeasureDocks(){
   measureDockIds.forEach(id=>{
     const p=document.getElementById(id); if(!p)return;
     p.classList.add('measureDock'); if(stageEl) stageEl.appendChild(p);
-    const close=p.querySelector('[id$="Close"]'); if(close){close.classList.add('dockClose');close.textContent='✕';close.title='סגור';}
-    const more=document.createElement('button');more.className='dockMoreBtn';more.type='button';more.textContent='עוד ▾';
+    const close=p.querySelector('[id$="Close"]'); if(close){close.classList.add('dockClose');close.textContent='✕';close.title="Close";}
+    const more=document.createElement('button');more.className='dockMoreBtn';more.type='button';more.textContent="More ▾";
     more.addEventListener('click',()=>{
       // The TF workspace must always be inspectable in the field. Before a
       // result exists, its result section explains the next measurement step.
       p.classList.toggle('expanded');
-      more.textContent=p.classList.contains('expanded')?'פחות ▴':'עוד ▾';
+      more.textContent=p.classList.contains('expanded')?"Less ▴":"More ▾";
       if(p.id==='tfPanel' && p.classList.contains('expanded')) renderTFList();
       setTimeout(updateMeasureDockHeight,0);
     });
@@ -1198,11 +1198,11 @@ function setupMeasureDocks(){
       p.appendChild(more);
     }
   });
-  // heavy/advanced sections stay hidden until "עוד"
+  // heavy/advanced sections stay hidden until "More"
   ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
   ['tfSmooth','tfCohGate'].forEach(id=>dockAdvanced(id,1));
   // TF starts as a compact live workspace. Deep diagnostics and less-frequent
-  // actions move behind "עוד", leaving most of the screen to the graph.
+  // actions move behind "More", leaving most of the screen to the graph.
   dockAdvanced('tfCorrFill',2);
   dockAdvanced('tfUtilityBtns');
   ['eqModeSwitchA','eqModeSeg','cutOnlySeg','areaModeSeg','areaCutSeg','dlyCountSeg','rtLevel','rtRange'].forEach(id=>dockAdvanced(id,1));
@@ -1243,11 +1243,11 @@ function abortRT60(restoreGenerator=true){
   if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
   if(analyser) analyser.smoothingTimeConstant=parseFloat(document.getElementById('smooth').value);
   restoreRt60Generator(restoreGenerator);
-  if(rtStatus) rtStatus.textContent='המדידה בוטלה.';
+  if(rtStatus) rtStatus.textContent="The measurement was cancelled.";
 }
 function closeModals(){
   abortRT60();
-  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel','guidePanel'].forEach(id=>{const p=document.getElementById(id);if(p){p.classList.remove('open','expanded');const m=p.querySelector('.dockMoreBtn');if(m)m.textContent='עוד ▾';}});
+  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel','guidePanel'].forEach(id=>{const p=document.getElementById(id);if(p){p.classList.remove('open','expanded');const m=p.querySelector('.dockMoreBtn');if(m)m.textContent="More ▾";}});
   modalBg.classList.remove('show');
   if(typeof updateMeasureDockHeight==='function') updateMeasureDockHeight();
 }
@@ -1271,10 +1271,10 @@ safeOn('areaMeasBtn', 'click',()=>pickSource(measureArea,5000));
 let pendingMeasureFn=null, pendingDur=5000, pendingSourceOptions=null;
 const srcOverlay=document.getElementById('srcOverlay');
 function pickSource(fn, dur, options){
-  if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
+  if(!running){ alert("First turn on the microphone."); return; }
   pendingMeasureFn=fn;pendingDur=dur||5000;pendingSourceOptions=options||{};
   const allowed=Array.isArray(pendingSourceOptions.allowed)?pendingSourceOptions.allowed:['pink','sweep','external','external-sweep'];
-  const title=document.querySelector('#srcBox .srcTitle');if(title)title.textContent=pendingSourceOptions.title||'איזה אות להשמיע למדידה?';
+  const title=document.querySelector('#srcBox .srcTitle');if(title)title.textContent=pendingSourceOptions.title||"Choose a measurement signal";
   document.querySelectorAll('#srcBox button[data-src]').forEach(btn=>{btn.style.display=btn.dataset.src==='cancel'||allowed.includes(btn.dataset.src)?'':'none';});
   srcOverlay.classList.add('show');
 }
@@ -1317,7 +1317,7 @@ safeOn('areaResetBtn', 'click',()=>{
 });
 safeOn('areaEqBtn', 'click',suggestAreaEQ);
 function suggestAreaEQ(){
-  if(!areas.length){ alert('מדוד לפחות אזור אחד.'); return; }
+  if(!areas.length){ alert("Measure at least one area."); return; }
   const n=GEQ.length;
   const avg=new Array(n);
   for(let k=0;k<n;k++){ let p=0; areas.forEach(a=>p+=db2lin(a.db[k])); avg[k]=10*Math.log10(p/areas.length+1e-12); }
@@ -1329,18 +1329,18 @@ function suggestAreaEQ(){
 
   const cv2=document.getElementById('areaEqCanvas'); cv2.style.display='block'; drawGEQ(cv2,GEQ,corr);
 
-  const head = '<div class="sub" style="margin-bottom:6px; color:var(--text); font-weight:600;">ממוצע ' + areas.length + ' אזורים · יעד ' + (targetMode==='house'?'House':'שטוח') + ':</div>';
+  const head = "<div class=\"sub\" style=\"margin-bottom:6px; color:var(--text); font-weight:600;\">Average of " + areas.length + " areas · target " + (targetMode==='house'?'House':"Flat") + ':</div>';
   document.getElementById('areaEqList').innerHTML = head + (eqMode==='param' ? corrParamHtml(corr) : corrGridHtml(corr, null));
 }
 
 function updateAreaMeasBtn(){
   const b=document.getElementById('areaMeasBtn'), meas=areaState==='measuring';
-  b.textContent = meas?'מודד… החזק יציב':'מדוד אזור חדש (5ש\')'; b.style.opacity=meas?.5:1;
+  b.textContent = meas?"Measuring… hold steady":"Measure a new area (5s)"; b.style.opacity=meas?.5:1;
 }
 function measureArea(){
-  if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
-  if(areas.length>=4){ alert('הגעת ל־4 אזורים — מחק אחד כדי להוסיף.'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!running){ alert("First turn on the microphone."); return; }
+  if(areas.length>=4){ alert("You have reached 4 areas - delete one to add."); return; }
+  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   unfreezeForMeasure();
   const srcData = floatData;
   areaAccum=new Float64Array(srcData.length); areaFrames=0; areaState='measuring';
@@ -1356,12 +1356,12 @@ function measureArea(){
 }
 function renderAreaList(){
   const box=document.getElementById('areaList');
-  if(!areas.length){ box.innerHTML='<div class="sub">אין אזורים עדיין — מדוד את הראשון.</div>'; return; }
+  if(!areas.length){ box.innerHTML="<div class=\"sub\">No zones yet — measure the first one.</div>"; return; }
   box.innerHTML=areas.map((a,i)=>
     '<div class="areaRow"><span class="dot" style="background:'+a.color+'"></span>'+
     '<span class="nm">'+a.name+'</span>'+
-    '<button data-show="'+i+'" class="'+(a.show?'on':'')+'">'+(a.show?'מוצג':'מוסתר')+'</button>'+
-    '<button data-del="'+i+'">מחק</button></div>').join('');
+    '<button data-show="'+i+'" class="'+(a.show?'on':'')+'">'+(a.show?"Visible":"Hidden")+'</button>'+
+    '<button data-del="'+i+"\">Delete</button></div>").join('');
   box.querySelectorAll('[data-show]').forEach(b=>b.addEventListener('click',()=>{
     const i=+b.dataset.show; areas[i].show=!areas[i].show; renderAreaList();
   }));
@@ -1392,19 +1392,19 @@ function tfWorkflowSignalPresent(data){
   return peak>-85;
 }
 function evaluateTfVerification(coherence,gate,signalsOk){
-  if(!signalsOk)return {ok:false,passing:0,checked:0,mean:0,reason:'אין מספיק אות בשני הערוצים'};
+  if(!signalsOk)return {ok:false,passing:0,checked:0,mean:0,reason:"There is not enough signal on both channels"};
   const values=(coherence||[]).filter(Number.isFinite),checked=values.length;
   const passing=values.filter(c=>c>=Math.max(.4,gate)).length;
   const required=Math.max(3,Math.ceil(checked*.3));
   const mean=checked?values.reduce((sum,c)=>sum+c,0)/checked:0;
   const ok=checked>=3&&passing>=required;
-  return {ok,passing,checked,mean,reason:ok?'':'קוהרנטיות נמוכה מדי בטווח המדידה'};
+  return {ok,passing,checked,mean,reason:ok?'':"Coherence is too low in the measurement range"};
 }
 function tfWorkflowQuality(){
-  if(!running||!analyserRef||!audioCtx)return {ok:false,reason:'אין מדידה דו־ערוצית פעילה'};
+  if(!running||!analyserRef||!audioCtx)return {ok:false,reason:"There is no active dual-channel measurement"};
   const signalsOk=tfWorkflowSignalPresent(floatData)&&tfWorkflowSignalPresent(floatDataRef);
   const snap=tfCurrentSnapshot();
-  if(!snap)return {ok:false,reason:'עדיין אין נתוני TF'};
+  if(!snap)return {ok:false,reason:"No TF data yet"};
   const coherence=[];
   const lo=Math.max(31.5,eqMinFreq),hi=Math.min(16000,eqMaxFreq),gate=Math.max(.4,tfCohGate);
   for(const f of GEQ){
@@ -1434,8 +1434,8 @@ function syncTfWorkflowUi(message,tone){
   const trace=document.getElementById('tfTraceBtn');
   const eq=document.getElementById('tfMeasBtn');
   const info=document.getElementById('tfDelayInfo');
-  if(sync){sync.classList.toggle('on',tfDelayReady);sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':'1 · סנכרון TF';sync.disabled=busy;}
-  if(verify){verify.classList.toggle('on',tfWorkflowVerified);verify.textContent=tfWorkflowVerifying?'2 · מאמת…':tfWorkflowVerified?'✓ 2 · TF אומת':'2 · אימות TF';verify.disabled=busy||!tfDelayReady;}
+  if(sync){sync.classList.toggle('on',tfDelayReady);sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':"1 · Sync TF";sync.disabled=busy;}
+  if(verify){verify.classList.toggle('on',tfWorkflowVerified);verify.textContent=tfWorkflowVerifying?"2 · Verifying…":tfWorkflowVerified?"✓ 2 · TF verified":"2 · Verify TF";verify.disabled=busy||!tfDelayReady;}
   // Trace capture is intentionally independent of sync/verification. The
   // resulting trace carries its trust state instead of silently blocking.
   if(trace)trace.disabled=busy;
@@ -1444,9 +1444,9 @@ function syncTfWorkflowUi(message,tone){
     info.classList.remove('ready','warn');
     if(tone)info.classList.add(tone);
     if(message)info.innerHTML=message;
-    else if(!tfDelayReady)info.innerHTML='<b>שלב 1:</b> הפעל אות רחב־פס ובצע סנכרון TF';
-    else if(!tfWorkflowVerified)info.innerHTML='<b>✓ TF '+tfDelayMs.toFixed(2)+'ms</b> '+tfDelayQualityText+' · <b>שלב 2:</b> אמת פאזה וקוהרנטיות';
-    else {info.classList.add('ready');info.innerHTML='<b>✓ TF מוכן</b> · בחר לכידת Trace או מדידת EQ';}
+    else if(!tfDelayReady)info.innerHTML="<b>Step 1:</b> Play a broadband signal, then sync TF";
+    else if(!tfWorkflowVerified)info.innerHTML='<b>✓ TF '+tfDelayMs.toFixed(2)+'ms</b> '+tfDelayQualityText+" · <b>Step 2:</b> Verify phase and coherence";
+    else {info.classList.add('ready');info.innerHTML="<b>✓ TF ready</b> · Choose Capture Trace or Measure EQ";}
   }
 }
 function cancelTfWorkflowVerification(){
@@ -1454,23 +1454,23 @@ function cancelTfWorkflowVerification(){
   tfWorkflowVerifying=false;tfSweepAcquiring=false;
 }
 function verifyTfWorkflow(sourceKind='external',options={}){
-  if(!tfDelayReady){v3Toast('תחילה בצע סנכרון TF');return;}
-  if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
+  if(!tfDelayReady){v3Toast("First do TF sync");return;}
+  if(measureBusy()){v3Toast("Another measurement is active - wait for it to end");return;}
   const verifyMs=isSweepSource(sourceKind)?Math.max(3000,(genSweepDur+1)*1000):2000;
   setTfPhaseAndCoherence(true);
   tfWorkflowVerified=false;tfWorkflowVerifying=true;
   tfSweepAcquiring=isSweepSource(sourceKind);
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
-  syncTfWorkflowUi('<b>שלב 2:</b> אוסף נתוני פאזה וקוהרנטיות במשך 2 שניות…');
+  syncTfWorkflowUi("<b>Step 2:</b> Collecting phase and coherence for 2 seconds…");
   tfWorkflowVerifyTimer=setTimeout(()=>{
     tfWorkflowVerifyTimer=null;tfWorkflowVerifying=false;tfSweepAcquiring=false;
     const q=tfWorkflowQuality();
     tfWorkflowVerified=!!q.ok;
     if(q.ok){
-      syncTfWorkflowUi('<b>✓ שלב 2 הושלם</b> · '+q.passing+'/'+q.checked+' תחומים עברו סף קוהרנטיות · בחר Trace או EQ','ready');
-      v3Toast('TF אומת — אפשר ללכוד Trace או למדוד EQ');
+      syncTfWorkflowUi("<b>✓ Step 2 complete</b> · "+q.passing+'/'+q.checked+" bands passed the coherence threshold · Choose Trace or EQ",'ready');
+      v3Toast("Verified TF — Trace can be captured or EQ measured");
     }else{
-      syncTfWorkflowUi('<b>שלב 2 לא עבר:</b> '+q.reason+' · בדוק רמות, ניתוב ו־Reference ונסה שוב','warn');
+      syncTfWorkflowUi("<b>Step 2 failed:</b> "+q.reason+" · Check levels, routing and reference and try again",'warn');
       v3Toast(q.reason);
     }
   },verifyMs);
@@ -1561,10 +1561,10 @@ function resetTfWorkingAverage(reason='WAITING'){
 function updateTfWorkingAverage(live){
   if(!live)return null;
   const goodSignal=tfHasReferenceSignal(),confidence=live.confidence||tfBandConfidence(live);
-  if(!goodSignal){const held=tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH';syncTfAverageUi(held?'stable':'paused',held?'HELD · STABLE':'PAUSED · PLAY SIGNAL');syncTfFieldGuide(held?'4':'1',held?'התוצאה נשמרה על המסך':'הפעל Pink Noise רציף',held?'אפשר לבדוק וללחוץ Capture':'חבר את אותו האות למערכת ול־REF 2',held);return tfWorkingAverage;}
-  if(!tfDelayReady){syncTfAverageUi('paused','PAUSED · SYNC DELAY');syncTfFieldGuide('2','לחץ סנכרון TF','השאר את האות מתנגן בזמן הסנכרון');return tfWorkingAverage;}
-  if(!tfWorkflowVerified){syncTfAverageUi('paused','PAUSED · VERIFY');syncTfFieldGuide('3','לחץ אימות TF','השאר את האות מתנגן במשך כל האימות');return tfWorkingAverage;}
-  if(confidence.label==='LOW'){syncTfAverageUi('paused','PAUSED · LOW COHERENCE');syncTfFieldGuide('בדיקה','המדידה אינה אמינה','העלה Reference ובדוק ניתוב, רעש ו־Delay');return tfWorkingAverage;}
+  if(!goodSignal){const held=tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH';syncTfAverageUi(held?'stable':'paused',held?'HELD · STABLE':'PAUSED · PLAY SIGNAL');syncTfFieldGuide(held?'4':'1',held?"The result is saved on the screen":"Play continuous Pink Noise",held?"You can check and click Capture":"Connect the same signal to the system and REF 2",held);return tfWorkingAverage;}
+  if(!tfDelayReady){syncTfAverageUi('paused','PAUSED · SYNC DELAY');syncTfFieldGuide('2',"Click TF sync","Keep the signal playing while syncing");return tfWorkingAverage;}
+  if(!tfWorkflowVerified){syncTfAverageUi('paused','PAUSED · VERIFY');syncTfFieldGuide('3',"Click Verify TF","Keep the signal playing throughout the verification");return tfWorkingAverage;}
+  if(confidence.label==='LOW'){syncTfAverageUi('paused','PAUSED · LOW COHERENCE');syncTfFieldGuide("Check","The measurement is not reliable","Increase the reference level and check routing, noise and delay");return tfWorkingAverage;}
   const now=performance.now();if(now-tfAverageLastUpdate<90)return tfWorkingAverage;tfAverageLastUpdate=now;
   if(!tfWorkingAverage||tfWorkingAverage.mag.length!==live.mag.length){
     tfWorkingAverage={...live,mag:new Float32Array(live.mag),ph:new Float32Array(live.ph),coh:new Float32Array(live.coh),refDb:new Float32Array(live.refDb),micDb:new Float32Array(live.micDb)};tfAverageFrames=1;
@@ -1582,10 +1582,10 @@ function updateTfWorkingAverage(live){
     }
     tfWorkingAverage.offset+=(progressive)*(live.offset-tfWorkingAverage.offset);tfWorkingAverage.refOffset+=progressive*(live.refOffset-tfWorkingAverage.refOffset);tfWorkingAverage.t=Date.now();tfWorkingAverage.confidence=confidence;
   }
-  const stable=tfAverageFrames>=18&&confidence.label==='HIGH';syncTfAverageUi(stable?'stable':'acquiring',(stable?'STABLE · ':'ACQUIRING · ')+tfAverageFrames);syncTfFieldGuide(stable?'4':'4',stable?'מוכן ללכידת Trace':'אוסף Working Average',stable?'השאר את האות מתנגן ולחץ Capture':'השאר את האות מתנגן · '+tfAverageFrames+'/18',stable);
+  const stable=tfAverageFrames>=18&&confidence.label==='HIGH';syncTfAverageUi(stable?'stable':'acquiring',(stable?'STABLE · ':'ACQUIRING · ')+tfAverageFrames);syncTfFieldGuide(stable?'4':'4',stable?"Ready for Trace capture":"Collecting working average",stable?"Leave the signal playing and press Capture":"keep the signal playing "+tfAverageFrames+'/18',stable);
   return tfWorkingAverage;
 }
-safeOn('tfAverageReset','click',()=>{resetTfWorkingAverage('RESET');v3Toast('ממוצע TF אופס');});
+safeOn('tfAverageReset','click',()=>{resetTfWorkingAverage('RESET');v3Toast("TF average reset");});
 document.querySelectorAll('[data-tf-average]').forEach(btn=>btn.addEventListener('click',()=>{tfAverageMode=btn.dataset.tfAverage;document.querySelectorAll('[data-tf-average]').forEach(x=>x.classList.toggle('on',x===btn));resetTfWorkingAverage(tfAverageMode.toUpperCase());}));
 
 // V5.5.3 Trace Manager + Spatial Average
@@ -1651,8 +1651,8 @@ function tfMicOnlySnapshot(){
   return {mag,ph,coh,offset:values.length?values[Math.floor(values.length/2)]:0,sr:audioCtx.sampleRate,delayMs:0,t:Date.now(),captureKind:'mic-spectrum'};
 }
 function captureTfTrace(){
-  if(!running){ alert('הפעל Audio קודם.'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!running){ alert("Start audio first."); return; }
+  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'&&tfWorkflowQuality().ok);
   const current=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot();
   const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:current; if(!s) return;
@@ -1660,14 +1660,14 @@ function captureTfTrace(){
   s.type='tf';s.visible=true;s.verified=verified;s.status=verified?'Verified':'Unverified';
   s.name='TF '+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
   tfTraces.push(s); if(tfTraces.length>24) tfTraces.shift();
-  renderTfTraceLegend(); v3Toast(verified?'נלכד TF מאומת':'נלכד TF לא מאומת · Unverified');
+  renderTfTraceLegend(); v3Toast(verified?"Captured verified TF":"Captured unverified TF · Unverified");
 }
 function captureTfTraceFromSource(sourceKind){
   if(tfTraceCapturePending)return;
   tfTraceCapturePending=true;
   const waitMs=sourceKind==='sweep'?Math.round(genSweepDur*1000+700):1800;
-  syncTfWorkflowUi('<b>שלב 3:</b> אוסף ממוצע יציב מהמקור שנבחר…');
-  v3Toast(sourceKind==='external'?'ממתין למקור החיצוני ואז לוכד Trace':'הגנרטור פעיל · לוכד Trace בעוד רגע');
+  syncTfWorkflowUi("<b>Step 3:</b> Collecting a stable average from the selected source…");
+  v3Toast(sourceKind==='external'?"Waits for the external source and then captures Trace":"The generator is active · capturing Trace in a moment");
   tfTraceCaptureTimer=setTimeout(()=>{
     tfTraceCaptureTimer=null;tfTraceCapturePending=false;
     captureTfTrace();
@@ -1675,25 +1675,25 @@ function captureTfTraceFromSource(sourceKind){
   },waitMs);
 }
 function requestTfTraceCapture(){
-  if(!running){v3Toast('הפעל Audio קודם');return;}
-  if(measureBusy()){v3Toast('מדידה אחרת פעילה — המתן לסיומה');return;}
+  if(!running){v3Toast("Start audio first");return;}
+  if(measureBusy()){v3Toast("Another measurement is active - wait for it to end");return;}
   pickSource(captureTfTraceFromSource,2600,{
-    title:'איזה מקור להפעיל לצורך לכידת ה־Trace?',
+    title:"Which source to use for capturing the trace?",
     allowed:['pink','sweep','external']
   });
 }
 function captureWorkspaceTrace(){
-  if(!running){v3Toast('הפעל Audio קודם');return;}
+  if(!running){v3Toast("Start audio first");return;}
   if(v5WorkspaceMode==='tf'){
     requestTfTraceCapture();return;
   }
   const idx=tfTraces.length+1;
   tfTraces.push({type:'rta',visible:true,name:(mode==='spec'?'Waterfall ':'RTA ')+idx,color:TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length],values:lastV.slice(),bands:BANDS,t:Date.now()});
   if(tfTraces.length>24)tfTraces.shift();
-  renderTfTraceLegend();v3Toast('נלכד Trace להשוואה');
+  renderTfTraceLegend();v3Toast("Trace captured for comparison");
 }
 safeOn('tfTraceBtn','click',requestTfTraceCapture);
-safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast('Traces נוקו');});
+safeOn('tfTraceClearBtn','click',()=>{tfTraces=[];renderTfTraceLegend();v3Toast("Traces have been cleared");});
 
 function tfMagY(db,plotH){ const range=18; return plotH/2 - Math.max(-range,Math.min(range,db))/range*(plotH*.46); }
 function tfHasReferenceSignal(){
@@ -1712,16 +1712,16 @@ function tfDrawTrustGuide(W,plotH,verified,reason){
   ctx.save();
   ctx.textAlign='right';
   ctx.fillStyle=verified?(sunMode?'#278052':'#8bbba1'):(sunMode?'#7b6847':'#b5a17c');
-  ctx.font='500 9px ui-monospace,monospace';
+  ctx.font="500 9px Arial";
   ctx.fillText(verified?'Verified · ready to tune':'Unverified · verify before tuning',W-12,W<640?68:46);
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
-  const liveSignal=tfHasReferenceSignal();const live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return;tfDisplaySnapshot=live;const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
+  const liveSignal=tfHasReferenceSignal();const live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return;tfDisplaySnapshot=live;const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':"Check",stableHeld?"The verified result was saved on the screen":"Unverified result saved",stableHeld?"You can check and click Capture":"Play signal again, complete verification and wait for Stable",stableHeld);}
   const inputTop=28,inputBottom=Math.max(105,Math.floor(plotH*.52)),deltaTop=inputBottom+25,deltaBottom=plotH-18;
   const inputY=db=>inputTop+(12-Math.max(-36,Math.min(12,db)))/48*(inputBottom-inputTop);
   const deltaY=db=>deltaTop+(12-Math.max(-12,Math.min(12,db)))/24*(deltaBottom-deltaTop);
-  ctx.save();ctx.direction='ltr';ctx.font='9px ui-monospace,monospace';ctx.textAlign='left';
+  ctx.save();ctx.direction='ltr';ctx.font="9px Arial";ctx.textAlign='left';
   [-36,-24,-12,0,12].forEach(db=>{const y=inputY(db);ctx.strokeStyle=db===0?'rgba(245,158,11,.42)':'rgba(120,145,160,.14)';ctx.lineWidth=db===0?1.2:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillStyle=sunMode?'#536b78':'#78909d';ctx.fillText((db>0?'+':'')+db,4,y-3);});
   [-12,0,12].forEach(db=>{const y=deltaY(db);ctx.strokeStyle=db===0?'rgba(231,238,242,.55)':'rgba(120,145,160,.14)';ctx.lineWidth=db===0?1.3:1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillStyle=sunMode?'#536b78':'#78909d';ctx.fillText((db>0?'+':'')+db,4,y-3);});
   // The colored band is the audible system difference between mixer reference and microphone.
@@ -1737,7 +1737,7 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(live.mag.length-1,Math.max(1,Math.round(f/live.sr*TF_FFT_N)));if(live.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(tfNormalizedMagnitude(live,k));pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#8fb6c2';ctx.globalAlpha=.42;ctx.lineWidth=1;ctx.lineJoin='round';ctx.stroke();ctx.globalAlpha=1;
   if(working){ctx.beginPath();pen=false;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(working.mag.length-1,Math.max(1,Math.round(f/working.sr*TF_FFT_N)));if(working.coh[k]<tfCohGate){pen=false;continue;}const y=deltaY(tfNormalizedMagnitude(working,k));pen?ctx.lineTo(px,y):ctx.moveTo(px,y);pen=true;}ctx.strokeStyle='#52d9ff';ctx.lineWidth=2.8;ctx.shadowColor='rgba(82,217,255,.30)';ctx.shadowBlur=5;ctx.stroke();ctx.shadowBlur=0;}
   tfTraces.filter(t=>t.type!=='rta'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const y=deltaY(t.mag[k]-t.offset);p?ctx.lineTo(px,y):ctx.moveTo(px,y);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
-  ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('TOP · INPUTS — REF (source) vs MIC (system)',8,14);ctx.fillText('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE',8,deltaTop-9);
+  ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font="700 10px Arial";ctx.fillText('TOP · INPUTS — REF (source) vs MIC (system)',8,14);ctx.fillText('BOTTOM · SYSTEM RESPONSE — MIC − REF · 0 dB = NO CHANGE',8,deltaTop-9);
   ctx.fillStyle='#f59e0b';ctx.fillText('┈┈ REF 2 · MIXER',130,14);ctx.fillStyle='#38bdf8';ctx.fillText('━ MIC 1 · SYSTEM',260,14);ctx.fillStyle='#8fb6c2';ctx.fillText('━ LIVE',410,14);ctx.fillStyle='#52d9ff';ctx.fillText('━ WORKING AVG',470,14);
   const trustworthy=!!(tfDelayReady&&tfWorkflowVerified&&(!live.confidence||live.confidence.label!=='LOW'));
   tfDrawTrustGuide(W,plotH,trustworthy,live.confidence?.reason==='Low coherence'?'Next: improve REF/SNR, run Delay Sync, then Verify.':null);
@@ -1748,17 +1748,17 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
 function tfPrepareSelectedView(){
   const liveSignal=tfHasReferenceSignal(),live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return null;
   const working=liveSignal?updateTfWorkingAverage(live):tfWorkingAverage;
-  if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':'בדיקה',stableHeld?'התוצאה המאומתת נשמרה על המסך':'נשמרה תוצאה לא מאומתת',stableHeld?'אפשר לבדוק וללחוץ Capture':'הפעל שוב אות, השלם אימות והמתן ל־Stable',stableHeld);}
+  if(!liveSignal){const stableHeld=!!(working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');syncTfAverageUi(stableHeld?'stable':'paused',stableHeld?'HELD · STABLE':'HELD · UNVERIFIED');syncTfFieldGuide(stableHeld?'4':"Check",stableHeld?"The verified result was saved on the screen":"Unverified result saved",stableHeld?"You can check and click Capture":"Play signal again, complete verification and wait for Stable",stableHeld);}
   const snap=working||live;tfDisplaySnapshot=snap;
   const verified=!!(tfDelayReady&&tfWorkflowVerified&&working&&tfAverageFrames>=18&&working.confidence?.label==='HIGH');
   return {snap,liveSignal,verified};
 }
 function tfViewHeader(label,detail,color){
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='800 11px ui-monospace,monospace';ctx.fillStyle=color;ctx.fillText(label,12,18);ctx.font='9px ui-monospace,monospace';ctx.fillStyle=sunMode?'#526776':'#91a4b1';ctx.fillText(detail,12,34);ctx.restore();
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="800 11px Arial";ctx.fillStyle=color;ctx.fillText(label,12,18);ctx.font="9px Arial";ctx.fillStyle=sunMode?'#526776':'#91a4b1';ctx.fillText(detail,12,34);ctx.restore();
 }
 function tfDrawSelectedMagnitude(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";
   [18,12,6,0,-6,-12,-18].forEach(db=>{const yy=y(db);ctx.strokeStyle=db===0?'rgba(226,236,241,.62)':'rgba(120,145,160,.15)';ctx.lineWidth=db===0?1.5:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((db>0?'+':'')+db+' dB',5,yy-3);});
   const fill=new Path2D(),line=new Path2D();let pen=false;fill.moveTo(0,zero);
   for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(tfNormalizedMagnitude(s,k));if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
@@ -1768,7 +1768,7 @@ function tfDrawSelectedMagnitude(W,plotH,xForFreq){
 }
 function tfDrawSelectedPhase(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=42,bottom=plotH-14,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";
   const labels=unwrap?[-720,-360,0,360,720]:[-180,-90,0,90,180];labels.forEach(d=>{const yy=y(d);ctx.strokeStyle=d===0?'rgba(80,230,140,.38)':'rgba(120,145,160,.15)';ctx.lineWidth=d===0?1.4:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((d>0?'+':'')+d+'°',5,yy-3);});
   ctx.beginPath();let pen=false,have=false,prev=0,cum=0;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.ph.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),coh=s.coh[k]||0;if(gateOn&&coh<tfCohGate){pen=false;have=false;continue;}const raw=s.ph[k]||0;let ph=raw;if(unwrap){if(have){let d=raw-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;ph=cum;prev=raw;have=true;}let deg=ph*180/Math.PI;if(window.tfPhaseZeroAtCursor){const hz=Number(window.tfPhaseCursorHz)||1000,k0=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N)));deg-=(s.ph[k0]||0)*180/Math.PI;}const yy=y(deg);pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}ctx.strokeStyle='#50e68c';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.shadowColor='rgba(80,230,140,.26)';ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
   const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),coh=s.coh[k]||0,deg=(s.ph[k]||0)*180/Math.PI,cy=y(window.tfPhaseZeroAtCursor?0:deg);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=coh>=tfCohGate?'#50e68c':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
@@ -1776,7 +1776,7 @@ function tfDrawSelectedPhase(W,plotH,xForFreq){
 }
 function tfDrawSelectedCoherence(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=42,bottom=plotH-14,y=v=>bottom-Math.max(0,Math.min(1,v))*(bottom-top);
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font='9px ui-monospace,monospace';[0,.25,.5,.75,1].forEach(v=>{const yy=y(v);ctx.strokeStyle='rgba(120,145,160,.15)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText(v.toFixed(2),5,yy-3);});const gy=y(tfCohGate);ctx.setLineDash([6,4]);ctx.strokeStyle='#f5b942';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f5b942';ctx.fillText('GATE '+tfCohGate.toFixed(2),W-72,gy-5);
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";[0,.25,.5,.75,1].forEach(v=>{const yy=y(v);ctx.strokeStyle='rgba(120,145,160,.15)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText(v.toFixed(2),5,yy-3);});const gy=y(tfCohGate);ctx.setLineDash([6,4]);ctx.strokeStyle='#f5b942';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f5b942';ctx.fillText('GATE '+tfCohGate.toFixed(2),W-72,gy-5);
   const area=new Path2D(),line=new Path2D();area.moveTo(0,bottom);for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.coh.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),yy=y(s.coh[k]||0);px?line.lineTo(px,yy):line.moveTo(px,yy);area.lineTo(px,yy);}area.lineTo(W,bottom);area.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(80,230,140,.30)');grad.addColorStop(.55,'rgba(245,185,66,.16)');grad.addColorStop(1,'rgba(255,82,104,.22)');ctx.fillStyle=grad;ctx.fill(area);ctx.strokeStyle='#50e68c';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke(line);
   const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.coh.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),cv=s.coh[k]||0,cy=y(cv);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=cv>=tfCohGate?'#50e68c':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
   tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune','#50e68c');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
@@ -1804,19 +1804,19 @@ function tfDrawDualLiveView(W,plotH,nyquist){
   ctx.beginPath();ctx.moveTo(0,plotH);mic.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=.26;ctx.fillStyle=spectrumGradient;ctx.fill();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>{ctx.moveTo(p.x,plotH);ctx.lineTo(p.x,p.y);});ctx.strokeStyle=spectrumGradient;ctx.globalAlpha=.48;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
   ctx.beginPath();mic.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#b7f34a';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
-  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font='700 10px ui-monospace,monospace';ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',8,16);ctx.restore();
+  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font="700 10px Arial";ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',8,16);ctx.restore();
   tfDrawTrustGuide(W,plotH,false,'Next: connect a Reference channel, run Delay Sync, then Verify.');
   const drawCurve=(values,color,dash=[])=>{const bw=W/BANDS;ctx.beginPath();values.forEach((v,b)=>{const x=b*bw+bw/2,y=plotH-Math.max(0,Math.min(1,v))*plotH;b?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);};
   ctx.save();
   drawCurve(lastRefV,'#f59e0b',[6,4]);
-  ctx.font='700 11px monospace';ctx.textAlign='left';
+  ctx.font="700 11px Arial";ctx.textAlign='left';
   const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
   const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
   const legendX=12;
-  ctx.font='500 10px ui-monospace,monospace';
+  ctx.font="500 10px Arial";
   ctx.fillStyle=sunMode?'#167fa0':'#75b5cf';ctx.fillText('MIC 1 · '+micLevel.toFixed(1)+' dBFS',legendX,34);
   ctx.fillStyle=sunMode?'#85692f':'#b5a17c';ctx.fillText(refLevel<=-110?'REF 2 · No input signal':'REF 2 · '+refLevel.toFixed(1)+' dBFS',legendX,50);
-  ctx.textAlign='right';ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8193a2';
+  ctx.textAlign='right';ctx.font="9px Arial";ctx.fillStyle=sunMode?'#64748b':'#8193a2';
   ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
   ctx.restore();
 }
@@ -1837,11 +1837,11 @@ function drawDualInputRta(W,plotH,nyquist){
   const fill=(pts,color,alpha)=>{ctx.beginPath();ctx.moveTo(0,plotH);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;};
   const stroke=(pts,color,width)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();};
   fill(ref,'#ff4d5e',.32);fill(mic,'#258dff',.50);stroke(ref,'#ff4d5e',2.1);stroke(mic,'#45a5ff',2.1);
-  ctx.save();ctx.font='800 10px ui-monospace,monospace';ctx.fillStyle='rgba(3,13,19,.78)';ctx.fillRect(10,10,232,27);ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',20,28);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',112,28);ctx.fillStyle=sunMode?'#334b58':'#b6c8cf';ctx.fillText('M/R',202,28);ctx.restore();
+  ctx.save();ctx.font="800 10px Arial";ctx.fillStyle='rgba(3,13,19,.78)';ctx.fillRect(10,10,232,27);ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',20,28);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',112,28);ctx.fillStyle=sunMode?'#334b58':'#b6c8cf';ctx.fillText('M/R',202,28);ctx.restore();
   if(!tfHasReferenceSignal()){
     ctx.save();
     // Keep the reference status visible without covering the plot with an alert box.
-    ctx.font='500 10px ui-monospace,monospace';
+    ctx.font="500 10px Arial";
     ctx.fillStyle=sunMode?'#526674':'#94a8b3';
     ctx.textAlign='right';
     ctx.fillText('REF 2 · No input signal',W-12,W<480?52:27);
@@ -1874,19 +1874,19 @@ function runCombCheck(resultId){
   const el=document.getElementById(resultId||'combResult'); if(!el) return;
   el.style.display='block';
   const r=detectComb();
-  if(!r){ el.innerHTML='<span style="color:var(--dim)">אין מספיק אות. נגן רעש ורוד ונסה שוב.</span>'; return; }
+  if(!r){ el.innerHTML="<span style=\"color:var(--dim)\">Insufficient signal. Play pink noise and try again.</span>"; return; }
   const detected = r.strength>0.28 && r.depth>1.5;
   if(detected && r.inRange){
     const dist=r.delayMs/1000*343;
-    el.innerHTML='⚠ <b style="color:var(--warn)">זוהה ביטול (comb)</b><br>'+
-      '<span style="font-size:11px;color:var(--dim)">מרווח ~'+Math.round(r.spacingHz)+'Hz → הפרש זמן ~'+r.delayMs.toFixed(2)+'ms (~'+dist.toFixed(2)+'מ\').<br>'+
-      'מקור אפשרי: החזר מקיר/רצפה או שני רמקולים לא מיושרים.</span>';
+    el.innerHTML="⚠ <b style=\"color:var(--warn)\">Comb filtering detected</b><br>"+
+      "<span style=\"font-size:11px;color:var(--dim)\">interval ~"+Math.round(r.spacingHz)+"Hz → time difference ~"+r.delayMs.toFixed(2)+'ms (~'+dist.toFixed(2)+"m).<br>"+
+      "Possible source: reflection from wall/floor or two misaligned speakers.</span>";
   } else if(detected){
-    el.innerHTML='⚠ <b style="color:var(--warn)">נראות אדוות בתגובה</b><br>'+
-      '<span style="font-size:11px;color:var(--dim)">הפרש הזמן מחוץ לטווח שניתן למדוד כאן בוודאות (1.5–6ms).<br>'+
-      'למדידת הפרש זמן מדויק השתמש בכלי הדיליי.</span>';
+    el.innerHTML="⚠ <b style=\"color:var(--warn)\">Ripples detected in the response</b><br>"+
+      "<span style=\"font-size:11px;color:var(--dim)\">The time difference is outside the range that can be reliably measured here (1.5–6ms).<br>"+
+      "To measure an exact time difference use the delay tool.</span>";
   } else {
-    el.innerHTML='<b style="color:#39d98a">✓ לא זוהה ביטול משמעותי</b><br><span style="font-size:11px;color:var(--dim)">התגובה חלקה יחסית.</span>';
+    el.innerHTML="<b style=\"color:#39d98a\">✓ No significant cancellation detected</b><br><span style=\"font-size:11px;color:var(--dim)\">The response is relatively smooth.</span>";
   }
 }
 function updateTfLevels(){
@@ -1896,8 +1896,8 @@ function updateTfLevels(){
   analyserRef.getFloatTimeDomainData(timeDataRef);
   setGainEl(document.getElementById('tfMicFill'), document.getElementById('tfMicDb'), levelDb(timeData,2048));
   setGainEl(document.getElementById('tfRefFill'), document.getElementById('tfRefDb'), levelDb(timeDataRef,2048));
-  document.getElementById('tfL1').textContent = tfSwap?"כניסה 1 → רפרנס":"כניסה 1 → מיק'";
-  document.getElementById('tfL2').textContent = tfSwap?"כניסה 2 → מיק'":"כניסה 2 → רפרנס";
+  document.getElementById('tfL1').textContent = tfSwap?"Input 1 → REF":"Input 1 → MIC";
+  document.getElementById('tfL2').textContent = tfSwap?"Input 2 → MIC":"Input 2 → REF";
   
   const N=1024, maxLag=Math.min(4800, timeDataRef.length-N-1);
   const oa=timeData.length-N;
@@ -1930,24 +1930,24 @@ function updateTfLevels(){
     if(val){ val.textContent=(_tfCorr>=0?'+':'')+_tfCorr.toFixed(2); val.style.color=col; }
     if(tip){
       tip.style.color=col;
-      tip.textContent = bestVa<1e-6||bestVb<1e-6 ? 'אין מספיק אות בשני הערוצים' : _tfCorr<-0.2?'⚠ חשד לפולריות הפוכה' : _tfCorr>0.75?'מצוין · התאמה חזקה' : _tfCorr>0.4?'טוב · קיימת התאמה' : 'התאמה חלשה';
+      tip.textContent = bestVa<1e-6||bestVb<1e-6 ? "There is not enough signal on both channels" : _tfCorr<-0.2?"⚠ Possible inverted polarity" : _tfCorr>0.75?"Excellent · Strong match" : _tfCorr>0.4?"Good · Signal match" : "Weak match";
     }
   }
 }
 function tfMeasure(sourceKind='external'){
-  if(!running||!analyserRef){ alert('הפעל מיקרופון עם כרטיס קול (input סטריאו).'); return; }
-  if(!tfDelayReady||!tfWorkflowVerified){ alert('תחילה השלם סנכרון ואימות TF.'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!running||!analyserRef){ alert("Turn on a microphone with a sound card (stereo input)."); return; }
+  if(!tfDelayReady||!tfWorkflowVerified){ alert("First complete TF sync and verification."); return; }
+  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   unfreezeForMeasure();
   const bins=floatData.length;
   tfPxx.fill(0);tfPyy.fill(0);tfPxyRe.fill(0);tfPxyIm.fill(0);
   tfMic=new Float64Array(bins); tfRef=new Float64Array(bins); tfFrames=0; tfState='measuring';
   tfSweepAcquiring=isSweepSource(sourceKind);
-  const btn=document.getElementById('tfMeasBtn'); btn.textContent='מודד EQ…'; btn.style.opacity=.5;
+  const btn=document.getElementById('tfMeasBtn'); btn.textContent="Measuring EQ…"; btn.style.opacity=.5;
   syncTfWorkflowUi();
   tfMeasureTimer=setTimeout(()=>{
     tfMeasureTimer=null;if(!running||!audioCtx){tfState='idle';tfSweepAcquiring=false;syncTfWorkflowUi();return;}
-    tfState='idle'; btn.textContent='3ב · מדוד EQ שוב'; btn.style.opacity=1;
+    tfState='idle'; btn.textContent="3b · Measure EQ again"; btn.style.opacity=1;
     tfSweepAcquiring=false;
     tfCompute();
     syncTfWorkflowUi();
@@ -1982,8 +1982,8 @@ function tfCompute(){
   const on=rel.filter(Boolean).length;
   const corr=buildCorr(H, rel);
   tfResult={corr,H,rel,coh};
-  document.getElementById('tfInfo').textContent = on? 'מוצגים רק פסים שעברו גם סף Reference וגם קוהרנטיות '+tfCohGate.toFixed(2)+'.' :
-    'אין פסים אמינים — בדוק Reference, סנכרון TF, קוהרנטיות או החלפת ערוצים.';
+  document.getElementById('tfInfo').textContent = on? "Only bands that passed both Reference and Coherence thresholds are shown "+tfCohGate.toFixed(2)+'.' :
+    "No reliable bands — check Reference, TF sync, coherence or channel switching.";
   renderTFList();
 }
 
@@ -1991,27 +1991,27 @@ function renderTFList(){
   const box = document.getElementById('tfGeqList');
   const cv2 = document.getElementById('tfCanvas');
   if(!tfResult){
-    box.innerHTML='<div class="sub" style="padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2)">עדיין אין תוצאת TF. אפשר לכוון כאן Phase, Coh, Delay ועקומת יעד; לתוצאת תגובה מלאה ודא שערוץ 2 מקבל Reference ולחץ “מדוד EQ”.</div>';
+    box.innerHTML="<div class=\"sub\" style=\"padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2)\">No TF result yet. Phase, Coh, Delay and target curve can be adjusted here; For a full response result, make sure channel 2 receives Reference and press \"Measure EQ\".</div>";
     cv2.style.display = 'none';
     return;
   }
   
-  showGeqDock('תיקון EQ · דו־ערוצי');
+  showGeqDock("Two-channel EQ correction");
   drawGEQ(document.getElementById('eqCurveCanvas'), GEQ, tfResult.corr);
   cv2.style.display='none';
   eqCurveData = { freqs: GEQ.slice(), corr: tfResult.corr.slice() };
 
   if(tfMode==='param'){
-    const head='<div class="sub" style="margin-bottom:6px;color:var(--text);font-weight:600;">EQ פרמטרי · אופטימיזציית 6 Bands (יעד '+(targetMode==='house'?'House':'שטוח')+'):</div>';
+    const head="<div class=\"sub\" style=\"margin-bottom:6px;color:var(--text);font-weight:600;\">Parametric EQ · 6 Bands optimization (Target "+(targetMode==='house'?'House':"Flat")+'):</div>';
     box.innerHTML = head + corrParamHtml(tfResult.corr);
     return;
   }
-  const head='<div class="sub" style="margin-bottom:6px; color:var(--text); font-weight:600;">ערכי תיקון לגרפיק-EQ (31 פסים):</div>';
+  const head="<div class=\"sub\" style=\"margin-bottom:6px; color:var(--text); font-weight:600;\">Correction values ​​for graphic-EQ (31 bands):</div>";
   box.innerHTML = head + corrGridHtml(tfResult.corr, tfResult.rel);
 }
 
 function tfExportCsv(){
-  if(!tfResult){ alert('קודם מדוד.'); return; }
+  if(!tfResult){ alert("Take a measurement first."); return; }
   let rows='freq_hz,geq_correction_db,measured_db\n';
   GEQ.forEach((f,k)=> rows+=f+','+(tfResult.corr[k]==null?'':tfResult.corr[k].toFixed(1))+','+tfResult.H[k].toFixed(1)+'\n');
   download('tf_geq_'+stamp()+'.csv', URL.createObjectURL(new Blob([rows],{type:'text/csv'})));
@@ -2022,7 +2022,7 @@ safeOn('dlyBtn', 'click',()=>{
   showModal(dlyPanel);
   if(running && !workletReady){
     const st=document.getElementById('dlyStatus');
-    if(st){ st.innerHTML='<span style="color:var(--warn)">⚠ מנוע ההקלטה לא נטען — מדידת דיליי לא תעבוד. פתח את האתר דרך שרת/HTTPS (לא כקובץ מקומי).</span>'; }
+    if(st){ st.innerHTML="<span style=\"color:var(--warn)\">⚠ Recording engine not loaded — delay measurement will not work. Open the site via server/HTTPS (not as a local file).</span>"; }
   }
 });
 safeOn('dlyClose', 'click',closeModals);
@@ -2051,13 +2051,13 @@ function delayMsToMeters(ms){ return Number(ms)*343/1000; }
 function validateDistanceCalibration(pathMs,knownM,toleranceMs=.25){
   const path=Number(pathMs),known=Number(knownM),tolerance=Math.max(0,Number(toleranceMs)||0);
   if(!Number.isFinite(path)||path<0||!Number.isFinite(known)||known<=0){
-    return {ok:false,reason:'נתוני הכיול אינם תקינים'};
+    return {ok:false,reason:"The calibration data is incorrect"};
   }
   const acousticMs=known/343*1000;
   const rawOffsetMs=path-acousticMs;
   const measuredMaxM=delayMsToMeters(path);
   if(rawOffsetMs < -tolerance){
-    return {ok:false,reason:'המרחק שהוזן גדול מזמן ההגעה שנמדד',pathMs:path,knownM:known,acousticMs,rawOffsetMs,measuredMaxM};
+    return {ok:false,reason:"The entered distance exceeds the distance allowed by the measured arrival time",pathMs:path,knownM:known,acousticMs,rawOffsetMs,measuredMaxM};
   }
   return {ok:true,pathMs:path,knownM:known,acousticMs,rawOffsetMs,offsetMs:Math.max(0,rawOffsetMs),measuredMaxM,clamped:rawOffsetMs<0};
 }
@@ -2082,15 +2082,15 @@ function updateDlyUnitUi(){
   const state=document.getElementById('dlyDistanceCalState');
   if(state){
     state.innerHTML=Number.isFinite(dlyDistanceOffsetMs)
-      ? '<span style="color:#42d57b">✓ מכויל</span> · מרחק ייחוס '+dlyDistanceKnownM.toFixed(1)+'m · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'
+      ? "<span style=\"color:#42d57b\">✓ Calibrated</span>· Reference distance "+dlyDistanceKnownM.toFixed(1)+"m · System offset "+dlyDistanceOffsetMs.toFixed(2)+'ms'
       : dlyDistanceCalError
-        ? '<span style="color:var(--hot)">✕ הכיול נדחה</span> · '+dlyDistanceCalError
-        : 'למרחק אמיתי צריך לכייל פעם אחת מול מרחק ידוע.';
+        ? "<span style=\"color:var(--hot)\">✕ Calibration rejected</span>· "+dlyDistanceCalError
+        : "For a real distance you need to calibrate once against a known distance.";
   }
   const info=document.getElementById('dlyInfo');
   if(info)info.textContent=dlyDisplayUnit==='m'
-    ? (Number.isFinite(dlyDistanceOffsetMs)?'מרחק משוער לאחר הפחתת זמן המערכת. החלפת רמקול, DSP, ניתוב או כרטיס מחייבת כיול מחדש.':dlyDistanceCalError?'הכיול לא נשמר. תקן את המרחק הידוע ובצע מדידה מחדש.':'הצב את המיקרופון במרחק מדוד מהרמקול וכייל לפני הצגת מטרים.')
-    : 'הזמן המוחלט כולל את כל שרשרת המדידה ואינו מרחק פיזי. לכיוון רמקולים השתמש רק ב־Δ מול העוגן.';
+    ? (Number.isFinite(dlyDistanceOffsetMs)?"Approximate distance after subtracting system time. Replacing a speaker, DSP, routing or card requires recalibration.":dlyDistanceCalError?"The calibration is not saved. Correct the known distance and remeasure.":"Place the microphone at a measured distance from the speaker and calibrate before displaying meters.")
+    : "Absolute time includes the entire measurement chain and is not physical distance. Use only Δ relative to the anchor for speaker alignment.";
   if(typeof renderDlySpk==='function')renderDlySpk();
 }
 function resetDistanceCalibration(errorMessage=''){
@@ -2103,7 +2103,7 @@ document.querySelectorAll('#dlyUnitSeg button').forEach(b=>b.addEventListener('c
   const st=document.getElementById('dlyStatus');
   if(st&&st.dataset.delayResult==='path'&&dlyLastPathResult)renderDelayPathResult(dlyLastPathResult);
   else if(st&&st.dataset.delayResult==='speaker'&&dlyLastSpeakerResult)renderSpeakerMeasurementStatus(dlyLastSpeakerResult.index,dlyLastSpeakerResult.result);
-  else if(st&&dlyDisplayUnit==='m'&&!Number.isFinite(dlyDistanceOffsetMs))st.textContent='כדי למדוד מרחק: הצב את המיקרופון במרחק ידוע ולחץ “כייל מרחק”.';
+  else if(st&&dlyDisplayUnit==='m'&&!Number.isFinite(dlyDistanceOffsetMs))st.textContent="To measure distance: place the microphone at a known distance and click \"calibrate distance\".";
 }));
 
 function fft(re,im,inv){
@@ -2135,10 +2135,10 @@ function levelDb(buf,n){
   let s=0; for(let i=start;i<len;i++){ const v=buf[i]; s+=v*v; } return 20*Math.log10(Math.sqrt(s/(len-start))+1e-9);
 }
 function gainClass(db){
-  if(db>=-1) return ['clip','קליפ!'];
-  if(db>=-8) return ['hi','חזק ('+db.toFixed(0)+')'];
-  if(db>=-40) return ['ok','טוב ('+db.toFixed(0)+')'];
-  return ['lo','חלש ('+db.toFixed(0)+')'];
+  if(db>=-1) return ['clip',"Clipping!"];
+  if(db>=-8) return ['hi',"Strong ("+db.toFixed(0)+')'];
+  if(db>=-40) return ['ok',"Good ("+db.toFixed(0)+')'];
+  return ['lo',"Weak ("+db.toFixed(0)+')'];
 }
 function setGainEl(fill,lbl,db){
   let s=db;
@@ -2156,31 +2156,31 @@ function setGain(id, db){ setGainEl(document.getElementById(id+'Fill'), document
 
 function delayChecksHtml(res){
   const checks=res&&Array.isArray(res.checks)?res.checks:[];
-  let html='<span class="delayChecks" title="שלוש בדיקות יציבות">';
+  let html="<span class=\"delayChecks\" title=\"Three stability tests\">";
   for(let i=0;i<3;i++)html+='<i class="'+(checks[i]&&checks[i].reliable?'ok':'bad')+'"></i>';
   return html+'</span>';
 }
 function delayFailureText(res,silent){
-  if(silent==='mic')return 'המיקרופון לא קלט אות — בדוק גיין וחיבור.';
-  if(silent==='ref')return 'כניסה 2 (Reference) שקטה — בדוק את הניתוב מהמיקסר.';
+  if(silent==='mic')return "The microphone did not pick up a signal — check gain and connection.";
+  if(silent==='ref')return "Input 2 (Reference) is quiet — check the routing from the mixer.";
   const bw=res&&Number.isFinite(res.bandwidthHz)?res.bandwidthHz:0;
   const checks=res&&Number.isFinite(res.validChecks)?res.validChecks:0;
   const conf=res&&Number.isFinite(res.confidence)?Math.round(res.confidence*100):0;
   if(res&&res.method==='noise'&&bw>0&&bw<900){
-    return 'Pink Noise measurement unreliable — רוחב הפס השימושי צר מדי ('+Math.round(bw)+' Hz). נסה Sweep, העלה רמה או התקרב מעט ל־PA.';
+    return "Pink Noise measurement unreliable — the usable bandwidth is too narrow ("+Math.round(bw)+" Hz). Try Sweep, level up or get a little closer to the PA.";
   }
-  if(res&&checks)return 'UNSTABLE — רק '+checks+' מתוך 3 בדיקות התאימו · אמינות '+conf+'%. נסה Sweep, העלה רמה או השתק החזרות קרובות.';
-  return 'לא נמצא זמן הגעה ברור — ודא ששני הערוצים מקבלים אותו אות רחב־פס. אם אתה עובד מרחוק מה־PA, נסה Sweep.';
+  if(res&&checks)return "UNSTABLE — only "+checks+" of 3 checks matched · confidence "+conf+"%. Try a sweep, increase the level or reduce nearby reflections.";
+  return "No clear arrival time found - make sure both channels are receiving the same broadband signal. If you're working remotely from the PA, try Sweep.";
 }
 function dlyPathResultHtml(ms){
   const displayed=delayDisplayValue(ms,dlyDisplayUnit,dlyDistanceOffsetMs);
   if(dlyDisplayUnit==='m'&&displayed){
-    return 'מרחק אקוסטי משוער: <b>'+displayed.value.toFixed(2)+' מטר</b><br><span style="font-size:11px;color:var(--dim)">לאחר הפחתת קיזוז המערכת המכויל</span>';
+    return "Approximate acoustic distance:<b>"+displayed.value.toFixed(2)+" meter</b><br><span style=\"font-size:11px;color:var(--dim)\">after subtracting the calibrated system offset</span>";
   }
   if(dlyDisplayUnit==='m'){
-    return '<span style="color:var(--warn)">לא ניתן להציג מרחק לפני כיול מול מרחק ידוע</span>';
+    return "<span style=\"color:var(--warn)\">Unable to display distance before calibration against known distance</span>";
   }
-  return 'זמן נתיב כולל: <b>'+ms.toFixed(2)+' ms</b>';
+  return "Total path time: <b>"+ms.toFixed(2)+' ms</b>';
 }
 function renderDelayPathResult(res){
   const st=document.getElementById('dlyStatus');
@@ -2192,17 +2192,17 @@ function renderDelayPathResult(res){
   const stableLabel=res.reliable?'STABLE ✓':'UNSTABLE';
   const bw=Number.isFinite(res.bandwidthHz)&&res.bandwidthHz>0?Math.round(res.bandwidthHz):null;
   const method=res.method==='sweep'?'SWEEP':(res.method==='noise'?'PINK / NOISE':'AUTO');
-  const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+'% · פיזור '+spread;
+  const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+"% · Dispersion "+spread;
   const acousticDistance=(ms>0?delayMsToMeters(ms):null);
-  const diagnostic='<br><span style="font-size:11px;color:var(--dim)">'+method+(bw?' · Usable bandwidth ≈ '+bw+' Hz':'')+(acousticDistance!=null?' · זמן מעבר שקול ≈ '+acousticDistance.toFixed(1)+'m':'')+'</span>';
+  const diagnostic='<br><span style="font-size:11px;color:var(--dim)">'+method+(bw?' · Usable bandwidth ≈ '+bw+' Hz':'')+(acousticDistance!=null?" · Equivalent transit time ≈ "+acousticDistance.toFixed(1)+'m':'')+'</span>';
   const alternativeValues=res.alternatives&&res.alternatives.length
     ? res.alternatives.map(v=>{
         const displayed=delayDisplayValue(v,dlyDisplayUnit,dlyDistanceOffsetMs);
         return displayed?(displayed.unit==='m'?'≈'+displayed.value.toFixed(2)+'m':(v>=0?'+':'')+displayed.value.toFixed(1)+'ms'):null;
       }).filter(Boolean).join(', ')
     : '';
-  const alternatives=alternativeValues?'<br>פסגות חלופיות: '+alternativeValues:'';
-  st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?' · לא ממירים את המספר הזה למרחק':'')+alternatives+'</span>'+diagnostic;
+  const alternatives=alternativeValues?"<br>alternate peaks: "+alternativeValues:'';
+  st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?" · Do not convert this number to distance":'')+alternatives+'</span>'+diagnostic;
   st.dataset.delayResult='path';
 }
 function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
@@ -2218,11 +2218,11 @@ function delayChunkSize(sr,maxDelayMs){
 }
 function runDelayCapture(btn, cb, options){
   options=options||{};
-  if(!running||!analyserRef||!source){ alert('צריך כרטיס קול עם input סטריאו (מיק\'+רפרנס).'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!running||!analyserRef||!source){ alert("You need a sound card with stereo input (mic + reference)."); return; }
+  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   unfreezeForMeasure();
   dlyState='measuring';
-  const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent='בודק 1 · 2 · 3…';btn.style.opacity=.5;btn.disabled=true;}
+  const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent="Check 1 · 2 · 3…";btn.style.opacity=.5;btn.disabled=true;}
   const sr=audioCtx.sampleRate;
   const maxDelayMs=Math.max(20,Math.min(100,Number(options.maxDelayMs)||delaySearchMs));
   const minCapture=delayChunkSize(sr,maxDelayMs)*3/sr+.35;
@@ -2238,7 +2238,7 @@ function runDelayCapture(btn, cb, options){
   try {
     workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet');
   } catch(e) {
-    alert('AudioWorklet לא נטען. פתח את האתר דרך שרת (למשל Live Server ב-VSCode) ולא כקובץ מתיקייה.');
+    alert("AudioWorklet not loaded. Open the site through a server (eg Live Server in VSCode) and not as a file from a folder.");
     dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
     return;
   }
@@ -2281,13 +2281,13 @@ function runDelayCapture(btn, cb, options){
 }
 
 safeOn('dlyLoopbackBtn','click',function(){
-  if(!confirm('בדיקת חיבור דורשת שאותו אות בדיוק יגיע לשתי הכניסות.\nחבר/נתב את אותו Reference ל־MIC 1 ול־REF 2, ואז המשך.'))return;
+  if(!confirm("A connection test requires that the exact same signal arrives at both inputs.\nConnect/route the same Reference to MIC 1 and REF 2, then continue."))return;
   const btn=this,st=document.getElementById('dlyStatus');
   dlyLastPathResult=null;dlyLastSpeakerResult=null;delete st.dataset.delayResult;
   pickSource(sourceKind=>runDelayCapture(btn,(res,silent)=>{
     if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
     const ok=Math.abs(res.ms)<=.30;
-    st.innerHTML=(ok?'✓ החיבור מסונכרן':'⚠ קיים הפרש בין הכניסות')+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?'אפשר להמשיך למדידת רמקולים.':'בדוק עיבוד, ניתוב או פלאגינים באחד הערוצים לפני מדידת שטח.')+'</span>';
+    st.innerHTML=(ok?"✓ The connection is synchronized":"⚠ Input timing difference detected")+': <b>'+res.ms.toFixed(2)+' ms</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:'+(ok?'var(--dim)':'var(--warn)')+'">'+(ok?"You can continue measuring speakers.":"Check processing, routing or plugins on either channel before taking field measurements.")+'</span>';
   },{maxDelayMs:20,mode:'loopback',signalType:sourceKind}),3800);
 });
 
@@ -2297,22 +2297,22 @@ safeOn('dlyDistanceCalBtn','click',function(){
   const btn=this,st=document.getElementById('dlyStatus');
   dlyLastPathResult=null;dlyLastSpeakerResult=null;delete st.dataset.delayResult;
   if(!Number.isFinite(known)||known<.2||known>20){
-    resetDistanceCalibration('הזן מרחק ידוע בין 0.2 ל־20 מטר');
-    st.innerHTML='<span style="color:var(--hot)">✕ הכיול לא התחיל:</span> הזן מרחק ידוע תקין בין 0.2 ל־20 מטר.';
+    resetDistanceCalibration("Enter a known distance between 0.2 and 20 meters");
+    st.innerHTML="<span style=\"color:var(--hot)\">✕ Calibration did not start:</span>Enter a valid known distance between 0.2 and 20 meters.";
     return;
   }
   if(input)input.value=known.toFixed(1);
   resetDistanceCalibration();
-  st.textContent='הצב את המיקרופון בדיוק '+known.toFixed(1)+' מטר מהרמקול והשאר את אותו ניתוב.';
+  st.textContent="Place the microphone exactly "+known.toFixed(1)+" meters from the speaker and keep the same routing.";
   pickSource(()=>runDelayCapture(btn,(res,silent)=>{
     if(!res||!res.reliable){st.textContent=delayFailureText(res,silent);return;}
     const check=validateDistanceCalibration(res.ms,known);
     if(!check.ok){
       const measured=Number.isFinite(check.measuredMaxM)?check.measuredMaxM.toFixed(2):'—';
-      const reason='הוזנו '+known.toFixed(1)+'m, אך זמן ההגעה '+res.ms.toFixed(2)+'ms מתאים לכל היותר לכ־'+measured+'m';
+      const reason="Entered "+known.toFixed(1)+"m, but the arrival time "+res.ms.toFixed(2)+"ms fits at most approx."+measured+'m';
       resetDistanceCalibration(reason);
       dlyDisplayUnit='m';updateDlyUnitUi();
-      st.innerHTML='<span style="color:var(--hot)">✕ הכיול נדחה ולא נשמר.</span> '+reason+'.<br><span style="font-size:11px;color:var(--dim)">בדוק את המרחק מהמרכז האקוסטי של הרמקול והפעל כיול מחדש.</span>';
+      st.innerHTML="<span style=\"color:var(--hot)\">✕ The calibration was rejected and not saved.</span> "+reason+".<br><span style=\"font-size:11px;color:var(--dim)\">Check the distance from the acoustic center of the speaker and run calibration again.</span>";
       return;
     }
     dlyDistanceKnownM=known;
@@ -2320,13 +2320,13 @@ safeOn('dlyDistanceCalBtn','click',function(){
     dlyDistanceCalError='';
     dlyDisplayUnit='m';
     updateDlyUnitUi();
-    const clampNote=check.clamped?' · סטייה של '+Math.abs(check.rawOffsetMs).toFixed(2)+'ms נוטרלה בתחום הסבילות':'';
-    st.innerHTML='✓ כיול מרחק נשמר לסשן: <b>'+known.toFixed(1)+'m</b> '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">נמדדו '+res.ms.toFixed(2)+'ms · זמן אקוסטי צפוי '+check.acousticMs.toFixed(2)+'ms · קיזוז מערכת '+dlyDistanceOffsetMs.toFixed(2)+'ms'+clampNote+'.</span>';
+    const clampNote=check.clamped?" · Deviation of "+Math.abs(check.rawOffsetMs).toFixed(2)+"ms offset removed within tolerance":'';
+    st.innerHTML="✓ Distance calibration is saved for the session:<b>"+known.toFixed(1)+'m</b> '+delayChecksHtml(res)+"<br><span style=\"font-size:11px;color:var(--dim)\">Measured "+res.ms.toFixed(2)+"ms · expected acoustic time "+check.acousticMs.toFixed(2)+"ms · System offset "+dlyDistanceOffsetMs.toFixed(2)+'ms'+clampNote+'.</span>';
   },{maxDelayMs:delaySearchMs,mode:'distance-calibration'}),3800);
 });
 
 const DLY_NAMES=['Top','Sub','FF'];
-function dlyName(i){ return DLY_NAMES[i] || ('רמקול '+(i+1)); }
+function dlyName(i){ return DLY_NAMES[i] || ("Speaker "+(i+1)); }
 let dlySpeakers=[{name:dlyName(0),ms:null,confidence:0,spreadMs:null},{name:dlyName(1),ms:null,confidence:0,spreadMs:null}];
 let dlyAnchor=0;
 function setDlyCount(n){
@@ -2340,27 +2340,27 @@ function renderDlySpk(){
   box.innerHTML=dlySpeakers.map((s,i)=>{
     let add='—';
     if(s.ms!=null && dlySpeakers[dlyAnchor] && dlySpeakers[dlyAnchor].ms!=null){
-      if(i===dlyAnchor) add='<span style="color:var(--accent)">עוגן · יעד</span>';
+      if(i===dlyAnchor) add="<span style=\"color:var(--accent)\">Anchor · Target</span>";
       else{ const d=dlySpeakers[dlyAnchor].ms - s.ms;
         const equivalentM=delayMsToMeters(Math.abs(d));
-        if(Math.abs(d)<=.05)add='<b style="color:var(--accent)">✓ מיושר לעוגן</b>';
+        if(Math.abs(d)<=.05)add="<b style=\"color:var(--accent)\">✓ Aligned to anchor</b>";
         else if(d>0)add=dlyDisplayUnit==='m'
-          ? '<b style="color:var(--accent)">דיליי שקול +'+equivalentM.toFixed(2)+'m</b>'
-          : '<b style="color:var(--accent)">הוסף '+d.toFixed(2)+' ms</b>';
+          ? "<b style=\"color:var(--accent)\">Equivalent delay +"+equivalentM.toFixed(2)+'m</b>'
+          : "<b style=\"color:var(--accent)\">Add "+d.toFixed(2)+' ms</b>';
         else add=dlyDisplayUnit==='m'
-          ? '<span style="color:var(--warn)">מאוחר ב־'+equivalentM.toFixed(2)+'m<br>בחר אותו כעוגן</span>'
-          : '<span style="color:var(--warn)">מאוחר ב־'+Math.abs(d).toFixed(2)+'ms<br>בחר אותו כעוגן</span>'; }
+          ? "<span style=\"color:var(--warn)\">Later by"+equivalentM.toFixed(2)+"m<br>Select it as anchor</span>"
+          : "<span style=\"color:var(--warn)\">Later by"+Math.abs(d).toFixed(2)+"ms<br>select it as anchor</span>"; }
     }
     const distance=s.ms==null?null:calibratedDistanceMeters(s.ms,dlyDistanceOffsetMs);
-    const time=s.ms==null?'טרם נמדד'
+    const time=s.ms==null?"Not yet measured"
       :dlyDisplayUnit==='m'
-        ?(distance==null?'נדרש כיול מטרים':'≈ '+distance.toFixed(2)+' m')
-        :'נתיב '+s.ms.toFixed(2)+' ms'+(s.spreadMs!=null?' · ±'+(s.spreadMs/2).toFixed(2):'');
+        ?(distance==null?"Distance calibration required":'≈ '+distance.toFixed(2)+' m')
+        :"path "+s.ms.toFixed(2)+' ms'+(s.spreadMs!=null?' · ±'+(s.spreadMs/2).toFixed(2):'');
     return '<div class="dlySpeakerRow '+(i===dlyAnchor?'anchor':'')+'">'+
-      '<span class="dlyAnchor" data-a="'+i+'" title="בחר כעוגן">'+(i===dlyAnchor?'●':'○')+'</span>'+
+      '<span class="dlyAnchor" data-a="'+i+"\" title=\"Select as anchor\">"+(i===dlyAnchor?'●':'○')+'</span>'+
       '<input class="posName" data-i="'+i+'" value="'+escapeHtml(s.name||dlyName(i))+'">'+
       '<span class="dlyTime">'+time+'</span>'+
-      '<button class="toggle dlyMeasOne" data-i="'+i+'">מדוד</button>'+
+      '<button class="toggle dlyMeasOne" data-i="'+i+"\">Measure</button>"+
       '<span class="dlyDelta">'+add+'</span>'+
       '</div>';
   }).join('');
@@ -2370,8 +2370,8 @@ function renderDlySpk(){
     const i=+this.dataset.i, btn=this;
     const status=document.getElementById('dlyStatus');dlyLastPathResult=null;dlyLastSpeakerResult=null;if(status)delete status.dataset.delayResult;
     pickSource(()=>runDelayCapture(btn,(res,silent)=>{
-      if(res==null){ btn.textContent='נכשל'; setTimeout(()=>btn.textContent='מדוד',1500); return; }
-      if(!res.reliable){ btn.textContent='לא יציב'; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent='מדוד',1800); return; }
+      if(res==null){ btn.textContent="Failed"; setTimeout(()=>btn.textContent="Measure",1500); return; }
+      if(!res.reliable){ btn.textContent="Unstable"; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent="Measure",1800); return; }
       dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;
       dlyLastSpeakerResult={index:i,result:res};renderSpeakerMeasurementStatus(i,res);
       renderDlySpk();
@@ -2381,8 +2381,8 @@ function renderDlySpk(){
 function renderSpeakerMeasurementStatus(i,res){
   const st=document.getElementById('dlyStatus');if(!st||!res)return;
   const displayed=delayDisplayValue(res.ms,dlyDisplayUnit,dlyDistanceOffsetMs);
-  const value=displayed?(displayed.unit==='m'?displayed.value.toFixed(2)+'m':displayed.value.toFixed(2)+'ms'):'נשמר · נדרש כיול להצגת מטרים';
-  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+' נשמר: <b>'+value+'</b> '+delayChecksHtml(res)+' · עכשיו מדוד את הרמקול הבא בלי להזיז את המיקרופון.';
+  const value=displayed?(displayed.unit==='m'?displayed.value.toFixed(2)+'m':displayed.value.toFixed(2)+'ms'):"Saved · Calibration required to display meters";
+  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+" Saved:<b>"+value+'</b> '+delayChecksHtml(res)+" · Now measure the next speaker without moving the microphone.";
   st.dataset.delayResult='speaker';
 }
 document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('click',function(){
@@ -2700,11 +2700,11 @@ function cancelTimedMeasurements(){
 function unfreezeForMeasure(){
   if(!frozen) return;
   frozen=false; snapCurve=null;
-  const fz=document.getElementById('freezeBtn'); if(fz){ fz.classList.remove('on'); fz.textContent='הקפא'; }
+  const fz=document.getElementById('freezeBtn'); if(fz){ fz.classList.remove('on'); fz.textContent="Freeze"; }
 }
 function measurePosition(){
-  if(!running){ alert('קודם הפעל את המיקרופון.'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!running){ alert("First turn on the microphone."); return; }
+  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   unfreezeForMeasure();
   const srcData = floatData;
   measAccum=new Float64Array(srcData.length); measFrames=0; measState='measuring';
@@ -2713,7 +2713,7 @@ function measurePosition(){
     eqMeasureTimer=null;if(!running||!audioCtx){measState='idle';updateEqUI();return;}
     const bins=measAccum.length, nyq=audioCtx.sampleRate/2, R6=Math.pow(2,1/6);
     const db=GEQ.map(fc=>10*Math.log10(binOverlapLinearPower(measAccum,fc/R6,fc*R6,nyq,measFrames)+1e-12));
-    eqPositions.push({name:'מיקום '+(eqPositions.length+1), db}); measState='idle';
+    eqPositions.push({name:"Position "+(eqPositions.length+1), db}); measState='idle';
     computeAndShow(); updateEqUI(); renderEqList();
   },5000);
 }
@@ -2721,8 +2721,8 @@ function renderEqList(){
   const box=document.getElementById('eqPosList'); if(!box) return;
   if(!eqPositions.length){ box.innerHTML=''; return; }
   box.innerHTML=eqPositions.map((p,i)=>
-    '<div class="calRow"><input class="posName" data-i="'+i+'" value="'+escapeHtml(p.name||('מיקום '+(i+1)))+'">'+
-    '<span class="del" data-del="'+i+'" title="מחק מיקום">🗑</span></div>').join('');
+    '<div class="calRow"><input class="posName" data-i="'+i+'" value="'+escapeHtml(p.name||("Position "+(i+1)))+'">'+
+    '<span class="del" data-del="'+i+"\" title=\"Delete location\">🗑</span></div>").join('');
   box.querySelectorAll('.posName').forEach(inp=>inp.addEventListener('change',function(){
     const i=+this.dataset.i; if(eqPositions[i]) eqPositions[i].name=this.value; }));
   box.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',function(){
@@ -2741,7 +2741,7 @@ function bandDbFromBins(bd,fLo,fHi,nyq,bins){
   return binOverlapPowerDb(bd,fLo,fHi,nyq);
 }
 function computeAndShow(noModal){
-  if(!eqPositions.length){ alert('מדוד לפחות מיקום אחד.'); return; }
+  if(!eqPositions.length){ alert("Measure at least one location."); return; }
   const band=avgPositions();
   if(!band) return;
   const resp=GEQ.map((fc,k)=> band[k] - (micCal?micCalAt(fc):0));
@@ -2749,8 +2749,8 @@ function computeAndShow(noModal){
     const inBand=resp.filter((v,k)=>GEQ[k]>=63&&GEQ[k]<=8000);
     if(Math.max(...inBand) < -62){
       const box=document.getElementById('eqList');
-      if(box) box.innerHTML='<div class="sub" style="color:var(--warn)">⚠ לא זוהה אות מדידה.<br>'+
-        '<span style="color:var(--dim)">ודא שרעש ורוד מנוגן דרך המערכת ושגיין המיקרופון פתוח, ומדוד שוב.</span></div>';
+      if(box) box.innerHTML="<div class=\"sub\" style=\"color:var(--warn)\">⚠ No measurement signal detected.<br>"+
+        "<span style=\"color:var(--dim)\">Make sure pink noise is playing through the system and the microphone gain is open, and measure again.</span></div>";
       hideGeqDock();
       lastEqCorr=null; eqMarks=null; eqCurveData=null;
       return;
@@ -2759,7 +2759,7 @@ function computeAndShow(noModal){
   const rel=relByLevel(resp);
   const corr=buildCorr(resp, rel);
   eqCurveData={freqs:GEQ.slice(), corr:corr.slice()};
-  showGeqDock('תיקון EQ · חד־ערוצי');
+  showGeqDock("Single-channel EQ correction");
   drawGEQ(document.getElementById('eqCurveCanvas'), GEQ, corr);
   lastEqCorr=corr;
   renderEqResult();
@@ -2803,8 +2803,8 @@ function paramFromCorr(corr){
 
 function renderEqResult(){
   if(!lastEqCorr){ return; }
-  const head='<div class="sub" style="margin-bottom:6px; color:var(--text); font-weight:600;">יעד '+(targetMode==='house'?'House':'שטוח')+
-    (micCal?' · כיול פעיל':' · ללא כיול')+' · '+eqPositions.length+' מיקומים:</div>';
+  const head="<div class=\"sub\" style=\"margin-bottom:6px; color:var(--text); font-weight:600;\">Target "+(targetMode==='house'?'House':"Flat")+
+    (micCal?" · Active calibration":" · No calibration")+' · '+eqPositions.length+" Locations:</div>";
   const box=document.getElementById('eqList');
   box.innerHTML = head + (eqMode==='graphic' ? corrGridHtml(lastEqCorr, null) : corrParamHtml(lastEqCorr));
 }
@@ -2822,17 +2822,17 @@ safeOn('rtLevel', 'input',e=>{
 });
 safeOn('rtRunBtn', 'click',startRT60);
 safeOn('rtBtn', 'click',()=>{
-  if(!running||!audioCtx){ alert('קודם הפעל את המיקרופון.'); return; }
+  if(!running||!audioCtx){ alert("First turn on the microphone."); return; }
   showModal(rtPanel);
   { const c=document.getElementById('rtCanvas'); if(c) c.style.display='none'; }
-  rtStatus.innerHTML='כוונן עוצמה, ואז לחץ "התחל מדידה".';
+  rtStatus.innerHTML="Adjust intensity, then click \"Start measurement\".";
 });
 function startRT60(){
-  if(!running||!audioCtx){ alert('קודם הפעל את המיקרופון.'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
+  if(!running||!audioCtx){ alert("First turn on the microphone."); return; }
+  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   unfreezeForMeasure();
   rt60State='arming';
-  rtStatus.innerHTML='מכין… משמיע רעש ורוד';
+  rtStatus.innerHTML="Preparing… playing pink noise";
   rt60PreviousGenerator={on:genOn,type:genType};
   genType='pink';setGenTypeUI('pink');genStart({preserveTfSync:true,autoSync:false});
   const boost=rtLevel;
@@ -2841,7 +2841,7 @@ function startRT60(){
 
   rt60ArmTimer=setTimeout(()=>{
     rt60ArmTimer=null;if(rt60State!=='arming')return;
-    rtStatus.innerHTML='מודד דעיכה…';
+    rtStatus.innerHTML="Measuring decay…";
     rt60Samples=[]; rt60State='capture';
     const nyq=audioCtx.sampleRate/2;
     const bandEdges=RT_BANDS.map(fc=>{ const bins=floatData.length;
@@ -2896,9 +2896,9 @@ function analyzeDecay(series, cutT, needRange){
 }
 function analyzeRT60(){
   const s=rt60Samples;
-  if(s.length<20){ rtStatus.innerHTML='מדידה נכשלה — נדגמו רק '+s.length+' דגימות.<br><span style="font-size:11px;color:var(--dim)">ודא שהמיקרופון פעיל ונסה שוב.</span>'; return; }
+  if(s.length<20){ rtStatus.innerHTML="Measurement failed - only sampled "+s.length+" samples.<br><span style=\"font-size:11px;color:var(--dim)\">Make sure the microphone is active and try again.</span>"; return; }
   const bb=analyzeDecay(s.map(x=>({t:x.t,db:x.db})), rt60CutT, rtRange);
-  if(!bb || bb.post.length<10){ rtStatus.innerHTML='מדידה נכשלה — לא נלכדה דעיכה.'; return; }
+  if(!bb || bb.post.length<10){ rtStatus.innerHTML="Measurement failed — no decay captured."; return; }
   let bandsHtml='';
   if(s[0].bands){
     bandsHtml='<div class="tfGrid" style="margin-top:8px">';
@@ -2906,7 +2906,7 @@ function analyzeRT60(){
       const series=s.map(x=>({t:x.t, db:x.bands[bi]}));
       const r=analyzeDecay(series, rt60CutT, rtRange);
       const fStr=fc>=1000?(fc/1000)+'k':fc+'';
-      const val=(r&&r.rt60)?r.rt60.toFixed(2)+'ש\'':'—';
+      const val=(r&&r.rt60)?r.rt60.toFixed(2)+"s":'—';
       const cls=(r&&r.rt60)?(r.rt60>0.8?'cut':(r.rt60<0.3?'off':'boost')):'off';
       bandsHtml+='<div class="tfItem '+cls+'"><span class="f">'+fStr+'Hz</span><span class="g">'+val+'</span></div>';
     });
@@ -2914,13 +2914,13 @@ function analyzeRT60(){
   }
   if(bb.rt60){
     const approx=bb.span<rtRange;
-    rtStatus.innerHTML='RT60 ≈ <b>'+bb.rt60.toFixed(2)+' ש\'</b> <span style="font-size:11px;color:var(--dim)">(רחב־פס · טווח '+bb.span.toFixed(0)+'dB)</span>'+
-      (approx?'<br><span style="font-size:10px;color:var(--warn)">משוער — טווח דעיכה קטן</span>':'')+bandsHtml;
+    rtStatus.innerHTML='RT60 ≈ <b>'+bb.rt60.toFixed(2)+" s</b> <span style=\"font-size:11px;color:var(--dim)\">(broadband · range "+bb.span.toFixed(0)+'dB)</span>'+
+      (approx?"<br><span style=\"font-size:10px;color:var(--warn)\">approximate — small decay range</span>":'')+bandsHtml;
     drawRTPlot(bb.post, bb.steady, bb.slope, bb.intercept);
   } else {
-    rtStatus.innerHTML='אין דעיכה רחב־פס למדוד ('+(bb.span>0?bb.span.toFixed(0):'0')+'dB).'+
-      '<br><span style="font-size:11px;color:var(--dim)">רמת אות: '+bb.steady.toFixed(0)+'dB · רעש רקע: '+bb.noise.toFixed(0)+'dB.<br>'+
-      (bb.steady-bb.noise<15?'העלה עוצמת PA (האות קרוב מדי לרעש הרקע).':'הורד "טווח דעיכה נדרש".')+'</span>'+bandsHtml;
+    rtStatus.innerHTML="There is no broadband decay to measure ("+(bb.span>0?bb.span.toFixed(0):'0')+'dB).'+
+      "<br><span style=\"font-size:11px;color:var(--dim)\">Signal level: "+bb.steady.toFixed(0)+"dB · Background noise: "+bb.noise.toFixed(0)+'dB.<br>'+
+      (bb.steady-bb.noise<15?"Increase PA volume (signal too close to background noise).":"Reduce Required decay range.")+'</span>'+bandsHtml;
     drawRTPlot(bb.post, bb.steady, null, 0);
   }
 }
@@ -2932,7 +2932,7 @@ function drawRTPlot(post, steady, slope, intercept){
   const tMax=Math.max(0.5, post.length?post[post.length-1].t:1);
   const dbMin=steady-65, dbMax=steady+3;
   const X=t=>t/tMax*W, Y=db=>H-(db-dbMin)/(dbMax-dbMin)*H;
-  x.strokeStyle=sunMode?'#cbd5e1':'#2b3646'; x.fillStyle=sunMode?'#475569':'#8b97a5'; x.font='9px monospace';
+  x.strokeStyle=sunMode?'#cbd5e1':'#2b3646'; x.fillStyle=sunMode?'#475569':'#8b97a5'; x.font="9px Arial";
   for(let d=0;d>=-60;d-=10){ const yy=Y(steady+d); x.globalAlpha=.5;
     x.beginPath();x.moveTo(0,yy);x.lineTo(W,yy);x.stroke(); x.globalAlpha=1; x.fillText(d+'dB',2,yy-2); }
   x.strokeStyle='#2f9bff'; x.lineWidth=1.5; x.beginPath();
@@ -2947,7 +2947,7 @@ function setRtaResolution(value){
   const requested=parseInt(value,10);
   const bpo=allowed.reduce((best,n)=>Math.abs(n-requested)<Math.abs(best-requested)?n:best,6);
   const slider=document.getElementById('res');if(slider)slider.value=String(bpo);
-  document.getElementById('resVal').textContent='1/'+bpo+' אוקטבה';
+  document.getElementById('resVal').textContent='1/'+bpo+" octave";
   buildBands(bpo);
   prefSet('rta_res', bpo);
   v3UpdateStatus();
@@ -2956,7 +2956,7 @@ function setRtaResolution(value){
   document.querySelectorAll('[data-display-bpo]').forEach(btn=>{const on=parseInt(btn.dataset.displayBpo,10)===bpo;btn.classList.toggle('on',on);btn.setAttribute('aria-pressed',String(on));});
   return bpo;
 }
-document.querySelectorAll('[data-display-bpo]').forEach(btn=>btn.addEventListener('click',()=>{setRtaResolution(btn.dataset.displayBpo);v3Toast('רזולוציה: 1/'+curBpo+' אוקטבה');}));
+document.querySelectorAll('[data-display-bpo]').forEach(btn=>btn.addEventListener('click',()=>{setRtaResolution(btn.dataset.displayBpo);v3Toast("Resolution: 1/"+curBpo+" octave");}));
 safeOn('res', 'input',e=>{
   setRtaResolution(e.target.value);
 });
@@ -2970,21 +2970,21 @@ document.querySelectorAll('#v3ResMenu button').forEach(btn=>btn.addEventListener
   e.stopPropagation();setRtaResolution(btn.dataset.bpo);
   const menu=document.getElementById('v3ResMenu');if(menu)menu.classList.remove('open');
   const chip=document.getElementById('v3ResChip');if(chip)chip.setAttribute('aria-expanded','false');
-  v3Toast('רזולוציית RTA: 1/'+curBpo+' אוקטבה');
+  v3Toast("RTA Resolution: 1/"+curBpo+" octave");
 }));
 document.addEventListener('click',()=>{
   const menu=document.getElementById('v3ResMenu');if(menu)menu.classList.remove('open');
   const chip=document.getElementById('v3ResChip');if(chip)chip.setAttribute('aria-expanded','false');
 });
 function setFft(n){
-  if(measureBusy()){alert('לא ניתן לשנות FFT בזמן מדידה פעילה.');return;}
+  if(measureBusy()){alert("FFT cannot be changed while measurement is active.");return;}
   const supported=(window.GAL&&window.GAL.config&&window.GAL.config.supportedFft)||[8192,16384,32768];
   n=parseInt(n,10);
   fftSize=supported.includes(n)?n:16384;
   const hadAlignment=!!(phaseSub||phaseTop);
   configureTfFft(fftSize);
-  if(hadAlignment)clearSubTopSnapshots('רזולוציית FFT השתנתה — מדוד שוב סאב וטופ.');
-  if(tfDelayReady)syncTfWorkflowUi('<b>רזולוציית FFT השתנתה:</b> בצע שוב את אימות TF','warn');
+  if(hadAlignment)clearSubTopSnapshots("FFT resolution changed — measure sub and top again.");
+  if(tfDelayReady)syncTfWorkflowUi("<b>FFT resolution changed:</b> Perform TF verification again",'warn');
   setTimeout(v3UpdateStatus,0);
   if(analyser){
     analyser.fftSize=fftSize; analyserRef.fftSize=fftSize;
@@ -3009,9 +3009,9 @@ function setAlign(on){
   const stage=document.getElementById('stage');
   const b=document.getElementById('alignBtn'); if(b) b.classList.toggle('on',on);
   if(on) closeModals();
-  // דחיפת הגרף: הקנבס מתכווץ לפי גובה הסרגל
+  // Resize the canvas to reserve space for the toolbar
   if(stage){
-    const h = (on && bar) ? bar.offsetHeight : 0;   // offsetHeight מכריח חישוב layout
+    const h = (on && bar) ? bar.offsetHeight : 0;   // offsetHeight forces a layout measurement
     stage.style.setProperty('--bar-h', h+'px');
     stage.classList.toggle('bar-open', on);
   }
@@ -3030,11 +3030,11 @@ function resetSession(){
   if(running && (!tr || tr.readyState==='ended')){ stop(); start(); return; }
   peaks.fill(0); avgBuf.fill(0); snapCurve=null; frozen=false;
   abA=null; abB=null; abView='off';
-  { const a=document.getElementById('abCapA'); if(a){ a.classList.remove('on'); a.textContent='לכוד לפני (A)'; } }
-  { const b=document.getElementById('abCapB'); if(b){ b.classList.remove('on'); b.textContent='לכוד אחרי (B)'; } }
+  { const a=document.getElementById('abCapA'); if(a){ a.classList.remove('on'); a.textContent="Capture Before (A)"; } }
+  { const b=document.getElementById('abCapB'); if(b){ b.classList.remove('on'); b.textContent="Capture After (B)"; } }
   refCurve=null;
-  { const rc=document.getElementById('refCurveBtn'); if(rc){ rc.classList.remove('on'); rc.textContent='שמור כ״לפני״'; } }
-  const fz=document.getElementById('freezeBtn'); fz.classList.remove('on'); fz.textContent='הקפא';
+  { const rc=document.getElementById('refCurveBtn'); if(rc){ rc.classList.remove('on'); rc.textContent="Save Before"; } }
+  const fz=document.getElementById('freezeBtn'); fz.classList.remove('on'); fz.textContent="Freeze";
   eqPositions=[]; eqMarks=null; eqCurveData=null; lastEqCorr=null;
   { const pl=document.getElementById('eqPosList'); if(pl) pl.innerHTML=''; const el=document.getElementById('eqList'); if(el) el.innerHTML=''; }
   document.getElementById('eqList').innerHTML=''; hideGeqDock();
@@ -3119,15 +3119,15 @@ async function start(deviceId){
     track.addEventListener('ended',()=>{
       if(!running) return;
       errBox.style.display='block';
-      errBox.textContent='מקור הקלט נותק. חבר מחדש ולחץ "אפס סשן".';
+      errBox.textContent="The input source is disconnected. Reconnect and click \"Reset Session\".";
     });
     const settings = track.getSettings ? track.getSettings() : {};
     chReceived = Number(settings.channelCount) || 1;
     const isSafari=/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
     const ci = document.getElementById('chCount');
     if(ci){
-      if(chReceived>=2){ ci.textContent='ערוצים: '+chReceived+' ✓ סטריאו'; ci.style.color='#39d98a'; }
-      else { ci.innerHTML='ערוצים: 1 ⚠ מונו — אין ערוץ 2'+(!isSafari?' · לערוץ 2 השתמש ב-Safari':''); ci.style.color='var(--hot)'; }
+      if(chReceived>=2){ ci.textContent="Channels: "+chReceived+" ✓ Stereo"; ci.style.color='#39d98a'; }
+      else { ci.innerHTML="Channels: 1 ⚠ Mono — no channel 2"+(!isSafari?" · For channel 2 use Safari":''); ci.style.color='var(--hot)'; }
     }
 
     analyser = audioCtx.createAnalyser();
@@ -3177,7 +3177,7 @@ async function start(deviceId){
     draw();
   } catch(e) {
     errBox.style.display = 'block';
-    errBox.textContent = 'לא ניתן לגשת למיקרופון: ' + (e.message || e.name) + '. יש לאשר הרשאה ולהריץ מעל HTTPS.';
+    errBox.textContent = "Unable to access microphone: " + (e.message || e.name) + ". Allow microphone access and open the app over HTTPS.";
   }
 }
 
@@ -3188,11 +3188,11 @@ async function populateInputs(){
     const ins=devs.filter(d=>d.kind==='audioinput');
     const sel=document.getElementById('inSel');
     sel.innerHTML='';
-    { const o=document.createElement('option'); o.value=''; o.textContent='ברירת מחדל של המערכת'; sel.appendChild(o); }
+    { const o=document.createElement('option'); o.value=''; o.textContent="System default"; sel.appendChild(o); }
     ins.forEach((d,i)=>{
       if(d.deviceId==='default'||d.deviceId==='') return;
       const o=document.createElement('option');
-      o.value=d.deviceId; o.textContent=d.label||('מיקרופון '+(i+1));
+      o.value=d.deviceId; o.textContent=d.label||("microphone "+(i+1));
       sel.appendChild(o);
     });
     sel.value = userPickedIn ? (activeInId||'') : '';
@@ -3200,11 +3200,11 @@ async function populateInputs(){
     const outs=devs.filter(d=>d.kind==='audiooutput');
     const osel=document.getElementById('outSel');
     osel.innerHTML='';
-    { const o=document.createElement('option'); o.value=''; o.textContent='ברירת מחדל של המערכת'; osel.appendChild(o); }
+    { const o=document.createElement('option'); o.value=''; o.textContent="System default"; osel.appendChild(o); }
     outs.forEach((d,i)=>{
       if(d.deviceId==='default'||d.deviceId==='') return;
       const o=document.createElement('option');
-      o.value=d.deviceId; o.textContent=d.label||('פלט '+(i+1));
+      o.value=d.deviceId; o.textContent=d.label||("output "+(i+1));
       osel.appendChild(o);
     });
     osel.value = userPickedOut ? (outSinkId||'') : '';
@@ -3221,7 +3221,7 @@ async function applyOutput(deviceId){
 safeOn('outSel', 'change',async e=>{
   userPickedOut = e.target.value!=='';
   const ok=await applyOutput(e.target.value);
-  if(!ok) alert('הדפדפן לא תומך בבחירת יציאת פלט. הגדר את הפלט ב־macOS: הגדרות → סאונד → פלט.');
+  if(!ok) alert("The browser does not support selecting an output port. Set the output in macOS: Settings → Sound → Output.");
 });
 
 async function switchInput(deviceId){
@@ -3241,7 +3241,7 @@ async function stop(){
   rt60State='idle'; measState='idle'; areaState='idle'; dlyState='idle';
   analyserRef=null; floatDataRef=null; tfState='idle'; eqCurveData=null;
   genSrc=null; genOsc=null; genGain=null; genOn=false;
-  const gb=document.getElementById('genOnBtn'); if(gb){gb.classList.remove('on');gb.textContent='▶ הפעל אות';}
+  const gb=document.getElementById('genOnBtn'); if(gb){gb.classList.remove('on');gb.textContent="▶ Start signal";}
   if(stream) stream.getTracks().forEach(t=>t.stop());
   if(audioCtx) await audioCtx.close();
   dot.classList.remove('live'); idle.style.display='flex';
@@ -3308,7 +3308,7 @@ const SHARED_FREQUENCY_TICKS=[20,31.5,50,100,200,500,1000,2000,5000,10000,20000]
 function drawSharedFrequencyAxis(W,plotH,xForFreq){
   const lo=ISO[0],hi=ISO[BANDS-1],y=Math.max(12,plotH-6);
   ctx.save();ctx.direction='ltr';ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  ctx.font='700 10px ui-monospace,SFMono-Regular,Menlo,monospace';
+  ctx.font="700 10px Arial";
   SHARED_FREQUENCY_TICKS.filter(f=>f>=lo&&f<=hi).forEach(f=>{
     const x=Math.max(14,Math.min(W-14,xForFreq(f))),label=fLabel(f);
     ctx.lineWidth=3.5;ctx.lineJoin='round';
@@ -3419,11 +3419,11 @@ function draw(){
     const tip=document.getElementById('gainTip');
     if(tip){
       let msg, col='var(--dim)';
-      if(!genOn) msg='נגן אות כדי לבדוק את הרמות.';
-      else if(micDb>=-1){ msg='⚠ קליפ! הורד את גיין המיק\' במיקסר.'; col='var(--hot)'; }
-      else if(micDb>=-8){ msg='חזק — אפשר להוריד מעט גיין מיק\'.'; col='var(--warn)'; }
-      else if(micDb>=-40){ msg='✓ רמה טובה — אפשר למדוד.'; col='#39d98a'; }
-      else { msg='חלש — הגבר גיין מיק\' במיקסר או העלה עוצמת PA.'; col='var(--warn)'; }
+      if(!genOn) msg="Play a signal to check the levels.";
+      else if(micDb>=-1){ msg="⚠ Clipping! Reduce microphone gain on the mixer."; col='var(--hot)'; }
+      else if(micDb>=-8){ msg="Strong - you can lower the mic gain a little."; col='var(--warn)'; }
+      else if(micDb>=-40){ msg="✓ A good level - it is possible to measure."; col='#39d98a'; }
+      else { msg="Weak — increase the mic gain in the mixer or increase the PA volume."; col='var(--warn)'; }
       tip.textContent=msg; tip.style.color=col;
     }
   }
@@ -3509,7 +3509,7 @@ function drawRtaEqRange(W,H,xForFreq){
     const active=eqRtaRangeDrag===side;
     ctx.globalAlpha=active?1:.72;ctx.strokeStyle=color;ctx.lineWidth=active?2.4:1.35;ctx.setLineDash(active?[]:[4,4]);
     ctx.beginPath();ctx.moveTo(x,31);ctx.lineTo(x,plotH);ctx.stroke();ctx.setLineDash([]);
-    ctx.font='700 10px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif';
+    ctx.font="700 10px Arial";
     const bw=Math.max(68,ctx.measureText(label).width+16),bh=20,bx=side==='min'?Math.min(x+5,W-bw-4):Math.max(4,x-bw-5),by=7,r=7;
     ctx.beginPath();ctx.moveTo(bx+r,by);ctx.lineTo(bx+bw-r,by);ctx.quadraticCurveTo(bx+bw,by,bx+bw,by+r);ctx.lineTo(bx+bw,by+bh-r);ctx.quadraticCurveTo(bx+bw,by+bh,bx+bw-r,by+bh);ctx.lineTo(bx+r,by+bh);ctx.quadraticCurveTo(bx,by+bh,bx,by+bh-r);ctx.lineTo(bx,by+r);ctx.quadraticCurveTo(bx,by,bx+r,by);ctx.closePath();
     ctx.fillStyle=sunMode?'rgba(255,255,255,.94)':'rgba(8,19,28,.92)';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1;ctx.stroke();
@@ -3531,7 +3531,7 @@ function drawRtaEqCorrection(W,H,xForFreq){
   ctx.strokeStyle=sunMode?'rgba(71,85,105,.35)':'rgba(148,163,184,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(W,mid);ctx.stroke();
   ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#55b9f3';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
   pts.forEach(p=>{if(Math.abs(p.v)<.5)return;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle=p.v<0?'#ff5a78':'#50e68c';ctx.fill();});
-  ctx.font='800 10px sans-serif';ctx.textAlign='left';ctx.fillStyle=sunMode?'#334155':'#d8e5ee';ctx.fillText('תיקון EQ מוצע  ·  ±6dB',10,top+14);
+  ctx.font="800 10px Arial";ctx.textAlign='left';ctx.fillStyle=sunMode?'#334155':'#d8e5ee';ctx.fillText("Suggested EQ correction · ±6dB",10,top+14);
   ctx.textAlign='right';ctx.fillStyle='#50e68c';ctx.fillText('+6',W-8,top+12);ctx.fillStyle='#ff5a78';ctx.fillText('−6',W-8,top+ribbonH-6);
   ctx.restore();
 }
@@ -3551,7 +3551,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   const plotH = H - meterH - 6;
   ctx.strokeStyle=sunMode ? '#cbd5e1' : '#2b3646'; 
   ctx.fillStyle=sunMode ? '#475569' : '#aeb9c7'; 
-  ctx.font='11px monospace'; ctx.textAlign='center';
+  ctx.font="11px Arial"; ctx.textAlign='center';
   const lo=ISO[0], hi=ISO[BANDS-1];
   [20,31.5,50,100,200,500,1000,2000,5000,10000,20000].filter(f=>f>=lo&&f<=hi).forEach(f=>{
     const x=xForFreq(f);
@@ -3659,19 +3659,19 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       }
       ctx.stroke();
       // Phase reference grid and frequency cursor.
-      ctx.save();ctx.font='9px monospace';ctx.fillStyle=sunMode?'#64748b':'#8291a3';
+      ctx.save();ctx.font="9px Arial";ctx.fillStyle=sunMode?'#64748b':'#8291a3';
       const labels=unwrap?[-720,-360,0,360,720]:[-180,-90,0,90,180];
       labels.forEach(d=>{const y=unwrap?plotH*(1-(d+720)/1440):plotH*(.5-d/360);ctx.strokeStyle=d===0?'rgba(34,197,94,.28)':'rgba(148,163,184,.10)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillText(d+'°',4,Math.max(10,Math.min(plotH-2,y-2)));});
       const cx=xForFreq(cursorHz);ctx.strokeStyle='rgba(255,255,255,.50)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,plotH);ctx.stroke();ctx.setLineDash([]);
       ctx.restore();
     }
 
-    // ---- יישור חיתוך סאב/טופ: פאזה לא-עטופה + סמן + Δφ ----
+    // ---- Sub / Top crossover alignment: unwrapped phase, marker and phase difference ----
     if(alignView || (showXover && (phaseSub || phaseTop))){
       const N2 = TF_FFT_N/2;
       const toDeg=r=>r*180/Math.PI;
       const wrap=d=>{ while(d>180)d-=360; while(d<-180)d+=360; return d; };
-      // ביטול עטיפה (unwrap) של צילום פאזה, מגודר בקוהרנטיות
+      // Unwrap phase snapshots with coherence gating
       const unwrapSnap=(snap)=>{
         if(!snap) return null;
         const u=new Float32Array(N2); let cum=0, prev=0, have=false;
@@ -3687,20 +3687,20 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       const uSub = alignView ? unwrapSnap(phaseSub) : null;
       const uTop = alignView ? unwrapSnap(phaseTop) : null;
 
-      // קביעת טווח Y אוטומטי (רק ב-align עם unwrap)
+      // Automatic Y range for unwrapped alignment phase
       let yMinDeg=-180, yMaxDeg=180;
       if(alignView && (uSub || uTop)){
         let mn=1e9, mx=-1e9;
         [uSub,uTop].forEach(u=>{ if(!u) return; for(let k=0;k<N2;k++){ const v=u[k]; if(!isNaN(v)){ const d=toDeg(v); if(d<mn)mn=d; if(d>mx)mx=d; } } });
         if(mn<mx){ const pad=Math.max(30,(mx-mn)*0.15); yMinDeg=mn-pad; yMaxDeg=mx+pad; }
       }
-      // ---- פריסה: תגובה (dB) למעלה, פאזה (°) למטה ----
+      // ---- Layout: response (dB) above, phase (degrees) below ----
       const magH = alignView ? plotH*0.5 : 0;
       const phBase = magH + (alignView?8:0);
       const phH = plotH - phBase;
       const degToY = deg => phBase + phH*(1-(deg-yMinDeg)/(yMaxDeg-yMinDeg));
 
-      // קנה מידה אוטומטי למגניטודה מתוך תגובת הסאב/טופ
+      // Scale magnitude automatically from the Sub / Top response
       let magMin=-60, magMax=0;
       if(alignView){
         let mn=1e9, mx=-1e9;
@@ -3710,9 +3710,9 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       const magToY = db => Math.max(0,Math.min(magH, magH*(1-(db-magMin)/(magMax-magMin))));
 
       if(alignView){
-        // רשת מגניטודה + תוויות dB
+        // Magnitude grid and dB labels
         ctx.strokeStyle=sunMode?'rgba(0,0,0,.10)':'rgba(255,255,255,.08)'; ctx.lineWidth=1;
-        ctx.fillStyle=sunMode?'#475569':'#64748b'; ctx.font='10px monospace';
+        ctx.fillStyle=sunMode?'#475569':'#64748b'; ctx.font="10px Arial";
         const mstep=(magMax-magMin)>40?12:6;
         for(let d=Math.ceil(magMin/mstep)*mstep; d<=magMax; d+=mstep){
           const y=magToY(d); if(y<0||y>magH) continue;
@@ -3721,18 +3721,18 @@ function drawRta(W,H,nyquist,bins,xForFreq){
           ctx.fillText(d.toFixed(0)+'dB', 4, y-2);
           ctx.direction=pd; ctx.textAlign='start';
         }
-        // קו מפריד בין תגובה לפאזה
+        // Divider between response and phase
         ctx.strokeStyle=sunMode?'rgba(0,0,0,.25)':'rgba(255,255,255,.22)'; ctx.lineWidth=1;
         ctx.beginPath(); ctx.moveTo(0,magH); ctx.lineTo(W,magH); ctx.stroke();
-        // תוויות אזור
-        ctx.fillStyle=sunMode?'#94a3b8':'#94a3b8'; ctx.font='10px monospace';
-        const pd2=ctx.direction; ctx.direction='rtl'; ctx.textAlign='right';
-        ctx.fillText('תגובה', W-6, 12);
-        ctx.fillText('פאזה', W-6, phBase+12);
+        // Region labels
+        ctx.fillStyle=sunMode?'#94a3b8':'#94a3b8'; ctx.font="10px Arial";
+        const pd2=ctx.direction; ctx.direction='ltr'; ctx.textAlign='right';
+        ctx.fillText("Response", W-6, 12);
+        ctx.fillText("Phase", W-6, phBase+12);
         ctx.direction=pd2; ctx.textAlign='start';
-        // רשת פאזה + תוויות מעלות (באזור הפאזה)
+        // Phase grid and degree labels
         ctx.strokeStyle=sunMode?'rgba(0,0,0,.12)':'rgba(255,255,255,.10)'; ctx.lineWidth=1;
-        ctx.fillStyle=sunMode?'#475569':'#64748b'; ctx.font='10px monospace';
+        ctx.fillStyle=sunMode?'#475569':'#64748b'; ctx.font="10px Arial";
         const step = (yMaxDeg-yMinDeg)>540?180:90;
         for(let d=Math.ceil(yMinDeg/step)*step; d<=yMaxDeg; d+=step){
           const y=degToY(d); if(y<phBase-1||y>plotH+1) continue;
@@ -3744,7 +3744,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
         }
       }
 
-      // מגניטודה — קווים דקים (למעלה)
+      // Magnitude: thin lines in the upper region
       const drawMag=(snap,color)=>{
         if(!alignView || !snap || !snap.mag) return;
         ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.globalAlpha=0.85; ctx.beginPath();
@@ -3760,7 +3760,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       drawMag(phaseSub, '#38bdf8');
       drawMag(phaseTop, '#e879f9');
 
-      // פאזה — קווים עבים (למטה)
+      // Phase: thick lines in the lower region
       const drawSnap=(snap,unw,color)=>{
         if(!snap) return;
         ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.beginPath();
@@ -3778,10 +3778,10 @@ function drawRta(W,H,nyquist,bins,xForFreq){
         }
         ctx.stroke();
       };
-      drawSnap(phaseSub, uSub, '#38bdf8');  // סאב = תכלת
-      drawSnap(phaseTop, uTop, '#e879f9');  // טופ = ורוד
+      drawSnap(phaseSub, uSub, '#38bdf8');  // Sub = cyan
+      drawSnap(phaseTop, uTop, '#e879f9');  // Top = pink
 
-      // סמן תדר החיתוך
+      // Crossover frequency marker
       const mx=xForFreq(xoverF);
       ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.setLineDash([5,4]); ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(mx,0); ctx.lineTo(mx,plotH); ctx.stroke(); ctx.setLineDash([]);
@@ -3795,24 +3795,24 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.fillStyle=sunMode?'rgba(255,255,255,.92)':'rgba(10,15,25,.85)';
       ctx.fillRect(bx,by,boxW,86);
       ctx.strokeStyle='rgba(148,163,184,.5)'; ctx.lineWidth=1; ctx.strokeRect(bx,by,boxW,86);
-      ctx.font='12px monospace';
-      const prevDir=ctx.direction; ctx.direction='rtl'; ctx.textAlign='right';
+      ctx.font="12px Arial";
+      const prevDir=ctx.direction; ctx.direction='ltr'; ctx.textAlign='right';
       const rx=bx+boxW-10;
-      ctx.fillStyle=sunMode?'#0f172a':'#e5e7eb'; ctx.fillText('תדר חיתוך: '+xoverF+' Hz', rx, by+18);
-      ctx.fillStyle='#38bdf8'; ctx.fillText('סאב: '+(subOk?toDeg(phaseSub.ph[k]).toFixed(0)+'°':'— קוה׳ נמוכה'), rx, by+36);
-      ctx.fillStyle='#e879f9'; ctx.fillText('טופ: '+(topOk?toDeg(phaseTop.ph[k]).toFixed(0)+'°':'— קוה׳ נמוכה'), rx, by+54);
+      ctx.fillStyle=sunMode?'#0f172a':'#e5e7eb'; ctx.fillText("Crossover: "+xoverF+' Hz', rx, by+18);
+      ctx.fillStyle='#38bdf8'; ctx.fillText("Sub: "+(subOk?toDeg(phaseSub.ph[k]).toFixed(0)+'°':"— Low coherence"), rx, by+36);
+      ctx.fillStyle='#e879f9'; ctx.fillText("Top: "+(topOk?toDeg(phaseTop.ph[k]).toFixed(0)+'°':"— Low coherence"), rx, by+54);
       if(subOk && topOk){
         const d=wrap(toDeg(phaseTop.ph[k]-phaseSub.ph[k])); const ad=Math.abs(d);
         const col = ad<30?'#22c55e':'#f59e0b';
-        const verdict = ad<30?'מיושר ✓':'המלצה למטה';
+        const verdict = ad<30?"Aligned ✓":"Recommendation below";
         ctx.fillStyle=col; ctx.fillText('Δφ: '+(d>0?'+':'')+d.toFixed(0)+'°  '+verdict, rx, by+76);
       } else {
-        ctx.fillStyle=sunMode?'#64748b':'#94a3b8'; ctx.fillText('לכוד סאב וטופ למדידת Δφ', rx, by+76);
+        ctx.fillStyle=sunMode?'#64748b':'#94a3b8'; ctx.fillText("Capture Sub and Top to measure Δφ", rx, by+76);
       }
       ctx.direction=prevDir; ctx.textAlign='start';
     }
     
-    ctx.font='11px monospace'; ctx.textAlign='start';
+    ctx.font="11px Arial"; ctx.textAlign='start';
     if(showTfCoh){ ctx.fillStyle='rgba(239, 68, 68, 0.9)'; ctx.fillText('- - COHERENCE', 10, 64); }
     if(showTfPhase){ ctx.fillStyle='rgba(34, 197, 94, 0.9)'; ctx.fillText('— PHASE', 10, showTfCoh?78:64); }
   }
@@ -3821,8 +3821,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.strokeStyle='#b57bff'; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath();
     for(let b=0;b<BANDS;b++){ const x=b*bw+bw/2, yy=plotH-refCurve.v[b]*plotH; b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy); }
     ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='#b57bff'; ctx.font='11px monospace'; ctx.textAlign='start';
-    ctx.fillText('- - לפני', 10, tfOpen?(showTfCoh&&showTfPhase?70:showTfCoh||showTfPhase?56:42):14);
+    ctx.fillStyle='#b57bff'; ctx.font="11px Arial"; ctx.textAlign='start';
+    ctx.fillText("- - before", 10, tfOpen?(showTfCoh&&showTfPhase?70:showTfCoh||showTfPhase?56:42):14);
   }
 
   if(!tfOpen){
@@ -3832,14 +3832,14 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.stroke();ctx.globalAlpha=1;
     });
     if(tfRequested && !alignOn && !tfHasReferenceSignal()){
-      ctx.save();ctx.font='600 10px monospace';ctx.textAlign='right';
-      ctx.font='500 10px ui-monospace,monospace';
+      ctx.save();ctx.font="600 10px Arial";ctx.textAlign='right';
+      ctx.font="500 10px Arial";
       ctx.fillStyle=sunMode?'#526674':'#94a8b3';
       ctx.fillText('Reference low · check input',W-12,W<640?84:27);ctx.restore();
     }
   }
 
-  // ---- השוואת A/B (לפני/אחרי כיוון) ----
+  // ---- A/B comparison (before/after adjustment) ----
   if(abA || abB){
     const graph=(snap,line,fill,doFill)=>{
       if(!snap || !snap.f || !snap.f.length) return;
@@ -3854,12 +3854,12 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       for(let i=0;i<snap.f.length;i++){ const x=xForFreq(snap.f[i]), yy=plotH-norm(snap.db[i])*plotH; i===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy); }
       ctx.strokeStyle=line; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
     };
-    ctx.font='12px monospace'; ctx.textAlign='start';
+    ctx.font="12px Arial"; ctx.textAlign='start';
     let ly = tfOpen ? 92 : 20;
     if(abView!=='off'){
       const bothOn = (abView==='both');
-      if((abView==='A'||abView==='both') && abA){ graph(abA,'#f59e0b','rgba(245,158,11,0.18)',bothOn); ctx.fillStyle='#f59e0b'; ctx.fillText('■ לפני הכיוון (A)',10,ly); ly+=16; }
-      if((abView==='B'||abView==='both') && abB){ graph(abB,'#22c55e','rgba(34,197,94,0.18)',bothOn); ctx.fillStyle='#22c55e'; ctx.fillText('■ אחרי הכיוון (B)',10,ly); ly+=16; }
+      if((abView==='A'||abView==='both') && abA){ graph(abA,'#f59e0b','rgba(245,158,11,0.18)',bothOn); ctx.fillStyle='#f59e0b'; ctx.fillText("■ Before adjustment (A)",10,ly); ly+=16; }
+      if((abView==='B'||abView==='both') && abB){ graph(abB,'#22c55e','rgba(34,197,94,0.18)',bothOn); ctx.fillStyle='#22c55e'; ctx.fillText("■ After adjustment (B)",10,ly); ly+=16; }
       if(abView==='delta' && abA && abB){
         const midY=plotH/2;
         ctx.setLineDash([4,4]); ctx.strokeStyle=sunMode?'rgba(0,0,0,.25)':'rgba(255,255,255,.28)';
@@ -3872,12 +3872,12 @@ function drawRta(W,H,nyquist,bins,xForFreq){
           i===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);
         }
         ctx.stroke();
-        ctx.fillStyle='#39d98a'; ctx.fillText('Δ אחרי−לפני · קו אמצע=0 · טווח ±20dB',10,ly); ly+=16;
+        ctx.fillStyle='#39d98a'; ctx.fillText("Δ after−before · center line=0 · range ±20dB",10,ly); ly+=16;
       }
     }
     if(abA && !abB){
       ctx.fillStyle=sunMode?'#b45309':'#fbbf24';
-      ctx.fillText('לפני (A) נלכד ✓ — כוונן את המערכת ואז לחץ ״לכוד אחרי (B)״', 10, ly);
+      ctx.fillText("Before (A) is captured ✓ — adjust the system and then press \"Capture after (B)\"", 10, ly);
     }
   }
   if(snapCurve && snapCurve.length===BANDS){
@@ -3887,8 +3887,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);
     }
     ctx.stroke();
-    ctx.fillStyle='#ffb020'; ctx.font='10px monospace'; ctx.textAlign='start';
-    ctx.fillText('הקפאה', 8, 12);
+    ctx.fillStyle='#ffb020'; ctx.font="10px Arial"; ctx.textAlign='start';
+    ctx.fillText("freeze", 8, 12);
     const peaks=[];
     for(let b=1;b<BANDS-1;b++){
       const v=snapCurve[b];
@@ -3903,7 +3903,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       const hz=bi*nyquist/bins;
       const lbl=hz>=1000?(hz/1000).toFixed(2)+'k':Math.round(hz)+'';
       ctx.fillStyle='#ffb020'; ctx.beginPath(); ctx.arc(x,yy,3,0,6.28); ctx.fill();
-      ctx.font='10px monospace'; ctx.textAlign='center';
+      ctx.font="10px Arial"; ctx.textAlign='center';
       const tw=ctx.measureText(lbl).width+6;
       ctx.fillStyle=sunMode?'#f1f5f9':'rgba(13,17,23,.9)'; ctx.fillRect(x-tw/2, yy-16, tw, 13);
       ctx.fillStyle='#b45309'; ctx.fillText(lbl, x, yy-6);
@@ -3927,8 +3927,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);
     }
     ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle='rgba(80,230,140,.9)'; ctx.font='10px monospace'; ctx.textAlign='end';
-    ctx.fillText(tfOpen?(targetMode==='house'?'Target House · TF':'Target 0dB · TF'):(targetMode==='house'?'יעד House':'יעד שטוח'), W-8, 12);
+    ctx.fillStyle='rgba(80,230,140,.9)'; ctx.font="10px Arial"; ctx.textAlign='end';
+    ctx.fillText(tfOpen?(targetMode==='house'?'Target House · TF':'Target 0dB · TF'):(targetMode==='house'?"Target House":"flat target"), W-8, 12);
   }
   if(cursorX!=null && cursorX>=0 && cursorX<=W){
     const cf=freqForX(cursorX);
@@ -3939,7 +3939,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     let label;
     if(tfOpen&&tfDisplaySnapshot){const s=tfDisplaySnapshot,k=Math.min(s.mag.length-1,Math.max(1,Math.round(cf/s.sr*TF_FFT_N))),rd=s.refDb[k]-s.refOffset,md=s.micDb[k]-s.refOffset,delta=tfNormalizedMagnitude(s,k);label=fl+'  REF '+rd.toFixed(1)+'  MIC '+md.toFixed(1)+'  Δ '+delta.toFixed(1)+' dB';}
     else{const lvl=(lastBandDb[bi]!=null&&lastBandDb[bi]>-119)?('  '+Math.round(lastBandDb[bi])+'dB'):'';label=fl+lvl;}
-    ctx.font='12px monospace'; ctx.textAlign='left';
+    ctx.font="12px Arial"; ctx.textAlign='left';
     const tw=ctx.measureText(label).width+12;
     let tx=Math.max(2,Math.min(W-tw-2, cursorX-tw/2));
     ctx.fillStyle=sunMode?'#ffffff':'rgba(13,17,23,.92)'; ctx.fillRect(tx,plotH-22,tw,18);
@@ -3957,7 +3957,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       }
       ctx.stroke();
     });
-    ctx.textAlign='start'; ctx.font='11px monospace';
+    ctx.textAlign='start'; ctx.font="11px Arial";
     visAreas.forEach((a,i)=>{
       const y=30+i*16;
       ctx.fillStyle=a.color; ctx.fillRect(8,y-8,16,3);
@@ -3977,7 +3977,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       ctx.strokeStyle='rgba(255,59,107,.9)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(x,y-4); ctx.lineTo(x,y); ctx.stroke();
       const lbl=(rec.hz>=1000?(rec.hz/1000).toFixed(2)+'k':rec.hz+'Hz')+' −'+rec.cut+'dB';
-      ctx.font='10px monospace';
+      ctx.font="10px Arial";
       const tw=ctx.measureText(lbl).width+8;
       let tx=Math.max(2,Math.min(W-tw-2, x-tw/2));
       ctx.fillStyle=sunMode?'#fef2f2':'rgba(40,10,18,.92)'; ctx.fillRect(tx,y-26,tw,13);
@@ -4147,7 +4147,7 @@ function drawWaterfallResonanceOverlay(W,specH,xForFreq){
     ctx.strokeStyle=r.validated?'rgba(60,224,177,.34)':'rgba(245,190,70,.26)';ctx.lineWidth=1;ctx.setLineDash([3,7]);
     ctx.beginPath();ctx.moveTo(x,22);ctx.lineTo(x,specH-25);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(x,20,3.5,0,Math.PI*2);ctx.fillStyle=r.validated?'#48dfb4':'#e8bd55';ctx.fill();
-    ctx.font='700 9px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';ctx.fillStyle=r.validated?'#8be8cd':'#d7bd78';
+    ctx.font="700 9px Arial";ctx.textAlign='center';ctx.fillStyle=r.validated?'#8be8cd':'#d7bd78';
     ctx.fillText(hz+' · '+Math.round(q*100)+'%',x,11);
   });
   ctx.restore();
@@ -4166,7 +4166,7 @@ function drawWaterfallFrequencyCursor(W,H,nyquist){
   ctx.save();ctx.direction='ltr';ctx.setLineDash([4,5]);ctx.lineWidth=1;
   ctx.strokeStyle=sunMode?'rgba(2,132,199,.72)':'rgba(103,232,249,.72)';
   ctx.beginPath();ctx.moveTo(x,22);ctx.lineTo(x,H-20);ctx.stroke();ctx.setLineDash([]);
-  ctx.font='700 11px ui-monospace,SFMono-Regular,Menlo,monospace';
+  ctx.font="700 11px Arial";
   const pad=7,tw=ctx.measureText(label).width+pad*2,tx=Math.max(3,Math.min(W-tw-3,x-tw/2)),ty=30;
   ctx.fillStyle=sunMode?'rgba(241,245,249,.94)':'rgba(6,21,28,.94)';ctx.strokeStyle=sunMode?'rgba(2,132,199,.7)':'rgba(34,211,238,.72)';
   ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(tx,ty,tw,25,6);ctx.fill();ctx.stroke();
@@ -4263,7 +4263,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     g.addColorStop(0,'rgba(255,45,82,.19)');g.addColorStop(.28,'rgba(255,194,0,.16)');g.addColorStop(.56,'rgba(0,232,151,.13)');g.addColorStop(1,'rgba(42,62,255,.09)');
     ctx.fillStyle=g;ctx.fill();
   }
-  ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font='10px ui-monospace,SFMono-Regular,Menlo,monospace';ctx.textAlign='center';
+  ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font="10px Arial";ctx.textAlign='center';
   [20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{
     if(f>Math.min(20000,nyquist*.96))return;
     const u=Math.log(f/20)/Math.log(Math.min(20000,nyquist*.96)/20),x=left+u*(right-left);
@@ -4370,37 +4370,37 @@ function lsGet(k){ try{ return localStorage.getItem(k); }catch(_){ return null; 
 function prefSet(k,v){ try{ localStorage.setItem(k, v); }catch(_){} }
 
 safeOn('refCurveBtn', 'click',function(){
-  if(refCurve){ refCurve=null; this.classList.remove('on'); this.textContent='שמור כ״לפני״'; return; }
-  if(!running || !lastV.length){ alert('הפעל מיקרופון ונגן אות לפני שמירת עקומת ייחוס.'); return; }
+  if(refCurve){ refCurve=null; this.classList.remove('on'); this.textContent="Save Before"; return; }
+  if(!running || !lastV.length){ alert("Start the microphone and play a signal before saving a reference curve."); return; }
   refCurve={ v:lastV.slice(), bands:BANDS };
-  this.classList.add('on'); this.textContent='נקה ״לפני״';
+  this.classList.add('on'); this.textContent="Clear Before";
 });
 
-// ---- A/B: לפני/אחרי כיוון ----
+// ---- A/B: Before/after adjustment ----
 function abSnapshot(){ return { f: ISO.slice(), db: lastBandDb.slice() }; }
 function syncAbSeg(){ document.querySelectorAll('#abViewSeg button').forEach(x=>x.classList.toggle('on', x.dataset.v===abView)); }
 function abHasData(){ return lastBandDb.length && lastBandDb.some(v=>v>-119); }
 safeOn('abCapA','click',function(){
-  if(!abHasData()){ alert('אין עדיין מדידה ללכוד.\nהפעל את המיקרופון, נגן אות (למשל פינק נויז), ואז לחץ שוב.'); return; }
-  abA=abSnapshot(); this.classList.add('on'); this.textContent='✓ לפני (A)';
+  if(!abHasData()){ alert("No measurement to capture yet.\nTurn on the microphone, play a signal (eg pink noise), then press again."); return; }
+  abA=abSnapshot(); this.classList.add('on'); this.textContent="✓ Before (A)";
   abView = abB ? 'both' : 'A'; syncAbSeg();
 });
 safeOn('abCapB','click',function(){
-  if(!abHasData()){ alert('אין עדיין מדידה ללכוד.\nהפעל את המיקרופון, נגן אות, ואז לחץ שוב.'); return; }
-  abB=abSnapshot(); this.classList.add('on'); this.textContent='✓ אחרי (B)';
+  if(!abHasData()){ alert("No measurement to capture yet.\nTurn on the microphone, play a signal, then press again."); return; }
+  abB=abSnapshot(); this.classList.add('on'); this.textContent="✓ After (B)";
   abView = abA ? 'both' : 'B'; syncAbSeg();
 });
 safeOn('abClear','click',function(){
   abA=null; abB=null; abView='off';
-  const a=document.getElementById('abCapA'); if(a){ a.classList.remove('on'); a.textContent='לכוד לפני (A)'; }
-  const b=document.getElementById('abCapB'); if(b){ b.classList.remove('on'); b.textContent='לכוד אחרי (B)'; }
+  const a=document.getElementById('abCapA'); if(a){ a.classList.remove('on'); a.textContent="Capture Before (A)"; }
+  const b=document.getElementById('abCapB'); if(b){ b.classList.remove('on'); b.textContent="Capture After (B)"; }
   syncAbSeg();
 });
 document.querySelectorAll('#abViewSeg button').forEach(b=>b.addEventListener('click',function(){ abView=this.dataset.v; syncAbSeg(); }));
 safeOn('tfSmooth','input',function(e){
   tfSmoothA = Math.max(0.70, Math.min(0.98, parseInt(e.target.value,10)/100));
   const t = document.getElementById('tfSmoothVal');
-  if(t) t.textContent = tfSmoothA>=0.955?'מקסימלית':tfSmoothA>=0.90?'גבוהה':tfSmoothA>=0.85?'בינונית':'מהירה';
+  if(t) t.textContent = tfSmoothA>=0.955?"Maximum":tfSmoothA>=0.90?"High":tfSmoothA>=0.85?"Medium":"Fast";
 });
 safeOn('tfCohGate','input',function(e){
   tfCohGate = Math.max(0, Math.min(0.9, parseInt(e.target.value,10)/100));
@@ -4408,18 +4408,18 @@ safeOn('tfCohGate','input',function(e){
   if(t) t.textContent = tfCohGate.toFixed(2);
   if(tfDelayReady){
     tfWorkflowVerified=false;
-    syncTfWorkflowUi('<b>סף הקוהרנטיות השתנה:</b> בצע שוב את שלב 2','warn');
+    syncTfWorkflowUi("<b>The coherence threshold has changed:</b> Do step 2 again",'warn');
   }
 });
 
-// ---- יישור חיתוך סאב/טופ ----
+// ---- Sub / Top crossover alignment ----
 
 safeOn('alignProVerify','click',function(){
-  if(!alignRecommendation||!alignRecommendation.reliable){v3Toast('תחילה השלם מדידת סאב וטופ');return;}
+  if(!alignRecommendation||!alignRecommendation.reliable){v3Toast("First complete the sub and top measurement");return;}
   const changed=alignRecommendation.delayTarget;
-  if(changed==='sub'){phaseSub=null;v3Toast('מדוד שוב את הסאב לאחר שינוי הדיליי');}
-  else if(changed==='top'){phaseTop=null;v3Toast('מדוד שוב את הטופ לאחר שינוי הדיליי');}
-  else {phaseSub=null;phaseTop=null;v3Toast('מדוד שוב סאב וטופ לאימות');}
+  if(changed==='sub'){phaseSub=null;v3Toast("Measure the subwoofer again after changing the delay");}
+  else if(changed==='top'){phaseTop=null;v3Toast("Measure the top again after changing the delay");}
+  else {phaseSub=null;phaseTop=null;v3Toast("Measure sub and top again to verify");}
   alignRecommendation=null;showXover=true;updateAlignmentRecommendation();syncPhaseButtons();
 });
 
@@ -4446,7 +4446,7 @@ window.alignmentReliabilityFromResult=alignmentReliabilityFromResult;
 
 function optimizeSubTopAlignment(sub,top,sr,crossoverHz,coherenceGate,options){
   options=options||{};
-  if(!sub||!top||!sub.ph||!top.ph||!sub.mag||!top.mag||!sub.coh||!top.coh)return {reliable:false,reason:'חסרות מדידות סאב או טופ'};
+  if(!sub||!top||!sub.ph||!top.ph||!sub.mag||!top.mag||!sub.coh||!top.coh)return {reliable:false,reason:"Sub or top measurements are missing"};
   sr=Math.max(8000,Number(sr)||48000);
   crossoverHz=Math.max(20,Math.min(sr/3,Number(crossoverHz)||90));
   coherenceGate=Math.max(0,Math.min(.95,Number(coherenceGate)||.4));
@@ -4468,7 +4468,7 @@ function optimizeSubTopAlignment(sub,top,sr,crossoverHz,coherenceGate,options){
   const coverage=bandBins?points.length/bandBins:0;
   const meanCoh=points.length?cohSum/points.length:0,meanBalance=points.length?balanceSum/points.length:0;
   const minPoints=Math.max(3,Math.min(5,Math.ceil(bandBins*.5)));
-  if(points.length<minPoints)return {reliable:false,reason:'אין מספיק נקודות אמינות סביב החיתוך',points:points.length,coverage,meanCoh,meanBalance,band:{lo:fLo,hi:fHi}};
+  if(points.length<minPoints)return {reliable:false,reason:"Insufficient reliable points around the crossover",points:points.length,coverage,meanCoh,meanBalance,band:{lo:fLo,hi:fHi}};
   const score=(tauMs,polarity)=>{
     let sum=0,weights=0;
     for(const p of points){
@@ -4503,7 +4503,7 @@ function optimizeSubTopAlignment(sub,top,sr,crossoverHz,coherenceGate,options){
   const reliable=coverage>=.32&&meanCoh>=coherenceGate&&confidence>=.42;
   const noChange=chosen.polarity>0&&Math.abs(chosen.tauMs)<.08&&(improvement<.3||Math.abs(afterDeg)<30);
   return {
-    reliable,reason:reliable?'':'הקוהרנטיות או איזון העוצמות באזור החיתוך אינם מספיקים',
+    reliable,reason:reliable?'':"Insufficient coherence or level balance around the crossover",
     delayTarget:chosen.tauMs>.04?'top':chosen.tauMs<-.04?'sub':null,
     delayMs:Math.abs(chosen.tauMs),polarityInverted:chosen.polarity<0,noChange,
     improvementDb:improvement,currentScore:baselineScore,optimizedScore:chosen.score,
@@ -4527,9 +4527,9 @@ function updateAlignmentRecommendation(){
     alignRecommendation=null;
     document.getElementById('alignProResult')?.classList.remove('show');
     document.getElementById('alignProApply')?.classList.remove('show');
-    if(!tfDelayReady) el.innerHTML='<strong>שלב 1:</strong><span>השאר טופ בלבד ובצע סנכרון TF</span>';
-    else if(!phaseSub) el.innerHTML='<strong>שלב 2:</strong><span>השתק טופ, לחץ מדוד סאב ובחר רעש ורוד פנימי או מקור חיצוני</span>';
-    else el.innerHTML='<strong>שלב 3:</strong><span>השתק סאב, לחץ מדוד טופ ובחר את אותו מקור אות</span>';
+    if(!tfDelayReady) el.innerHTML="<strong>Step 1:</strong><span>Keep only the top speaker active, then sync TF</span>";
+    else if(!phaseSub) el.innerHTML="<strong>Step 2:</strong><span>Mute the top, click Measure Sub and choose internal pink noise or an external source</span>";
+    else el.innerHTML="<strong>Step 3:</strong><span>Mute the sub, click Measure Top and choose the same signal source</span>";
     scheduleAlignBarResize();
     return;
   }
@@ -4549,8 +4549,8 @@ function updateAlignmentRecommendation(){
     if(phase)phase.textContent=(rec.beforeDeg>0?'+':'')+rec.beforeDeg.toFixed(0)+'° → '+(rec.afterDeg>0?'+':'')+rec.afterDeg.toFixed(0)+'°';
     if(conf){conf.textContent=Math.round(rec.confidence*100)+'%';conf.parentElement?.classList.toggle('good',rec.confidence>=.7);conf.parentElement?.classList.toggle('warn',rec.confidence<.7);}
     if(action){
-      if(rec.noChange)action.textContent='✓ אין צורך בשינוי';
-      else action.textContent=(rec.polarityInverted?'הפוך פולריות בסאב · ':'')+(rec.delayTarget?'הוסף '+rec.delayMs.toFixed(2)+' ms ל'+(rec.delayTarget==='sub'?'סאב':'טופ'):'ללא שינוי דיליי');
+      if(rec.noChange)action.textContent="✓ No change is necessary";
+      else action.textContent=(rec.polarityInverted?"Invert sub polarity · ":'')+(rec.delayTarget?"Add "+rec.delayMs.toFixed(2)+" ms to"+(rec.delayTarget==='sub'?"Sub":"Top"):"No delay change");
     }
     if(meta)meta.textContent='Expected improvement '+(rec.improvementDb>12?'>12':rec.improvementDb.toFixed(1))+' dB · '+Math.round(rec.band.lo)+'–'+Math.round(rec.band.hi)+' Hz';
   }
@@ -4559,23 +4559,23 @@ function updateAlignmentRecommendation(){
     document.getElementById('alignProResult')?.classList.remove('show');
     document.getElementById('alignProApply')?.classList.remove('show');
     el.classList.add('warn');
-    el.innerHTML='<strong>אין המלצה אמינה</strong><span>'+rec.reason+'</span><span class="phRecMeta">'+range+' · '+Math.round((rec.meanCoh||0)*100)+'% קוהרנטיות</span>';
+    el.innerHTML="<strong>No reliable recommendation</strong><span>"+rec.reason+'</span><span class="phRecMeta">'+range+' · '+Math.round((rec.meanCoh||0)*100)+"% coherence</span>";
     scheduleAlignBarResize();
     return;
   }
   const confidence=Math.round(rec.confidence*100),improvement=rec.improvementDb>12?'>12':rec.improvementDb.toFixed(1);
   if(rec.noChange){
     el.classList.add('ready');
-    el.innerHTML='<strong>✓ הסאב והטופ כבר מיושרים</strong><span>אין צורך לשנות דיליי או פולריות</span><span class="phRecMeta">'+range+' · Δφ צפוי '+rec.afterDeg.toFixed(0)+'° · אמינות '+confidence+'%</span>';
+    el.innerHTML="<strong>✓ The sub and top are already aligned</strong><span>No need to change delays or polarities</span><span class=\"phRecMeta\">"+range+" · Δφ is expected "+rec.afterDeg.toFixed(0)+"° · Reliability "+confidence+'%</span>';
     scheduleAlignBarResize();
     return;
   }
   const actions=[];
-  actions.push(rec.polarityInverted?'הפוך פולריות בסאב':'השאר פולריות רגילה');
-  if(rec.delayTarget)actions.push('הוסף '+rec.delayMs.toFixed(2)+'ms ל'+(rec.delayTarget==='sub'?'סאב':'טופ'));
-  else actions.push('ללא תוספת דיליי');
+  actions.push(rec.polarityInverted?"Invert sub polarity":"Keep normal polarity");
+  if(rec.delayTarget)actions.push("Add "+rec.delayMs.toFixed(2)+"ms to"+(rec.delayTarget==='sub'?"Sub":"Top"));
+  else actions.push("No added delay");
   el.classList.add('ready');
-  el.innerHTML='<strong>'+actions.join(' · ')+'</strong><span>שיפור צפוי '+improvement+'dB · אחרי השינוי מדוד מחדש כל מקור ששונה</span><span class="phRecMeta">'+range+' · Δφ '+rec.beforeDeg.toFixed(0)+'°→'+rec.afterDeg.toFixed(0)+'° · אמינות '+confidence+'%</span>';
+  el.innerHTML='<strong>'+actions.join(' · ')+"</strong><span>expected improvement "+improvement+"dB · After the change, remeasure each source that has been changed</span><span class=\"phRecMeta\">"+range+' · Δφ '+rec.beforeDeg.toFixed(0)+'°→'+rec.afterDeg.toFixed(0)+"° · Reliability "+confidence+'%</span>';
   scheduleAlignBarResize();
 }
 
@@ -4596,15 +4596,15 @@ function syncSubTopWorkflowUi(){
   const top=document.getElementById('phTopBtn');
   if(sync){
     sync.classList.toggle('on',tfDelayReady);
-    sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':'1 · סנכרון TF';
+    sync.textContent=tfDelayReady?'✓ 1 · TF '+tfDelayMs.toFixed(2)+'ms':"1 · Sync TF";
     sync.disabled=phMeasuring;
   }
   if(sub){
-    if(!phaseSub)sub.textContent='2 · מדוד סאב';
+    if(!phaseSub)sub.textContent="2 · Measure Sub";
     sub.disabled=phMeasuring||!tfDelayReady;
   }
   if(top){
-    if(!phaseTop)top.textContent='3 · מדוד טופ';
+    if(!phaseTop)top.textContent="3 · Measure Top";
     top.disabled=phMeasuring||!tfDelayReady||!phaseSub;
   }
 }
@@ -4613,32 +4613,32 @@ function clearSubTopSnapshots(message){
   phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;tfSweepAcquiring=false;subTopSourceKind=null;
   const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
   const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
-  const st=document.getElementById('phStatus');if(st){st.textContent=message||'מדוד סאב ואז טופ — בכל שלב בחר רעש ורוד פנימי או מקור חיצוני.';st.style.color='var(--dim)';}
+  const st=document.getElementById('phStatus');if(st){st.textContent=message||"Measure sub then top — at each step select internal pink noise or external source.";st.style.color='var(--dim)';}
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
 }
 function capturePhase(which,sourceKind='external'){
-  if(!analyser || !analyserRef){ alert('פאזה דורשת מדידת מיק/רפרנס פעילה (רפרנס בערוץ 2).'); return; }
-  if(measureBusy()){ alert('מדידה אחרת פעילה — המתן לסיומה.'); return; }
-  if(!tfDelayReady){ alert('תחילה בצע את שלב 1 — סנכרון TF.'); return; }
-  if(which==='top'&&!phaseSub){ alert('תחילה בצע את שלב 2 — מדידת הסאב לבדו.'); return; }
-  if(which==='top'&&subTopSourceKind&&sourceKind!==subTopSourceKind){alert('מדוד את הסאב והטופ עם אותו מקור אות.');return;}
+  if(!analyser || !analyserRef){ alert("Phase requires an active mic/reference measurement (reference on channel 2)."); return; }
+  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
+  if(!tfDelayReady){ alert("First do step 1 — TF sync."); return; }
+  if(which==='top'&&!phaseSub){ alert("First do step 2 — measuring the subwoofer alone."); return; }
+  if(which==='top'&&subTopSourceKind&&sourceKind!==subTopSourceKind){alert("Measure the sub and top with the same signal source.");return;}
   phMeasuring=true;
   const btn=document.getElementById(which==='sub'?'phSubBtn':'phTopBtn');
   const other=document.getElementById(which==='sub'?'phTopBtn':'phSubBtn');
   const st=document.getElementById('phStatus');
-  const label=which==='sub'?'סאב':'טופ';
+  const label=which==='sub'?"Sub":"Top";
   if(which==='sub')phaseSub=null;else phaseTop=null;
   alignRecommendation=null;
   if(btn)btn.classList.remove('on');
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
-  // אפס צוברים לחלון מדידה נקי
+  // Reset accumulators for a fresh measurement window
   tfPxx.fill(0); tfPyy.fill(0); tfPxyRe.fill(0); tfPxyIm.fill(0);
   tfSweepAcquiring=isSweepSource(sourceKind);
   let t=isSweepSource(sourceKind)?Math.max(5,Math.ceil(genSweepDur+1)):3;
-  const sourceLabel=sourceKind==='sweep'?'סוויפ פנימי':sourceKind==='external-sweep'?'סוויפ חיצוני':sourceKind==='pink'?'רעש ורוד':'מקור חיצוני';
-  const tick=()=>{ if(btn) btn.textContent='מודד… '+t; if(st){ st.textContent='מודד '+label+' עם '+sourceLabel+'… '+t+' שניות'; st.style.color='var(--accent)'; } };
+  const sourceLabel=sourceKind==='sweep'?"Internal sweep":sourceKind==='external-sweep'?"External sweep":sourceKind==='pink'?"Pink noise":"external source";
+  const tick=()=>{ if(btn) btn.textContent="Measuring… "+t; if(st){ st.textContent="Measuring "+label+" with "+sourceLabel+'… '+t+" seconds"; st.style.color='var(--accent)'; } };
   tick();
   phMeasureTimer=setInterval(()=>{
     t--;
@@ -4654,18 +4654,18 @@ function capturePhase(which,sourceKind='external'){
     for(let j=1;j<N2;j++){const f=j*nyq/N2;if(f>=lo&&f<=hi&&Number.isFinite(snap.coh[j]))cvals.push(snap.coh[j]);}
     const c=cvals.length?cvals.reduce((a,b)=>a+b,0)/cvals.length:snap.coh[k];
     const coverage=cvals.length?cvals.filter(v=>v>=tfCohGate).length/cvals.length:0;
-    if(btn){ btn.classList.add('on'); btn.textContent='✓ '+(which==='sub'?'2':'3')+' · '+label+' נלכד'; }
+    if(btn){ btn.classList.add('on'); btn.textContent='✓ '+(which==='sub'?'2':'3')+' · '+label+" captured"; }
     if(st){
-      if(c>=Math.max(.55,tfCohGate)&&coverage>=.55){ st.textContent='✓ '+label+' נלכד · קוהרנטיות '+c.toFixed(2)+' · כיסוי '+Math.round(coverage*100)+'% — אמין'; st.style.color='#22c55e'; }
-      else { st.textContent='⚠ '+label+' · קוהרנטיות '+c.toFixed(2)+' · כיסוי '+Math.round(coverage*100)+'% — מדוד שוב לפני Alignment'; st.style.color='#f59e0b'; }
+      if(c>=Math.max(.55,tfCohGate)&&coverage>=.55){ st.textContent='✓ '+label+" Captured · Coherence "+c.toFixed(2)+" · coverage "+Math.round(coverage*100)+"% — reliable"; st.style.color='#22c55e'; }
+      else { st.textContent='⚠ '+label+" · Coherence "+c.toFixed(2)+" · coverage "+Math.round(coverage*100)+"% — Measure again before Alignment"; st.style.color='#f59e0b'; }
     }
     phMeasuring=false;
     syncSubTopWorkflowUi();
     updateAlignmentRecommendation();
   },1000);
 }
-safeOn('phSubBtn','click',()=>pickSource(kind=>capturePhase('sub',kind),3200,{title:'אות למדידת הסאב לבדו · נבדק רק תחום הקרוסאובר',allowed:['pink','sweep','external','external-sweep']}));
-safeOn('phTopBtn','click',()=>pickSource(kind=>capturePhase('top',kind),3200,{title:'אות למדידת הטופ לבדו · השתמש באותו מקור',allowed:['pink','sweep','external','external-sweep']}));
+safeOn('phSubBtn','click',()=>pickSource(kind=>capturePhase('sub',kind),3200,{title:"Signal for measuring the subwoofer alone · Only the crossover field is tested",allowed:['pink','sweep','external','external-sweep']}));
+safeOn('phTopBtn','click',()=>pickSource(kind=>capturePhase('top',kind),3200,{title:"Signal to measure the top alone · Use the same source",allowed:['pink','sweep','external','external-sweep']}));
 safeOn('phClearBtn','click',function(){
   clearSubTopSnapshots();
 });
@@ -4678,7 +4678,7 @@ safeOn('xoverF','input',function(e){
 const SAVE_KEY='rta_saves';
 let saves=[];
 function loadSaves(){ try{ const r=lsGet(SAVE_KEY); saves=r?JSON.parse(r):[]; }catch(_){ saves=[]; } }
-function persistSaves(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(saves)); }catch(_){ alert('לא ניתן לשמור (אחסון מלא או חסום).'); } }
+function persistSaves(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(saves)); }catch(_){ alert("Unable to save (full or blocked storage)."); } }
 function snapshotState(name){
   return {
     id:'s'+Date.now(), name:name, date:new Date().toISOString().slice(0,10),
@@ -4692,27 +4692,27 @@ function snapshotState(name){
 }
 function renderSaveList(){
   const box=document.getElementById('saveList'); if(!box) return;
-  if(!saves.length){ box.innerHTML='<div class="sub">אין מדידות שמורות עדיין.</div>'; return; }
+  if(!saves.length){ box.innerHTML="<div class=\"sub\">No measurements saved yet.</div>"; return; }
   box.innerHTML=saves.map(s=>{
     const bits=[];
-    if(s.positions&&s.positions.length) bits.push(s.positions.length+' מיקומים');
-    if(s.areas&&s.areas.length) bits.push(s.areas.length+' אזורים');
-    if(s.speakers&&s.speakers.some(x=>x.ms!=null)) bits.push('דיליי');
+    if(s.positions&&s.positions.length) bits.push(s.positions.length+" locations");
+    if(s.areas&&s.areas.length) bits.push(s.areas.length+" regions");
+    if(s.speakers&&s.speakers.some(x=>x.ms!=null)) bits.push("delay");
     return '<div class="saveRow"><span class="nm" title="'+escapeHtml(s.name)+'">'+escapeHtml(s.name)+
       '</span><span class="meta">'+s.date+(bits.length?' · '+bits.join(' · '):'')+'</span>'+
-      '<button data-load="'+s.id+'">טען</button><button data-rm="'+s.id+'">מחק</button></div>';
+      '<button data-load="'+s.id+"\">load</button><button data-rm=\""+s.id+"\">Delete</button></div>";
   }).join('');
   box.querySelectorAll('[data-load]').forEach(b=>b.addEventListener('click',()=>loadSave(b.dataset.load)));
   box.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',()=>{
     const s=saves.find(x=>x.id===b.dataset.rm);
-    if(!confirm('למחוק את "'+(s?s.name:'')+'"?')) return;
+    if(!confirm("Delete \""+(s?s.name:'')+'"?')) return;
     saves=saves.filter(x=>x.id!==b.dataset.rm); persistSaves(); renderSaveList();
   }));
 }
 function loadSave(id){
   const s=saves.find(x=>x.id===id); if(!s) return;
-  if(measureBusy()){ alert('מדידה פעילה — המתן לסיומה.'); return; }
-  if((eqPositions.length||areas.length) && !confirm('לטעון "'+s.name+'"? המדידות הנוכחיות יוחלפו.')) return;
+  if(measureBusy()){ alert("Active measurement - wait for it to end."); return; }
+  if((eqPositions.length||areas.length) && !confirm("Load \""+s.name+"\"? The current measurements will be overwritten.")) return;
   eqPositions=(s.positions||[]).map(p=>{
     if(p.db) return {name:p.name, db:Float32Array.from(p.db)};
     if(p.data && audioCtx){
@@ -4730,16 +4730,16 @@ function loadSave(id){
   if(areas.length){ renderAreaList(); suggestAreaEQ(); }
   closeModals();
   if(s.calName && (!micCal || (micCalList.find(c=>c.id===activeCalId)||{}).name!==s.calName))
-    alert('שים לב: המדידה נשמרה עם כיול "'+s.calName+'". ודא שאותו כיול פעיל.');
+    alert("Note: this measurement was saved with calibration \""+s.calName+"\". Make sure that calibration is active.");
 }
 safeOn('saveBtn', 'click',()=>{ renderSaveList(); showModal(savePanel); });
 safeOn('saveClose', 'click',closeModals);
 safeOn('saveNowBtn', 'click',()=>{
   const inp=document.getElementById('saveName');
   const name=(inp.value||'').trim();
-  if(!name){ alert('תן שם למדידה.'); inp.focus(); return; }
+  if(!name){ alert("Name the measurement."); inp.focus(); return; }
   if(!eqPositions.length && !areas.length && !dlySpeakers.some(s=>s.ms!=null)){
-    alert('אין מה לשמור — בצע מדידה קודם.'); return; }
+    alert("There is nothing to save - measure first."); return; }
   saves.unshift(snapshotState(name));
   if(saves.length>40) saves=saves.slice(0,40);
   persistSaves(); renderSaveList(); inp.value='';
@@ -4763,7 +4763,7 @@ function v3UpdateStatus(){
       a.textContent='Audio: '+sr+'k · '+fftSize;
       a.className='v3Chip live';
     }else{
-      a.textContent='Audio: כבוי';
+      a.textContent="Audio: Off";
       a.className='v3Chip';
     }
   }
@@ -4776,7 +4776,7 @@ function v3UpdateStatus(){
       c.textContent=micName ? 'CAL: '+micName : 'CAL: '+(calib>=0?'+':'')+calib+'dB';
       c.className='v3Chip ok';
     }else{
-      c.textContent='CAL: SPL לא מכויל';
+      c.textContent="CAL: Uncalibrated SPL";
       c.className='v3Chip warn';
     }
   }
@@ -4793,9 +4793,9 @@ document.addEventListener('keydown',e=>{
   if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)) return;
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   const k=e.key.toLowerCase();
-  if(k===' '){ e.preventDefault(); v3ToggleButton('freezeBtn'); v3Toast(frozen?'תצוגה מוקפאת':'תצוגה חיה'); }
-  else if(k==='p'){ v3ToggleButton('peakBtn'); v3Toast(peakHold?'Peak Hold פעיל':'Peak Hold כבוי'); }
-  else if(k==='a'){ v3ToggleButton('avgBtn'); v3Toast(avgOn?'מיצוע פעיל':'מיצוע כבוי'); }
+  if(k===' '){ e.preventDefault(); v3ToggleButton('freezeBtn'); v3Toast(frozen?"Frozen view":"Live view"); }
+  else if(k==='p'){ v3ToggleButton('peakBtn'); v3Toast(peakHold?"Peak Hold on":"Peak Hold off"); }
+  else if(k==='a'){ v3ToggleButton('avgBtn'); v3Toast(avgOn?"Averaging on":"Averaging off"); }
   else if(k==='r'){ const el=document.getElementById('resetPeakBtn'); if(el) el.click(); }
   else if(k==='f'){ const z=document.getElementById('zoomBtn'); if(z && z.style.display!=='none') z.click(); }
   else if(k==='g'){ v3ToggleButton('genBtn'); v3Toast('Generator'); }
@@ -4827,7 +4827,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.15';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.16';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -4864,7 +4864,7 @@ function v5SyncTargetToggle(){
   const b=document.getElementById('v5TargetToggle'); if(!b)return;
   b.classList.toggle('on',targetVisible);
   b.textContent=targetVisible?'Target ✓':'Target';
-  b.title=targetVisible?'הסתר את עקומת היעד':'הצג את עקומת היעד';
+  b.title=targetVisible?"Hide the target curve":"Display the target curve";
 }
 
 function v5SetTab(mode){
@@ -4881,7 +4881,7 @@ function v54SetSideRail(open){
   const button=document.getElementById('v54SideToggle');
   if(button){
     button.textContent=isOpen?'‹':'›';
-    button.title=isOpen?'הסתר סרגל צד':'הצג סרגל צד';
+    button.title=isOpen?"Hide sidebar":"Show sidebar";
     button.setAttribute('aria-label',button.title);
   }
   setTimeout(resize,0);
@@ -4973,13 +4973,13 @@ function v5RenderTraceRail(){
   box.innerHTML=tfTraces.map((t,i)=>
     '<div class="v5TraceRow" data-trace="'+i+'">'+
       '<span class="v5TraceNum">'+(i+1)+'</span>'+
-      '<span class="v5TraceName" title="לחץ פעמיים לשינוי שם" style="color:'+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+ 
-      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" title="הצג/הסתר">◉</button>'+
-      '<button class="v5TraceAction" data-trace-del="'+i+'" title="מחק">×</button>'+
+      "<span class=\"v5TraceName\" title=\"Double click to change name\" style=\"color:"+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+ 
+      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+"\" title=\"Show/Hide\">◉</button>"+
+      '<button class="v5TraceAction" data-trace-del="'+i+"\" title=\"delete\">×</button>"+
     '</div>').join('');
   box.querySelectorAll('[data-trace-eye]').forEach(b=>b.addEventListener('click',()=>{const t=tfTraces[+b.dataset.traceEye];if(!t)return;t.visible=t.visible===false;renderTfTraceLegend();}));
-  box.querySelectorAll('[data-trace-del]').forEach(b=>b.addEventListener('click',()=>{tfTraces.splice(+b.dataset.traceDel,1);renderTfTraceLegend();v3Toast('Trace נמחק');}));
-  box.querySelectorAll('.v5TraceName').forEach((n,i)=>n.addEventListener('dblclick',()=>{const t=tfTraces[i];if(!t)return;const name=prompt('שם חדש ל-Trace',t.name);if(name&&name.trim()){t.name=name.trim().slice(0,40);renderTfTraceLegend();}}));
+  box.querySelectorAll('[data-trace-del]').forEach(b=>b.addEventListener('click',()=>{tfTraces.splice(+b.dataset.traceDel,1);renderTfTraceLegend();v3Toast("Trace deleted");}));
+  box.querySelectorAll('.v5TraceName').forEach((n,i)=>n.addEventListener('dblclick',()=>{const t=tfTraces[i];if(!t)return;const name=prompt("New trace name",t.name);if(name&&name.trim()){t.name=name.trim().slice(0,40);renderTfTraceLegend();}}));
 }
 function v5InitWorkspace(){
   const tv=lsGet('rta_target_visible');
@@ -5001,7 +5001,7 @@ function v5InitWorkspace(){
     targetVisible=!targetVisible;
     prefSet('rta_target_visible', targetVisible?'1':'0');
     v5SyncTargetToggle();
-    v3Toast(targetVisible?'עקומת יעד מוצגת על הגרף':'עקומת יעד מוסתרת');
+    v3Toast(targetVisible?"A target curve is displayed on the graph":"Target curve is hidden");
   });
   safeOn('v54SideToggle','click',()=>v54SetSideRail(document.body.classList.contains('v54-rail-collapsed')));
 
@@ -5012,7 +5012,7 @@ function v5InitWorkspace(){
     renderTfTraceLegend();
     const rows=document.getElementById('tsRows');if(rows)rows.replaceChildren();
     ['tlsTraces','tlsVisible'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='0';});
-    v3Toast('כל הטרייסים נוקו');
+    v3Toast("All traces cleared");
   });
   // Header TF button now opens the working TF dock instead of only overlaying lines.
   const oldTf=document.getElementById('tfOverlayHdr');
@@ -5197,11 +5197,11 @@ function v52Init(){
     if(old){old.value=e.target.value;old.dispatchEvent(new Event('input',{bubbles:true}));}
     v52UpdateUi();
   });
-  safeOn('v52DeviceSelect','change',async e=>{activeInId=e.target.value||'';userPickedIn=!!activeInId;if(running)await switchInput(activeInId);else v3Toast('המקור יופעל בלחיצה על הפעל מיקרופון');});
+  safeOn('v52DeviceSelect','change',async e=>{activeInId=e.target.value||'';userPickedIn=!!activeInId;if(running)await switchInput(activeInId);else v3Toast("The input will start when you click Start microphone");});
   safeOn('v52MeasSelect','change',async e=>{measChannel=parseInt(e.target.value,10)||0;if(measChannel===refChannel){refChannel=measChannel?0:1;document.getElementById('v52RefSelect').value=String(refChannel);}if(running)await switchInput(activeInId);});
   safeOn('v52RefSelect','change',async e=>{refChannel=parseInt(e.target.value,10)||0;if(refChannel===measChannel){measChannel=refChannel?0:1;document.getElementById('v52MeasSelect').value=String(measChannel);}if(running)await switchInput(activeInId);});
   safeOn('v53SplOffset','input',e=>{calib=parseFloat(e.target.value)||0;const old=document.getElementById('cal');if(old){old.value=String(calib);old.dispatchEvent(new Event('input',{bubbles:true}));}prefSet('rta_cal',calib);v52UpdateUi();});
-  safeOn('v53OutputSelect','change',async e=>{const ok=await applyOutput(e.target.value);if(!ok)v3Toast('בחירת פלט אינה נתמכת בדפדפן הזה');});
+  safeOn('v53OutputSelect','change',async e=>{const ok=await applyOutput(e.target.value);if(!ok)v3Toast("Output selection is not supported in this browser");});
   safeOn('v53ExportPng','click',()=>document.getElementById('pngBtn')?.click());
   safeOn('v53ExportCsv','click',()=>document.getElementById('csvBtn')?.click());
 
@@ -5217,100 +5217,100 @@ function v52Init(){
 setTimeout(v52Init,0);
 
 const HELP={
-  mRta:'תצוגת ספקטרום — עוצמה לפי תדר, בזמן אמת.',
-  mSpec:'ווטרפול — הספקטרום לאורך זמן.',
-  sunBtn:'מצב אור שמש: רקע בהיר וניגודיות גבוהה לעבודה בשטח.',
-  swatches:'צבע האפליקציה — משנה גם את צבע הברים בגרף.',
-  helpBtn:'מצב עזרה: רחף על כל כפתור לקבל הסבר.',
-  guideBtn:'מדריך מסודר לכל מדידה ולסדר העבודה המומלץ בשטח.',
-  genBtn:'גנרטור אותות: רעש ורוד/לבן, סינוס או סוויפ.\nלמדידה ולכיוונון המערכת.',
-  eqBtn:'מדידת תגובה: חד־ערוצי (מיק\' מול יעד)\nאו דו־ערוצי (מיק\'+רפרנס = TF).',
-  calBtn:'כיולי מיקרופון: טען קובץ כיול (REW)\nלתיקון צביעת המיקרופון.',
-  dlyBtn:'מדידת דיליי: זמן ההשהיה בין רמקולים.\nיישור סאב/טופ עם רמקול עוגן.',
-  rtBtn:'RT60: מדידת זמן הדהוד החדר,\nלפי רצועות אוקטבה. דורש חדר אמיתי.',
-  wgtBtn:'שקלול המד: dBZ (טכני), dBA (חוק/אוזן),\ndBC (עם בס). לחיצה מחליפה.',
-  leqBtn:'אפס Leq: מתחיל מדידת ממוצע עוצמה\nמחדש מהרגע הזה.',
-  tfTraceBtn:'לוכד את עקומת ה-TF הנוכחית ומשאיר אותה על הגרף להשוואה למדידה הבאה.',
-  tfAutoDelayBtn:'סנכרון TF: מודד שלוש פעמים את הפרש הזמן בין Reference למיקרופון ומיישר את הפאזה. אינו מכוון דיליי בין רמקולים.',
-  resetPeakBtn:'איפוס מיידי של כל סימוני ה-Peak Hold.',
-  avgSpeedSeg:'קובע כמה מהר המיצוע מגיב לשינויים. מהיר = תגובה זריזה, איטי = תצוגה יציבה.',
-  peakBtn:'Peak Hold: משאיר את השיאים על המסך.',
-  avgBtn:'מיצוע: מייצב את התצוגה לאורך זמן.',
-  meterModeSeg:'מדים: RMS (ממוצע חלק) או Peak (שיאים).\nמשפיע על כל המדים.',
-  fftSeg:'FFT: דיוק מול מהירות. מדויק = בס טוב יותר,\nמהיר = ביצועים טובים יותר.',
-  freezeBtn:'הקפא: שומר עקומה להשוואה,\nעם סימון תדרי הפיקים.',
-  fbBtn:'גלאי פידבק: מזהה תדרים שמתחילים\nלשרוק, עם המלצת חיתוך.',
-  stopBtn:'אפס סשן: מנקה מדידות והגדרות\nבלי לכבות את המיקרופון.',
-  pngBtn:'ייצוא תמונת מסך (PNG).',
-  csvBtn:'ייצוא הנתונים כקובץ CSV.',
-  inSel:'מקור קלט: בחר מיקרופון / כרטיס קול.',
-  outSel:'יציאת פלט: לאן יוצא אות הגנרטור.',
-  genOnBtn:'מפעיל/עוצר את אות הגנרטור.',
-  floor:'רצפת רעש: הסף התחתון של התצוגה.',
-  cal:'כיול SPL: התאם למד ייחוס\nכדי לקבל dB SPL אמיתי.',
-  autoCalBtn:'כיול אוטומטי מול פיסטונפון 1kHz.',
-  genLvl:'עוצמת אות הגנרטור. התחל נמוך!',
-  genFreq:'תדר הסינוס (סליידר).',
-  genFreqNum:'הקלד תדר סינוס מדויק.',
-  genSweep:'משך מחזור הסוויפ.',
-  smooth:'החלקה: מרכך קפיצות בתצוגה.',
-  res:'רזולוציה: פסים לאוקטבה (1/3 עד 1/48).',
-  respModeSeg:'חד־ערוצי (מיק\' מול יעד) או\nדו־ערוצי (מיק\'+רפרנס = TF אמיתי).',
-  eqModeSeg:'תצוגת התיקון: גרפיק (31 פסים)\nאו פרמטרי (תדר/גיין/Q).',
-  tfModeSeg:'תצוגת התיקון: גרפיק או פרמטרי.',
-  tgtSeg:'עקומת יעד: שטוח (ניטרלי) או\nHouse (בס מעט מוגבר, טרבל יורד).',
-  eqMeasBtn:'מדוד מיקום חדש (5ש\'). מדוד כמה\nמיקומים — התיקון הוא הממוצע.',
-  eqResetBtn:'נקה את כל המיקומים.',
-  areaMeasBtn:'מדוד אזור חדש (עד 4). להשוואת\nצדדים שונים של המעגל.',
-  areaEqBtn:'חשב תיקון EQ ממוצע לכל האזורים.',
-  dlyMeasBtn:'מודד שלוש פעמים את זמן הנתיב הכולל. להשוואת רמקולים השתמש רק ב־Δ מול העוגן.',
-  dlyLoopbackBtn:'בדיקת חיבור: אותו אות בשתי הכניסות צריך להחזיר תוצאה קרובה ל־0ms.',
-  dlyUnitSeg:'בחר תצוגת זמן ב־ms או מרחק משוער במטרים. מטרים דורשים כיול מול מרחק ידוע.',
-  dlyKnownDistance:'המרחק המדוד בפועל בין מרכז הרמקול למיקרופון בזמן כיול המרחק.',
-  dlyDistanceCalBtn:'הצב את המיקרופון במרחק הידוע ולחץ כאן. הכיול מפחית את זמן המערכת ונפסל אם המרחק שהוזן אינו אפשרי לפי זמן ההגעה שנמדד.',
-  dlyCountSeg:'מספר רמקולים ליישור (2/4/6).',
-  dlyReset:'נקה את מדידות הדיליי.',
-  phSyncBtn:'שלב 1: השאר טופ בלבד. הסנכרון מודד ומפצה את הפרש הנתיבים בין המיקרופון ל־Reference.',
-  phSubBtn:'שלב 2: פותח בחירת רעש ורוד פנימי או מקור חיצוני ולוכד שלוש שניות של הסאב לבדו. הטופ חייב להיות מושתק.',
-  phTopBtn:'שלב 3: פותח את אותה בחירת אות ולוכד שלוש שניות של הטופ לבדו. הסאב חייב להיות מושתק.',
-  xoverF:'תדר החיתוך בפועל. האופטימייזר בודק שליש אוקטבה סביב הערך הזה.',
-  phRecommendation:'המלצת יישור המחושבת מטווח החיתוך: רמקול לדיליי, ערך ms, פולריות, שיפור צפוי ואמינות.',
-  rtRunBtn:'התחל מדידת RT60 (מנגן רעש ופוסק).',
-  rtLevel:'עוצמת המדידה. כוונן לפני שמתחיל.',
-  rtRange:'טווח דעיכה נדרש. נמוך יותר = קל\nלמדוד בחדר שקט, פחות מדויק.',
-  tfOverlayHdr:'הצג/הסתר את עקומות המיק\' והרפרנס\nיחד על הגרף הראשי.',
-  tfOverlayBtn:'משאיר את עקומות המיק\' והרפרנס על הגרף\nהראשי גם כשהפאנל סגור.',
-  tfAutoDelayBtn:'סנכרון TF בלבד: מפצה את הפרש נתיבי MIC ו־Reference. מבצעים פעם אחת אחרי שינוי חיבור או מיקום מיקרופון.',
-  tfVerifyBtn:'שלב 2: פותח בחירת מקור, מפעיל אות פנימי אם נבחר, אוסף שתי שניות ומאמת פאזה וקוהרנטיות לפני Trace או EQ.',
-  tfPhaseToggleBtn:'מציג/מסתיר את גרף הפאזה (ירוק).',
-  tfCohToggleBtn:'מציג/מסתיר את גרף הקוהרנטיות (אדום מקווקו).',
-  saveBtn:'מדידות שמורות: שמור וטען מדידות\nלפי מקום ותאריך.',
-  exportJsonBtn:'ייצוא כל הסשן לקובץ JSON להעברה בין מכשירים.',
-  importJsonBtn:'ייבוא קובץ JSON של סשן שמור.',
-  refCurveBtn:'שומר את התגובה הנוכחית כעקומת ״לפני״\nכדי להשוות אחרי שינוי EQ.',
-  cutOnlySeg:'חיתוך בלבד: EQ מוריד תדרים בלבד,\nבלי הגברות — חוסך הדרוּם ומגן על הדרייברים.',
-  geqShowBtn:'הצג/הסתר את תצוגת תיקון ה-EQ\n(בנק הפיידרים מתחת לגרף).',
-  combBtn:'בדיקת ביטולי פאזה (comb): מזהה אדוות\nתקופתיות בגרף ומעריך את הפרש הזמן שגורם להן.',
-  v3ResChip:'רזולוציית RTA: בחר 1/3, 1/6, 1/12, 1/24 או 1/48 אוקטבה.',
-  v5TargetToggle:'Target: מציג או מסתיר את עקומת היעד על הגרף.',
-  v5AddTrace:'Capture Trace: שומר צילום של העקומה הנוכחית להשוואה.',
-  v5EqWorkspace:'מציג או מסתיר לחלוטין את תצוגת ה-EQ. החץ שבתוך הפאנל מיועד רק לקיפול התוכן.',
-  v5ResetSession:'מאפס מדידות, Traces ותוצאות EQ לאחר בקשת אישור.',
-  v54SideToggle:'פותח או סוגר את סרגל המדידות בצד שמאל.',
-  v52IoBtn:'I/O: בחירת כרטיס קול, ערוצים, רזולוציה וכיול.',
-  v52AutoDelayBtn:'סנכרון TF: מפצה את הפרש הזמן בין MIC 1 ל־REF 2 עבור גרפי TF ופאזה בלבד. הוא אינו דיליי שמוסיפים לרמקול.',
-  v52GenBtn:'פותח את הגנרטור בתחתית בלי לכסות את הגרף.',
-  v52FreezeBtn:'מקפיא או מחזיר לפעולה את התצוגה החיה.',
-  v52CaptureBtn:'פותח את אזור השמירה והלכידות.',
-  geqDockToggle:'מכווץ או מרחיב את תצוגת תיקוני ה-EQ.',
-  geqCutMode:'בחר תיקון מלא או חיתוך בלבד. הבחירה חלה על SPL, אזורים ו-TF.',
-  tfSwapBtn:'מחליף בין ערוץ המיקרופון לערוץ הרפרנס.',
-  tfMeasBtn:'מודד את התגובה במשך 6 שניות ומחשב תיקוני EQ.',
-  tfCsvBtn:'מוריד את תוצאת מדידת TF כקובץ CSV.',
-  tfTraceClearBtn:'מוחק את כל ה-Traces שנלכדו.',
-  v52OpenMicCal:'פותח את רשימת קובצי כיול המיקרופון.',
-  v52UnitToggle:'מחליף את המד בין dB SPL לבין dBFS.',
-  v52OpenOldIo:'פותח הגדרות I/O מתקדמות ופעולות ייצוא.'
+  mRta:"Spectrum display — power by frequency, in real time.",
+  mSpec:"Waterfall: spectrum over time.",
+  sunBtn:"Sunlight mode: bright background and high contrast for field work.",
+  swatches:"Application color — also changes the color of the bars in the graph.",
+  helpBtn:"Help mode: Hover over any button to get an explanation.",
+  guideBtn:"An organized guide for each measurement and the recommended work order in the field.",
+  genBtn:"Signal generator: pink/white noise, sine or sweep.\nfor measuring and adjusting the system.",
+  eqBtn:"Response measurement: single-channel (mic vs. target)\nor two-channel (mic + reference = TF).",
+  calBtn:"Microphone calibration: load a REW calibration file to compensate for the microphone response.",
+  dlyBtn:"Delay measurement: the delay time between speakers.\nsub/top alignment with anchor speaker.",
+  rtBtn:"RT60: Measurement of room reverberation time,\nby octave bands. Requires a real room.",
+  wgtBtn:"Meter weighting: dBZ (unweighted), dBA (A-weighted), or dBC (C-weighted). Click to cycle.",
+  leqBtn:"Reset Leq: restart the average level measurement from now.",
+  tfTraceBtn:"Captures the current TF curve and leaves it on the graph for comparison to the next measurement.",
+  tfAutoDelayBtn:"TF synchronization: measures three times the time difference between Reference and the microphone and aligns the phase. Does not adjust delay between speakers.",
+  resetPeakBtn:"Instant reset of all peak hold marks.",
+  avgSpeedSeg:"Determines how quickly the average reacts to changes. Fast = quick response, slow = stable display.",
+  peakBtn:"Peak Hold: Keeps the peaks on the screen.",
+  avgBtn:"Averaging: stabilizes the display over time.",
+  meterModeSeg:"Meters: RMS (averaged level) or Peak. Applies to all meters.",
+  fftSeg:"FFT: Accuracy vs. Speed. Accurate = better bass,\nfast = better performance.",
+  freezeBtn:"Freeze: Saves a curve for comparison,\nwith the peak frequencies marked.",
+  fbBtn:"Feedback detector: identify ringing frequencies and suggested EQ cuts.",
+  stopBtn:"Reset Session: Clears\nmeasurements and settings without turning off the microphone.",
+  pngBtn:"Export screenshot (PNG).",
+  csvBtn:"Export the data as a CSV file.",
+  inSel:"Input source: Select microphone / sound card.",
+  outSel:"Output device for the generator signal.",
+  genOnBtn:"Starts/stops the generator signal.",
+  floor:"Noise floor: the lower threshold of the display.",
+  cal:"SPL calibration: match a reference meter to display calibrated dB SPL.",
+  autoCalBtn:"Automatic calibration against 1kHz pistonphone.",
+  genLvl:"generator signal strength. Start low!",
+  genFreq:"Sine frequency (slider).",
+  genFreqNum:"Type an exact sine frequency.",
+  genSweep:"The duration of the sweep cycle.",
+  smooth:"Smoothing: softens jumps in the display.",
+  res:"Resolution: octave band spacing, from 1/3 to 1/48 octave.",
+  respModeSeg:"Single-channel (mic vs. target) or two-channel\n(mic + reference = real TF).",
+  eqModeSeg:"EQ display: Graphic (31 bands) or Parametric (frequency/gain/Q).",
+  tfModeSeg:"Correction display: graphic or parametric.",
+  tgtSeg:"Target curve: flat (neutral) or\nHouse (slightly increased bass, lowered treble).",
+  eqMeasBtn:"Measure a new location (5s). Measure several\npositions — the correction is the average.",
+  eqResetBtn:"Clear all locations.",
+  areaMeasBtn:"Measure a new area (up to 4). To compare\ndifferent sides of the circle.",
+  areaEqBtn:"Calculate average EQ correction for all zones.",
+  dlyMeasBtn:"Measure total path time three times. For speaker alignment, use only Δ relative to the anchor.",
+  dlyLoopbackBtn:"Loopback check: send the same signal to both inputs. The result should be close to 0 ms.",
+  dlyUnitSeg:"Choose time display in ms or approximate distance in meters. Meters require calibration against a known distance.",
+  dlyKnownDistance:"The actual measured distance between the center of the speaker and the microphone during the distance calibration.",
+  dlyDistanceCalBtn:"Place the microphone at the known distance and click here. The calibration reduces the system time and is rejected if the entered distance is not possible according to the measured arrival time.",
+  dlyCountSeg:"Number of speakers to align (2/4/6).",
+  dlyReset:"Clear the delay measurements.",
+  phSyncBtn:"Step 1: Keep only the top speaker active. Sync compensates for the signal-path difference between MIC and REF.",
+  phSubBtn:"Step 2: Opens a selection of internal pink noise or an external source and captures three seconds of the subwoofer alone. The top must be muted.",
+  phTopBtn:"Step 3: Opens the same signal selection and captures three seconds of the top alone. The subwoofer must be muted.",
+  xoverF:"Actual crossover frequency. The optimizer checks a third of an octave around this frequency.",
+  phRecommendation:"Crossover alignment recommendation: speaker to delay, delay in ms, polarity, expected improvement and confidence.",
+  rtRunBtn:"Start RT60 measurement: play noise, then stop to measure decay.",
+  rtLevel:"Measurement signal level. Adjust before starting.",
+  rtRange:"Required decay range. A lower range is easier to measure in a quiet room but less accurate.",
+  tfOverlayHdr:"Show/hide the mic and reference curves\ntogether on the main graph.",
+  tfOverlayBtn:"Leaves the mic and reference curves on the main\ngraph even when the panel is closed.",
+  tfAutoDelayBtn:"TF synchronization only: compensates for the difference between MIC and Reference paths. Perform once after changing connection or microphone position.",
+  tfVerifyBtn:"Step 2: Opens source selection, activates internal signal if selected, collects two seconds and verifies phase and coherence before Trace or EQ.",
+  tfPhaseToggleBtn:"Shows/hides the phase graph (green).",
+  tfCohToggleBtn:"Shows/hides the coherence graph (dashed red).",
+  saveBtn:"Saved Measurements: Save and load\nmeasurements by location and date.",
+  exportJsonBtn:"Export the entire session to a JSON file for transfer between devices.",
+  importJsonBtn:"Import a saved session JSON file.",
+  refCurveBtn:"Saves current response as\n\"before\" curve to compare after EQ change.",
+  cutOnlySeg:"Cut only: apply EQ cuts without boosts to preserve headroom and protect drivers.",
+  geqShowBtn:"Show or hide the EQ correction display below the graph.",
+  combBtn:"Phase cancellation test (comb): detects periodic\nripples in the graph and estimates the time difference that causes them.",
+  v3ResChip:"RTA Resolution: Choose 1/3, 1/6, 1/12, 1/24 or 1/48 octave.",
+  v5TargetToggle:"Target: Shows or hides the target curve on the graph.",
+  v5AddTrace:"Capture Trace: Saves a snapshot of the current curve for comparison.",
+  v5EqWorkspace:"Shows or completely hides the EQ display. The arrow inside the panel is only for collapsing the content.",
+  v5ResetSession:"Resets measurements, traces and EQ results after asking for confirmation.",
+  v54SideToggle:"Opens or closes the measurement bar on the left.",
+  v52IoBtn:"I/O: selection of sound card, channels, resolution and calibration.",
+  v52AutoDelayBtn:"TF sync: compensates the time difference between MIC 1 and REF 2 for TF and phase graphs only. It is not a delay that is added to the speaker.",
+  v52GenBtn:"Opens the generator at the bottom without covering the graph.",
+  v52FreezeBtn:"Freezes or restores the live view.",
+  v52CaptureBtn:"Open saved measurements and captures.",
+  geqDockToggle:"Collapse or expand the EQ correction display.",
+  geqCutMode:"Choose Full or Cut only correction. Applies to SPL, Areas and TF.",
+  tfSwapBtn:"Switches between the microphone channel and the reference channel.",
+  tfMeasBtn:"Measures the response for 6 seconds and calculates EQ corrections.",
+  tfCsvBtn:"Downloads the TF measurement result as a CSV file.",
+  tfTraceClearBtn:"Deletes all captured Traces.",
+  v52OpenMicCal:"Opens the list of microphone calibration files.",
+  v52UnitToggle:"Toggles the meter between dB SPL and dBFS.",
+  v52OpenOldIo:"Opens advanced I/O settings and export operations."
 };
 let helpMode=false;
 const helpTip=document.createElement('div'); helpTip.id='helpTip'; document.body.appendChild(helpTip);
@@ -5324,10 +5324,10 @@ function helpTextFor(target){
   if(!txt && target.closest){
     const cEl=target.closest('.tgtSeg'); if(cEl) txt=HELP.tgtSeg;
     const cut=target.closest('#geqCutMode');if(cut)txt=HELP.geqCutMode;
-    const mode=target.closest('[data-v5mode]');if(!txt&&mode){const names={analysis:'RTA ו-Waterfall: ניתוח ספקטרום חי.',tf:'TF: השוואה חיה בין המיקרופון לרפרנס ומדידת תגובה.',delay:'Delay Finder: מדידת הפרש זמן בין ערוצים ורמקולים.',rt60:'RT60: מדידת זמן הדהוד החדר.',spleq:'SPL / EQ: מדידת תגובה חד-ערוצית והמלצות EQ.',align:'Sub / Top: יישור פאזה ודיליי באזור החיתוך.'};txt=names[mode.dataset.v5mode];}
+    const mode=target.closest('[data-v5mode]');if(!txt&&mode){const names={analysis:"RTA and Waterfall: Live Spectrum Analysis.",tf:"TF: Live comparison between the microphone and reference and measurement of response.",delay:"Delay Finder: measuring time difference between channels and speakers.",rt60:"RT60: Room reverberation time measurement.",spleq:"SPL / EQ: Single-channel response measurement and EQ recommendations.",align:"Sub / Top: phase and delay alignment around the crossover."};txt=names[mode.dataset.v5mode];}
   }
   if(!txt && idEl){const labelled=idEl.getAttribute('aria-label')||idEl.getAttribute('title');if(labelled)txt=labelled;}
-  if(!txt && target.closest){const control=target.closest('button,select,input,[role="button"]');if(control){const name=(control.getAttribute('aria-label')||control.getAttribute('title')||control.textContent||'').trim().replace(/\s+/g,' ');if(name)txt=name+' — שליטה זמינה במצב זה.';}}
+  if(!txt && target.closest){const control=target.closest('button,select,input,[role="button"]');if(control){const name=(control.getAttribute('aria-label')||control.getAttribute('title')||control.textContent||'').trim().replace(/\s+/g,' ');if(name)txt=name+" — Control is available in this mode.";}}
   return txt;
 }
 function showHelpTip(txt,cx,cy){
@@ -5406,7 +5406,7 @@ if('serviceWorker' in navigator){
         sw.addEventListener('statechange',()=>{
           if(sw.state==='installed' && navigator.serviceWorker.controller){
             const el=document.getElementById('ver');
-            if(el){ el.textContent+=' · גרסה חדשה זמינה — רענן'; el.style.color='var(--warn)'; }
+            if(el){ el.textContent+=" · New version available — refresh"; el.style.color='var(--warn)'; }
           }
         });
       });

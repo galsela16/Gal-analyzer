@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -7,10 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="גל אנלייזר">
+<meta name="apple-mobile-web-app-title" content="GAL Analyzer">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<title>גל אנלייזר</title>
+<title>GAL Analyzer</title>
 <style>
 
 
@@ -33,7 +33,7 @@
     background:
       radial-gradient(130% 90% at 50% -10%, #16202b 0%, #0f141b 50%, #0a0d12 100%);
     color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    font-family:Arial,sans-serif;
     display:flex;flex-direction:column;height:100dvh;overflow:hidden;
     -webkit-user-select:none;user-select:none;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -49,7 +49,7 @@
   h1 span{color:var(--accent)}
   .modes{margin-inline-start:auto;display:flex;gap:4px}
   .modes button{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);
-    font-family:inherit;font-size:11px;letter-spacing:.5px;padding:7px 12px;border-radius:4px;cursor:pointer;transition:.15s}
+    font-family:Arial,sans-serif;font-size:11px;letter-spacing:.5px;padding:7px 12px;border-radius:4px;cursor:pointer;transition:.15s}
   .modes button.on{border-color:var(--accent);color:var(--accent);background:rgba(47,155,255,.08)}
   #stage{flex:1;position:relative;min-height:0}
   #stage>canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -63,7 +63,7 @@
   .tfQuickBar.show{ display:flex; align-items:center; }
   .tfQuickBar button{
     border:1px solid var(--line); background:var(--panel-2); color:var(--text);
-    font-family:inherit; font-size:11px; font-weight:600; padding:5px 10px;
+    font-family:Arial,sans-serif; font-size:11px; font-weight:600; padding:5px 10px;
     border-radius:4px; cursor:pointer; transition:.12s; white-space:nowrap;
   }
   .tfQuickBar button.on{
@@ -80,12 +80,12 @@
   #stage.bar-open>canvas{ height:calc(100% - var(--bar-h,0)); bottom:auto; }
   #alignBar button{
     border:1px solid var(--line); background:var(--panel-2); color:var(--text);
-    font-family:inherit; font-size:11px; font-weight:600; padding:6px 11px;
+    font-family:Arial,sans-serif; font-size:11px; font-weight:600; padding:6px 11px;
     border-radius:4px; cursor:pointer; transition:.12s; white-space:nowrap;
   }
   #alignBar button.on{ border-color:var(--accent); color:var(--accent); background:rgba(62,166,255,.16); }
   #alignBar button:disabled{ opacity:.5; cursor:default; }
-  #phWorkflowSteps{display:flex;align-items:center;gap:5px;direction:rtl}
+  #phWorkflowSteps{display:flex;align-items:center;gap:5px;direction:ltr}
   #phWorkflowSteps button{min-width:108px}
   #phWorkflowSteps button.on{border-color:#42d57b;color:#42d57b;background:rgba(66,213,123,.1)}
   #alignBar #alignClose{ border-color:transparent; color:var(--dim); font-size:14px; padding:6px 8px; }
@@ -104,7 +104,7 @@
   .abWidget.show{ display:flex; align-items:center; }
   .abWidget button{
     border:1px solid var(--line); background:var(--panel-2); color:var(--text);
-    font-family:inherit; font-size:11px; font-weight:600; padding:4px 9px; border-radius:4px; cursor:pointer;
+    font-family:Arial,sans-serif; font-size:11px; font-weight:600; padding:4px 9px; border-radius:4px; cursor:pointer;
   }
   .abWidget button.on{ border-color:var(--accent); color:var(--accent); background:rgba(62,166,255,.16); }
   .saveRow .abBtn{ border:1px solid var(--line); background:var(--panel); color:var(--dim); font-size:11px; padding:3px 7px; border-radius:3px; cursor:pointer; }
@@ -115,7 +115,7 @@
     gap:16px;text-align:center;padding:24px;z-index:4}
   .idle p{color:var(--dim);font-size:13px;line-height:1.7;max-width:300px}
   .btn{appearance:none;border:1px solid var(--accent);cursor:pointer;background:rgba(47,155,255,.08);
-    color:var(--accent);font-family:inherit;font-size:14px;font-weight:600;letter-spacing:2px;
+    color:var(--accent);font-family:Arial,sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;
     padding:14px 30px;border-radius:5px;text-transform:uppercase;transition:.15s}
   .btn:active{transform:scale(.97)}
   #fbPanel{display:none !important;}
@@ -128,7 +128,7 @@
   .stats .big{color:var(--accent);font-size:16px}
   .zoomBtn{position:absolute;top:10px;inset-inline-start:10px;z-index:4;display:none;
     border:1px solid var(--accent);background:rgba(47,155,255,.12);color:var(--accent);
-    font-family:inherit;font-size:11px;letter-spacing:1px;padding:7px 12px;border-radius:4px;cursor:pointer}
+    font-family:Arial,sans-serif;font-size:11px;letter-spacing:1px;padding:7px 12px;border-radius:4px;cursor:pointer}
   
   #modalBg{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.22);backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);display:none;align-items:center;justify-content:center;padding:16px}
   #modalBg.show{display:flex}
@@ -138,9 +138,9 @@
   #sunBtn{margin-inline-start:auto}
   #helpBtn.on, #sunBtn.on, #guideBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.14);box-shadow:0 0 12px rgba(62,166,255,.3)}
   #helpBtn:hover, #sunBtn:hover, #guideBtn:hover{color:var(--text);border-color:#3a4656}
-  #guidePanel{display:none;direction:rtl;width:min(92vw,780px);max-height:min(86vh,760px);overflow:auto;padding:18px;border:1px solid var(--accent);border-radius:10px;background:var(--panel);box-shadow:0 18px 55px rgba(0,0,0,.65);color:var(--text)}
+  #guidePanel{display:none;direction:ltr;width:min(92vw,780px);max-height:min(86vh,760px);overflow:auto;padding:18px;border:1px solid var(--accent);border-radius:10px;background:var(--panel);box-shadow:0 18px 55px rgba(0,0,0,.65);color:var(--text)}
   #guidePanel.open{display:block}#guidePanel h2{font-size:17px;margin:0 0 5px;color:var(--accent)}#guidePanel>.sub{margin-bottom:14px;color:var(--dim);font-size:11px}
-  .guideFlow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:14px}.guideStep{position:relative;padding:9px 9px 9px 28px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);font-size:10px;line-height:1.45}.guideStep b{display:block;color:var(--accent);font-size:11px}.guideStep i{position:absolute;left:8px;top:8px;color:var(--dim);font:700 13px monospace}
+  .guideFlow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:14px}.guideStep{position:relative;padding:9px 9px 9px 28px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);font-size:10px;line-height:1.45}.guideStep b{display:block;color:var(--accent);font-size:11px}.guideStep i{position:absolute;left:8px;top:8px;color:var(--dim);font:700 13px Arial,sans-serif}
   .guideSections{display:grid;grid-template-columns:1fr 1fr;gap:7px}.guideSections details{border:1px solid var(--line);border-radius:7px;background:var(--panel-2);padding:0 10px}.guideSections summary{cursor:pointer;padding:9px 0;color:var(--text);font-weight:700;font-size:11px}.guideSections p{margin:0 0 9px;color:var(--dim);font-size:10px;line-height:1.65}.guideSections strong{color:var(--text)}
   #guideClose{display:block;margin:15px auto 0;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--text);padding:7px 24px;cursor:pointer}
   @media(max-width:700px){.guideFlow{grid-template-columns:1fr 1fr}.guideSections{grid-template-columns:1fr}}
@@ -160,8 +160,8 @@
   #dlyPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
   #dlyPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
   #dlyStatus b{color:var(--accent);font-size:24px}
-  #dlyClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
-  #alignClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  #dlyClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  #alignClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   #srcOverlay.show{display:flex}
   #srcBox{display:flex;flex-direction:column;gap:9px;width:min(90%,280px);padding:18px;border:1px solid var(--accent);
     border-radius:6px;background:var(--panel);box-shadow:0 10px 40px rgba(0,0,0,.6)}
@@ -180,9 +180,9 @@
   .areaRow{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:4px;border:1px solid var(--line);font-size:13px;color:var(--text)}
   .areaRow .dot{width:12px;height:12px;border-radius:50%;flex:none}
   .areaRow .nm{flex:1}
-  .areaRow button{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:11px;padding:5px 9px;border-radius:3px;cursor:pointer}
+  .areaRow button{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;font-size:11px;padding:5px 9px;border-radius:3px;cursor:pointer}
   .areaRow button.on{border-color:var(--accent);color:var(--accent)}
-  #areaClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
+  #areaClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   
   .meter{position:absolute;bottom:8px;inset-inline:10px;z-index:3;height:26px;border:1px solid var(--line);
     border-radius:4px;background:rgba(13,17,23,.55);backdrop-filter:blur(4px);overflow:hidden;display:flex;align-items:center;pointer-events:none}
@@ -214,14 +214,14 @@
     background:radial-gradient(circle at 35% 30%,#8fd0ff,var(--accent) 60%);border:1px solid #0b0f16;box-shadow:0 0 8px rgba(62,166,255,.6),0 1px 2px rgba(0,0,0,.5)}
   input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;cursor:pointer;
     background:var(--accent);border:1px solid #0b0f16;box-shadow:0 0 8px rgba(62,166,255,.6)}
-  .toggle{border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:inherit;font-size:12px;letter-spacing:.3px;
+  .toggle{border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:Arial,sans-serif;font-size:12px;letter-spacing:.3px;
     padding:11px 17px;border-radius:4px;cursor:pointer;transition:.14s ease;white-space:nowrap;font-weight:600}
   .toggle:hover{border-color:var(--accent);background:var(--panel);color:var(--text)}
   .toggle:active{transform:translateY(1px)}
   .toggle.on{color:#eaf4ff;border-color:var(--accent);background:rgba(62,166,255,.14);box-shadow:0 0 14px rgba(62,166,255,.28)}
   body.sun-mode .toggle.on{ color:var(--accent); }
   .tabbar{flex-basis:100%;display:flex;gap:7px;align-items:center;margin-bottom:12px}
-  .tab{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;
+  .tab{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;font-size:12px;
     font-weight:600;letter-spacing:.3px;padding:10px 20px;border-radius:4px;cursor:pointer;transition:.14s ease}
   .tab:hover{border-color:var(--accent);color:var(--text)}
   .tab.on{color:var(--text);border-color:var(--accent);background:rgba(62,166,255,.16);box-shadow:0 0 16px rgba(62,166,255,.3)}
@@ -229,12 +229,12 @@
   .tabpage{flex-basis:100%;display:none;gap:10px;align-items:center;flex-wrap:wrap}
   .tabpage.active{display:flex;flex-direction:column;align-items:stretch}
   .seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
-  .seg button{border:none;background:var(--panel-2);color:var(--dim);font-family:inherit;font-size:12px;
+  .seg button{border:none;background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;font-size:12px;
     letter-spacing:.3px;padding:10px 15px;cursor:pointer;transition:.14s;border-inline-start:1px solid var(--line);font-weight:600}
   .seg button:first-child{border-inline-start:none}
   .seg button:hover{color:var(--text);background:var(--panel)}
   .seg button.on{color:var(--accent);background:rgba(62,166,255,.2);box-shadow:inset 0 0 0 1px rgba(62,166,255,.35)}
-  select.inp{border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:inherit;
+  select.inp{border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:Arial,sans-serif;
     font-size:11px;padding:8px 10px;border-radius:4px;max-width:150px;outline:none}
   
   #genPanel{flex-basis:100%;display:none;gap:14px;align-items:center;flex-wrap:wrap;
@@ -243,7 +243,7 @@
   #genPanel.open{display:flex}
   #genPanel .warn{flex-basis:100%;font-size:10px;color:var(--warn);letter-spacing:.5px}
   #genOnBtn{border:1px solid var(--hot);background:rgba(255,59,107,.1);color:var(--hot);
-    font-family:inherit;font-size:12px;font-weight:600;letter-spacing:1px;padding:9px 16px;border-radius:4px;cursor:pointer}
+    font-family:Arial,sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;padding:9px 16px;border-radius:4px;cursor:pointer}
   #genOnBtn.on{border-color:var(--accent);background:rgba(47,155,255,.12);color:var(--accent)}
   
   #rtPanel{position:relative;display:none;
@@ -253,7 +253,7 @@
   #rtStatus b{color:var(--accent);font-size:26px}
   #rtCanvas{width:100%;height:120px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px}
   #rtPanel.open{display:flex}
-  #rtClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+  #rtClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;
     font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   
   #gainPanel{position:relative;display:none;
@@ -262,7 +262,7 @@
   #gainPanel.open{display:flex}
   #gainPanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
   #gainPanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
-  #gainClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+  #gainClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;
     font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
 
   #savePanel{position:relative;display:none;
@@ -271,12 +271,12 @@
   #savePanel.open{display:flex}
   #savePanel h3{font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600}
   #savePanel .sub{font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.5}
-  #saveClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+  #saveClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;
     font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   .saveRow{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);font-size:12px}
   .saveRow .nm{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .saveRow .meta{font-size:10px;color:var(--dim)}
-  .saveRow button{border:1px solid var(--line);background:var(--panel);color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;border-radius:3px;cursor:pointer}
+  .saveRow button{border:1px solid var(--line);background:var(--panel);color:var(--text);font-family:Arial,sans-serif;font-size:11px;padding:4px 8px;border-radius:3px;cursor:pointer}
   .saveRow button:hover{border-color:var(--accent);color:var(--accent)}
 
   #geqDock{
@@ -296,15 +296,15 @@
   #geqDockTitle{font-size:12px; font-weight:600; letter-spacing:.5px; color:var(--accent)}
   #geqDockTools{display:flex;align-items:center;gap:8px;margin-inline-start:auto;margin-inline-end:10px}
   .geqRangeCtl{display:none;align-items:center;gap:4px;padding:2px 6px;border:1px solid #2a4052;border-radius:5px;background:#08131b;color:#9fb0bf;font-size:9px;white-space:nowrap}
-  .geqRangeCtl select{width:76px;border:0;background:transparent;color:#eef5fa;font:700 10px monospace;outline:none;cursor:pointer}
+  .geqRangeCtl select{width:76px;border:0;background:transparent;color:#eef5fa;font:700 10px Arial,sans-serif;outline:none;cursor:pointer}
   body.sun-mode .geqRangeCtl{background:#fff;border-color:#cbd5e1;color:#64748b}body.sun-mode .geqRangeCtl select{color:#0f172a}
   #eqRangeBar{display:flex!important;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;border:2px solid rgba(62,166,255,.7)!important;border-radius:7px;background:rgba(62,166,255,.10);padding:8px 10px!important}
-  #eqRangeBar:before{content:"טווח המלצות";color:var(--accent);font-size:10px;font-weight:800;white-space:nowrap}
+  #eqRangeBar:before{content:"Correction range";color:var(--accent);font-size:10px;font-weight:800;white-space:nowrap}
   #eqRangeBar .ctrl:first-of-type{border-inline-start:4px solid #35d0ff!important}
   #eqRangeBar .ctrl:nth-of-type(2){border-inline-start:4px solid #ffb020!important}
   #eqPanel #eqRangeBar{display:none!important}
-  #geqCutMode{display:flex;direction:rtl;border:1px solid #2a4052;border-radius:5px;overflow:hidden;background:#08131b}
-  #geqCutMode button{border:0;border-left:1px solid #2a4052;background:transparent;color:#8294a3;padding:5px 10px;font:700 10px inherit;cursor:pointer;white-space:nowrap}
+  #geqCutMode{display:flex;direction:ltr;border:1px solid #2a4052;border-radius:5px;overflow:hidden;background:#08131b}
+  #geqCutMode button{border:0;border-left:1px solid #2a4052;background:transparent;color:#8294a3;padding:5px 10px;font:700 10px Arial,sans-serif;cursor:pointer;white-space:nowrap}
   #geqCutMode button:last-child{border-left:0}#geqCutMode button.on{color:var(--accent);background:rgba(62,166,255,.14)}
   #geqDockToggle{
     border:1px solid var(--line); background:var(--panel); color:var(--text); font-size:12px;
@@ -314,13 +314,13 @@
   #geqDockToggle:hover{color:var(--accent); background:rgba(62,166,255,.1)}
   #eqCurveCanvas{display:block;width:100%;height:132px;background:#09131b;cursor:ew-resize;touch-action:none}
   body.sun-mode #eqCurveCanvas{ background:#ffffff; }
-  #geqValues{display:block;padding:7px 10px 8px;border-top:1px solid #1c2d39;background:#081119;direction:rtl;max-height:130px;overflow:auto}
+  #geqValues{display:block;padding:7px 10px 8px;border-top:1px solid #1c2d39;background:#081119;direction:ltr;max-height:130px;overflow:auto}
   .eqActionHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;color:#8395a5;font-size:9px}
   .eqActionHead strong{color:#dce7ef;font-size:11px}.eqActionHead span{font-variant-numeric:tabular-nums}
   .eqActionGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;direction:ltr}
-  .eqAction{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;min-height:31px;padding:5px 8px 5px 11px;border:1px solid #293b49;border-radius:5px;background:#0d1922;font-family:monospace;overflow:hidden}
+  .eqAction{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;min-height:31px;padding:5px 8px 5px 11px;border:1px solid #293b49;border-radius:5px;background:#0d1922;font-family:Arial,sans-serif;overflow:hidden}
   .eqAction:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#8292a0}
-  .eqAction .freq{color:#dce7ef;font-size:10px;font-weight:700}.eqAction .hint{display:inline;color:#718393;font:9px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center}
+  .eqAction .freq{color:#dce7ef;font-size:10px;font-weight:700}.eqAction .hint{display:inline;color:#718393;font:9px Arial,sans-serif;text-align:center}
   .eqAction .gain{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
   .eqAction.cut{border-color:rgba(255,90,120,.28)}.eqAction.cut:before{background:#ff5a78}.eqAction.cut .gain{color:#ff6b83}
   .eqAction.boost{border-color:rgba(80,230,140,.28)}.eqAction.boost:before{background:#50e68c}.eqAction.boost .gain{color:#50e68c}
@@ -348,7 +348,7 @@
   .eqRow .g{min-width:52px;color:var(--text)}
   .eqRow.cut .g{color:var(--hot)} .eqRow.boost .g{color:var(--accent)}
   .eqRow .q{color:var(--dim);font-size:11px}
-  #eqClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+  #eqClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;
     font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   
   #calPanel{position:relative;display:none;
@@ -365,9 +365,9 @@
   .calRow .sub{color:var(--dim);font-size:11px;flex-shrink:0}
   .calRow .del{color:var(--hot);font-size:14px;padding:2px 6px;line-height:1;border-radius:3px;flex-shrink:0}
   .calRow .del:hover{background:rgba(255,59,107,.2)}
-  .posName{flex:1;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:12px;font-weight:600;outline:none;min-width:0}
+  .posName{flex:1;background:transparent;border:none;color:var(--text);font-family:Arial,sans-serif;font-size:12px;font-weight:600;outline:none;min-width:0}
   .posName:focus{border-bottom:1px solid var(--accent)}
-  #calClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+  #calClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;
     font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   
   #tfPanel{position:relative;display:none;
@@ -388,7 +388,7 @@
   #tfCanvas{width:100%;height:150px;position:relative;flex-shrink:0;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none}
   #tfGeqList{display:flex;flex-direction:column;gap:6px;z-index:2;width:100%}
   #tfBtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-  #tfWorkflowSteps{display:flex;align-items:center;justify-content:center;gap:5px;direction:rtl;flex-wrap:wrap}
+  #tfWorkflowSteps{display:flex;align-items:center;justify-content:center;gap:5px;direction:ltr;flex-wrap:wrap}
   #tfWorkflowSteps button{min-width:112px}
   #tfWorkflowSteps button:disabled{opacity:.42!important;cursor:default!important;filter:saturate(.45)}
   #tfWorkflowSteps button.on{border-color:#42d57b!important;color:#42d57b!important;background:rgba(66,213,123,.1)!important}
@@ -396,7 +396,7 @@
   #tfDelayInfo.ready{color:#42d57b!important;border-color:rgba(66,213,123,.4)!important}
   #tfDelayInfo.warn{color:#f59e0b!important;border-color:rgba(245,158,11,.42)!important;background:rgba(245,158,11,.06)!important}
   @media(max-width:760px){#tfWorkflowSteps{width:100%}#tfWorkflowSteps button{min-width:0;flex:1 1 44%;padding-inline:7px}}
-  #tfClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:inherit;
+  #tfClose{border:1px solid var(--line);background:var(--panel-2);color:var(--dim);font-family:Arial,sans-serif;
     font-size:12px;padding:8px 20px;border-radius:4px;cursor:pointer;align-self:center}
   
   .tfGrid{display:grid;grid-template-columns:repeat(auto-fill, minmax(92px, 1fr));gap:6px;max-height:220px;overflow-y:auto;padding:6px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2)}
@@ -433,7 +433,7 @@
   .measureDock.expanded div.dockAdvanced{display:flex !important}
   .measureDock.expanded .dockAdvanced.block{display:block !important}
   .measureDock .dockMoreBtn,.measureDock .dockClose{
-    border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:inherit;font-size:11px;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:Arial,sans-serif;font-size:11px;
     font-weight:600;padding:6px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;align-self:center
   }
   .measureDock .dockMoreBtn{border-color:rgba(62,166,255,.35);color:var(--accent)}
@@ -448,7 +448,7 @@
   .tfTraceLegend{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:10px;color:var(--dim)}
   .tfTraceLegend span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2)}
   .tfTraceLegend i{width:12px;height:2px;display:inline-block;border-radius:2px}
-  .tfTraceStatus,.v5TraceTrust{font:800 8px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}
+  .tfTraceStatus,.v5TraceTrust{font:800 8px Arial,sans-serif;letter-spacing:.04em}
   .tfTraceStatus.verified,.v5TraceTrust.verified{color:#45d47b}
   .tfTraceStatus.unverified,.v5TraceTrust.unverified{color:#f5b942}
   @media(max-width:760px){
@@ -478,7 +478,7 @@
     box-shadow:0 12px 32px rgba(0,0,0,.55);direction:ltr}
   #v3ResMenu.open{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   #v3ResMenu button{border:1px solid #263b4b;border-radius:5px;background:#0d1923;color:#aab8c5;
-    padding:8px 10px;font:700 11px monospace;cursor:pointer;white-space:nowrap}
+    padding:8px 10px;font:700 11px Arial,sans-serif;cursor:pointer;white-space:nowrap}
   #v3ResMenu button:hover,#v3ResMenu button.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.13)}
   body.sun-mode #v3ResMenu{background:#fff;border-color:#cbd5e1;box-shadow:0 12px 28px rgba(15,23,42,.18)}
   body.sun-mode #v3ResMenu button{background:#f8fafc;border-color:#cbd5e1;color:#475569}
@@ -492,7 +492,7 @@
   #shortcutToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .miniSeg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
   .miniSeg button{border:0;border-inline-start:1px solid var(--line);background:var(--panel);color:var(--dim);
-    padding:5px 8px;font:600 10px inherit;cursor:pointer}
+    padding:5px 8px;font:600 10px Arial,sans-serif;cursor:pointer}
   .miniSeg button:first-child{border-inline-start:0}
   .miniSeg button.on{background:rgba(62,166,255,.12);color:var(--accent)}
   @media (max-width:760px){
@@ -546,11 +546,11 @@
   #sunBtn{margin-inline-start:0!important}
   #helpBtn,#sunBtn,#guideBtn{background:#0c1620}
   .v5HeaderActions{
-    display:flex;align-items:center;gap:7px;direction:rtl;
+    display:flex;align-items:center;gap:7px;direction:ltr;
   }
   .v5HeaderAction{
     border:1px solid #263746;background:#0c1620;color:#cbd5df;
-    font:600 11px inherit;padding:7px 11px;border-radius:5px;cursor:pointer;
+    font:600 11px Arial,sans-serif;padding:7px 11px;border-radius:5px;cursor:pointer;
     white-space:nowrap;
   }
   .v5HeaderAction:hover{border-color:var(--accent);color:var(--accent)}
@@ -572,7 +572,7 @@
     height:36px;min-width:78px;padding:0 14px;
     border:1px solid #253542;border-bottom-color:#1a2a37;
     border-radius:6px 6px 0 0;background:#0c151e;color:#9aa9b7;
-    font:600 11px inherit;cursor:pointer;
+    font:600 11px Arial,sans-serif;cursor:pointer;
   }
   #v5ModeTabs button:hover{color:#e5eef5;border-color:#334b5e}
   #v5ModeTabs button.on{
@@ -593,7 +593,7 @@
   #v54SideToggle{
     position:absolute;z-index:22;left:calc(var(--v5-side) + 8px);top:calc(var(--v5-tabs) + 9px);
     width:29px;height:29px;border:1px solid #314554;border-radius:5px;background:#0c1822;color:#adc0ce;
-    font:700 14px inherit;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.28);
+    font:700 14px Arial,sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.28);
   }
   #v54SideToggle:hover{border-color:var(--accent);color:var(--accent)}
   body.v54-rail-collapsed{--v5-side:0px}
@@ -625,10 +625,10 @@
   .v5TraceAction.off{opacity:.35}
   #v5AddTrace{
     margin-top:3px;border:1px solid #263745;background:#0d1923;color:#aebbc7;
-    border-radius:5px;padding:7px;font:600 10px inherit;cursor:pointer;
+    border-radius:5px;padding:7px;font:600 10px Arial,sans-serif;cursor:pointer;
   }
   #v5AddTrace:hover{border-color:var(--accent);color:var(--accent)}
-  .v5RailTool{border:1px solid #263745;background:#0d1923;color:#aebbc7;border-radius:5px;padding:7px;font:600 10px inherit;cursor:pointer}
+  .v5RailTool{border:1px solid #263745;background:#0d1923;color:#aebbc7;border-radius:5px;padding:7px;font:600 10px Arial,sans-serif;cursor:pointer}
   .v5RailTool:hover{border-color:var(--accent);color:var(--accent)}
   #v5ResetSession{margin-top:2px;border-color:rgba(255,90,120,.28);color:#d99aaa;background:rgba(255,90,120,.05)}
   #v5ResetSession:hover{border-color:#ff5a78;color:#ff7c92}
@@ -726,7 +726,7 @@
   }
   #tfCorrHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0}
   #tfCorrHead strong{font-size:10px;color:#dce6ee;white-space:nowrap}
-  #tfCorrVal{font:800 15px/1 monospace!important;letter-spacing:.2px}
+  #tfCorrVal{font:800 15px/1 Arial,sans-serif!important;letter-spacing:.2px}
   #tfCorrScale{display:none}
   #tfCorrScale span:nth-child(2){text-align:center}#tfCorrScale span:last-child{text-align:right}
   #tfCorrTrack{display:block!important;position:relative!important;width:100%!important;height:8px!important;border:1px solid #31485a;border-radius:999px;background:linear-gradient(90deg,rgba(255,59,107,.24),rgba(255,209,102,.08) 48%,rgba(57,217,138,.24));overflow:visible!important}
@@ -762,11 +762,11 @@
   @media(max-width:680px){#tfPanel.measureDock>.dockMoreBtn{right:57px!important;min-width:68px!important}#tfPanel.measureDock>.dockClose{right:9px!important}#tfPanel.measureDock h3{padding-right:132px!important}}
 
   /* Delay: one clear sequence — inputs, measure, then speaker alignment. */
-  #dlyPanel.measureDock{direction:rtl!important;grid-template-columns:minmax(230px,1fr) minmax(250px,1.2fr)!important;grid-template-areas:"title title" "inputs measure" "align align" "actions actions"!important;gap:10px!important;min-height:238px!important;max-height:43vh!important;padding:12px 16px!important;overflow:auto!important}
+  #dlyPanel.measureDock{direction:ltr!important;grid-template-columns:minmax(230px,1fr) minmax(250px,1.2fr)!important;grid-template-areas:"title title" "inputs measure" "align align" "actions actions"!important;gap:10px!important;min-height:238px!important;max-height:43vh!important;padding:12px 16px!important;overflow:auto!important}
   #dlyPanel.measureDock.open{display:grid!important}
-  #dlyPanel.measureDock h3{grid-area:title!important;direction:rtl!important;text-align:right!important;padding-left:120px!important}
+  #dlyPanel.measureDock h3{grid-area:title!important;direction:ltr!important;text-align:left!important;padding-right:120px!important}
   #dlyPanel.measureDock .dlyInputs{grid-area:inputs;display:grid;gap:7px;align-content:start}
-  #dlyPanel.measureDock .dlyInputs .chBar{min-width:0!important;max-width:none!important;width:auto!important;direction:rtl!important}
+  #dlyPanel.measureDock .dlyInputs .chBar{min-width:0!important;max-width:none!important;width:auto!important;direction:ltr!important}
   #dlyPanel.measureDock .dlyMeasureCard{grid-area:measure;display:flex;flex-direction:column;gap:7px;align-items:stretch;justify-content:center;background:#0b151e;border:1px solid #1d2c38;border-radius:6px;padding:10px}
   #dlyPanel.measureDock .dlyMeasureCard .toggle{align-self:center!important}
   #dlyPanel.measureDock #dlyStatus{min-height:24px!important;background:#0d1923;border:1px solid #243746;border-radius:4px;padding:6px 8px;font-size:12px!important}
@@ -781,13 +781,13 @@
   #dlyDistanceCal{display:none;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;padding:6px 8px;border:1px solid rgba(62,166,255,.28);border-radius:5px;background:rgba(62,166,255,.05);font-size:9px;color:var(--dim)}
   #dlyDistanceCal.show{display:flex}#dlyDistanceCal.calibrated{border-color:rgba(66,213,123,.35);background:rgba(66,213,123,.05)}
   #dlyDistanceCal.invalid{border-color:rgba(255,89,104,.45);background:rgba(255,89,104,.06)}
-  #dlyDistanceCal label{display:flex;align-items:center;gap:4px;white-space:nowrap}#dlyKnownDistance{width:54px;padding:4px 5px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--text);font:10px monospace;text-align:center}
+  #dlyDistanceCal label{display:flex;align-items:center;gap:4px;white-space:nowrap}#dlyKnownDistance{width:54px;padding:4px 5px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--text);font:10px Arial,sans-serif;text-align:center}
   #dlyDistanceCalBtn{padding:4px 8px!important;font-size:9px!important;min-height:25px!important}#dlyDistanceCalState{flex:1 1 150px;text-align:center;line-height:1.35}
   .delayChecks{display:inline-flex;align-items:center;gap:3px;margin-inline-start:5px;vertical-align:middle}.delayChecks i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#425361}.delayChecks i.ok{background:#42d57b;box-shadow:0 0 5px rgba(66,213,123,.4)}.delayChecks i.bad{background:#ff5968}
   .dlySpeakerRow{display:grid;grid-template-columns:22px minmax(80px,1fr) 105px 54px minmax(96px,145px);align-items:center;gap:6px;min-height:34px;padding:4px 7px;border:1px solid #223543;border-radius:6px;background:rgba(10,21,30,.68);transition:.14s}
   .dlySpeakerRow:hover{border-color:#36566d;background:rgba(14,29,40,.82)}.dlySpeakerRow.anchor{border-color:rgba(62,166,255,.45);box-shadow:inset 3px 0 0 rgba(62,166,255,.75)}
-  .dlySpeakerRow .posName{min-width:0;width:100%;border:0;border-bottom:1px solid transparent;background:transparent;color:var(--text);font:600 11px inherit;padding:3px 2px}.dlySpeakerRow .posName:focus{outline:0;border-bottom-color:var(--accent)}
-  .dlySpeakerRow .dlyTime{font:10px monospace;color:var(--dim);white-space:nowrap}.dlySpeakerRow .dlyDelta{font-size:10px;text-align:end;line-height:1.25}.dlySpeakerRow .dlyMeasOne{padding:4px 7px!important;font-size:10px!important;min-height:25px!important}
+  .dlySpeakerRow .posName{min-width:0;width:100%;border:0;border-bottom:1px solid transparent;background:transparent;color:var(--text);font:600 11px Arial,sans-serif;padding:3px 2px}.dlySpeakerRow .posName:focus{outline:0;border-bottom-color:var(--accent)}
+  .dlySpeakerRow .dlyTime{font:10px Arial,sans-serif;color:var(--dim);white-space:nowrap}.dlySpeakerRow .dlyDelta{font-size:10px;text-align:end;line-height:1.25}.dlySpeakerRow .dlyMeasOne{padding:4px 7px!important;font-size:10px!important;min-height:25px!important}
   .dlySpeakerRow .dlyAnchor{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:13px;cursor:pointer;color:var(--dim)}.dlySpeakerRow.anchor .dlyAnchor{color:var(--accent);background:rgba(62,166,255,.12)}
   body.sun-mode .dlySpeakerRow{background:rgba(248,250,252,.92);border-color:#cbd5e1}body.sun-mode .dlySpeakerRow:hover{background:#fff;border-color:#94a3b8}
   @media(max-width:760px){.dlySpeakerRow{grid-template-columns:22px minmax(70px,1fr) 105px 50px}.dlySpeakerRow .dlyDelta{grid-column:2/5;text-align:start}}
@@ -1098,7 +1098,7 @@
   }
   .v52QuickBtn{
     border:1px solid #263746;background:#0c1720;color:#b8c4ce;border-radius:5px;
-    min-height:34px;padding:7px 11px;font:600 10px inherit;cursor:pointer;
+    min-height:34px;padding:7px 11px;font:600 10px Arial,sans-serif;cursor:pointer;
   }
   .v52QuickBtn:hover{border-color:var(--accent);color:var(--accent)}
   .v52QuickBtn.on{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.11)}
@@ -1139,7 +1139,7 @@
   .v52Field label{font-size:10px;color:#7f909e}
   .v52Field select,.v52Field input{
     width:100%;min-width:0;background:#0e1b25;color:#dce6ee;border:1px solid #2a3d4c;
-    border-radius:4px;padding:7px;font:10px inherit;
+    border-radius:4px;padding:7px;font:10px Arial,sans-serif;
   }
   .v52MeterRow{
     display:grid;grid-template-columns:62px 1fr 52px;align-items:center;gap:7px;margin:9px 0;
@@ -1159,7 +1159,7 @@
   .v52CalState span{color:#6fd994}
   .v52SmallBtn{
     border:1px solid #2b3e4d;background:#0e1a24;color:#b8c4ce;border-radius:4px;
-    padding:6px 8px;font:600 9px inherit;cursor:pointer;
+    padding:6px 8px;font:600 9px Arial,sans-serif;cursor:pointer;
   }
   .v53Advanced{display:none;margin-top:9px;padding-top:9px;border-top:1px solid #213341}
   .v52IOCard.advanced-open .v53Advanced{display:block}
@@ -1264,8 +1264,8 @@
   .uiMenuItem{min-height:62px;border:1px solid #20313e;border-radius:11px;background:linear-gradient(180deg,#0f1a23,#0b151d);color:#dce6ed;cursor:pointer;padding:10px;text-align:start;display:grid;grid-template-columns:28px 1fr;column-gap:8px;align-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
   .uiMenuItem:hover,.uiMenuItem:active{border-color:var(--accent);background:rgba(62,166,255,.09)}
   .uiMenuItem .ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:#101f2a;color:var(--accent);font-size:14px}
-  .uiMenuItem .txt{font:700 11px inherit;line-height:1.1}
-  .uiMenuItem .meta{display:block;color:#6f8392;font:500 8px inherit;margin-top:4px;line-height:1.25}
+  .uiMenuItem .txt{font:700 11px Arial,sans-serif;line-height:1.1}
+  .uiMenuItem .meta{display:block;color:#6f8392;font:500 8px Arial,sans-serif;margin-top:4px;line-height:1.25}
   body.sun-mode .uiMenuItem{background:#fff;color:#1f2b35;border-color:#d6e0e7}
   body.sun-mode .uiMenuItem .ico{background:#edf5fb}
   .uiMenuPanel{display:none;margin-top:10px;padding:10px;border:1px solid #20313e;border-radius:12px;background:#09131b}
@@ -1274,7 +1274,7 @@
   .uiDisplayRow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px;padding:5px 2px;border-bottom:1px solid #172630;font-size:10px;color:#b8c6d0}
   .uiDisplayRow:last-child{border-bottom:0}
   .uiDisplayActions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-  .uiMiniBtn{border:1px solid #263846;border-radius:7px;background:#0d1922;color:#9fb1bf;padding:6px 8px;font:700 9px inherit;cursor:pointer}
+  .uiMiniBtn{border:1px solid #263846;border-radius:7px;background:#0d1922;color:#9fb1bf;padding:6px 8px;font:700 9px Arial,sans-serif;cursor:pointer}
   .uiMiniBtn.on,.uiMiniBtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(62,166,255,.1)}
   .uiMenuColors{display:flex;gap:8px;align-items:center;padding:10px 3px 1px}
   .uiMenuColors .sw{width:22px;height:22px}
@@ -1340,7 +1340,7 @@
   #uiLivePill{
     direction:ltr;display:flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:999px;
     border:1px solid rgba(69,212,123,.22);background:rgba(69,212,123,.065);color:#72e29a;
-    font:800 9px/1 inherit;letter-spacing:1.2px;
+    font:800 9px/1 Arial,sans-serif;letter-spacing:1.2px;
   }
   .uiLiveDot{width:7px;height:7px;border-radius:50%;background:#43d67a;box-shadow:0 0 10px rgba(67,214,122,.75)}
   #stage{
@@ -1382,7 +1382,7 @@
   }
   #uiBottomTools button{
     appearance:none;border:0;background:transparent;color:#7f94a4;flex:1;min-width:0;border-radius:12px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:700 8.5px inherit;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:700 8.5px Arial,sans-serif;cursor:pointer;
   }
   #uiBottomTools button.on{color:var(--accent);background:rgba(62,166,255,.09);box-shadow:inset 0 0 0 1px rgba(62,166,255,.15)}
   #uiBottomTools .uiToolIcon{font-size:17px;line-height:17px;font-weight:500}
@@ -1435,7 +1435,7 @@
 .tfProCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:8px 0 10px}
 .tfProCard{padding:9px 10px;border:1px solid rgba(148,163,184,.16);border-radius:10px;background:rgba(255,255,255,.025);min-width:0}
 .tfProCard span{display:block;color:#75869a;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
-.tfProCard b{display:block;font:700 15px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e7eef7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tfProCard b{display:block;font:700 15px/1.15 Arial,sans-serif;color:#e7eef7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tfProCard small{display:block;color:#7f91a5;font-size:9px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tfProViewBar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border:1px solid rgba(148,163,184,.15);border-radius:10px;background:rgba(0,0,0,.16);margin:7px 0}
 .tfProViewBar .left,.tfProViewBar .right{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
@@ -1465,7 +1465,7 @@ body.sun-mode .tfProCard b{color:#172033}
 .tfPhaseTools .phaseRead{display:flex;align-items:center;gap:10px;min-width:0}
 .tfPhaseBadge{min-width:82px;padding:7px 9px;border-radius:8px;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.25);text-align:center}
 .tfPhaseBadge span{display:block;color:#7f91a5;font-size:8px;letter-spacing:.08em}
-.tfPhaseBadge b{display:block;color:#56df86;font:800 14px ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:2px}
+.tfPhaseBadge b{display:block;color:#56df86;font:800 14px Arial,sans-serif;margin-top:2px}
 .tfPhaseFreq{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
 .tfPhaseFreq label{font-size:9px;color:#8494a7;white-space:nowrap}
 .tfPhaseFreq input{width:100%;accent-color:#22c55e}
@@ -1489,7 +1489,7 @@ body.sun-mode .tfProCard b{color:#172033}
 #alignProResult.show{display:grid}
 .alignProCard{border:1px solid rgba(148,163,184,.16);border-radius:8px;background:rgba(255,255,255,.025);padding:7px 9px;min-width:0}
 .alignProCard span{display:block;color:var(--dim);font-size:8px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
-.alignProCard b{display:block;color:var(--text);font:800 13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alignProCard b{display:block;color:var(--text);font:800 13px Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alignProCard.good b{color:#42d57b}.alignProCard.warn b{color:#f59e0b}
 #alignProApply{display:none;flex:1 0 100%;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border-radius:8px;border:1px solid rgba(62,166,255,.25);background:rgba(62,166,255,.055)}
 #alignProApply.show{display:flex}
@@ -1504,8 +1504,8 @@ body.sun-mode .tfProCard b{color:#172033}
 #v53AnalysisGroup{flex:0 1 520px!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important}
 #v53AnalysisGroup button{min-width:0!important}
 #displayResolutionBar{position:absolute;z-index:29;top:48px;left:50%;transform:translateX(-50%);height:24px;display:flex;align-items:center;gap:2px;padding:0 6px;border:0;border-radius:0;background:transparent;box-shadow:none}
-#displayResolutionBar .drLabel{padding:0 7px 0 2px;color:#536c77;font:750 7px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.13em;white-space:nowrap}
-#v5ModeTabs #displayResolutionBar button{position:relative;height:20px;min-width:38px!important;padding:0 7px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#607b87!important;font:750 8px ui-monospace,SFMono-Regular,Menlo,monospace!important;letter-spacing:.02em!important;cursor:pointer;box-shadow:none!important;opacity:.82}
+#displayResolutionBar .drLabel{padding:0 7px 0 2px;color:#536c77;font:750 7px Arial,sans-serif;letter-spacing:.13em;white-space:nowrap}
+#v5ModeTabs #displayResolutionBar button{position:relative;height:20px;min-width:38px!important;padding:0 7px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#607b87!important;font:750 8px Arial,sans-serif!important;letter-spacing:.02em!important;cursor:pointer;box-shadow:none!important;opacity:.82}
 #v5ModeTabs #displayResolutionBar button:hover{color:#a9c5ce!important;opacity:1}
 #v5ModeTabs #displayResolutionBar button.on{color:#bceff2!important;background:transparent!important;box-shadow:none!important;opacity:1}
 #v5ModeTabs #displayResolutionBar button.on::after{content:"";position:absolute;left:50%;bottom:0;width:13px;height:1px;transform:translateX(-50%);background:rgba(60,215,224,.8);box-shadow:none}
@@ -1519,7 +1519,7 @@ body.sun-mode #uiContextBar{background:rgba(255,255,255,.90)}
 #uiContextBar button{border:1px solid rgba(148,163,184,.18);background:#111923;color:#aab6c3;border-radius:7px;padding:6px 10px;font-size:9px;font-weight:750;white-space:nowrap}
 body.sun-mode #uiContextBar button{background:#f5f7fa;color:#334155}
 #uiContextBar button.primary{border-color:rgba(62,166,255,.5);color:var(--accent);background:rgba(62,166,255,.10)}
-#uiContextBar .ctxState{font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8291a3;padding:0 5px;white-space:nowrap}
+#uiContextBar .ctxState{font:700 9px Arial,sans-serif;color:#8291a3;padding:0 5px;white-space:nowrap}
 #uiToolsPanel{display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(148,163,184,.14)}
 #uiToolsPanel.open{display:block}
 .uiToolsGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
@@ -1603,7 +1603,7 @@ header.uiRefreshed h1{font-size:13px!important;white-space:nowrap}
 }
 
 
-#uiContextBar .ctxMetric{font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);padding:0 6px;white-space:nowrap;border-left:1px solid rgba(148,163,184,.14)}
+#uiContextBar .ctxMetric{font:700 9px Arial,sans-serif;color:var(--accent);padding:0 6px;white-space:nowrap;border-left:1px solid rgba(148,163,184,.14)}
 #uiContextBar button[data-ctx="modeAction"]{display:inline-flex}
 body.ctx-waterfall #uiContextBar{border-color:rgba(181,123,255,.28)}
 body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{display:inline-flex!important;border-color:rgba(245,158,11,.42);color:#fbbf24;background:rgba(245,158,11,.08)}
@@ -1738,7 +1738,7 @@ button:active{transform:translateY(1px)}
 /* V5.5.3 RTA instrument finish */
 body:not(.ctx-waterfall):not(.ctx-tf) #uiContextBar{border-color:rgba(22,217,232,.30)!important}
 body:not(.ctx-waterfall):not(.ctx-tf) #uiCtxState{color:#72f0f2!important;letter-spacing:.075em!important;font-weight:800!important}
-body:not(.ctx-waterfall):not(.ctx-tf) #uiCtxMetric{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-weight:750!important}
+body:not(.ctx-waterfall):not(.ctx-tf) #uiCtxMetric{font-family:Arial,sans-serif!important;font-weight:750!important}
 #canvas{filter:drop-shadow(0 0 12px rgba(22,217,232,.04))}
 
 
@@ -1811,7 +1811,7 @@ body:not(.ctx-waterfall):not(.ctx-tf) #uiCtxMetric{font-family:ui-monospace,SFMo
 }
 .v5ReadCard .value,.tfProCard .value,.alignProCard .value{
   color:#d4fbfc!important;text-shadow:0 0 14px rgba(22,217,232,.07)!important;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;
+  font-family:Arial,sans-serif!important;
 }
 .v5ReadCard .label,.tfProCard .label,.alignProCard .label{
   color:#5e8593!important;text-transform:uppercase!important;letter-spacing:.07em!important;
@@ -2009,21 +2009,21 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
 
 #wfIssueStrip{display:none;gap:6px;align-items:center;overflow-x:auto;max-width:min(720px,78vw);scrollbar-width:none}
 #wfIssueStrip.show{display:flex}
-.wfIssueChip{flex:0 0 auto;padding:5px 8px;border-radius:8px;border:1px solid rgba(55,190,220,.25);background:rgba(5,20,28,.82);font:750 9px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;color:#8db0bc}
+.wfIssueChip{flex:0 0 auto;padding:5px 8px;border-radius:8px;border:1px solid rgba(55,190,220,.25);background:rgba(5,20,28,.82);font:750 9px Arial,sans-serif;letter-spacing:.02em;color:#8db0bc}
 .wfIssueChip.high{color:#49e292;border-color:rgba(73,226,146,.35)}
 .wfIssueChip.medium{color:#ffc75c;border-color:rgba(255,199,92,.35)}
 .wfIssueChip.low{color:#8db0bc}
 
 
 /* V5.5.3 Field Reliability Suite */
-#measurementHealth{position:fixed;left:50%;top:52px;transform:translateX(-50%);z-index:35;display:flex;gap:5px;align-items:center;padding:5px 7px;border:1px solid rgba(56,173,200,.24);border-radius:10px;background:rgba(4,17,24,.88);backdrop-filter:blur(12px);font:700 9px ui-monospace,SFMono-Regular,Menlo,monospace}
+#measurementHealth{position:fixed;left:50%;top:52px;transform:translateX(-50%);z-index:35;display:flex;gap:5px;align-items:center;padding:5px 7px;border:1px solid rgba(56,173,200,.24);border-radius:10px;background:rgba(4,17,24,.88);backdrop-filter:blur(12px);font:700 9px Arial,sans-serif}
 .mhItem{padding:3px 5px;border-radius:5px;color:#7897a3}.mhItem.ok{color:#47df91}.mhItem.warn{color:#ffc75c}.mhItem.bad{color:#ff746e}.mhReady{padding:4px 7px;border-radius:6px;color:#ff746e}.mhReady.ok{color:#47df91}
 #traceSessionPanel{position:fixed;right:108px;bottom:72px;z-index:33;width:min(340px,calc(100vw - 24px));max-height:45vh;overflow:auto;display:none;padding:10px;border:1px solid rgba(54,170,198,.25);border-radius:12px;background:rgba(4,17,24,.94);backdrop-filter:blur(14px)}
-#traceSessionPanel.show{display:block}.tsHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font:800 10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8eb2be}.tsRow{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:6px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);font-size:10px}.tsBtn{border:1px solid rgba(55,190,220,.25);background:rgba(8,29,38,.8);color:#a9c8d2;border-radius:7px;padding:5px 7px}.tsInput{min-width:0;background:transparent;border:0;color:#d9edf2;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace}
+#traceSessionPanel.show{display:block}.tsHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font:800 10px Arial,sans-serif;color:#8eb2be}.tsRow{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:6px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);font-size:10px}.tsBtn{border:1px solid rgba(55,190,220,.25);background:rgba(8,29,38,.8);color:#a9c8d2;border-radius:7px;padding:5px 7px}.tsInput{min-width:0;background:transparent;border:0;color:#d9edf2;font:700 10px Arial,sans-serif}
 @media(max-width:900px){#measurementHealth{top:46px;max-width:96vw;overflow-x:auto;justify-content:flex-start}#traceSessionPanel{right:8px;bottom:118px}}
 
 
-#delayRepeatBadge{display:none;padding:5px 8px;border-radius:8px;border:1px solid rgba(55,190,220,.25);background:rgba(5,20,28,.82);font:750 9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8db0bc}
+#delayRepeatBadge{display:none;padding:5px 8px;border-radius:8px;border:1px solid rgba(55,190,220,.25);background:rgba(5,20,28,.82);font:750 9px Arial,sans-serif;color:#8db0bc}
 #delayRepeatBadge.show{display:inline-flex}#delayRepeatBadge.high{color:#47df91}#delayRepeatBadge.medium{color:#ffc75c}#delayRepeatBadge.low{color:#ff746e}
 
 
@@ -2096,12 +2096,12 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     transition:opacity .2s ease,transform .24s cubic-bezier(.2,.75,.25,1),visibility 0s linear 0s
   }
   .tlsCard{display:flex;flex-direction:column;border:1px solid rgba(103,168,189,.20);border-radius:10px;background:rgba(5,16,23,.96);padding:10px 12px;min-height:108px}
-  .tlsHead{font:800 10px ui-monospace,monospace;color:#c7d9df;letter-spacing:.08em;margin-bottom:8px}
-  .tlsLine{display:flex;justify-content:space-between;gap:8px;margin:5px 0;font:700 9px ui-monospace,monospace;color:#829fa9}
+  .tlsHead{font:800 10px Arial,sans-serif;color:#c7d9df;letter-spacing:.08em;margin-bottom:8px}
+  .tlsLine{display:flex;justify-content:space-between;gap:8px;margin:5px 0;font:700 9px Arial,sans-serif;color:#829fa9}
   .tlsLine strong{color:#d6e5e9;font-weight:750}.tlsDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3edb73;margin-right:6px;box-shadow:0 0 8px rgba(62,219,115,.45)}
-  .tlsOpen{margin-top:auto;min-height:28px;border:1px solid rgba(105,169,190,.24);border-radius:7px;background:#071820;color:#9fb4bc;font:750 9px ui-monospace,monospace;cursor:pointer}
+  .tlsOpen{margin-top:auto;min-height:28px;border:1px solid rgba(105,169,190,.24);border-radius:7px;background:#071820;color:#9fb4bc;font:750 9px Arial,sans-serif;cursor:pointer}
   .tlsOpen:hover{border-color:#1fd8e3;color:#effdff}
-  .tlsGenToggle{min-height:24px;margin:3px 0 6px;border:1px solid rgba(31,216,227,.20);border-radius:6px;background:rgba(31,216,227,.035);color:#91b7c0;font:750 8px ui-monospace,monospace;cursor:pointer}
+  .tlsGenToggle{min-height:24px;margin:3px 0 6px;border:1px solid rgba(31,216,227,.20);border-radius:6px;background:rgba(31,216,227,.035);color:#91b7c0;font:750 8px Arial,sans-serif;cursor:pointer}
   .tlsGenToggle:hover{border-color:rgba(31,216,227,.48);color:#e8fcff}.tlsGenToggle.on{border-color:rgba(62,219,115,.5);background:rgba(62,219,115,.08);color:#71e79b}
   #targetTraceCard{flex:1 1 auto!important;min-height:150px!important;overflow:hidden!important}
   #persistentTraceHost{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px}
@@ -2118,7 +2118,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   .workspaceRailToggle{
     display:grid;position:fixed;z-index:46;top:50%;width:28px;height:56px;place-items:center;
     transform:translateY(-50%);border:0;background:transparent;color:#8aa3ad;opacity:.46;
-    font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;box-shadow:none;
+    font:600 13px Arial,sans-serif;cursor:pointer;box-shadow:none;
     touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent;
     transition:left .2s ease,right .2s ease,color .16s ease,opacity .16s ease,transform .12s ease
   }
@@ -2137,12 +2137,12 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
   body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{opacity:0!important;transform:translateX(calc(100% + 18px));visibility:hidden!important;pointer-events:none!important;transition-delay:0s,0s,.24s!important}
   body.right-rail-collapsed #stage{margin-right:12px!important}
   body.right-rail-collapsed #rightRailToggle{right:-4px;opacity:.68}
-  .tmpHead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid rgba(110,170,190,.14);font:800 9px ui-monospace,monospace;letter-spacing:.1em;color:#c8d8de}
+  .tmpHead{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid rgba(110,170,190,.14);font:800 9px Arial,sans-serif;letter-spacing:.1em;color:#c8d8de}
   .tmpDot{width:7px;height:7px;border-radius:50%;background:#39dc6e;box-shadow:0 0 8px rgba(57,220,110,.5)}
-  .tmpValue{font:400 25px ui-monospace,monospace;color:#eef8fa;margin:10px 0 2px}.tmpValue small{font-size:11px;color:#a9bdc5}
-  .tmpSub{font:700 8px ui-monospace,monospace;color:#819da7}
+  .tmpValue{font:400 25px Arial,sans-serif;color:#eef8fa;margin:10px 0 2px}.tmpValue small{font-size:11px;color:#a9bdc5}
+  .tmpSub{font:700 8px Arial,sans-serif;color:#819da7}
   .tmpGrid{display:grid;grid-template-columns:1fr 1fr;margin-top:9px;border-top:1px solid rgba(110,170,190,.12)}
-  .tmpCell{padding:7px 3px;border-bottom:1px solid rgba(110,170,190,.1);font:700 8px ui-monospace,monospace;color:#78949f}
+  .tmpCell{padding:7px 3px;border-bottom:1px solid rgba(110,170,190,.1);font:700 8px Arial,sans-serif;color:#78949f}
   .tmpCell:nth-child(odd){border-right:1px solid rgba(110,170,190,.1)}.tmpCell strong{display:block;color:#d0e0e5;margin-top:2px;font-size:9px}
   #uiRightTools{
     display:grid!important;position:fixed!important;right:12px!important;top:260px!important;
@@ -2164,7 +2164,7 @@ body.ctx-waterfall #uiContextBar [data-ctx="resonance"]{font-weight:820!importan
     display:flex;position:fixed;left:12px;right:12px;bottom:8px;height:54px;z-index:40;
     gap:7px;padding:6px;border:1px solid rgba(101,169,190,.22);border-radius:10px;background:rgba(4,15,21,.98)
   }
-  .tcb{border:1px solid rgba(110,171,190,.22);border-radius:7px;background:#081820;color:#c7d9df;min-width:82px;padding:0 10px;font:750 9px ui-monospace,monospace}
+  .tcb{border:1px solid rgba(110,171,190,.22);border-radius:7px;background:#081820;color:#c7d9df;min-width:82px;padding:0 10px;font:750 9px Arial,sans-serif}
   .tcb.primary{border-color:#1bd8e5;color:#fff}.tcb.spacer{flex:1;min-width:8px;border:0;background:transparent}
   .tcb.danger{border-color:rgba(255,90,120,.34);color:#e7a1b0;background:rgba(255,90,120,.055)}
   .tcb.danger:hover{border-color:#ff5a78;color:#ffd4dc}
@@ -2287,7 +2287,7 @@ body.sun-mode.ui-workspace-drawer #v5SideRail,body.sun-mode .measureDock,body.su
 /* V5.5.45 — professional finish: one restrained visual system across the workspace. */
 :root{--pro-radius:8px;--pro-line:rgba(115,164,181,.22);--pro-surface:#07151c;--pro-raised:#0a1b23;--pro-muted:#78919c}
 body.sun-mode{--pro-line:#cbd9e1;--pro-surface:#fff;--pro-raised:#f6f9fb;--pro-muted:#637b87}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Arial,sans-serif!important;-webkit-font-smoothing:antialiased}
+body{font-family:Arial,sans-serif!important;-webkit-font-smoothing:antialiased}
 header.uiRefreshed{border-bottom-color:var(--pro-line)!important;box-shadow:0 2px 10px rgba(0,0,0,.18)!important}
 header.uiRefreshed h1{font-weight:720!important;letter-spacing:.13em!important}
 header.uiRefreshed #measurementHealth{display:none!important}
@@ -2431,7 +2431,7 @@ body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle{c
 #tfAverageBar{display:flex;align-items:center;gap:6px;min-height:28px;padding:3px 5px;border:1px solid rgba(148,163,184,.16);border-radius:5px;background:rgba(255,255,255,.025)}
 #tfFieldGuide{display:flex;align-items:center;justify-content:center;gap:9px;min-height:27px;padding:3px 8px;border:1px solid rgba(245,185,66,.38);border-radius:5px;background:rgba(90,54,8,.28);font-size:9px;color:#dce7ed}
 #tfFieldGuide b{color:#ffd783;white-space:nowrap}#tfFieldGuide span{color:#aebdc8}#tfFieldGuide[data-state="ready"]{border-color:rgba(86,223,134,.42);background:rgba(10,68,46,.24)}#tfFieldGuide[data-state="ready"] b{color:#8ff0b9}
-#tfAverageState{margin-right:auto;font:800 8px/1 ui-monospace,monospace;letter-spacing:.07em;color:#91a4b5;white-space:nowrap}
+#tfAverageState{margin-right:auto;font:800 8px/1 Arial,sans-serif;letter-spacing:.07em;color:#91a4b5;white-space:nowrap}
 #tfAverageState[data-state="acquiring"]{color:#38bdf8}#tfAverageState[data-state="stable"]{color:#56df86}#tfAverageState[data-state="paused"]{color:#f5b942}
 #tfAverageSpeed{display:flex;gap:2px}#tfAverageSpeed button,#tfAverageReset{min-height:22px!important;padding:2px 6px!important;border-radius:4px!important;font-size:7px!important}
 #tfAverageSpeed button.on{color:#7dd3fc!important;border-color:rgba(56,189,248,.55)!important;background:rgba(56,189,248,.11)!important}
@@ -2644,14 +2644,14 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
 
-/* V5.7.15 — readable compact Delay workspace. */
+/* V5.7.16 — readable compact Delay workspace. */
 @media(min-width:901px){
   #dlyPanel.measureDock:not(.expanded){
     grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
     grid-template-areas:"title" "inputs" "measure"!important;
     min-height:154px!important;max-height:190px!important;padding:8px 12px 10px!important;gap:6px!important;overflow:hidden!important
   }
-  #dlyPanel.measureDock:not(.expanded) h3{position:static!important;grid-area:title!important;width:auto!important;padding:0 0 5px!important;margin:0!important;text-align:right!important}
+  #dlyPanel.measureDock:not(.expanded) h3{position:static!important;grid-area:title!important;width:auto!important;padding:0 0 5px!important;margin:0!important;text-align:left!important}
   #dlyPanel.measureDock:not(.expanded) .dlyInputs{grid-area:inputs!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:0!important}
   #dlyPanel.measureDock:not(.expanded) .dlyInputs .chBar{min-width:0!important;max-width:none!important;width:auto!important;min-height:32px!important;padding:5px 8px!important;overflow:hidden!important}
   #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard{
@@ -2749,7 +2749,7 @@ body:not(.sun-mode) #v5SideRail{
 }
 body:not(.sun-mode) .tlsCard::before,body:not(.sun-mode) #targetMeasurementPanel::before{display:none!important}
 body:not(.sun-mode) .tlsHead,body:not(.sun-mode) .tmpHead,body:not(.sun-mode) .uiRightToolsTitle{
-  color:#c7d0d4!important;font:700 9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;
+  color:#c7d0d4!important;font:700 9px/1.2 Arial,sans-serif!important;
   letter-spacing:.14em!important;text-shadow:none!important;border-bottom-color:#303a3f!important
 }
 body:not(.sun-mode) .tlsLine,body:not(.sun-mode) .tmpCell{color:var(--pro-muted)!important}
@@ -2826,7 +2826,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
     box-shadow:inset 0 1px rgba(255,255,255,.12),inset 0 -1px #000,0 3px 8px rgba(0,0,0,.55)!important
   }
   header.uiRefreshed .dot{width:10px!important;height:10px!important;background:radial-gradient(circle at 35% 30%,#f2f5f6,#778187 38%,#111 70%)!important;box-shadow:0 0 0 1px #000!important}
-  header.uiRefreshed h1{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;font-size:20px!important;font-weight:760!important;letter-spacing:.16em!important;color:#d7dde0!important;text-shadow:0 1px #000!important;white-space:nowrap}
+  header.uiRefreshed h1{font-family:Arial,sans-serif!important;font-size:20px!important;font-weight:760!important;letter-spacing:.16em!important;color:#d7dde0!important;text-shadow:0 1px #000!important;white-space:nowrap}
   header.uiRefreshed h1 span{font-size:25px!important;color:#28c7e8!important;letter-spacing:.10em!important;text-shadow:0 0 11px rgba(40,199,232,.22)!important}
   header.uiRefreshed h1 small{font-size:9px!important;color:#778288!important;letter-spacing:.12em!important}
   #uiMenuBtn{order:-1!important;width:48px!important;height:42px!important;border:1px solid #465057!important;border-radius:2px!important;background:linear-gradient(180deg,#222a2e,#11171a)!important;font-size:22px!important;color:#aeb9be!important}
@@ -2842,7 +2842,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   .eqCanvasHandle{
     display:none;position:absolute;z-index:18;top:65px;min-width:98px;height:26px;padding:0 10px;
     border:1px solid currentColor;border-radius:4px;background:rgba(7,19,27,.97);box-shadow:inset 0 1px rgba(255,255,255,.06),0 2px 6px rgba(0,0,0,.55);
-    font:800 10px ui-monospace,monospace;letter-spacing:.03em;white-space:nowrap;cursor:ew-resize;touch-action:none;user-select:none
+    font:800 10px Arial,sans-serif;letter-spacing:.03em;white-space:nowrap;cursor:ew-resize;touch-action:none;user-select:none
   }
   #eqHpfHandle{color:#38bdf8;transform:translateX(5px)}
   #eqLpfHandle{color:#f59e0b;transform:translateX(calc(-100% - 5px))}
@@ -2864,15 +2864,15 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   .tlsInputCard .tlsHead{font-size:9px!important;margin:0 0 6px!important;padding-bottom:6px!important;border-bottom:1px solid #354046!important;color:#d3dade!important;white-space:nowrap}
   .tlsInputCard .tlsHead b{color:#8b989e!important;font-weight:650!important}
   .tlsVerticalMeter{min-height:74px!important;display:flex!important;justify-content:center!important;gap:8px!important;padding:2px 0!important}
-  .tlsMeterScale{height:100%!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important;text-align:right!important;font:700 7px ui-monospace,monospace!important;color:#78868d!important}
+  .tlsMeterScale{height:100%!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important;text-align:right!important;font:700 7px Arial,sans-serif!important;color:#78868d!important}
   .tlsMeterTrack{position:relative!important;width:32px!important;height:100%!important;min-height:74px!important;border:2px solid #050708!important;background:repeating-linear-gradient(to top,#101719 0 5px,#030506 5px 7px)!important;box-shadow:inset 0 0 8px #000,0 0 0 1px #384247!important;overflow:hidden!important}
   .tlsMeterTrack i{position:absolute!important;left:3px!important;right:3px!important;bottom:3px!important;height:0;background:linear-gradient(to top,#1bcf68 0 68%,#d2df31 82%,#e85552 100%)!important;box-shadow:0 0 7px rgba(31,214,107,.32)!important;will-change:height!important}
   .tlsMeterTrack em{position:absolute!important;left:1px!important;right:1px!important;bottom:0;height:2px!important;background:#ecf7f9!important;box-shadow:0 0 4px #fff!important;will-change:bottom!important}
-  .tlsMeterRead{text-align:center!important;font:700 9px ui-monospace,monospace!important;color:#cbd5d9!important}
+  .tlsMeterRead{text-align:center!important;font:700 9px Arial,sans-serif!important;color:#cbd5d9!important}
   .tlsPatchCard{padding:8px!important;min-height:166px!important;max-height:none!important}
   .tlsPatchCard .tlsHead{margin-bottom:4px!important}.tlsPatchCard .tlsLine{margin:3px 0!important;font-size:8px!important}
   .tlsPatchActions{display:grid!important;grid-template-columns:1.2fr 1.3fr .8fr!important;gap:4px!important;margin-top:5px!important}.tlsPatchActions button{min-height:25px!important;margin:0!important;font-size:7px!important}
-  .tlsTraceCount{display:grid!important;grid-template-columns:1fr auto 1fr auto!important;gap:4px!important;margin-top:5px!important;padding-top:5px!important;border-top:1px solid #354046!important;font:700 7px ui-monospace,monospace!important;color:#7e8c92!important}.tlsTraceCount strong{color:#cfd8db!important}
+  .tlsTraceCount{display:grid!important;grid-template-columns:1fr auto 1fr auto!important;gap:4px!important;margin-top:5px!important;padding-top:5px!important;border-top:1px solid #354046!important;font:700 7px Arial,sans-serif!important;color:#7e8c92!important}.tlsTraceCount strong{color:#cfd8db!important}
   #persistentTraceHost{display:flex!important;min-height:64px!important;overflow:hidden!important}
   #persistentTraceHost #v5TraceList{min-height:28px!important;overflow:auto!important}
   #persistentTraceHost #v5AddTrace{display:block!important;min-height:28px!important;font-size:8px!important}
@@ -3014,7 +3014,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 /* Final desktop Delay layout override: keep controls separated at every width. */
 @media(min-width:901px){
  body #dlyPanel.measureDock:not(.expanded){grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;grid-template-areas:"title" "inputs" "measure"!important;min-height:154px!important;max-height:190px!important;padding:8px 12px 10px!important;gap:6px!important;overflow:hidden!important}
- body #dlyPanel.measureDock:not(.expanded) h3{position:static!important;grid-area:title!important;width:auto!important;padding:0 0 5px!important;margin:0!important;text-align:right!important}
+ body #dlyPanel.measureDock:not(.expanded) h3{position:static!important;grid-area:title!important;width:auto!important;padding:0 0 5px!important;margin:0!important;text-align:left!important}
  body #dlyPanel.measureDock:not(.expanded) .dlyInputs{grid-area:inputs!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:0!important}
  body #dlyPanel.measureDock:not(.expanded) .dlyInputs .chBar{min-width:0!important;max-width:none!important;width:auto!important;min-height:32px!important;padding:5px 8px!important;overflow:hidden!important}
  body #dlyPanel.measureDock:not(.expanded) .dlyMeasureCard{grid-area:measure!important;display:grid!important;width:100%!important;box-sizing:border-box!important;grid-template-columns:minmax(150px,.85fr) minmax(220px,1.35fr) minmax(210px,1fr) minmax(150px,.75fr)!important;grid-template-areas:"start result range unit"!important;gap:9px!important;align-items:center!important;padding:8px!important;overflow:hidden!important}
@@ -3105,6 +3105,9 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 #v5TraceActions button{min-width:0;flex:1;min-height:28px;font-size:8px;padding:5px 3px}
 #v5TraceActions #v5AddTrace{margin-top:0!important}
 #v5ClearTraces:disabled{opacity:.35;cursor:default}
+
+/* One typeface for controls, labels and numeric readouts. */
+html,body,button,input,select,textarea{font-family:Arial,sans-serif}
 </style>
 </head>
 <body>
@@ -3112,7 +3115,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   <header class="uiRefreshed">
     <div class="dot" id="dot"></div>
     <h1><span>GAL</span> ANALYZER <small id="ver" style="font-size:10px;color:var(--dim);letter-spacing:1px"></small></h1>
-    <button id="uiMenuBtn" type="button" aria-label="כלים והגדרות" aria-expanded="false">☰</button>
+    <button id="uiMenuBtn" type="button" aria-label="Tools and settings" aria-expanded="false">☰</button>
     <div id="measurementHealth" aria-label="Measurement health">
       <span class="mhItem" id="mhMic">MIC —</span><span class="mhItem" id="mhRef">REF —</span>
       <span class="mhItem" id="mhSnr">SNR —</span><span class="mhItem" id="mhNoise">NOISE —</span><span class="mhItem" id="mhHeadroom">HEADROOM —</span><span class="mhItem" id="mhCoh">COH —</span>
@@ -3121,15 +3124,15 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
     </div>
     <div id="uiLivePill" title="Audio status"><span class="uiLiveDot"></span><span id="uiReadyText">LIVE</span></div>
     <div class="modes">
-      <button id="mRta" class="on">ספקטרום · RTA</button>
-      <button id="mSpec">ווטרפול · Spectrograph</button>
-      <button id="tfOverlayHdr" title="הצג מיק' + רפרנס יחד">מיק'/רפרנס · TF</button>
+      <button id="mRta" class="on">Spectrum · RTA</button>
+      <button id="mSpec">Waterfall · Spectrogram</button>
+      <button id="tfOverlayHdr" title="Show MIC and REF together">MIC / REF · TF</button>
     </div>
-    <div class="v3Status" aria-label="סטטוס מדידה">
-      <span class="v3Chip" id="v3AudioChip">Audio: כבוי</span>
+    <div class="v3Status" aria-label="Measurement status">
+      <span class="v3Chip" id="v3AudioChip">Audio: Off</span>
       <div id="v3ResControl">
-        <button class="v3Chip" id="v3ResChip" type="button" aria-expanded="false" title="שינוי רזולוציית RTA">RTA 1/6 ▾</button>
-        <div id="v3ResMenu" role="menu" aria-label="רזולוציית RTA">
+        <button class="v3Chip" id="v3ResChip" type="button" aria-expanded="false" title="Change RTA resolution">RTA 1/6 ▾</button>
+        <div id="v3ResMenu" role="menu" aria-label="RTA resolution">
           <button type="button" data-bpo="3">1/3 octave</button>
           <button type="button" data-bpo="6">1/6 octave</button>
           <button type="button" data-bpo="12">1/12 octave</button>
@@ -3142,23 +3145,23 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
     <div class="v5HeaderActions">
       <button class="v5HeaderAction" id="v5GenAction" onclick="v53SetGeneratorDock(!genPanel.classList.contains('open'))">∿ Generator</button>
     </div>
-    <button id="sunBtn" title="מצב אור שמש / ניגודיות גבוהה" aria-label="מצב אור שמש">☀️</button>
-    <button id="helpBtn" title="מצב עזרה — רחף על כפתור להסבר" aria-label="מצב עזרה">?</button>
-    <button id="guideBtn" title="מדריך מדידות ו־Workflow" aria-label="מדריך הפעלה">≡</button>
-    <div id="swatches" title="צבע האפליקציה" role="group" aria-label="צבע האפליקציה">
-      <button class="sw on" data-c="#3ea6ff" style="background:#3ea6ff" aria-label="כחול" title="כחול"></button>
-      <button class="sw" data-c="#40d17a" style="background:#40d17a" aria-label="ירוק" title="ירוק"></button>
-      <button class="sw" data-c="#b57bff" style="background:#b57bff" aria-label="סגול" title="סגול"></button>
-      <button class="sw" data-c="#ff9d3c" style="background:#ff9d3c" aria-label="כתום" title="כתום"></button>
+    <button id="sunBtn" title="Sunlight mode / high contrast" aria-label="Sunlight mode">☀️</button>
+    <button id="helpBtn" title="Help mode — hover over a button for an explanation" aria-label="Help mode">?</button>
+    <button id="guideBtn" title="Measurement guide and workflow" aria-label="Measurement guide">≡</button>
+    <div id="swatches" title="App color" role="group" aria-label="App color">
+      <button class="sw on" data-c="#3ea6ff" style="background:#3ea6ff" aria-label="Blue" title="Blue"></button>
+      <button class="sw" data-c="#40d17a" style="background:#40d17a" aria-label="Green" title="Green"></button>
+      <button class="sw" data-c="#b57bff" style="background:#b57bff" aria-label="Purple" title="Purple"></button>
+      <button class="sw" data-c="#ff9d3c" style="background:#ff9d3c" aria-label="Orange" title="Orange"></button>
     </div>
   </header>
 
   <div id="uiMenuBackdrop"></div><div id="uiWorkspaceBackdrop"></div><div id="uiDrawerLabel">WORKSPACE</div>
   <div id="uiTraceBackdrop"></div>
-  <div id="uiMenu" role="dialog" aria-label="כלים והגדרות">
+  <div id="uiMenu" role="dialog" aria-label="Tools and settings">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.15</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.16</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3188,13 +3191,13 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.15</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.16</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
     <canvas id="cv"></canvas>
-    <button id="eqHpfHandle" class="eqCanvasHandle" type="button" role="slider" aria-label="גרור תדר High Pass Filter">HPF</button>
-    <button id="eqLpfHandle" class="eqCanvasHandle" type="button" role="slider" aria-label="גרור תדר Low Pass Filter">LPF</button>
+    <button id="eqHpfHandle" class="eqCanvasHandle" type="button" role="slider" aria-label="Drag the high-pass cutoff frequency">HPF</button>
+    <button id="eqLpfHandle" class="eqCanvasHandle" type="button" role="slider" aria-label="Drag the low-pass cutoff frequency">LPF</button>
 
     <div id="v5ModeTabs" aria-label="Measurement modes">
       <div class="v53AnalysisGroup on" id="v53AnalysisGroup" aria-label="Analysis view">
@@ -3215,9 +3218,9 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <button data-v5mode="rt60">RT60</button>
       <button data-v5mode="spleq">SPL / EQ</button>
       <button data-v5mode="align">Sub / Top</button>
-      <button id="v5TargetToggle" class="v5GraphToggle on" type="button" title="הצג או הסתר את עקומת היעד">Target ✓</button>
+      <button id="v5TargetToggle" class="v5GraphToggle on" type="button" title="Show or hide the target curve">Target ✓</button>
     </div>
-    <div id="uiContextBar" aria-label="פעולות למצב הנוכחי">
+    <div id="uiContextBar" aria-label="Actions for the current mode">
       <span class="ctxState" id="uiCtxState">RTA · LIVE</span>
       <span class="ctxMetric" id="uiCtxMetric">Spectrum</span>
       <button type="button" class="primary" data-ctx="capture">Capture Trace</button>
@@ -3229,7 +3232,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
     </div>
 
     <aside id="v5SideRail">
-      <button id="v5TraceClose" type="button" aria-label="סגור Traces">✕</button>
+      <button id="v5TraceClose" type="button" aria-label="Close Traces">✕</button>
       <div class="v5ReadCard">
         <div class="v5CardLabel">PEAK</div>
         <div class="v5PeakValue" id="v5PeakValue">—</div>
@@ -3242,48 +3245,48 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       </div>
       <div class="v5RailTitle">Traces</div>
       <div id="v5TraceList"></div>
-      <div id="v5TraceActions"><button id="v5AddTrace">＋ Capture Trace</button><button id="v5ClearTraces" type="button" title="נקה את כל הטרייסים שנלכדו">נקה הכול</button></div>
-      <button id="v5EqWorkspace" class="v5RailTool" type="button" onclick="return window.openLatestEqWorkspaceFromRail(event)">EQ · תצוגת תיקונים</button>
-      <div id="v5RailHint">Trace הוא צילום של העקומה הנוכחית להשוואה. אפשר להציג, להסתיר, לשנות שם או למחוק. עד 6.</div>
+      <div id="v5TraceActions"><button id="v5AddTrace">＋ Capture Trace</button><button id="v5ClearTraces" type="button" title="Clear all captured traces">Clear all</button></div>
+      <button id="v5EqWorkspace" class="v5RailTool" type="button" onclick="return window.openLatestEqWorkspaceFromRail(event)">EQ · Corrections</button>
+      <div id="v5RailHint">A trace is a snapshot of the current curve for comparison. Show, hide, rename or delete it. Up to 6 traces.</div>
     </aside>
-    <button id="v54SideToggle" type="button" title="הסתר/הצג סרגל צד" aria-label="הסתר או הצג סרגל צד">‹</button>
+    <button id="v54SideToggle" type="button" title="Hide/Show Sidebar" aria-label="Hide or show sidebar">‹</button>
 
     
     <!-- Quick Floating Bar for Live TF Mode -->
     <div id="tfQuickBar" class="tfQuickBar">
-      <button id="qbAutoDelay" title="סנכרון ערוצי TF">⏱️ TF Sync</button>
-      <button id="qbCoh" title="הצג/הסתר קוהרנטיות">📊 Coh</button>
-      <button id="qbPhase" title="הצג/הסתר פאזה">📐 Phase</button>
+      <button id="qbAutoDelay" title="Sync TF channels">⏱️ TF Sync</button>
+      <button id="qbCoh" title="Show/Hide Coherence">📊 Coh</button>
+      <button id="qbPhase" title="Show / hide phase">📐 Phase</button>
     </div>
 
     <div id="alignBar">
-      <div id="phWorkflowSteps" aria-label="סדר מדידת סאב וטופ">
-        <button id="phSyncBtn" title="שלב 1: מסנכרן את נתיבי המיקרופון והרפרנס">1 · סנכרון TF</button>
-        <button id="phSubBtn" title="שלב 2: בחר רעש ורוד פנימי או מקור חיצוני ולכוד את הסאב לבדו" disabled>2 · מדוד סאב</button>
-        <button id="phTopBtn" title="שלב 3: בחר את אותו מקור אות ולכוד את הטופ לבדו" disabled>3 · מדוד טופ</button>
+      <div id="phWorkflowSteps" aria-label="Sub / Top measurement workflow">
+        <button id="phSyncBtn" title="Step 1: Synchronize the microphone and reference signal paths">1 · Sync TF</button>
+        <button id="phSubBtn" title="Step 2: Choose internal pink noise or an external source and capture only the subwoofer" disabled>2 · Measure Sub</button>
+        <button id="phTopBtn" title="Step 3: Choose the same signal source and capture only the top speaker" disabled>3 · Measure Top</button>
       </div>
-      <button id="phClearBtn">נקה</button>
-      <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);white-space:nowrap">חיתוך <b id="xoverFVal" style="color:var(--accent)">90Hz</b>
+      <button id="phClearBtn">Clear</button>
+      <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);white-space:nowrap">Crossover <b id="xoverFVal" style="color:var(--accent)">90Hz</b>
         <input type="range" id="xoverF" min="30" max="300" step="1" value="90" style="width:120px">
       </span>
       <span id="phStatus" style="font-size:11px;color:var(--dim);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis"></span>
-      <button id="alignClose" title="סגור יישור">✕</button>
-      <div id="phRecommendation" role="status"><strong>שלב 1:</strong> השאר טופ בלבד ובצע סנכרון TF</div>
+      <button id="alignClose" title="Close alignment">✕</button>
+      <div id="phRecommendation" role="status"><strong>Step 1:</strong> Keep only the top speaker active, then sync TF</div>
       <div id="alignProResult">
         <div class="alignProCard"><span>ADD DELAY TO</span><b id="alignProTarget">—</b></div>
         <div class="alignProCard"><span>DELAY</span><b id="alignProDelay">—</b></div>
         <div class="alignProCard"><span>Δ PHASE</span><b id="alignProPhase">—</b></div>
         <div class="alignProCard"><span>CONFIDENCE</span><b id="alignProConfidence">—</b></div>
       </div>
-      <div id="alignProApply"><div><strong id="alignProAction">—</strong><br><span id="alignProMeta">Measure again after applying the change</span></div><button id="alignProVerify" type="button">מדוד שוב לאימות</button></div>
+      <div id="alignProApply"><div><strong id="alignProAction">—</strong><br><span id="alignProMeta">Measure again after applying the change</span></div><button id="alignProVerify" type="button">Remeasure to verify</button></div>
     </div>
 
     <!-- A/B Comparison Floating Widget -->
     <div id="abWidget" class="abWidget">
       <button id="abBtnA">A</button>
       <button id="abBtnB">B</button>
-      <button id="abBtnDelta">Δ (הפרש)</button>
-      <button id="abBtnOff" title="סגור תצוגת A/B">✕</button>
+      <button id="abBtnDelta">Δ (difference)</button>
+      <button id="abBtnOff" title="Close A/B view">✕</button>
     </div>
 
     <div id="fbPanel"></div>
@@ -3293,185 +3296,185 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <div>Leq <b id="splLeq">—</b></div>
       <div>Max <b id="splMax">—</b></div>
     </div>
-    <button class="zoomBtn" id="zoomBtn">⤢ טווח מלא</button>
+    <button class="zoomBtn" id="zoomBtn">⤢ Full range</button>
     
     <div id="modalBg">
       <div id="guidePanel" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
-        <h2 id="guideTitle">מדריך מדידות · Workflow</h2>
-        <div class="sub">סדר עבודה מומלץ למערכת PA — מהחיבור ועד אימות התוצאה.</div>
+        <h2 id="guideTitle">Measurement guide · Workflow</h2>
+        <div class="sub">Recommended PA workflow: from connection to final verification.</div>
         <div class="guideFlow">
-          <div class="guideStep"><i>1</i><b>I/O וכיול</b>בחר MIC 1 ו־REF 2 וטען קובץ כיול למיקרופון.</div>
-          <div class="guideStep"><i>2</i><b>רמות</b>נגן Pink Noise וכוונן רמות יציבות ללא קליפ.</div>
-          <div class="guideStep"><i>3</i><b>סנכרון TF</b>בצע פעם אחת אחרי חיבור המיק׳ והרפרנס. זה מיישר את שני ערוצי המדידה בלבד.</div>
-          <div class="guideStep"><i>4</i><b>זמני הגעה</b>מדוד כל רמקול לבדו מאותו מיקום, והשווה רק את Δ מול העוגן.</div>
-          <div class="guideStep"><i>5</i><b>Sub / Top</b>בצע יישור פאזה עדין באזור החיתוך.</div>
-          <div class="guideStep"><i>6</i><b>SPL / EQ</b>מדוד 3–5 מיקומים וקבע HPF/LPF ויעד.</div>
-          <div class="guideStep"><i>7</i><b>TF ואימות</b>בדוק תגובה, פאזה וקוהרנטיות לאחר השינויים.</div>
-          <div class="guideStep"><i>8</i><b>RT60 ו־Waterfall</b>בדוק דעיכה; בעיות חדר אינן תמיד פתירות ב־EQ.</div>
+          <div class="guideStep"><i>1</i><b>I/O and calibration</b>Select MIC 1 and REF 2, then load the microphone calibration file.</div>
+          <div class="guideStep"><i>2</i><b>Levels</b>Play pink noise and adjust levels to avoid clipping.</div>
+          <div class="guideStep"><i>3</i><b>Sync TF</b>Run once after connecting MIC and REF. This synchronizes the two measurement channels only.</div>
+          <div class="guideStep"><i>4</i><b>Arrival times</b>Measure each speaker alone from the same microphone position. Compare only Δ relative to the anchor.</div>
+          <div class="guideStep"><i>5</i><b>Sub / Top</b>Fine-tune phase alignment around the crossover.</div>
+          <div class="guideStep"><i>6</i><b>SPL / EQ</b>Measure 3–5 positions and set HPF/LPF and the target curve.</div>
+          <div class="guideStep"><i>7</i><b>TF verification</b>Check response, phase and coherence after adjustments.</div>
+          <div class="guideStep"><i>8</i><b>RT60 and Waterfall</b>Check decay. Room problems cannot always be solved with EQ.</div>
         </div>
         <div class="guideSections">
-          <details><summary>RTA · ספקטרום חי</summary><p><strong>מטרה:</strong> לראות את חלוקת האנרגיה ולאתר עודפים, חוסרים ופידבק.<br><strong>עבודה:</strong> בחר 1/6 אוקטבה והשתמש ב־Trace להשוואה. אל תבנה EQ ממדידה רגעית אחת.</p></details>
-          <details><summary>Waterfall · דעיכה לאורך זמן</summary><p><strong>חפש:</strong> רכסים שנשארים אחרי ששאר הספקטרום יורד. נסה מיקום סאב, כיסוי או טיפול אקוסטי לפני EQ חריף.</p></details>
-          <details><summary>TF · Transfer Function</summary><p><strong>חיבור:</strong> MIC בערוץ 1 ו־Reference בערוץ 2.<br><strong>סדר:</strong> 1 · סנכרון TF → 2 · אימות פאזה וקוהרנטיות → 3 · לכידת Trace. גם אימות וגם לכידה פותחים בחירת רעש ורוד, סוויפ או מקור חיצוני. בבחירת מקור פנימי האפליקציה מפעילה אותו, אוספת את המדידה ועוצרת אותו אוטומטית. Trace שלא עבר אימות נשמר עם סימון Unverified ברור.</p></details>
-          <details><summary>Delay · זמני הגעה ומרחק</summary><p>השתק את כל הרמקולים מלבד אחד, מדוד את העוגן ואז כל רמקול מאותו מיקום מיקרופון. הזמן המוחלט כולל מחשב, כרטיס קול, מיקסר ו־DSP; לכיוון המערכת השתמש רק ב־Δ ובהוראת “הוסף”. להצגת מרחק במטרים, כייל קודם כשהמיקרופון נמצא במרחק ידוע ומדוד מהמרכז האקוסטי של אותו רמקול ובאותו ניתוב. כיול שדורש קיזוז מערכת שלילי משמעותי יידחה. אל תבצע סנכרון TF מחדש בין הרמקולים.</p></details>
-          <details><summary>RT60 · זמן הדהוד</summary><p>צור אות יציב, הפסק בחדות ושמור על שקט. חזור מספר פעמים. EQ אינו מקצר את זמן ההדהוד של החלל.</p></details>
-          <details><summary>SPL / EQ · תיקון מערכת</summary><p>מדוד מספר מיקומים → בחר Flat או House → גרור HPF/LPF → בחר Graphic או Parametric 6 Bands. העדף חיתוכים מתונים ואל תגביר בור עמוק שנגרם מביטול.</p></details>
-          <details><summary>Sub / Top · יישור חיתוך</summary><p>בצע סנכרון TF פעם אחת עם הטופ לבדו וקבע את תדר החיתוך. לחיצה על מדוד סאב או מדוד טופ תפתח בחירת רעש ורוד פנימי או מקור חיצוני; האפליקציה תפעיל את האות למשך הלכידה ותעצור אותו בסיום. מדוד כל מקור לבדו, באותו אות ובלי להזיז את המיקרופון. לאחר השינוי מדוד מחדש כל מקור ששונה, ולבסוף הפעל את שניהם ואמת שאין בור בחיתוך.</p></details>
-          <details><summary>Trace · לפני ואחרי</summary><p>שמור Trace לפני שינוי. לאחריו השווה באותו מיקום מיקרופון, אותה עוצמה ואותו אות בדיקה.</p></details>
+          <details><summary>RTA · Live spectrum</summary><p><strong>Purpose:</strong> View the energy distribution and identify peaks, dips and feedback.<br><strong>Workflow:</strong> Choose 1/6 octave and capture a trace for comparison. Use averaged measurements before making EQ decisions.</p></details>
+          <details><summary>Waterfall · Decay over time</summary><p><strong>Look for:</strong> Ridges that persist as the spectrum decays. Try subwoofer placement, coverage or acoustic treatment before aggressive EQ.</p></details>
+          <details><summary>TF · Transfer Function</summary><p><strong>Connection:</strong> MIC on input 1 and Reference on input 2.<br><strong>Workflow:</strong> 1 · Sync TF → 2 · Verify phase and coherence → 3 · Capture Trace. Verification and capture let you choose pink noise, a sweep or an external source. Internal signals start automatically and stop after measurement. Unverified traces are clearly marked.</p></details>
+          <details><summary>Delay · Arrival times and distance</summary><p>Mute all but one speaker. Measure the anchor, then each speaker from the same microphone position. Absolute time includes the computer, audio interface, mixer and DSP. Use only the difference (Δ) from the anchor and the Add instruction to align speakers. For distance in meters, calibrate with a known distance from the acoustic center of the same speaker, using the same routing. A significantly negative system offset is rejected. Do not resync TF between speakers.</p></details>
+          <details><summary>RT60 · Reverberation time</summary><p>Play a steady signal, stop abruptly and stay quiet. Repeat several times. EQ does not shorten the room reverberation time.</p></details>
+          <details><summary>SPL / EQ · System correction</summary><p>Measure several positions → choose Flat or House → drag HPF/LPF → choose Graphic or Parametric 6 Bands. Prefer moderate cuts. Avoid boosting deep dips caused by cancellation.</p></details>
+          <details><summary>Sub / Top · Crossover alignment</summary><p>Sync TF once with only the top speaker active and set the crossover frequency. Measure Sub and Measure Top open the signal-source selector. An internal signal starts for the capture and stops automatically. Measure each speaker alone using the same signal and microphone position. Remeasure any speaker you adjust, then play both together and verify the crossover has no cancellation dip.</p></details>
+          <details><summary>Trace · Before and after</summary><p>Capture a trace before adjusting the system. Compare using the same microphone position, level and test signal.</p></details>
         </div>
-        <button id="guideClose" type="button">סגור</button>
+        <button id="guideClose" type="button">Close</button>
       </div>
     </div>
     
     <div id="srcOverlay">
       <div id="srcBox">
-        <div class="srcTitle">איזה אות להשמיע למדידה?</div>
-        <button class="toggle" data-src="pink">רעש ורוד</button>
-        <button class="toggle" data-src="sweep">סוויפ</button>
-        <button class="toggle" data-src="external">מקור חיצוני (אני מנגן)</button>
-        <button class="toggle" data-src="external-sweep">סוויפ חיצוני (אני מנגן)</button>
-        <button class="toggle" data-src="cancel" style="opacity:.7">ביטול</button>
+        <div class="srcTitle">Choose a measurement signal</div>
+        <button class="toggle" data-src="pink">Pink noise</button>
+        <button class="toggle" data-src="sweep">Sweep</button>
+        <button class="toggle" data-src="external">External source (manual playback)</button>
+        <button class="toggle" data-src="external-sweep">External sweep (manual playback)</button>
+        <button class="toggle" data-src="cancel" style="opacity:.7">Cancel</button>
       </div>
     </div>
     
     <div id="rtPanel">
-      <h3 style="font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600">מדידת הדהוד · RT60</h3>
-      <div id="rtStatus">לחץ RT60 כדי למדוד</div>
-      <div class="chBar"><span style="min-width:64px">עוצמה</span><div class="track"><div class="fill" id="rtLvlFill"></div></div><span class="gainLbl" id="rtLvlGain">—</span></div>
+      <h3 style="font-size:13px;letter-spacing:1px;color:var(--text);font-weight:600">Reverberation measurement · RT60</h3>
+      <div id="rtStatus">Click RT60 to measure</div>
+      <div class="chBar"><span style="min-width:64px">Level</span><div class="track"><div class="fill" id="rtLvlFill"></div></div><span class="gainLbl" id="rtLvlGain">—</span></div>
       <div class="ctrl" style="width:100%">
-        <label>עוצמת מדידה <b id="rtLevelVal">-6dB</b></label>
+        <label>Measurement level <b id="rtLevelVal">-6dB</b></label>
         <input type="range" id="rtLevel" min="-20" max="-2" step="1" value="-6">
       </div>
-      <div class="sub" style="text-align:center">כוונן את "עוצמת מדידה", ואז לחץ "התחל מדידה". RT60 צריך אות חזק ויציב.</div>
+      <div class="sub" style="text-align:center">Adjust Measurement level, then click Start measurement. RT60 requires a strong, steady signal.</div>
       <div class="ctrl" style="width:100%">
-        <label>טווח דעיכה נדרש <b id="rtRangeVal">10dB</b></label>
+        <label>Required decay range <b id="rtRangeVal">10dB</b></label>
         <input type="range" id="rtRange" min="6" max="30" step="1" value="10">
       </div>
       <canvas id="rtCanvas" width="360" height="90" style="display:none;width:100%;max-width:340px;height:90px;align-self:center;border:1px solid var(--line);border-radius:4px;background:#0b0f16"></canvas>
-      <button id="rtRunBtn" class="toggle" style="align-self:center">▶ התחל מדידה</button>
-      <button id="rtClose">סגור</button>
+      <button id="rtRunBtn" class="toggle" style="align-self:center">▶ Start measurement</button>
+      <button id="rtClose">Close</button>
     </div>
     
     <div id="savePanel">
-      <h3>מדידות שמורות וסשנים</h3>
-      <div class="sub">שומר את המיקומים, האזורים, הדיליי והיעד — כדי לחזור למקום ולהשוות.</div>
+      <h3>Saved measurements and sessions</h3>
+      <div class="sub">Save positions, areas, delay and target settings for later comparison.</div>
       <div style="display:flex;gap:6px">
-        <input id="saveName" placeholder="שם (למשל: אולם הכפר · 15/8)" style="flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:inherit;font-size:12px;padding:8px">
-        <button id="saveNowBtn" class="toggle">שמור</button>
+        <input id="saveName" placeholder="Name (e.g. Village Hall · Oct 4)" style="flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:Arial,sans-serif;font-size:12px;padding:8px">
+        <button id="saveNowBtn" class="toggle">Save</button>
       </div>
       <div id="saveList" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto"></div>
       
       <div style="border-top:1px solid var(--line);padding-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-        <button id="exportJsonBtn" class="toggle" title="יצוא כל הסשן והמדידות לקובץ JSON">📤 יצוא סשן (JSON)</button>
-        <button id="importJsonBtn" class="toggle" title="טען קובץ סשן JSON">📥 יבוא סשן (JSON)</button>
+        <button id="exportJsonBtn" class="toggle" title="Export the entire session and measurements to a JSON file">📤 Export Session (JSON)</button>
+        <button id="importJsonBtn" class="toggle" title="Load a session JSON file">📥 Import session (JSON)</button>
         <input type="file" id="jsonFileInput" accept=".json" style="display:none">
       </div>
-      <button id="saveClose">סגור</button>
+      <button id="saveClose">Close</button>
     </div>
     <div id="eqPanel">
-      <h3>מדידת תגובה · חד־ערוצי (SPL)</h3>
+      <h3>Response Measurement · Single Channel (SPL)</h3>
       <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;">
         <div class="seg" id="eqModeSwitchA">
-          <button class="on">ממוצע</button>
-          <button data-go="area">אזורים</button>
+          <button class="on">Average</button>
+          <button data-go="area">Areas</button>
         </div>
       </div>
-      <div class="sub" id="eqSub">מיקומים שנמדדו: 0</div>
+      <div class="sub" id="eqSub">Measured positions: 0</div>
       <div id="eqPosList" style="display:flex;flex-direction:column;gap:5px;max-height:112px;overflow-y:auto"></div>
-      <div class="chBar"><span style="min-width:64px">גיין מיק'</span><div class="track"><div class="fill" id="eqMicFill"></div></div><span class="gainLbl" id="eqMicGain">—</span></div>
+      <div class="chBar"><span style="min-width:64px">Mic gain</span><div class="track"><div class="fill" id="eqMicFill"></div></div><span class="gainLbl" id="eqMicGain">—</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-        <button id="eqMeasBtn" class="toggle">מדוד מיקום (5ש')</button>
-        <button id="eqGenToggleBtn" class="toggle">▶ רעש ורוד</button>
-        <button id="eqResetBtn" class="toggle">אפס</button>
-        <button id="combBtn" class="toggle">בדוק פאזה</button>
+        <button id="eqMeasBtn" class="toggle">Measure position (5s)</button>
+        <button id="eqGenToggleBtn" class="toggle">▶ Pink noise</button>
+        <button id="eqResetBtn" class="toggle">Reset</button>
+        <button id="combBtn" class="toggle">Check phase</button>
       </div>
       <div id="combResult" style="display:none;text-align:center;font-size:12px"></div>
       <div id="eqRangeBar" style="display:flex;gap:10px;align-items:end;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
         <div class="ctrl" style="min-width:130px;flex:0 1 170px">
-          <label>תיקון החל מ־ (HPF)</label>
+          <label>Correction start (HPF)</label>
           <select id="eqRangeMin">
             <option value="20">20 Hz</option><option value="25">25 Hz</option><option value="31.5">31.5 Hz</option><option value="40" selected>40 Hz</option><option value="50">50 Hz</option><option value="63">63 Hz</option><option value="80">80 Hz</option><option value="100">100 Hz</option><option value="125">125 Hz</option><option value="160">160 Hz</option><option value="200">200 Hz</option><option value="250">250 Hz</option>
           </select>
         </div>
         <div class="ctrl" style="min-width:130px;flex:0 1 170px">
-          <label>תיקון עד־ (LPF)</label>
+          <label>Correction end (LPF)</label>
           <select id="eqRangeMax">
             <option value="500">500 Hz</option><option value="630">630 Hz</option><option value="800">800 Hz</option><option value="1000">1 kHz</option><option value="2000">2 kHz</option><option value="4000">4 kHz</option><option value="8000">8 kHz</option><option value="10000">10 kHz</option><option value="12500">12.5 kHz</option><option value="16000" selected>16 kHz</option><option value="20000">20 kHz</option>
           </select>
         </div>
-        <div class="sub">טווח תיקון EQ: <b id="eqRangeLabel">40Hz – 16kHz</b><br>ה־RTA ממשיך להציג את כל הספקטרום</div>
+        <div class="sub">EQ correction range: <b id="eqRangeLabel">40Hz – 16kHz</b><br>The RTA continues to display the entire spectrum</div>
       </div>
       <div style="display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
         <div class="seg" id="eqModeSeg">
-          <button data-m="graphic" class="on">גרפיק</button>
-          <button data-m="param">פרמטרי · 6 Bands</button>
+          <button data-m="graphic" class="on">Graphic</button>
+          <button data-m="param">Parametric · 6 Bands</button>
         </div>
         <div style="display:flex;gap:6px;align-items:center">
-          <span class="sub">יעד</span>
+          <span class="sub">Target</span>
           <div class="seg tgtSeg">
-            <button data-t="flat" class="on">שטוח</button>
+            <button data-t="flat" class="on">Flat</button>
             <button data-t="house">House</button>
           </div>
         </div>
         <div class="seg" id="cutOnlySeg">
-          <button data-co="0" class="on">מלא</button>
-          <button data-co="1">חיתוך בלבד</button>
+          <button data-co="0" class="on">Full</button>
+          <button data-co="1">Cut only</button>
         </div>
       </div>
       <div class="sub" id="eqCalName"></div>
       <div id="eqList" style="max-height:34vh;overflow-y:auto"></div>
-      <button id="eqClose">סגור</button>
+      <button id="eqClose">Close</button>
     </div>
     
     <div id="areaPanel">
-      <h3>מדידת המרחב · Spatial Average</h3>
+      <h3>Spatial average</h3>
       <div class="seg" id="eqModeSwitchB" style="align-self:center">
-        <button data-go="avg">ממוצע</button>
-        <button class="on">אזורים</button>
+        <button data-go="avg">Average</button>
+        <button class="on">Areas</button>
       </div>
-      <div class="sub">מדוד בכל צד של המעגל (צפון/דרום/מזרח/מערב) והשווה. עד 4 אזורים על הגרף.</div>
-      <div class="chBar"><span style="min-width:64px">גיין מיק'</span><div class="track"><div class="fill" id="areaMicFill"></div></div><span class="gainLbl" id="areaMicGain">—</span></div>
+      <div class="sub">Measure on each side of the circle (north/south/east/west) and compare. Up to 4 areas on the graph.</div>
+      <div class="chBar"><span style="min-width:64px">Mic gain</span><div class="track"><div class="fill" id="areaMicFill"></div></div><span class="gainLbl" id="areaMicGain">—</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;">
-        <button id="areaMeasBtn" class="toggle">מדוד אזור חדש (5ש')</button>
-        <button id="areaGenToggleBtn" class="toggle">▶ רעש ורוד</button>
-        <button id="areaResetBtn" class="toggle">אפס</button>
-        <button id="areaCombBtn" class="toggle">בדוק פאזה</button>
+        <button id="areaMeasBtn" class="toggle">Measure a new area (5s)</button>
+        <button id="areaGenToggleBtn" class="toggle">▶ Pink noise</button>
+        <button id="areaResetBtn" class="toggle">Reset</button>
+        <button id="areaCombBtn" class="toggle">Check phase</button>
       </div>
       <div id="areaCombResult" style="display:none;text-align:center;font-size:12px"></div>
       <div class="ctrl" id="tfTargetCtrl" style="flex:0 0 auto;align-items:center;min-width:auto">
-        <label style="justify-content:center">עקומת יעד</label>
+        <label style="justify-content:center">Target curve</label>
         <div class="seg tgtSeg" style="align-self:center">
-          <button data-t="flat" class="on">שטוח</button>
+          <button data-t="flat" class="on">Flat</button>
           <button data-t="house">House</button>
         </div>
       </div>
       <div style="display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px">
         <div class="seg" id="areaModeSeg">
-          <button data-m="graphic" class="on">גרפיק</button>
-          <button data-m="param">פרמטרי · 6 Bands</button>
+          <button data-m="graphic" class="on">Graphic</button>
+          <button data-m="param">Parametric · 6 Bands</button>
         </div>
         <div class="seg" id="areaCutSeg">
-          <button data-co="0" class="on">מלא</button>
-          <button data-co="1">חיתוך בלבד</button>
+          <button data-co="0" class="on">Full</button>
+          <button data-co="1">Cut only</button>
         </div>
       </div>
       <div id="areaList" style="max-height:132px;overflow-y:auto"></div>
-      <button id="areaEqBtn" class="toggle" style="align-self:center">חשב EQ ממוצע לכל האזורים</button>
+      <button id="areaEqBtn" class="toggle" style="align-self:center">Calculate average EQ for all areas</button>
       <canvas id="areaEqCanvas" style="width:100%;height:150px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none"></canvas>
       <div id="areaEqList"></div>
-      <button id="areaClose">סגור</button>
+      <button id="areaClose">Close</button>
     </div>
     
     <div id="calPanel">
-      <h3>כיולי מיקרופון</h3>
-      <div class="sub">בחר כיול פעיל, או הוסף קובץ (תדר+dB, פורמט REW/miniDSP). נשמר לפעם הבאה.</div>
+      <h3>Microphone calibrations</h3>
+      <div class="sub">Select a calibration or load a frequency/dB file in REW or miniDSP format. Calibration files are saved for later use.</div>
       <div id="calList"></div>
-      <label class="toggle" style="cursor:pointer;align-self:center">➕ הוסף קובץ כיול<input id="calAdd" type="file" accept=".txt,.cal,.frd,.csv,.dat,.mdat,.gain,.zma,text/*" style="display:none"></label>
-      <div class="sub" style="text-align:center">או הדבק את תוכן הקובץ כאן (תדר [רווח] dB):</div>
-      <textarea id="calPaste" placeholder="20&#9;0.39&#10;20.5&#9;0.39&#10;…" style="width:100%;height:70px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:monospace;font-size:11px;padding:6px;resize:vertical"></textarea>
-      <button class="toggle" id="calPasteBtn" style="align-self:center">טען מהטקסט</button>
-      <button id="calResetBtn" class="toggle" style="align-self:center">אפס את כל הכיולים</button>
-      <button id="calClose">סגור</button>
+      <label class="toggle" style="cursor:pointer;align-self:center">➕ Add a calibration file<input id="calAdd" type="file" accept=".txt,.cal,.frd,.csv,.dat,.mdat,.gain,.zma,text/*" style="display:none"></label>
+      <div class="sub" style="text-align:center">Or paste file contents here (frequency [space] dB):</div>
+      <textarea id="calPaste" placeholder="20&#9;0.39&#10;20.5&#9;0.39&#10;…" style="width:100%;height:70px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:Arial,sans-serif;font-size:11px;padding:6px;resize:vertical"></textarea>
+      <button class="toggle" id="calPasteBtn" style="align-self:center">Load pasted text</button>
+      <button id="calResetBtn" class="toggle" style="align-self:center">Reset all calibrations</button>
+      <button id="calClose">Close</button>
     </div>
     
     <div id="tfPanel" class="tfPro">
@@ -3482,14 +3485,14 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
         <div class="tfProCard"><span>REFERENCE</span><b id="tfProRef">—</b><small id="tfProRefSub">Channel 2</small></div>
         <div class="tfProCard"><span>TRACE</span><b id="tfProTrace">LIVE</b><small id="tfProTraceSub">No capture yet</small></div><div class="tfProCard tfConfidenceCard"><span>CONFIDENCE</span><b id="tfProConfidence">—</b><small id="tfProConfidenceSub">Waiting for TF</small></div>
       </div>
-      <div id="tfFieldGuide" data-state="action"><b>1 · הפעל Pink Noise רציף</b><span>אותו מקור חייב להגיע למערכת ול־REF 2</span></div>
+      <div id="tfFieldGuide" data-state="action"><b>1 · Play continuous Pink Noise</b><span>The same source must reach the system and REF 2</span></div>
       <div id="tfAverageBar" aria-label="TF working average">
         <span id="tfAverageState" data-state="waiting">AVERAGE · WAITING</span>
         <div class="seg" id="tfAverageSpeed"><button data-tf-average="fast">FAST</button><button data-tf-average="normal" class="on">NORMAL</button><button data-tf-average="precision">PRECISION</button></div>
         <button type="button" id="tfAverageReset">RESET AVG</button>
       </div>
       <div class="tfProViewBar" aria-label="TF display">
-        <div class="left" role="group" aria-label="בחר תצוגת TF"><button type="button" id="tfProMag" class="on" aria-pressed="true">Magnitude</button><button type="button" id="tfProPhase" aria-pressed="false">Phase</button><button type="button" id="tfProCohBtn" aria-pressed="false">Coherence</button></div>
+        <div class="left" role="group" aria-label="Select TF display"><button type="button" id="tfProMag" class="on" aria-pressed="true">Magnitude</button><button type="button" id="tfProPhase" aria-pressed="false">Phase</button><button type="button" id="tfProCohBtn" aria-pressed="false">Coherence</button></div>
         <div class="right"><button type="button" id="tfProFreeze">Freeze / Trace</button><button type="button" id="tfProSync">Auto Delay</button></div>
       </div>
       <div class="tfPhaseTools" id="tfPhaseTools">
@@ -3501,124 +3504,124 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
         <div class="tfPhaseActions"><button type="button" id="tfPhaseGate">Coh Gate ✓</button><button type="button" id="tfPhaseUnwrap">Unwrap</button><button type="button" id="tfPhaseZero">0° Reference</button></div>
       </div>
       <div id="tfInputLevels">
-        <div class="sub">רמות כניסה · מיקרופון ורפרנס</div>
-        <div class="chBar"><span id="tfL1" style="min-width:96px">כניסה 1 → מיק'</span><div class="track"><div class="fill" id="tfMicFill"></div></div><span id="tfMicDb">—</span></div>
-        <div class="chBar"><span id="tfL2" style="min-width:96px">כניסה 2 → רפרנס</span><div class="track"><div class="fill" id="tfRefFill"></div></div><span id="tfRefDb">—</span></div>
+        <div class="sub">Input levels · MIC and REF</div>
+        <div class="chBar"><span id="tfL1" style="min-width:96px">Input 1 → MIC</span><div class="track"><div class="fill" id="tfMicFill"></div></div><span id="tfMicDb">—</span></div>
+        <div class="chBar"><span id="tfL2" style="min-width:96px">Input 2 → REF</span><div class="track"><div class="fill" id="tfRefFill"></div></div><span id="tfRefDb">—</span></div>
       </div>
       <div id="tfBtns">
-        <div id="tfWorkflowSteps" aria-label="סדר מדידת TF">
+        <div id="tfWorkflowSteps" aria-label="TF measurement order">
           <button class="toggle" id="tfAutoDelayBtn">1 · SYNC TF</button>
-          <button class="toggle" id="tfVerifyBtn" title="בחר רעש ורוד, סוויפ או מקור חיצוני; האפליקציה תאסוף ותאמת פאזה וקוהרנטיות" disabled>2 · VERIFY TF</button>
+          <button class="toggle" id="tfVerifyBtn" title="Choose pink noise, a sweep or an external source. The app collects and verifies phase and coherence." disabled>2 · VERIFY TF</button>
           <button class="toggle" id="tfTraceBtn" disabled>3 · CAPTURE TRACE</button>
           <button class="toggle" id="tfMeasBtn" disabled>ADVANCED EQ</button>
         </div>
-        <div id="tfUtilityBtns" aria-label="פעולות TF נוספות">
+        <div id="tfUtilityBtns" aria-label="Additional TF operations">
           <button class="toggle" id="tfPhaseToggleBtn">Phase</button>
           <button class="toggle" id="tfCohToggleBtn">Coh</button>
-          <button class="toggle" id="tfTraceClearBtn">נקה Traces</button>
-          <button class="toggle" id="tfSwapBtn">החלף ערוצים</button>
-          <button class="toggle" id="tfOverlayBtn">הצג על הגרף</button>
+          <button class="toggle" id="tfTraceClearBtn">Clear Traces</button>
+          <button class="toggle" id="tfSwapBtn">Swap channels</button>
+          <button class="toggle" id="tfOverlayBtn">Show on the graph</button>
           <button class="toggle" id="tfCsvBtn">CSV</button>
         </div>
       </div>
       <div id="tfTraceLegend" class="tfTraceLegend"></div>
-      <div id="tfDelayInfo" role="status" style="text-align:center;font-size:11px;color:var(--accent)"><b>שלב 1:</b> הפעל אות רחב־פס ובצע סנכרון TF</div>
-      <div class="delayRangeControl"><span>טווח חיפוש</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
+      <div id="tfDelayInfo" role="status" style="text-align:center;font-size:11px;color:var(--accent)"><b>Step 1:</b> Play a broadband signal, then sync TF</div>
+      <div class="delayRangeControl"><span>Search range</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
       <div id="tfAdvancedTuning" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:6px 0">
         <div class="ctrl" style="min-width:150px">
-          <label>יציבות TF <b id="tfSmoothVal">בינונית</b></label>
+          <label>TF stability <b id="tfSmoothVal">Medium</b></label>
           <input type="range" id="tfSmooth" min="70" max="98" step="1" value="93">
         </div>
         <div class="ctrl" style="min-width:150px">
-          <label>סף קוהרנטיות לפאזה <b id="tfCohGateVal">0.40</b></label>
+          <label>Coherence threshold for phase <b id="tfCohGateVal">0.40</b></label>
           <input type="range" id="tfCohGate" min="0" max="90" step="5" value="40">
         </div>
       </div>
       <div id="tfLegacyEqTools" hidden aria-hidden="true">
         <canvas id="tfCanvas" style="width:100%;height:234px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;display:none"></canvas>
         <div class="seg" id="tfModeSeg" style="align-self:center">
-          <button data-m="graphic" class="on">גרפיק</button>
-          <button data-m="param">פרמטרי · 6 Bands</button>
+          <button data-m="graphic" class="on">Graphic</button>
+          <button data-m="param">Parametric · 6 Bands</button>
         </div>
         <div class="ctrl" id="tfLegacyTargetCtrl" style="flex:0 0 auto;align-items:center;min-width:auto">
-          <label style="justify-content:center">עקומת יעד</label>
+          <label style="justify-content:center">Target curve</label>
           <div class="seg tgtSeg" style="align-self:center">
-            <button data-t="flat" class="on">שטוח</button>
+            <button data-t="flat" class="on">Flat</button>
             <button data-t="house">House</button>
           </div>
         </div>
         <div id="tfGeqList"></div>
-        <div class="sub" id="tfInfo">התוצאה: כמה dB להזיז בכל פס בגרפיק־EQ (31 פסים).</div>
+        <div class="sub" id="tfInfo">Suggested dB adjustment for each graphic EQ band (31 bands).</div>
       </div>
-      <button id="tfClose">סגור</button>
+      <button id="tfClose">Close</button>
     </div>
     
     <div id="dlyPanel">
-      <h3>השוואת זמני הגעה · רמקולים</h3>
+      <h3>Comparison of arrival times · Speakers</h3>
       <div class="dlyInputs">
-        <div class="chBar"><span id="dlyL1" style="min-width:90px">כניסה 1 · מיק'</span><div class="track"><div class="fill" id="dlyMicFill"></div></div><span class="gainLbl" id="dlyMicGain">—</span></div>
-        <div class="chBar"><span id="dlyL2" style="min-width:90px">כניסה 2 · Reference</span><div class="track"><div class="fill" id="dlyRefFill"></div></div><span class="gainLbl" id="dlyRefGain">—</span></div>
+        <div class="chBar"><span id="dlyL1" style="min-width:90px">Input 1 · MIC</span><div class="track"><div class="fill" id="dlyMicFill"></div></div><span class="gainLbl" id="dlyMicGain">—</span></div>
+        <div class="chBar"><span id="dlyL2" style="min-width:90px">Input 2 · REF</span><div class="track"><div class="fill" id="dlyRefFill"></div></div><span class="gainLbl" id="dlyRefGain">—</span></div>
       </div>
       <div class="dlyMeasureCard">
-        <div class="sub">נגן אות רחב־פס ושלח אותו גם למערכת וגם ל־Reference. המנוע מבצע 3 בדיקות עצמאיות.</div>
-        <button id="dlyMeasBtn" class="toggle">מדוד זמן נתיב · 3×</button>
-        <div id="dlyStatus" style="text-align:center;color:var(--text)">מוכן למדידה</div>
-        <div class="delayRangeControl"><span>טווח חיפוש</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
-        <div class="dlyUnitControl"><span>תצוגת תוצאה</span><div class="seg" id="dlyUnitSeg"><button data-unit="ms" class="on">ms</button><button data-unit="m">מטרים</button></div></div>
+        <div class="sub">Play a wideband signal and send it to both the system and Reference. The engine performs 3 independent tests.</div>
+        <button id="dlyMeasBtn" class="toggle">Measure path time · 3×</button>
+        <div id="dlyStatus" style="text-align:center;color:var(--text)">Ready to measure</div>
+        <div class="delayRangeControl"><span>Search range</span><div class="seg" data-delay-range><button data-ms="20">20ms</button><button data-ms="50" class="on">50ms</button><button data-ms="100">100ms</button></div></div>
+        <div class="dlyUnitControl"><span>Result display</span><div class="seg" id="dlyUnitSeg"><button data-unit="ms" class="on">ms</button><button data-unit="m">Meters</button></div></div>
         <div id="dlyDistanceCal">
-          <span id="dlyDistanceCalState">למרחק אמיתי צריך לכייל פעם אחת מול מרחק ידוע.</span>
-          <label>מרחק ידוע <input id="dlyKnownDistance" type="number" min="0.2" max="20" step="0.1" value="1.0"> מטר</label>
-          <button id="dlyDistanceCalBtn" class="toggle" type="button">כייל מרחק</button>
+          <span id="dlyDistanceCalState">For a real distance you need to calibrate once against a known distance.</span>
+          <label>Known distance <input id="dlyKnownDistance" type="number" min="0.2" max="20" step="0.1" value="1.0"> Meters</label>
+          <button id="dlyDistanceCalBtn" class="toggle" type="button">Calibrate distance</button>
         </div>
-        <div class="sub" id="dlyInfo">הזמן המוחלט כולל את כל שרשרת המדידה ואינו מרחק פיזי. לכיוון רמקולים השתמש רק ב־Δ מול העוגן.</div>
+        <div class="sub" id="dlyInfo">Absolute time includes the entire measurement chain and is not physical distance. Use only Δ relative to the anchor for speaker alignment.</div>
       </div>
 
       <div class="dlyAlignment">
         <div class="dlyAlignmentHead">
-          <div class="sub" style="text-align:center;color:var(--text);font-weight:600">יישור רמקולים</div>
+          <div class="sub" style="text-align:center;color:var(--text);font-weight:600">Speaker alignment</div>
           <div class="ctrl" style="flex:0 0 auto;align-items:center;min-width:auto">
-          <label style="justify-content:center">מספר רמקולים</label>
+          <label style="justify-content:center">Speaker count</label>
           <div class="seg" id="dlyCountSeg">
             <button data-n="2" class="on">2</button>
             <button data-n="4">4</button>
             <button data-n="6">6</button>
           </div>
           </div>
-          <div class="sub">רמקול אחד בלבד בכל מדידה · המיקרופון נשאר קבוע · בחר את המאוחר כעוגן ◎.</div>
+          <div class="sub">Measure one speaker at a time. Keep the microphone fixed. Select the latest arrival as the anchor ◎.</div>
         </div>
         <div id="dlySpk" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
       <div class="dlyActions">
-        <button id="dlyLoopbackBtn" class="toggle" title="חבר אותו אות לשתי הכניסות ובדוק שהמערכת מחזירה קרוב ל־0ms">בדיקת חיבור 0ms</button>
-        <button id="dlyReset" class="toggle">אפס דיליי</button>
-        <button id="dlyClose">סגור</button>
+        <button id="dlyLoopbackBtn" class="toggle" title="Connect the same signal to both inputs and check that the system returns close to 0ms">0 ms loopback check</button>
+        <button id="dlyReset" class="toggle">Reset delay</button>
+        <button id="dlyClose">Close</button>
       </div>
     </div>
     
     <div id="geqDock" style="display:none">
       <div id="geqDockHead">
-        <span id="geqDockTitle">תיקון EQ</span>
+        <span id="geqDockTitle">EQ correction</span>
         <div id="geqDockTools">
           <label class="geqRangeCtl">HPF
-            <select id="eqDockRangeMin" title="לא להציע תיקונים מתחת לתדר הזה">
+            <select id="eqDockRangeMin" title="Do not offer corrections below this frequency">
               <option value="20">20 Hz</option><option value="25">25 Hz</option><option value="31.5">31.5 Hz</option><option value="40" selected>40 Hz</option><option value="50">50 Hz</option><option value="63">63 Hz</option><option value="80">80 Hz</option><option value="100">100 Hz</option><option value="125">125 Hz</option><option value="160">160 Hz</option><option value="200">200 Hz</option><option value="250">250 Hz</option>
             </select>
           </label>
           <label class="geqRangeCtl">LPF
-            <select id="eqDockRangeMax" title="לא להציע תיקונים מעל לתדר הזה">
+            <select id="eqDockRangeMax" title="Do not offer corrections above this frequency">
               <option value="500">500 Hz</option><option value="630">630 Hz</option><option value="800">800 Hz</option><option value="1000">1 kHz</option><option value="2000">2 kHz</option><option value="4000">4 kHz</option><option value="8000">8 kHz</option><option value="10000">10 kHz</option><option value="12500">12.5 kHz</option><option value="16000" selected>16 kHz</option><option value="20000">20 kHz</option>
             </select>
           </label>
-          <span style="font-size:9px;color:var(--dim)">סוג תיקון</span>
+          <span style="font-size:9px;color:var(--dim)">Correction type</span>
           <div id="geqCutMode">
-            <button type="button" data-co="0" class="on">גרף מלא</button>
-            <button type="button" data-co="1">חיתוך בלבד</button>
+            <button type="button" data-co="0" class="on">Full graph</button>
+            <button type="button" data-co="1">Cut only</button>
           </div>
         </div>
-        <button id="geqDockToggle" title="הסתר/הצג">▼</button>
+        <button id="geqDockToggle" title="Show / hide">▼</button>
       </div>
       <canvas id="eqCurveCanvas"></canvas>
-      <div id="geqValues" aria-label="ערכי תיקון EQ"></div>
+      <div id="geqValues" aria-label="EQ correction values"></div>
     </div>
 
     <div class="meter" id="meter" style="display:none">
@@ -3629,14 +3632,14 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
     </div>
     
     <div class="idle" id="idle">
-      <button class="btn" id="startBtn">הפעל מיקרופון</button>
-      <p>RTA ו־Waterfall ב־1/6 אוקטבה, TF ודיליי דו־ערוצי, מדידות SPL/EQ ויישור Sub/Top בזמן אמת.</p>
+      <button class="btn" id="startBtn">Start microphone</button>
+      <p>RTA and Waterfall in 1/6 octave, two-channel TF and delay, SPL/EQ measurements and Sub/Top alignment in real time.</p>
     </div>
 
     <section id="v52IODock" aria-label="Input Output">
       <div id="v52IODockHeader">
         <strong>I/O · INPUT / OUTPUT</strong>
-        <button id="v52IOClose" type="button" title="סגור">✕</button>
+        <button id="v52IOClose" type="button" title="Close">✕</button>
       </div>
       <div class="v52IOGrid">
         <div class="v52IOCard">
@@ -3729,7 +3732,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       </div>
       <div class="v52QuickGroup">
         <button class="v52QuickBtn" id="v52IoBtn" type="button" onclick="v52SetIo(!v52IoOpen)">I/O</button>
-        <button class="v52QuickBtn" id="v52AutoDelayBtn" type="button">⏱ סנכרון TF</button>
+        <button class="v52QuickBtn" id="v52AutoDelayBtn" type="button">⏱ TF sync</button>
         <button class="v52QuickBtn" id="v52GenBtn" type="button" onclick="v53SetGeneratorDock(!genPanel.classList.contains('open'))">Generator</button>
       </div>
       <div id="v52QuickSpacer"></div>
@@ -3748,95 +3751,95 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
       <g id="pcbTraces" filter="url(#pcbGlow)"></g>
     </svg>
     <div id="genPanel">
-      <button id="genCloseBtn" type="button" title="סגור" onclick="v53SetGeneratorDock(false)">✕</button>
+      <button id="genCloseBtn" type="button" title="Close" onclick="v53SetGeneratorDock(false)">✕</button>
       <div class="seg" id="genType">
-        <button data-t="pink" class="on">ורוד</button>
-        <button data-t="white">לבן</button>
-        <button data-t="sine">סינוס</button>
-        <button data-t="sweep">סוויפ</button>
+        <button data-t="pink" class="on">Pink</button>
+        <button data-t="white">White</button>
+        <button data-t="sine">Sine</button>
+        <button data-t="sweep">Sweep</button>
       </div>
       <div class="ctrl" style="min-width:130px">
-        <label>עוצמה <b id="genLvlVal">-34dB</b></label>
+        <label>Level <b id="genLvlVal">-34dB</b></label>
         <input type="range" id="genLvl" min="-46" max="-8" step="1" value="-34">
       </div>
       <div class="ctrl" id="genFreqWrap" style="min-width:130px;display:none">
-        <label>תדר סינוס <b id="genFreqVal">1000Hz</b></label>
+        <label>Sine frequency <b id="genFreqVal">1000Hz</b></label>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="range" id="genFreq" min="20" max="20000" step="1" value="1000" style="flex:1">
-          <input type="number" id="genFreqNum" min="20" max="20000" step="1" value="1000" style="width:72px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:inherit;font-size:12px;padding:5px 6px;text-align:center">
+          <input type="number" id="genFreqNum" min="20" max="20000" step="1" value="1000" style="width:72px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;color:var(--text);font-family:Arial,sans-serif;font-size:12px;padding:5px 6px;text-align:center">
         </div>
       </div>
       <div class="ctrl" id="genSweepWrap" style="min-width:130px;display:none">
-        <label>משך סוויפ <b id="genSweepVal">4.0ש'</b></label>
+        <label>Sweep duration <b id="genSweepVal">4.0s</b></label>
         <input type="range" id="genSweep" min="1" max="10" step="0.5" value="4">
       </div>
-      <button id="genOnBtn">▶ הפעל אות</button>
+      <button id="genOnBtn">▶ Start signal</button>
       <div style="border-top:1px solid var(--line);margin-top:2px;padding-top:8px">
-        <div class="sub" style="text-align:center;margin-bottom:6px">בדיקת רמות — ודא שהמיקרופון ב"טוב" (ירוק) לפני מדידה</div>
+        <div class="sub" style="text-align:center;margin-bottom:6px">Checking Levels — Make sure the microphone is "good" (green) before measuring</div>
         <div class="chBar"><span style="min-width:54px">MIC 1</span><div class="track"><div class="fill" id="gainMicFill"></div></div><span class="gainLbl" id="gainMicGain">—</span></div>
         <div class="chBar"><span style="min-width:54px">REF 2</span><div class="track"><div class="fill" id="gainRefFill"></div></div><span class="gainLbl" id="gainRefGain">—</span></div>
         <div class="sub" id="gainTip" style="text-align:center;min-height:16px;margin-top:4px">—</div>
       </div>
-      <div class="warn">⚠ עוצמה גבוהה עלולה להזיק לרמקולים (בעיקר טוויטרים) ולאוזניים. התחל נמוך ועלה בהדרגה.</div>
+      <div class="warn">⚠ High volume can damage speakers (especially tweeters) and ears. Start low and gradually increase.</div>
     </div>
     <div class="tabbar">
-      <button class="tab on" data-p="view">תצוגה</button>
-      <button class="tab" data-p="tune">רמות / כיול</button>
+      <button class="tab on" data-p="view">Display</button>
+      <button class="tab" data-p="tune">Levels / Calibration</button>
       <button class="tab" data-p="io">I/O</button>
-      <button class="toggle" id="stopBtn" style="display:none;margin-inline-start:auto">אפס סשן</button>
+      <button class="toggle" id="stopBtn" style="display:none;margin-inline-start:auto">Reset session</button>
     </div>
 
     <div class="tabpage active" data-page="view">
       <div class="trow">
         <div class="ctrl">
-          <label>רזולוציה <b id="resVal">1/6 אוקטבה</b></label>
+          <label>Resolution <b id="resVal">1/6 octave</b></label>
           <input type="range" id="res" min="3" max="48" step="1" value="6">
         </div>
         <div class="ctrl">
-          <label>החלקה <b id="smoothVal">0.7</b></label>
+          <label>Smoothing <b id="smoothVal">0.7</b></label>
           <input type="range" id="smooth" min="0" max="0.92" step="0.02" value="0.7">
         </div>
         <div class="ctrl">
-          <label>רגישות פידבק <b id="fbSensVal">בינונית</b></label>
+          <label>Feedback sensitivity <b id="fbSensVal">Medium</b></label>
           <input type="range" id="fbSens" min="6" max="20" step="1" value="12">
         </div>
         <button class="toggle on" id="peakBtn">Peak Hold</button>
-        <button class="toggle on" id="fbBtn">גלאי פידבק</button>
+        <button class="toggle on" id="fbBtn">Feedback detector</button>
       </div>
       <div class="trow">
-        <button class="toggle" id="avgBtn">מיצוע</button>
+        <button class="toggle" id="avgBtn">Averaging</button>
         <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
-          <label>מהירות מיצוע</label>
+          <label>Averaging speed</label>
           <div class="miniSeg" id="avgSpeedSeg">
-            <button data-a="0.75">מהיר</button>
-            <button data-a="0.90" class="on">בינוני</button>
-            <button data-a="0.97">איטי</button>
+            <button data-a="0.75">Fast</button>
+            <button data-a="0.90" class="on">Medium</button>
+            <button data-a="0.97">Slow</button>
           </div>
         </div>
-        <button class="toggle" id="resetPeakBtn" title="אפס את קווי ה-Peak Hold">אפס Peaks</button>
-        <button class="toggle" id="freezeBtn">הקפא</button>
-        <button class="toggle" id="refCurveBtn" title="שומר את התגובה הנוכחית כעקומת ״לפני״ כדי להשוות אחרי שינוי EQ">שמור כ״לפני״</button>
+        <button class="toggle" id="resetPeakBtn" title="Reset the Peak Hold lines">Reset peaks</button>
+        <button class="toggle" id="freezeBtn">Freeze</button>
+        <button class="toggle" id="refCurveBtn" title="Saves the current response as a &quot;before&quot; curve to compare after an EQ change">Save Before</button>
         <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
-          <label>מדים</label>
+          <label>Meters</label>
           <div class="seg" id="meterModeSeg">
-            <button data-m="rms" class="on">RMS (חלק)</button>
+            <button data-m="rms" class="on">RMS (smooth)</button>
             <button data-m="peak">Peak</button>
           </div>
         </div>
         <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
-          <label>FFT (דיוק ↔ מהירות)</label>
+          <label>FFT (accuracy ↔ speed)</label>
           <div class="seg" id="fftSeg">
-            <button data-n="8192">מהיר</button>
-            <button data-n="16384" class="on">מאוזן</button>
-            <button data-n="32768">מדויק</button>
+            <button data-n="8192">Fast</button>
+            <button data-n="16384" class="on">Balanced</button>
+            <button data-n="32768">Accurate</button>
           </div>
         </div>
       </div>
       <div class="trow">
-        <button class="toggle" id="abCapA" title="לכוד את התגובה הנוכחית כמצב ״לפני״ (A)">לכוד לפני (A)</button>
-        <button class="toggle" id="abCapB" title="לכוד את התגובה הנוכחית כמצב ״אחרי״ (B)">לכוד אחרי (B)</button>
+        <button class="toggle" id="abCapA" title="Capture the current response as the &quot;before&quot; state (A)">Capture Before (A)</button>
+        <button class="toggle" id="abCapB" title="Capture the current response as the &quot;after&quot; state (B)">Capture After (B)</button>
         <div class="ctrl" style="flex:0 0 auto;align-items:flex-start;min-width:auto">
-          <label>השוואת A/B</label>
+          <label>A/B comparison</label>
           <div class="seg" id="abViewSeg">
             <button data-v="off" class="on">—</button>
             <button data-v="A">A</button>
@@ -3845,50 +3848,50 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
             <button data-v="delta">Δ</button>
           </div>
         </div>
-        <button class="toggle" id="abClear" title="נקה את A ו-B">נקה A/B</button>
+        <button class="toggle" id="abClear" title="Clear A and B">Clear A/B</button>
       </div>
     </div>
 
     <div class="tabpage" data-page="tune">
       <div class="trow v5LegacyShortcutRow">
-        <button class="toggle" id="genBtn">גנרטור · Generator</button>
-        <button class="toggle" id="measBtn">מדידה</button>
-        <button class="toggle" id="saveBtn">מדידות שמורות · Captures</button>
+        <button class="toggle" id="genBtn">Signal generator</button>
+        <button class="toggle" id="measBtn">Measurement</button>
+        <button class="toggle" id="saveBtn">Saved measurements</button>
       </div>
       <div class="trow v5LegacyShortcutRow" id="measRow" style="display:none">
-        <button class="toggle" id="eqBtn">חד־ערוצי · SPL</button>
-        <button class="toggle" id="tfBtn">דו־ערוצי · TF</button>
-        <button class="toggle" id="dlyBtn">דיליי · Delay Finder</button>
-        <button class="toggle" id="alignBtn">יישור סאב/טופ</button>
-        <button class="toggle" id="rtBtn">הדהוד · RT60</button>
-        <button class="toggle" id="geqShowBtn" title="הצג/הסתר את תצוגת תיקון ה-EQ">תצוגת EQ</button>
+        <button class="toggle" id="eqBtn">Single-channel · SPL</button>
+        <button class="toggle" id="tfBtn">Two-channel · TF</button>
+        <button class="toggle" id="dlyBtn">Delay Finder</button>
+        <button class="toggle" id="alignBtn">Sub / Top alignment</button>
+        <button class="toggle" id="rtBtn">Reverberation · RT60</button>
+        <button class="toggle" id="geqShowBtn" title="Show/hide the EQ correction display">EQ display</button>
       </div>
       <div class="trow">
         <div class="ctrl" style="flex:0 0 auto">
-          <label>יחידת מד</label>
+          <label>meter unit</label>
           <div class="seg" id="unitSeg">
             <button data-u="SPL" class="on">dB SPL</button>
             <button data-u="dBFS">dBFS</button>
           </div>
         </div>
         <div class="ctrl">
-          <label>רצפת רעש <b id="floorVal">-85dB</b></label>
+          <label>Noise floor <b id="floorVal">-85dB</b></label>
           <input type="range" id="floor" min="-100" max="-50" step="1" value="-85">
         </div>
         <div class="ctrl">
-          <label>כיול SPL <b id="calVal">+0dB</b></label>
+          <label>SPL calibration <b id="calVal">+0dB</b></label>
           <input type="range" id="cal" min="0" max="130" step="1" value="0">
         </div>
         <button class="toggle" id="wgtBtn">dBZ</button>
-        <button class="toggle" id="leqBtn">אפס Leq</button>
+        <button class="toggle" id="leqBtn">Reset Leq</button>
       </div>
     </div>
 
     <div class="tabpage" data-page="io">
       <div class="trow">
-        <select class="inp" id="inSel" title="מקור קלט"><option value="">ברירת מחדל של המערכת</option></select>
-        <select class="inp" id="outSel" title="יציאת פלט (אות הגנרטור)"><option value="">ברירת מחדל של המערכת</option></select>
-        <button class="toggle" id="calBtn">כיול מיק'</button>
+        <select class="inp" id="inSel" title="Input source"><option value="">System default</option></select>
+        <select class="inp" id="outSel" title="Output device (generator signal)"><option value="">System default</option></select>
+        <button class="toggle" id="calBtn">mic calibration</button>
         <span id="chCount" class="sub" style="align-self:center;font-size:11px">—</span>
         <button class="toggle" id="pngBtn">PNG</button>
         <button class="toggle" id="csvBtn">CSV</button>
@@ -3897,7 +3900,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   </footer>
   <div id="shortcutToast"></div>
 
-  <nav id="uiBottomTools" aria-label="כלי עבודה מהירים">
+  <nav id="uiBottomTools" aria-label="Quick tools">
     <button type="button" data-ui-action="analysis" class="on"><span class="uiToolIcon">⌁</span><span>RTA</span></button>
     <button type="button" data-ui-action="waterfall"><span class="uiToolIcon">▥</span><span>Waterfall</span></button>
     <button type="button" data-ui-action="tf"><span class="uiToolIcon">∿</span><span>TF</span></button>
@@ -3908,7 +3911,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.15</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.16</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -3960,7 +3963,7 @@ window.addEventListener('load', function(){
   setInterval(()=>{
     const ready=document.getElementById('uiReadyText');if(!ready)return;
     const audio=(document.getElementById('v52AudioState')?.textContent||document.getElementById('v3AudioChip')?.textContent||'').toLowerCase();
-    const running=/running|active|on|פעיל|פועל/.test(audio) && !/stopped|off|כבוי/.test(audio);
+    const running=/running|active|on/.test(audio) && !/stopped|off/.test(audio);
     ready.textContent=running?'AUDIO LIVE':'AUDIO OFF';
     document.getElementById('uiLivePill')?.classList.toggle('ready',running);
   },600);
@@ -4095,7 +4098,7 @@ window.addEventListener('load', function(){
     const d=document.getElementById('tfDelayInfo')?.textContent||'';
     const dm=d.match(/([0-9]+(?:\.[0-9]+)?)\s*ms/i);
     const de=document.getElementById('tfProDelay'); if(de)de.textContent=dm?dm[1]+' ms':'—';
-    const ds=document.getElementById('tfProDelaySub'); if(ds)ds.textContent=/מוכן|✓|ready/i.test(d)?'Synchronized':'Sync required';
+    const ds=document.getElementById('tfProDelaySub'); if(ds)ds.textContent=/✓|ready/i.test(d)?'Synchronized':'Sync required';
     const cv=document.getElementById('tfCorrVal')?.textContent||'—';
     const ce=document.getElementById('tfProCoh'); if(ce)ce.textContent=cv;
     const ref=document.getElementById('tfRefDb')?.textContent||'—';
@@ -4109,7 +4112,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.15"></script>
+<script src="app.js?v=5.7.16"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>
@@ -4374,7 +4377,7 @@ window.addEventListener('load', function(){
  <div class="tmpSub" id="tmpSecondary">LIVE INPUT</div>
  <div class="tmpGrid"><div class="tmpCell">PEAK<strong id="tmpPeak">—</strong></div><div class="tmpCell">SNR<strong id="tmpSnr">—</strong></div><div class="tmpCell">COHERENCE<strong id="tmpCoh">—</strong></div><div class="tmpCell">HEADROOM<strong id="tmpHeadroom">—</strong></div></div>
 </aside>
-<button id="rightRailToggle" class="workspaceRailToggle" type="button" aria-label="קפל סרגל ימני" aria-expanded="true">›</button>
+<button id="rightRailToggle" class="workspaceRailToggle" type="button" aria-label="Collapse right sidebar" aria-expanded="true">›</button>
 <div id="targetLeftStatus" aria-label="Input meters">
  <section class="tlsCard tlsInputCard" data-input="mic">
   <div class="tlsHead"><span class="tlsDot"></span><span>MIC · <b id="tlsMicInput">INPUT 1</b></span></div>
@@ -4389,11 +4392,11 @@ window.addEventListener('load', function(){
  <section class="tlsCard tlsPatchCard" id="targetTraceCard" tabindex="-1">
   <div class="tlsHead">SIGNAL PATH</div>
   <div class="tlsLine"><span>SIGNAL</span><strong id="tlsSignal">Pink Noise</strong></div><div class="tlsLine"><span>LEVEL</span><strong id="tlsLevel">—</strong></div>
-  <div class="tlsPatchActions"><button class="tlsGenToggle" id="tlsGenToggle" type="button">▶ הפעל אות</button><button class="tlsOpen" id="tlsGenOpen" type="button" data-tls-open="generator" aria-controls="genPanel" title="פתח הגדרות גנרטור">פתח גנרטור</button><button class="tlsOpen" type="button" data-tls-open="io">I / O</button></div>
+  <div class="tlsPatchActions"><button class="tlsGenToggle" id="tlsGenToggle" type="button">▶ Start signal</button><button class="tlsOpen" id="tlsGenOpen" type="button" data-tls-open="generator" aria-controls="genPanel" title="Open generator settings">Open generator</button><button class="tlsOpen" type="button" data-tls-open="io">I / O</button></div>
   <div class="tlsTraceCount"><span>TRACES</span><strong id="tlsTraces">0</strong><span>VISIBLE</span><strong id="tlsVisible">0</strong></div><div id="persistentTraceHost"></div>
  </section>
 </div>
-<button id="leftRailToggle" class="workspaceRailToggle" type="button" aria-label="קפל סרגל שמאלי" aria-expanded="true">‹</button>
+<button id="leftRailToggle" class="workspaceRailToggle" type="button" aria-label="Collapse left sidebar" aria-expanded="true">‹</button>
 
 <script>
 (()=>{
@@ -4409,7 +4412,7 @@ window.addEventListener('load', function(){
    document.body.classList.toggle(side+'-rail-collapsed',!open);
    const b=buttons[side];
    if(b){
-     const action=(open?'קפל ':'פתח ')+(side==='left'?'סרגל שמאלי':'סרגל ימני');
+     const action=(open?"Collapse ":"Expand ")+(side==='left'?"left sidebar":"right sidebar");
      b.textContent=side==='left'?(open?'‹':'›'):(open?'›':'‹');
      b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',action);b.title=action;
    }
@@ -4466,7 +4469,7 @@ window.addEventListener('load', function(){
  function textOf(sel,fallback='—'){const x=document.querySelector(sel);return (x?.selectedOptions?.[0]?.textContent||x?.textContent||x?.value||fallback).trim()}
  function syncLeftInstrument(){
    const sig=document.getElementById('tlsSignal'),lev=document.getElementById('tlsLevel');
-   if(sig)sig.textContent=textOf('#genType,#generatorType,#signalType','Pink Noise').slice(0,18);
+   if(sig){const selected=document.querySelector('#genType button.on');const labels={pink:'Pink noise',white:'White noise',sine:'Sine',sweep:'Sweep'};sig.textContent=labels[selected?.dataset.t]||textOf('#generatorType,#signalType','Pink noise');}
    const level=document.querySelector('#genLevel,#generatorLevel,input[data-generator-level]');
    if(lev)lev.textContent=level?String(level.value)+(String(level.value).includes('dB')?'':' dB'):'—';
    const micInput=document.getElementById('tlsMicInput'),refInput=document.getElementById('tlsRefInput');

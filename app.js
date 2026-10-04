@@ -3,7 +3,7 @@
  * diagnostics are active, and makes the migration from the legacy core safe.
  */
 (function bootGAL(){
-  const files=['js/core/config.js?v=5.7.15','js/core/diagnostics.js?v=5.7.15','js/app-core.js?v=5.7.15'];
+  const files=['js/core/config.js?v=5.7.16','js/core/diagnostics.js?v=5.7.16','js/app-core.js?v=5.7.16'];
   let index=0;
   function loadNext(){
     if(index>=files.length) return;
@@ -11,7 +11,7 @@
     script.src=files[index++];
     script.async=false;
     script.onload=loadNext;
-    script.onerror=()=>window.GAL?.fail('לא ניתן לטעון רכיב מערכת: '+script.src);
+    script.onerror=()=>window.GAL?.fail("Unable to load system component: "+script.src);
     document.head.appendChild(script);
   }
   loadNext();
