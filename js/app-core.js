@@ -94,7 +94,8 @@ const meterVal = document.getElementById('meterVal');
 
 let audioCtx, analyser, analyserMeter, source, stream, raf;
 let analyserRef=null, floatDataRef=null, chReceived=1;
-let measChannel=0, refChannel=1;
+let measChannel=0, refChannel=1, referenceExplicitlyNone=false;
+let inputKeepAlive=null,delayCaptureCleanup=null,audioTransition=Promise.resolve();
 let workletReady=false;
 let floatData;
 let timeData, timeDataMeter;
@@ -384,7 +385,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.20-shared-frequency-axis',
+    version: 'v5.7.22-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1299,7 +1300,8 @@ function runWithSource(kind, measureFn, durMs){
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
   if(kind==='external'||kind==='external-sweep'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
-  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650,preserveTfSync:false,autoSync:false}:{preserveTfSync:false,autoSync:false});
+  const preserveTfSync=[verifyTfWorkflow,tfMeasure,captureTfTraceFromSource].includes(measureFn);
+  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650,preserveTfSync,autoSync:false}:{preserveTfSync,autoSync:false});
   managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(kind);}, kind==='sweep'?100:450);
   managedSourceRestoreTimer=setTimeout(()=>{
     managedSourceRestoreTimer=null;
@@ -1655,8 +1657,8 @@ function tfMicOnlySnapshot(){
 function captureTfTrace(){
   if(!running){ alert("Start audio first."); return; }
   if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
-  const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'&&tfWorkflowQuality().ok);
-  const current=analyserRef?tfCurrentSnapshot():tfMicOnlySnapshot();
+  const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'&&(!tfHasReferenceSignal()||tfWorkflowQuality().ok));
+  const current=tfHasReferenceSignal()?tfCurrentSnapshot():tfMicOnlySnapshot();
   const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:current; if(!s) return;
   const idx=tfTraces.length+1;
   s.type='tf';s.visible=true;s.verified=verified;s.status=verified?'Verified':'Unverified';
@@ -1679,6 +1681,9 @@ function captureTfTraceFromSource(sourceKind){
 function requestTfTraceCapture(){
   if(!running){v3Toast("Start audio first");return;}
   if(measureBusy()){v3Toast("Another measurement is active - wait for it to end");return;}
+  if(tfWorkingAverage&&tfAverageFrames>=18&&tfWorkflowVerified&&tfDelayReady&&tfWorkingAverage.confidence?.label==='HIGH'){
+    captureTfTrace();return;
+  }
   pickSource(captureTfTraceFromSource,2600,{
     title:"Which source to use for capturing the trace?",
     allowed:['pink','sweep','external']
@@ -2164,6 +2169,7 @@ function delayChecksHtml(res){
   return html+'</span>';
 }
 function delayFailureText(res,silent){
+  if(res?.reason)return res.reason;
   if(silent==='mic')return "The microphone did not pick up a signal — check gain and connection.";
   if(silent==='ref')return "Input 2 (Reference) is quiet — check the routing from the mixer.";
   const bw=res&&Number.isFinite(res.bandwidthHz)?res.bandwidthHz:0;
@@ -2221,7 +2227,7 @@ function delayChunkSize(sr,maxDelayMs){
 }
 function runDelayCapture(btn, cb, options){
   options=options||{};
-  if(!running||!analyserRef||!source){ alert("You need a sound card with stereo input (mic + reference)."); return; }
+  if(!running||!analyserRef||!source||refChannel<0||refChannel===measChannel){ v3Toast("Assign separate MIC and REF inputs in I/O before measuring delay."); return; }
   if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   unfreezeForMeasure();
   dlyState='measuring';
@@ -2239,48 +2245,50 @@ function runDelayCapture(btn, cb, options){
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
   try {
-    workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet');
+    workletNode = new AudioWorkletNode(audioCtx, 'recorder-worklet',{channelCount:chReceived,channelCountMode:'explicit',channelInterpretation:'discrete'});
   } catch(e) {
     alert("AudioWorklet not loaded. Open the site through a server (eg Live Server in VSCode) and not as a file from a folder.");
     dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
     return;
   }
 
-  const mute=audioCtx.createGain(); mute.gain.value=0;
-  source.connect(workletNode); workletNode.connect(mute); mute.connect(audioCtx.destination);
-  
-  workletNode.port.onmessage = e => {
-    if (pos >= want) return;
-    const c0 = e.data.mic, c1 = e.data.ref;
-    const len = Math.min(c0.length, want - pos);
-    for(let i=0; i<len; i++) { mic[pos]=c0[i]; ref[pos]=c1[i]; pos++; }
+  const captureSource=source,captureContext=audioCtx;
+  const mute=captureContext.createGain();mute.gain.value=0;
+  captureSource.connect(workletNode);workletNode.connect(mute);mute.connect(captureContext.destination);
+  let finished=false,timeout=null;
+  const cleanup=()=>{
+    if(finished)return;finished=true;clearTimeout(timeout);
+    workletNode.port.postMessage({cmd:'stop'});workletNode.port.onmessage=null;
+    try{captureSource.disconnect(workletNode);}catch(_){}workletNode.disconnect();mute.disconnect();
+    if(delayCaptureCleanup===cancel)delayCaptureCleanup=null;
+    dlyState='idle';if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
   };
-  workletNode.port.postMessage({ cmd: 'start', micChannel:measChannel, refChannel:refChannel });
+  const complete=error=>{
+    if(finished)return;cleanup();
+    if(error||pos!==want){cb({reliable:false,reason:error||'Incomplete audio capture. Retry the measurement.'});return;}
+    const m=tfSwap?ref:mic,r=tfSwap?mic:ref;
+    const rmsOf=a=>{let sum=0;for(const value of a)sum+=value*value;return Math.sqrt(sum/a.length);};
+    const micRms=rmsOf(m),refRms=rmsOf(r);
+    if(micRms<1e-4||refRms<1e-4){cb(null,micRms<1e-4?'mic':'ref');return;}
+    const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
+    if(delayResult?.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
+      delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);window.lastDelayRepeatability=delayResult.repeatability;
+    }
+    cb(delayResult);
+  };
+  const cancel=()=>complete("Audio capture was interrupted. Input is recovering; repeat the measurement.");
+  delayCaptureCleanup=cancel;
+  workletNode.port.onmessage=e=>{
+    if(finished)return;
+    if(e.data.error){complete(e.data.error);return;}
+    if(e.data.done){complete();return;}
+    const c0=e.data.mic,c1=e.data.ref;
+    if(!c0||!c1||c0.length!==c1.length){complete('Invalid audio capture packet.');return;}
+    const len=Math.min(c0.length,want-pos);mic.set(c0.subarray(0,len),pos);ref.set(c1.subarray(0,len),pos);pos+=len;
+  };
+  workletNode.port.postMessage({cmd:'start',micChannel:measChannel,refChannel:refChannel,frames:want});
+  timeout=setTimeout(()=>complete('Audio capture timed out. Check input routing and retry.'),captureSec*1000+5000);
 
-  setTimeout(()=>{
-    workletNode.port.postMessage({ cmd: 'stop' });
-    // Give the worklet one message turn to flush its last partial block before
-    // disconnecting and analysing the complete capture.
-    setTimeout(()=>{
-      try{ source.disconnect(workletNode); }catch(_){} try{ workletNode.disconnect(); }catch(_){} try{ mute.disconnect(); }catch(_){}
-      dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
-      const m = tfSwap? ref: mic, r = tfSwap? mic: ref;
-      const rmsOf=(a)=>{ let s=0; for(let i=0;i<a.length;i++) s+=a[i]*a[i]; return Math.sqrt(s/a.length); };
-      const micRms=rmsOf(m), refRms=rmsOf(r);
-      if(micRms<1e-4 || refRms<1e-4){ cb(null, micRms<1e-4?'mic':'ref'); return; }
-      // Tell the estimator what kind of excitation it is looking at. A swept
-      // sine is narrowband inside any short analysis chunk, so it must be
-      // correlated across the whole capture instead of per-chunk. Pink/white
-      // noise stays on the proven per-chunk path; anything else ('auto') tries
-      // the chunk path first and falls back to full-capture correlation.
-      const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
-      if(delayResult&&delayResult.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
-        delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);
-        window.lastDelayRepeatability=delayResult.repeatability;
-      }
-      cb(delayResult);
-    },60);
-  }, captureSec*1000+100);
 }
 
 safeOn('dlyLoopbackBtn','click',function(){
@@ -2691,6 +2699,8 @@ function measureBusy(){
       || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || tfTraceCapturePending || rt60State!=='idle';
 }
 function cancelTimedMeasurements(){
+  delayCaptureCleanup?.();cancelTfWorkflowVerification();
+  if(tfTraceCaptureTimer){clearTimeout(tfTraceCaptureTimer);tfTraceCaptureTimer=null;}tfTraceCapturePending=false;
   if(areaMeasureTimer){clearTimeout(areaMeasureTimer);areaMeasureTimer=null;}
   if(eqMeasureTimer){clearTimeout(eqMeasureTimer);eqMeasureTimer=null;}
   if(tfMeasureTimer){clearTimeout(tfMeasureTimer);tfMeasureTimer=null;}
@@ -3031,7 +3041,7 @@ function resetSession(){
   if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
   resetTfAutoDelay();
   const tr = stream && stream.getAudioTracks && stream.getAudioTracks()[0];
-  if(running && (!tr || tr.readyState==='ended')){ stop(); start(); return; }
+  if(running && (!tr || tr.readyState==='ended')){ stop().then(()=>start()); return; }
   peaks.fill(0); avgBuf.fill(0); snapCurve=null; frozen=false;
   abA=null; abB=null; abView='off';
   { const a=document.getElementById('abCapA'); if(a){ a.classList.remove('on'); a.textContent="Capture Before (A)"; } }
@@ -3082,7 +3092,22 @@ function buildWeighting(nyquist,bins){
   }
 }
 
-async function start(deviceId){
+window.addEventListener('gal-input-discontinuity',event=>{
+  const message=event.detail?.message||'Audio delivery was interrupted. Input is recovering; repeat this measurement.';
+  delayCaptureCleanup?.();cancelTimedMeasurements();resetTfAutoDelay();
+  const status=document.getElementById('dlyStatus');if(status)status.textContent=message;
+  errBox.textContent=message;errBox.style.display='block';v3Toast(message);
+});
+function galInputDevices(){return window.GalNativeInput ? window.GalNativeInput.listDevices() : navigator.mediaDevices.enumerateDevices();}
+function start(deviceId){
+  const request=deviceId===undefined?activeInId:deviceId;
+  const operation=audioTransition.then(async()=>{
+    if(running&&request===activeInId&&stream?.getAudioTracks()[0]?.readyState==='live')return;
+    if(audioCtx||running)await stopInput();
+    await startInput(request);
+  });audioTransition=operation.catch(()=>{});return operation;
+}
+async function startInput(deviceId){
   errBox.style.display='none';
   // Compensation is valid only for the current physical routing.
   resetTfAutoDelay();
@@ -3098,8 +3123,15 @@ async function start(deviceId){
     if(deviceId && typeof deviceId === 'string') audio.deviceId = { exact: deviceId };
     activeInId = deviceId || '';
     
-    stream = await navigator.mediaDevices.getUserMedia({ audio });
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(window.GalNativeInput){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state==='suspended')await audioCtx.resume();
+      const capture=await window.GalNativeInput.open(audioCtx,deviceId);
+      stream=capture.stream;source=capture.source;
+    }else{
+      stream = await navigator.mediaDevices.getUserMedia({ audio });
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
     
     if(outSinkId && typeof audioCtx.setSinkId === 'function'){ 
       try{ await audioCtx.setSinkId(outSinkId); }catch(_){} 
@@ -3113,20 +3145,24 @@ async function start(deviceId){
       console.warn('AudioWorklet failed to load.', err);
     }
 
-    source = audioCtx.createMediaStreamSource(stream);
+    if(!stream.native) source = audioCtx.createMediaStreamSource(stream);
     // Keep interface channels independent. "speakers" interpretation may
     // up-mix a mono browser stream into two identical channels.
     source.channelCountMode = 'max';
     source.channelInterpretation = 'discrete';
 
     const track = stream.getAudioTracks()[0];
-    track.addEventListener('ended',()=>{
+    track.addEventListener('ended',async()=>{
       if(!running) return;
+      const nativeError=track.nativeError;
+      if(stream?.native)await stop();
       errBox.style.display='block';
-      errBox.textContent="The input source is disconnected. Reconnect and click \"Reset Session\".";
+      errBox.textContent=nativeError||"The input source is disconnected. Reconnect and click \"Reset Session\".";
     });
     const settings = track.getSettings ? track.getSettings() : {};
     chReceived = Number(settings.channelCount) || 1;
+    const requestField=document.getElementById('multiInputRequested')?.closest('.v52Field');if(requestField){requestField.hidden=!!stream.native;requestField.style.display=stream.native?'none':'';}
+    const nativeInfo=document.getElementById('nativeInputInfo');if(nativeInfo)nativeInfo.textContent=stream.native ? 'Core Audio · '+stream.info.name+' · '+chReceived+' independent channels' : 'Browser audio input';
     const isSafari=/^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
     const ci = document.getElementById('chCount');
     if(ci){
@@ -3160,8 +3196,12 @@ async function start(deviceId){
     source.channelCountMode = 'explicit';
     source.channelInterpretation = 'discrete';
     captureSource.connect(source);
+    // Keep the capture graph rendering between measurements, without playback.
+    inputKeepAlive=audioCtx.createGain();inputKeepAlive.gain.value=0;
+    source.connect(inputKeepAlive);inputKeepAlive.connect(audioCtx.destination);
     measChannel = Math.max(0, Math.min(measChannel, receivedChannels - 1));
     if(receivedChannels < 2 || refChannel >= receivedChannels) refChannel = -1;
+    if(receivedChannels>1 && refChannel<0 && !referenceExplicitlyNone)refChannel=measChannel===0?1:0;
     if(refChannel === measChannel) refChannel = receivedChannels > 1 ? (measChannel === 0 ? 1 : 0) : -1;
     v52RefDbfs = -120; v52RefPeakDbfs = -120;
     document.body.classList.toggle('reference-unassigned', refChannel < 0);
@@ -3174,7 +3214,7 @@ async function start(deviceId){
         const none=document.createElement('option');none.value='-1';none.textContent='None';select.append(none);
       }
       for(let channel=0;channel<receivedChannels;channel++){
-        const option=document.createElement('option');option.value=String(channel);option.textContent='Input '+(channel+1);
+        const option=document.createElement('option');option.value=String(channel);option.textContent=stream.native ? stream.info.labels[channel] : 'Input '+(channel+1);
         if(id === 'v52RefSelect' && channel === measChannel) option.disabled=true;
         select.append(option);
       }
@@ -3208,15 +3248,17 @@ async function start(deviceId){
     populateInputs();
     draw();
   } catch(e) {
+    await window.GalNativeInput?.stop();
+    if(audioCtx && window.GalNativeInput)await audioCtx.close().catch(()=>{});
     errBox.style.display = 'block';
-    errBox.textContent = "Unable to access microphone: " + (e.message || e.name) + ". Allow microphone access and open the app over HTTPS.";
+    errBox.textContent = window.GalNativeInput ? "Unable to start Core Audio: "+(e.message || e.name) : "Unable to access microphone: " + (e.message || e.name) + ". Allow microphone access and open the app over HTTPS.";
   }
 }
 
 let userPickedIn=false, userPickedOut=false;
 async function populateInputs(){
   try{
-    const devs=await navigator.mediaDevices.enumerateDevices();
+    const devs=await galInputDevices();
     const ins=devs.filter(d=>d.kind==='audioinput');
     const sel=document.getElementById('inSel');
     sel.innerHTML='';
@@ -3262,10 +3304,11 @@ async function switchInput(deviceId){
   await start(deviceId);
 }
 
-async function stop(){
+function stop(){const operation=audioTransition.then(stopInput);audioTransition=operation.catch(()=>{});return operation;}
+async function stopInput(){
   cancelManagedSourceRun(true);
   cancelTimedMeasurements();
-  running=false; v52RefDbfs=-120; v52RefPeakDbfs=-120; window.GalMultiInput?.dispose(); if(raf) cancelAnimationFrame(raf);
+  running=false; await window.GalNativeInput?.stop(); v52RefDbfs=-120; v52RefPeakDbfs=-120; window.GalMultiInput?.dispose(); if(raf) cancelAnimationFrame(raf);
   resetTfAutoDelay();
   resetDistanceCalibration();
   if(rt60Timer){ clearInterval(rt60Timer); rt60Timer=null; }
@@ -3274,8 +3317,10 @@ async function stop(){
   analyserRef=null; floatDataRef=null; tfState='idle'; eqCurveData=null;
   genSrc=null; genOsc=null; genGain=null; genOn=false;
   const gb=document.getElementById('genOnBtn'); if(gb){gb.classList.remove('on');gb.textContent="▶ Start signal";}
+  if(inputKeepAlive){inputKeepAlive.disconnect();inputKeepAlive=null;}
   if(stream) stream.getTracks().forEach(t=>t.stop());
-  if(audioCtx) await audioCtx.close();
+  if(audioCtx&&audioCtx.state!=='closed') await audioCtx.close();
+  audioCtx=null;stream=null;source=null;analyser=null;
   dot.classList.remove('live'); idle.style.display='flex';
   document.getElementById('stopBtn').style.display='none';
   meterEl.style.display='none'; document.getElementById('stats').style.display='none';
@@ -3497,6 +3542,9 @@ function draw(){
 
 function computeComplexTf(){
   if(!analyser || !analyserRef) return null;
+  const clock=audioCtx.currentTime;
+  if(computeComplexTf.lastContext===audioCtx&&clock-computeComplexTf.lastTime<1/30)return;
+  computeComplexTf.lastContext=audioCtx;computeComplexTf.lastTime=clock;
   analyser.getFloatTimeDomainData(timeData);
   if(!timeDataRef || timeDataRef.length!==analyserRef.fftSize) timeDataRef=new Float32Array(analyserRef.fftSize);
   analyserRef.getFloatTimeDomainData(timeDataRef);
@@ -4876,7 +4924,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.20';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.22';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5022,7 +5070,7 @@ function v5RenderTraceRail(){
   box.innerHTML=tfTraces.map((t,i)=>
     '<div class="v5TraceRow" data-trace="'+i+'">'+
       '<span class="v5TraceNum">'+(i+1)+'</span>'+
-      "<span class=\"v5TraceName\" title=\"Double click to change name\" style=\"color:"+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+ 
+      "<span class=\"v5TraceName\" title=\"Double click to change name\" style=\"color:"+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+
       '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+"\" title=\"Show/Hide\">◉</button>"+
       '<button class="v5TraceAction" data-trace-del="'+i+"\" title=\"delete\">×</button>"+
     '</div>').join('');
@@ -5122,7 +5170,7 @@ function v52SetIo(open){
 async function v52RefreshDevices(){
   const sel=document.getElementById('v52DeviceSelect'); if(!sel || !navigator.mediaDevices?.enumerateDevices)return;
   try{
-    const devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
+    const devs=(await galInputDevices()).filter(d=>d.kind==='audioinput');
     const cur=sel.value;
     sel.innerHTML='';
     if(!devs.length){
@@ -5251,7 +5299,7 @@ function v52Init(){
   safeOn('multiInputOverlay','change',e=>window.GalMultiInput?.setEnabled(e.target.checked));
   safeOn('multiInputRequested','change',async()=>{if(running)await switchInput(activeInId);});
   safeOn('v52MeasSelect','change',async e=>{measChannel=parseInt(e.target.value,10)||0;if(measChannel===refChannel){refChannel=measChannel?0:1;document.getElementById('v52RefSelect').value=String(refChannel);}if(running)await switchInput(activeInId);});
-  safeOn('v52RefSelect','change',async e=>{refChannel=Number(e.target.value);if(refChannel===measChannel){measChannel=refChannel?0:1;document.getElementById('v52MeasSelect').value=String(measChannel);}if(running)await switchInput(activeInId);});
+  safeOn('v52RefSelect','change',async e=>{refChannel=Number(e.target.value);referenceExplicitlyNone=refChannel<0;if(refChannel===measChannel){measChannel=refChannel?0:1;document.getElementById('v52MeasSelect').value=String(measChannel);}if(running)await switchInput(activeInId);});
   safeOn('v53SplOffset','input',e=>{calib=parseFloat(e.target.value)||0;const old=document.getElementById('cal');if(old){old.value=String(calib);old.dispatchEvent(new Event('input',{bubbles:true}));}prefSet('rta_cal',calib);v52UpdateUi();});
   safeOn('v53OutputSelect','change',async e=>{const ok=await applyOutput(e.target.value);if(!ok)v3Toast("Output selection is not supported in this browser");});
   safeOn('v53ExportPng','click',()=>document.getElementById('pngBtn')?.click());

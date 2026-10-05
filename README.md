@@ -1,4 +1,7 @@
-# GAL Analyzer V5.7.10 — Studio Plugin Measurement Console
+# GAL Analyzer V5.7.22 — Desktop 6.0.0-preview.8
+
+Desktop preview.8 fixes multichannel recorder routing, TF trace retention and input continuity between measurements. Native Core Audio HAL input capture with actual device channel counts and sample-rate conversion while retaining the shared interface. EVO8 inputs are labeled as four analog inputs plus two loopback channels. Web capture, analysis and generator output retain their existing implementations. See [desktop documentation](desktop/README.md).
+
 
 V5.7.10 adds a shared frequency scale to RTA, M/R and TF, restores the persistent Traces area, and animates the side rails. HPF/LPF handles retain capture priority and touch-safe dragging.
 

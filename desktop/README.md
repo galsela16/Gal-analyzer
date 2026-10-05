@@ -1,12 +1,12 @@
-# GAL Analyzer Desktop — 6.0.0-preview.6
+# GAL Analyzer Desktop — 6.0.0-preview.8
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.6-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.8-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
-The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Audio access uses the existing Chromium/Web Audio implementation; packaging alone does not claim a faster RTA or native multichannel Core Audio routing.
+The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 
 ## Build
 
@@ -21,7 +21,7 @@ npm run build:mac
 
 Electron and the packager are pinned in `package-lock.json`. `prepare.cjs` copies shared runtime assets from the repository into generated `web/`; it changes only desktop version labels and disables hosted service-worker updates. Root web source files are not forked or modified. Each build refreshes the copy, so future interface fixes apply to both editions.
 
-The generated bundle contains Chromium and is consequently larger than the SwiftUI prototype. It preserves the web engine's behavior and avoids rebuilding working features. A future native audio bridge can replace capture/processing while retaining this interface.
+The generated bundle contains Chromium and is consequently larger than the SwiftUI prototype. It preserves the web engine's behavior and avoids rebuilding working features. Native input capture is bridged into the existing analysis interface. Native DSP and generator output remain future work.
 
 ## Validation and boundaries
 
@@ -46,3 +46,21 @@ Parallel input controls live in the I/O drawer, appear only for 3+ received chan
 ### Layout correction (preview.6)
 
 Delay title/actions occupy separate grid cells, with measurement controls wrapping to two rows instead of being clipped. Expanded settings scroll within the dock. Integration checks run at 1440×940 and 1080×760 and assert that title/actions and range/unit controls do not intersect and that controls stay inside their card. TF explanatory labels use explicit left alignment and a bounded left column; reference/trust status uses the right column below the resolution strip. Filter handles occupy a separate lower row. Cursor readouts sit above frequency-axis labels.
+
+## Native Core Audio input (preview.7)
+
+Desktop input enumeration and capture now bypass Chromium getUserMedia. The signed Swift helper opens the selected Core Audio device directly through a HAL AudioUnit, captures every input channel into a preallocated lock-free ring, converts the hardware sample rate when needed with AVAudioConverter, and delivers framed Float32 PCM through a restricted preload bridge and AudioWorklet. Device disconnects, sequence gaps, overflow and underrun stop capture with an explicit error. No channels are duplicated to fill missing inputs.
+
+EVO8 exposes six Core Audio input channels: four analog inputs and two loopback channels. The I/O selector labels these separately. The device's physical sample rate is preserved; conversion occurs outside the real-time callback. MIC and REF can be assigned to any received channel, while independent raw RTA monitoring remains available for all channels.
+
+The integration test checks six distinct native helper signals through the actual IPC, preload, AudioWorklet and measurement pipeline without capturing hardware or playing sound. The build also checks ring wraparound, channel order, partial reads and overflow. Earlier preview notes above describe their historical browser capture limitations; preview.7 replaces that desktop input path. Electrical loopback validation of measurement accuracy remains required.
+
+## TF field reliability (preview.8)
+
+Delay/sync recording now explicitly preserves all received channels and completes from an exact sample count plus a recorder acknowledgement. Higher input assignments cannot be down-mixed into a default stereo recorder. Incomplete captures time out explicitly; cancellations disconnect only their recorder, keeping the input graph running through a permanent silent sink. Switching from mono to a multichannel interface restores the reference automatically unless None was explicitly chosen. Audio start/stop transitions are serialized.
+
+A stable verified TF trace captures its held working average immediately, including after the stimulus stops. Source-assisted verification/capture preserves sync; cancellation clears pending capture/verification timers. TF computation is limited to 30 updates per second to avoid redundant FFT work.
+
+The native delivery buffer now tolerates longer UI work and automatically re-buffers after a delivery interruption. Both channels resume together. An interruption invalidates any in-flight measurement and resets TF verification rather than saving a result containing missing samples. The input itself stays active; format errors and physical disconnection still stop capture explicitly. This does not claim uninterrupted audio under arbitrary CPU overload.
+
+The synthetic field integration test uses six real helper/IPC/AudioWorklet channels with a known 5 ms broadband delay. It checks mono-to-multichannel routing, TF sync and verification, verified capture, held capture after stimulus ends, four consecutive path recordings, channels 3/4, persistence of the captured trace during subsequent measurements, and input survival during a 350 ms UI stall. It uses no audible playback. Physical electrical loopback and prolonged field validation remain necessary.
