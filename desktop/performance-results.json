@@ -66,5 +66,29 @@
     "scope": "Same 85-row, 240-point synthetic display fixture at 1082\u00d7687 CSS pixels; 12 redraws, no physical audio. Small timing difference is not a statistically established regression.",
     "beforeMedianMs": 1.899999976158142,
     "afterMedianMs": 2.0999999046325684
+  },
+  "waterfallExpandedFixture": {
+    "scope": "Preview.9 versus preview.10, same 85-row/240-point synthetic display fixture. Short isolated draw timings, not hardware latency or statistical performance claims.",
+    "before": {
+      "medianMs": 1.600000023841858,
+      "width": 1082,
+      "height": 687,
+      "canvasTop": 125,
+      "stripBottom": 156
+    },
+    "after": {
+      "medianMs": 1.7999999523162842,
+      "width": 1082,
+      "height": 687,
+      "canvasTop": 125,
+      "stripBottom": 156
+    },
+    "smallerWindow": {
+      "medianMs": 1.899999976158142,
+      "width": 760,
+      "height": 592,
+      "canvasTop": 125,
+      "stripBottom": 156
+    }
   }
 }

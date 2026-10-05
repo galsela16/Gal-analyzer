@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.9
+# GAL Analyzer Desktop — 6.0.0-preview.10
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.9-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.10-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 
@@ -80,3 +80,9 @@ Run `Contents/MacOS/GAL Analyzer --performance-test` to profile the owned applic
 ## Waterfall depth (preview.9)
 
 Stronger perspective and more vertical display relief make sustained peaks easier to distinguish. Shaded surface faces occlude the rear ridges instead of accumulating transparent haze; distant contours fade and the current slice remains prominent. Frequency cursor and resonance markers share the same floor axis, with room reserved for the level scale. Measured samples, history duration, spectral filtering and the bounded row/point count are unchanged.
+
+## Larger Waterfall (preview.10)
+
+The surface now fills more of the graph with a wider horizon, greater time depth and taller level relief. Blue, cyan, teal and warm amber replace the previous full rainbow; softer historical contours and opaque shaded faces keep the foreground readable. Resize measures toolbar clearance once so tall peaks remain below the resolution controls. Frequency cursor and resonance guides follow the same perspective floor. The ten-second history, measured samples, smoothing and row/point bounds are unchanged.
+
+The same 85-row, 240-point synthetic display fixture was visually checked at normal and smaller window sizes. Short isolated draw timings are recorded in `performance-results.json`; they are display checks, not hardware latency measurements.

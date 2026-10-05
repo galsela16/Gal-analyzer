@@ -13,7 +13,7 @@ const checks=[
  ['waterfall renderer has bounded ridge workload',core.includes('maxRows:85')&&core.includes('const N=240,raw=[]')&&core.includes('for(let rr=rows.length-1;rr>=0;rr--)')],
  ['waterfall default motion follows global normal speed',core.includes('intervalMs:120')&&core.includes("normal:{rta:420,wf:120,tf:.93")],
  ['waterfall builds a continuous surface between measured slices',core.includes('Join adjacent measurements into a translucent 3D surface')&&core.includes('if(rr<rows.length-1)')&&core.includes('for(let i=rowB.length-1;i>=0;i--)')],
- ['waterfall uses bounded perspective and readable level relief',core.includes('depth:span*.70,amp:span*.34')&&core.includes('backLeft:left+width*.12,backRight:right-width*.19')],
+ ['waterfall uses bounded perspective and readable level relief',core.includes('depth:span*.86,amp:span*.50')&&core.includes('backLeft:left+width*.06,backRight:right-width*.13')],
  ['waterfall history stays at ten seconds at every speed',core.includes('maxRows:85')&&core.includes('Math.ceil(10000/preset.wf)+1')&&core.includes('const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000)')],
  ['waterfall exposes frequency cursor',core.includes('drawWaterfallFrequencyCursor(W,specH,nyquist)')&&core.includes("hz.toFixed(1)+' Hz'")],
  ['generator close clears workspace drawer',core.includes("label.textContent.trim()==='GENERATOR'")&&core.includes("document.body.classList.remove('ui-workspace-drawer')")],
@@ -94,7 +94,7 @@ const checks=[
  ,['support and export actions are compact',html.includes('#uiMenu .uiMenuItem{')&&html.includes('min-height:38px!important;padding:6px 8px!important')]
  ,['day mode covers support and measurement internals',html.includes('body.sun-mode #uiMenu .uiMenuItem{background:#f8fbfd!important')&&html.includes('body.sun-mode .measureDock .tfProCard')&&html.includes('body.sun-mode .measureDock button.on')]
  ,['professional finish uses a shared restrained visual system',html.includes('--pro-radius:8px')&&html.includes('--pro-surface:#07151c')&&html.includes('V5.5.45 — professional finish')]
- ,['waterfall palette is vivid but depth-aware',core.includes('const stops=[[0,42,62,255]')&&core.includes('Math.max(.20,1-age*.70)')&&core.includes('fillAlpha=.96,shade=sunMode?.56')&&core.includes('rr===0?2.25:1.05')]
+ ,['waterfall palette and surface preserve depth',core.includes('const stops=[[0,49,73,160]')&&core.includes('(rr===0?1:.64)*(1-age*.62)')&&core.includes('fillAlpha=1,shade=sunMode?.56')&&core.includes('rr===0?2:1')]
  ,['lower graph zone toggles both rails and closes overlays',html.includes("canvas?.addEventListener('pointerdown'")&&html.includes('if(y<canvas.clientHeight-84)return;')&&html.includes("const bothCollapsed=document.body.classList.contains('left-rail-collapsed')")&&html.includes("setRail('left',bothCollapsed);setRail('right',bothCollapsed)")&&html.includes("document.querySelectorAll('.measureDock.open,#tfPanel.open,#alignBar.show')")]
  ,['graph selector keeps exactly one graph segment active',core.includes("document.querySelectorAll('#v5ModeTabs > button[data-v5mode]')")&&core.includes("rtaBtn?.classList.toggle('on',view==='rta')")&&core.includes("wfBtn?.classList.toggle('on',view==='spec')")]
  ,['measurement docks preserve canvas with compact limits',html.includes('V5.5.50 — compact measurement docks')&&html.includes('max-height:min(30vh,210px)')&&html.includes('max-height:min(25vh,190px)')&&html.includes('max-height:min(32vh,230px)')]

@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.23 — Desktop 6.0.0-preview.9
+# GAL Analyzer V5.7.24 — Desktop 6.0.0-preview.10
 
-Desktop preview.9 adds distinct trace colors, inline trace naming, a clearer shaded Waterfall perspective and background delay/sync analysis, while reducing redundant FFT work and native input delivery overhead. It preserves the preview.8 input and TF reliability fixes. Native Core Audio HAL input capture provides actual device channel counts and sample-rate conversion while retaining the shared interface. EVO8 inputs are labeled as four analog inputs plus two loopback channels. Analysis and generator output retain their shared implementations. See [desktop documentation](desktop/README.md).
+Desktop preview.10 expands Waterfall across the available plot with taller relief, a wider horizon, a restrained blue/cyan/teal/amber palette and perspective-aligned markers. Toolbar clearance is measured during resize; the capture history, analysis and bounded rendering workload are unchanged. It preserves preview.9 audio responsiveness and named colored traces. See [desktop documentation](desktop/README.md).
 
 
 V5.7.10 adds a shared frequency scale to RTA, M/R and TF, restores the persistent Traces area, and animates the side rails. HPF/LPF handles retain capture priority and touch-safe dragging.

@@ -102,7 +102,7 @@ app.whenReady().then(async () => {
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.9'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.10'),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');

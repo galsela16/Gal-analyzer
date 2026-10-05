@@ -173,6 +173,8 @@ let meterUpdateAt=0, meterTextAt=0;
 
 function resize(){
   const r=cv.getBoundingClientRect();
+  const resolution=document.getElementById('displayResolutionBar');
+  waterfallGeometry.toolbarTop=Math.max(16,(resolution?.getBoundingClientRect().bottom||r.top)-r.top+12);
   const MAXW=1440, MAXH=760;
   const dpr=Math.max(1, Math.min(window.devicePixelRatio||1, 2, MAXW/Math.max(1,r.width), MAXH/Math.max(1,r.height)));
   cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
@@ -391,7 +393,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.23-shared-frequency-axis',
+    version: 'v5.7.24-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -4294,12 +4296,13 @@ function drawWaterfallResonanceOverlay(W,specH,xForFreq){
   }).slice(0,3);
   visible.forEach((r,i)=>{
     const x=xForFreq(r.hz);if(x<0||x>W)return;
+    const g=waterfallGeometry(W,specH),u=(x-g.left)/(g.right-g.left),backX=g.backLeft+u*(g.backRight-g.backLeft),horizon=g.base-g.depth;
     const q=waterfallConfidence(r),hz=Math.round(r.hz)+' Hz';
     ctx.strokeStyle=r.validated?'rgba(60,224,177,.34)':'rgba(245,190,70,.26)';ctx.lineWidth=1;ctx.setLineDash([3,7]);
-    ctx.beginPath();ctx.moveTo(x,22);ctx.lineTo(x,specH-25);ctx.stroke();ctx.setLineDash([]);
-    ctx.beginPath();ctx.arc(x,20,3.5,0,Math.PI*2);ctx.fillStyle=r.validated?'#48dfb4':'#e8bd55';ctx.fill();
+    ctx.beginPath();ctx.moveTo(backX,horizon);ctx.lineTo(x,g.base);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(backX,horizon-6,3,0,Math.PI*2);ctx.fillStyle=r.validated?'#48dfb4':'#e8bd55';ctx.fill();
     ctx.font="700 9px Arial";ctx.textAlign='center';ctx.fillStyle=r.validated?'#8be8cd':'#d7bd78';
-    ctx.fillText(hz+' · '+Math.round(q*100)+'%',x,11);
+    ctx.fillText(hz+' · '+Math.round(q*100)+'%',backX,Math.max(g.top+12,horizon-16));
   });
   ctx.restore();
   const metric=document.getElementById('uiCtxMetric');
@@ -4310,15 +4313,16 @@ function drawWaterfallResonanceOverlay(W,specH,xForFreq){
 
 function drawWaterfallFrequencyCursor(W,H,nyquist){
   if(cursorX==null)return;
-  const {left,right}=waterfallGeometry(W,H),x=Math.max(left,Math.min(right,cursorX));
+  const {left,right,top,base,depth,backLeft,backRight}=waterfallGeometry(W,H),x=Math.max(left,Math.min(right,cursorX));
   const maxHz=Math.min(20000,nyquist*.96),u=(x-left)/Math.max(1,right-left);
   const hz=20*Math.pow(maxHz/20,u);
   const label=hz<1000?hz.toFixed(1)+' Hz':(hz/1000).toFixed(3)+' kHz';
   ctx.save();ctx.direction='ltr';ctx.setLineDash([4,5]);ctx.lineWidth=1;
   ctx.strokeStyle=sunMode?'rgba(2,132,199,.72)':'rgba(103,232,249,.72)';
-  ctx.beginPath();ctx.moveTo(x,22);ctx.lineTo(x,H-20);ctx.stroke();ctx.setLineDash([]);
+  const backX=backLeft+u*(backRight-backLeft),horizon=base-depth;
+  ctx.beginPath();ctx.moveTo(backX,horizon);ctx.lineTo(x,base);ctx.stroke();ctx.setLineDash([]);
   ctx.font="700 11px Arial";
-  const pad=7,tw=ctx.measureText(label).width+pad*2,tx=Math.max(3,Math.min(W-tw-3,x-tw/2)),ty=30;
+  const pad=7,tw=ctx.measureText(label).width+pad*2,tx=Math.max(3,Math.min(W-tw-3,backX-tw/2)),ty=Math.max(top+3,horizon-46);
   ctx.fillStyle=sunMode?'rgba(241,245,249,.94)':'rgba(6,21,28,.94)';ctx.strokeStyle=sunMode?'rgba(2,132,199,.7)':'rgba(34,211,238,.72)';
   ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(tx,ty,tw,25,6);ctx.fill();ctx.stroke();
   ctx.fillStyle=sunMode?'#075985':'#a5f3fc';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,tx+tw/2,ty+12.5);
@@ -4328,7 +4332,7 @@ function drawWaterfallFrequencyCursor(W,H,nyquist){
 
 function wf3dColor(t,alpha=1,shade=1){
   t=Math.max(0,Math.min(1,t));
-  const stops=[[0,42,62,255],[.18,20,132,255],[.36,0,218,255],[.54,0,232,151],[.72,171,239,24],[.86,255,184,0],[1,255,45,82]];
+  const stops=[[0,49,73,160],[.25,42,114,220],[.5,31,196,215],[.75,70,220,164],[1,246,191,89]];
   let a=stops[0],b=stops[stops.length-1];
   for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){a=stops[i-1];b=stops[i];break;}}
   const u=(t-a[0])/Math.max(.0001,b[0]-a[0]);
@@ -4350,9 +4354,9 @@ function captureWaterfall3dRow(nyquist){
   wf3d.rows.unshift(row);if(wf3d.rows.length>wf3d.maxRows)wf3d.rows.length=wf3d.maxRows;
 }
 function waterfallGeometry(W,H){
-  const top=18,bottom=H-20,span=Math.max(80,bottom-top),left=42,right=Math.max(left+80,W-58);
+  const top=Math.min(H*.3,waterfallGeometry.toolbarTop||16),bottom=Math.max(top+1,H-24),span=bottom-top,left=38,right=Math.max(left+1,W-50);
   const width=right-left;
-  return {top,bottom,span,left,right,base:bottom,depth:span*.70,amp:span*.34,backLeft:left+width*.12,backRight:right-width*.19};
+  return {top,bottom,span,left,right,base:bottom,depth:span*.86,amp:span*.50,backLeft:left+width*.06,backRight:right-width*.13};
 }
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
@@ -4379,24 +4383,24 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     const age=rr/Math.max(1,wf3d.maxRows-1);if(age>1)continue;
     const z=age*depth;
     const x0=left+(backLeft-left)*age,x1=right+(backRight-right)*age,baseline=base-z;
-    const ridgeAmp=Math.min(amp*(1-age*.52),baseline-top-4);
+    const ridgeAmp=Math.min(amp*(1-age*.76),baseline-top-4);
     let rowMin=1,rowMax=0;
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i];if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;
     }
     // One measured ridge and one stroke: predictable work and clean line separation.
     const contrast=Math.max(0,Math.min(1,(rowMax-rowMin)/.32));
-    const alpha=Math.max(.20,1-age*.70)*(.80+.20*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
+    const alpha=(rr===0?1:.64)*(1-age*.62)*(.88+.12*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
     ridgeGradient.addColorStop(0,wf3dColor(1,alpha));ridgeGradient.addColorStop(.28,wf3dColor(.72,alpha));
     ridgeGradient.addColorStop(.52,wf3dColor(.48,alpha));ridgeGradient.addColorStop(.75,wf3dColor(.25,alpha));ridgeGradient.addColorStop(1,wf3dColor(0,alpha));
     // Join adjacent measurements into a translucent 3D surface; the ridge stays as a crisp outline above it.
     if(rr<rows.length-1){
       const rowB=rows[rr+1],ageB=(rr+1)/Math.max(1,wf3d.maxRows-1),zB=ageB*depth;
       const bx0=left+(backLeft-left)*ageB,bx1=right+(backRight-right)*ageB,baseB=base-zB;
-      const ampB=Math.min(amp*(1-ageB*.52),baseB-top-4);
+      const ampB=Math.min(amp*(1-ageB*.76),baseB-top-4);
       // Opaque, shaded faces hide rear lines instead of accumulating a bright
       // transparent haze. Only the measured geometry changes the ridge height.
-      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=.96,shade=sunMode?.56:(.25+.18*(1-age));
+      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=1,shade=sunMode?.56:(.20+.18*(1-age));
       fillGradient.addColorStop(0,wf3dColor(1,fillAlpha,shade));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha,shade));
       fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha,shade));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha,shade));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha,shade));
       ctx.beginPath();
@@ -4404,7 +4408,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
       for(let i=rowB.length-1;i>=0;i--){const x=bx0+i/(rowB.length-1)*(bx1-bx0),y=baseB-rowB[i]*ampB;ctx.lineTo(x,y);}
       ctx.closePath();ctx.fillStyle=fillGradient;ctx.fill();
     }
-    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2.25:1.05;ctx.beginPath();
+    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2:1;ctx.beginPath();
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i],x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
       if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
@@ -4417,7 +4421,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     for(let i=0;i<row.length;i++){const x=left+i/(row.length-1)*(right-left),y=base-row[i]*amp;ctx.lineTo(x,y);}
     ctx.lineTo(right,base);ctx.closePath();
     const g=ctx.createLinearGradient(0,base-amp,0,base);
-    g.addColorStop(0,'rgba(255,45,82,.19)');g.addColorStop(.28,'rgba(255,194,0,.16)');g.addColorStop(.56,'rgba(0,232,151,.13)');g.addColorStop(1,'rgba(42,62,255,.09)');
+    g.addColorStop(0,'rgba(70,220,190,.15)');g.addColorStop(.45,'rgba(31,140,200,.10)');g.addColorStop(1,'rgba(20,54,100,.04)');
     ctx.fillStyle=g;ctx.fill();
   }
   ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font="10px Arial";ctx.textAlign='center';
@@ -4985,7 +4989,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.23';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.24';
   v3UpdateStatus();
 })();
 (function initAccent(){
