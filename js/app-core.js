@@ -22,7 +22,12 @@ let tfTraceCapturePending = false;
 let tfTraceCaptureTimer = null;
 let tfSweepAcquiring=false;
 let tfTraces=[];
-const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa'];
+const TF_TRACE_COLORS=['#38bdf8','#f59e0b','#e879f9','#50e68c','#f43f5e','#a78bfa','#22d3ee','#f97316','#facc15','#a3e635','#fb7185','#818cf8','#2dd4bf','#c084fc','#fda4af','#60a5fa','#fb923c','#bef264','#f0abfc','#34d399','#fde047','#93c5fd','#f472b6','#c4b5fd'];
+function nextTraceColor(){
+  const used=new Set(tfTraces.map(t=>t.color));
+  const available=TF_TRACE_COLORS.find(color=>!used.has(color));if(available)return available;
+  for(let i=0;;i++){const color='hsl('+((i*137.508)%360).toFixed(3)+', 72%, 65%)';if(!used.has(color))return color;}
+}
 let tfDelaySamples = 0;
 let delaySearchMs = 50;
 let dlyDisplayUnit = 'ms';
@@ -45,6 +50,7 @@ let TF_FFT_N = 16384;
 let tfXr,tfXi,tfYr,tfYi,tfPxx,tfPyy,tfPxyRe,tfPxyIm,tfWin;
 function configureTfFft(n){
   cancelTfWorkflowVerification();
+  tfCurrentSnapshot.cached=null;computeComplexTf.lastTime=-Infinity;
   TF_FFT_N=Math.max(8192,Math.min(32768,parseInt(n,10)||16384));
   tfXr=new Float32Array(TF_FFT_N); tfXi=new Float32Array(TF_FFT_N);
   tfYr=new Float32Array(TF_FFT_N); tfYi=new Float32Array(TF_FFT_N);
@@ -385,7 +391,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.22-shared-frequency-axis',
+    version: 'v5.7.23-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -1495,11 +1501,25 @@ window.getTfPhaseCursorInfo=function(freq,unwrap,zeroAtCursor){
   let ph=(snap.ph[k]||0)*180/Math.PI;
   // Cursor readout intentionally stays wrapped for a stable, intuitive value.
   if(zeroAtCursor)ph=0;
-  return {phaseDeg:ph,coh,freq:k*audioCtx.sampleRate/TF_FFT_N};
+  return {phaseDeg:ph,coh,freq:k*snap.sr/(n*2)};
 };
 
 
 const tfConfidenceHistory=[];
+// Select the same upper median as sorting, without sorting entire FFT arrays.
+function selectMedian(values){
+  if(!values.length)return NaN;
+  const middle=Math.floor(values.length/2);let left=0,right=values.length-1;
+  while(left<right){
+    const pivot=values[(left+right)>>>1];let i=left,j=right;
+    while(i<=j){
+      while(values[i]<pivot)i++;while(values[j]>pivot)j--;
+      if(i<=j){const value=values[i];values[i]=values[j];values[j]=value;i++;j--;}
+    }
+    if(middle<=j)right=j;else if(middle>=i)left=i;else break;
+  }
+  return values[middle];
+}
 function tfBandConfidence(snap,lo=80,hi=12000){
   if(!snap||!snap.coh||!snap.mag)return {score:0,label:'LOW',coverage:0,meanCoh:0,stability:0,reason:'No TF data'};
   const vals=[], mags=[];
@@ -1512,7 +1532,7 @@ function tfBandConfidence(snap,lo=80,hi=12000){
   const meanCoh=vals.reduce((a,b)=>a+b,0)/vals.length;
   const coverage=vals.filter(c=>c>=tfCohGate).length/vals.length;
   const now=Date.now();
-  const med=mags.length?(mags.slice().sort((a,b)=>a-b)[Math.floor(mags.length/2)]):NaN;
+  const med=selectMedian(mags);
   tfConfidenceHistory.push({t:now,med,meanCoh,coverage});
   while(tfConfidenceHistory.length>8||tfConfidenceHistory[0]?.t<now-5000)tfConfidenceHistory.shift();
   const recent=tfConfidenceHistory.filter(x=>Number.isFinite(x.med));
@@ -1532,6 +1552,8 @@ window.tfBandConfidence=tfBandConfidence;
 function tfCurrentSnapshot(){
   if(!analyserRef || !audioCtx) return null;
   computeComplexTf();
+  const cached=tfCurrentSnapshot.cached;
+  if(cached&&cached.context===audioCtx&&cached.frame===computeComplexTf.frame&&cached.gate===tfCohGate&&cached.snapshot.delayMs===tfDelayMs)return cached.snapshot;
   const n=TF_FFT_N/2, mag=new Float32Array(n), ph=new Float32Array(n), coh=new Float32Array(n),refDb=new Float32Array(n),micDb=new Float32Array(n);
   const vals=[],refVals=[];
   for(let k=1;k<n;k++){
@@ -1543,10 +1565,9 @@ function tfCurrentSnapshot(){
     const f=k*audioCtx.sampleRate/TF_FFT_N;
     if(c>=Math.max(.55,tfCohGate) && f>=200 && f<=5000 && Number.isFinite(m)){vals.push(m);refVals.push(refDb[k]);}
   }
-  vals.sort((a,b)=>a-b);refVals.sort((a,b)=>a-b);
-  const offset=vals.length?vals[Math.floor(vals.length/2)]:0;
-  const refOffset=refVals.length?refVals[Math.floor(refVals.length/2)]:0;
-  const snap={mag,ph,coh,offset,refDb,micDb,refOffset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()}; snap.confidence=tfBandConfidence(snap); return snap;
+  const offset=vals.length?selectMedian(vals):0;
+  const refOffset=refVals.length?selectMedian(refVals):0;
+  const snap={mag,ph,coh,offset,refDb,micDb,refOffset,sr:audioCtx.sampleRate,delayMs:tfDelayMs,t:Date.now()}; snap.confidence=tfBandConfidence(snap);tfCurrentSnapshot.cached={context:audioCtx,frame:computeComplexTf.frame,gate:tfCohGate,snapshot:snap};return snap;
 }
 function tfNormalizedMagnitude(snap,k){
   return (snap?.mag?.[k]||0)-(Number.isFinite(snap?.offset)?snap.offset:0);
@@ -1599,7 +1620,7 @@ function v552SpatialAverage(indices){
   if(selected.length<2)return {ok:false,reason:'Select at least two traces'};
   const type=selected[0].type;
   if(selected.some(t=>t.type!==type))return {ok:false,reason:'Average traces of the same type'};
-  const idx=tfTraces.length+1,color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  const idx=tfTraces.length+1,color=nextTraceColor();
   if(type==='rta'){
     const n=selected[0].values?.length||0;
     if(!n||selected.some(t=>t.values?.length!==n))return {ok:false,reason:'Trace sizes do not match'};
@@ -1632,7 +1653,7 @@ function v552SpatialAverage(indices){
 }
 window.v552SpatialAverage=v552SpatialAverage;
 window.v552GetTraces=()=>tfTraces;
-window.v552RenameTrace=(i,name)=>{if(tfTraces[i]&&name?.trim()){tfTraces[i].name=name.trim().slice(0,40);renderTfTraceLegend();return true}return false};
+window.v552RenameTrace=(i,name)=>{if(tfTraces[i]&&typeof name==='string'&&name.trim()){tfTraces[i].name=name.trim().slice(0,40);renderTfTraceLegend();return true}return false};
 window.v552ToggleTrace=i=>{if(!tfTraces[i])return false;tfTraces[i].visible=tfTraces[i].visible===false;renderTfTraceLegend();return true};
 window.v552DeleteTrace=i=>{if(!tfTraces[i])return false;tfTraces.splice(i,1);renderTfTraceLegend();return true};
 
@@ -1654,15 +1675,20 @@ function tfMicOnlySnapshot(){
   values.sort((a,b)=>a-b);
   return {mag,ph,coh,offset:values.length?values[Math.floor(values.length/2)]:0,sr:audioCtx.sampleRate,delayMs:0,t:Date.now(),captureKind:'mic-spectrum'};
 }
+function cloneTfSnapshot(snapshot){
+  if(!snapshot)return null;const copy={...snapshot};
+  for(const key of ['mag','ph','coh','refDb','micDb'])if(snapshot[key])copy[key]=new Float32Array(snapshot[key]);
+  return copy;
+}
 function captureTfTrace(){
   if(!running){ alert("Start audio first."); return; }
   if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
   const verified=!!(analyserRef&&tfDelayReady&&tfWorkflowVerified&&tfWorkingAverage&&tfAverageFrames>=18&&tfWorkingAverage.confidence?.label==='HIGH'&&(!tfHasReferenceSignal()||tfWorkflowQuality().ok));
   const current=tfHasReferenceSignal()?tfCurrentSnapshot():tfMicOnlySnapshot();
-  const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:current; if(!s) return;
+  const s=verified&&tfWorkingAverage?{...tfWorkingAverage,mag:new Float32Array(tfWorkingAverage.mag),ph:new Float32Array(tfWorkingAverage.ph),coh:new Float32Array(tfWorkingAverage.coh),refDb:new Float32Array(tfWorkingAverage.refDb),micDb:new Float32Array(tfWorkingAverage.micDb),t:Date.now(),captureKind:'working-average'}:cloneTfSnapshot(current); if(!s) return;
   const idx=tfTraces.length+1;
   s.type='tf';s.visible=true;s.verified=verified;s.status=verified?'Verified':'Unverified';
-  s.name='TF '+idx+' · '+s.status;s.color=TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length];
+  s.name='TF '+idx+' · '+s.status;s.color=nextTraceColor();
   tfTraces.push(s); if(tfTraces.length>24) tfTraces.shift();
   renderTfTraceLegend(); v3Toast(verified?"Captured verified TF":"Captured unverified TF · Unverified");
 }
@@ -1695,7 +1721,7 @@ function captureWorkspaceTrace(){
     requestTfTraceCapture();return;
   }
   const idx=tfTraces.length+1;
-  tfTraces.push({type:'rta',visible:true,name:(mode==='spec'?'Waterfall ':'RTA ')+idx,color:TF_TRACE_COLORS[(idx-1)%TF_TRACE_COLORS.length],values:lastV.slice(),bands:BANDS,t:Date.now()});
+  tfTraces.push({type:'rta',visible:true,name:(mode==='spec'?'Waterfall ':'RTA ')+idx,color:nextTraceColor(),values:lastV.slice(),bands:BANDS,t:Date.now()});
   if(tfTraces.length>24)tfTraces.shift();
   renderTfTraceLegend();v3Toast("Trace captured for comparison");
 }
@@ -2225,6 +2251,15 @@ function delayChunkSize(sr,maxDelayMs){
   const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
   let n=8192; while(n/2-2<required&&n<65536)n*=2; return n;
 }
+let delayEstimatorUrl=null;
+function createDelayEstimator(){
+  if(!delayEstimatorUrl){
+    // Use the same numerical implementation in the worker and accuracy tests.
+    const code=[fft,delayChunkSize,computeDelay,computeSweepDelay,computeStableDelay].map(fn=>fn.toString()).join('\n');
+    delayEstimatorUrl=URL.createObjectURL(new Blob([code,'\nonmessage=e=>{try{postMessage({result:computeStableDelay(e.data.ref,e.data.mic,e.data.sampleRate,e.data.options)});}catch(error){postMessage({error:error.message});}};'],{type:'text/javascript'}));
+  }
+  return new Worker(delayEstimatorUrl);
+}
 function runDelayCapture(btn, cb, options){
   options=options||{};
   if(!running||!analyserRef||!source||refChannel<0||refChannel===measChannel){ v3Toast("Assign separate MIC and REF inputs in I/O before measuring delay."); return; }
@@ -2255,28 +2290,46 @@ function runDelayCapture(btn, cb, options){
   const captureSource=source,captureContext=audioCtx;
   const mute=captureContext.createGain();mute.gain.value=0;
   captureSource.connect(workletNode);workletNode.connect(mute);mute.connect(captureContext.destination);
-  let finished=false,timeout=null;
-  const cleanup=()=>{
-    if(finished)return;finished=true;clearTimeout(timeout);
+  let finished=false,detached=false,timeout=null,estimator=null;
+  const detachRecorder=()=>{
+    if(detached)return;detached=true;
     workletNode.port.postMessage({cmd:'stop'});workletNode.port.onmessage=null;
     try{captureSource.disconnect(workletNode);}catch(_){}workletNode.disconnect();mute.disconnect();
+  };
+  const cleanup=()=>{
+    if(finished)return;finished=true;clearTimeout(timeout);
+    detachRecorder();estimator?.terminate();estimator=null;
     if(delayCaptureCleanup===cancel)delayCaptureCleanup=null;
     dlyState='idle';if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
   };
+  const fail=reason=>{if(finished)return;cleanup();cb({reliable:false,reason});};
   const complete=error=>{
-    if(finished)return;cleanup();
-    if(error||pos!==want){cb({reliable:false,reason:error||'Incomplete audio capture. Retry the measurement.'});return;}
+    if(finished||detached)return;
+    if(error||pos!==want){fail(error||'Incomplete audio capture. Retry the measurement.');return;}
+    detachRecorder();clearTimeout(timeout);
     const m=tfSwap?ref:mic,r=tfSwap?mic:ref;
     const rmsOf=a=>{let sum=0;for(const value of a)sum+=value*value;return Math.sqrt(sum/a.length);};
     const micRms=rmsOf(m),refRms=rmsOf(r);
-    if(micRms<1e-4||refRms<1e-4){cb(null,micRms<1e-4?'mic':'ref');return;}
-    const delayResult=computeStableDelay(r,m,sr,{maxDelayMs,signalType});
-    if(delayResult?.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
-      delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);window.lastDelayRepeatability=delayResult.repeatability;
+    if(micRms<1e-4||refRms<1e-4){cleanup();cb(null,micRms<1e-4?'mic':'ref');return;}
+    try{
+      estimator=createDelayEstimator();
+      estimator.onmessage=e=>{
+        if(finished)return;
+        if(e.data.error){fail('Delay analysis failed. Retry the measurement.');return;}
+        const delayResult=e.data.result;cleanup();
+        if(delayResult?.reliable&&Number.isFinite(delayResult.ms)&&typeof window.recordDelayReliability==='function'){
+          delayResult.repeatability=window.recordDelayReliability(delayResult.ms,delayResult.confidence||1);window.lastDelayRepeatability=delayResult.repeatability;
+        }
+        cb(delayResult);
+      };
+      estimator.onerror=()=>fail('Delay analysis failed. Retry the measurement.');
+      timeout=setTimeout(()=>fail('Delay analysis timed out. Retry the measurement.'),30000);
+      estimator.postMessage({ref:r,mic:m,sampleRate:sr,options:{maxDelayMs,signalType}},[r.buffer,m.buffer]);
+    }catch(_){
+      fail('Delay analysis could not start. Retry the measurement.');
     }
-    cb(delayResult);
   };
-  const cancel=()=>complete("Audio capture was interrupted. Input is recovering; repeat the measurement.");
+  const cancel=()=>fail("Audio capture was interrupted. Input is recovering; repeat the measurement.");
   delayCaptureCleanup=cancel;
   workletNode.port.onmessage=e=>{
     if(finished)return;
@@ -3520,7 +3573,7 @@ function draw(){
     setGainEl(document.getElementById('rtLvlFill'), document.getElementById('rtLvlGain'), levelDb(timeData,2048));
   }
   updateLevel();
-  window.GalMultiInput?.update(frozen);
+  window.GalMultiInput?.update(frozen,v5WorkspaceMode==='rta'&&!alignOn);
   v52UpdateLiveMeters();
   const W=cv.clientWidth,H=cv.clientHeight;
   const nyquist=audioCtx.sampleRate/2, bins=floatData.length;
@@ -3584,6 +3637,7 @@ function computeComplexTf(){
       tfPxyIm[k] = alpha * tfPxyIm[k] + (1 - alpha) * pxyIm;
     }
   }
+  computeComplexTf.frame=(computeComplexTf.frame||0)+1;
 }
 
 function applyDelayPhaseToCross(re,im,k,n,delaySamples){
@@ -4256,7 +4310,7 @@ function drawWaterfallResonanceOverlay(W,specH,xForFreq){
 
 function drawWaterfallFrequencyCursor(W,H,nyquist){
   if(cursorX==null)return;
-  const left=5,right=W-44,x=Math.max(left,Math.min(right,cursorX));
+  const {left,right}=waterfallGeometry(W,H),x=Math.max(left,Math.min(right,cursorX));
   const maxHz=Math.min(20000,nyquist*.96),u=(x-left)/Math.max(1,right-left);
   const hz=20*Math.pow(maxHz/20,u);
   const label=hz<1000?hz.toFixed(1)+' Hz':(hz/1000).toFixed(3)+' kHz';
@@ -4272,13 +4326,13 @@ function drawWaterfallFrequencyCursor(W,H,nyquist){
 }
 
 
-function wf3dColor(t,alpha=1){
+function wf3dColor(t,alpha=1,shade=1){
   t=Math.max(0,Math.min(1,t));
   const stops=[[0,42,62,255],[.18,20,132,255],[.36,0,218,255],[.54,0,232,151],[.72,171,239,24],[.86,255,184,0],[1,255,45,82]];
   let a=stops[0],b=stops[stops.length-1];
   for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){a=stops[i-1];b=stops[i];break;}}
   const u=(t-a[0])/Math.max(.0001,b[0]-a[0]);
-  return `rgba(${Math.round(a[1]+(b[1]-a[1])*u)},${Math.round(a[2]+(b[2]-a[2])*u)},${Math.round(a[3]+(b[3]-a[3])*u)},${alpha})`;
+  return `rgba(${Math.round((a[1]+(b[1]-a[1])*u)*shade)},${Math.round((a[2]+(b[2]-a[2])*u)*shade)},${Math.round((a[3]+(b[3]-a[3])*u)*shade)},${alpha})`;
 }
 function captureWaterfall3dRow(nyquist){
   const now=performance.now();
@@ -4295,11 +4349,15 @@ function captureWaterfall3dRow(nyquist){
   const row=raw.map((v,i)=>(raw[Math.max(0,i-2)]+2*raw[Math.max(0,i-1)]+3*v+2*raw[Math.min(N-1,i+1)]+raw[Math.min(N-1,i+2)])/9);
   wf3d.rows.unshift(row);if(wf3d.rows.length>wf3d.maxRows)wf3d.rows.length=wf3d.maxRows;
 }
+function waterfallGeometry(W,H){
+  const top=18,bottom=H-20,span=Math.max(80,bottom-top),left=42,right=Math.max(left+80,W-58);
+  const width=right-left;
+  return {top,bottom,span,left,right,base:bottom,depth:span*.70,amp:span*.34,backLeft:left+width*.12,backRight:right-width*.19};
+}
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const top=2,bottom=H-20,span=Math.max(120,bottom-top),depth=span*.72,amp=span*.20;
-  const left=5,right=W-44,base=bottom,backLeft=left+58,backRight=right-88;
+  const {top,span,depth,amp,left,right,base,backLeft,backRight}=waterfallGeometry(W,H);
   const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000);
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
   // Perspective floor: frequency runs left-to-right, time recedes toward the horizon.
@@ -4321,30 +4379,32 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     const age=rr/Math.max(1,wf3d.maxRows-1);if(age>1)continue;
     const z=age*depth;
     const x0=left+(backLeft-left)*age,x1=right+(backRight-right)*age,baseline=base-z;
-    const ridgeAmp=Math.min(amp*(1-age*.38),Math.max(span*.22,baseline-top-4));
+    const ridgeAmp=Math.min(amp*(1-age*.52),baseline-top-4);
     let rowMin=1,rowMax=0;
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i];if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;
     }
     // One measured ridge and one stroke: predictable work and clean line separation.
     const contrast=Math.max(0,Math.min(1,(rowMax-rowMin)/.32));
-    const alpha=Math.max(.34,1-age*.48)*(.76+.24*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
+    const alpha=Math.max(.20,1-age*.70)*(.80+.20*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
     ridgeGradient.addColorStop(0,wf3dColor(1,alpha));ridgeGradient.addColorStop(.28,wf3dColor(.72,alpha));
     ridgeGradient.addColorStop(.52,wf3dColor(.48,alpha));ridgeGradient.addColorStop(.75,wf3dColor(.25,alpha));ridgeGradient.addColorStop(1,wf3dColor(0,alpha));
     // Join adjacent measurements into a translucent 3D surface; the ridge stays as a crisp outline above it.
     if(rr<rows.length-1){
       const rowB=rows[rr+1],ageB=(rr+1)/Math.max(1,wf3d.maxRows-1),zB=ageB*depth;
       const bx0=left+(backLeft-left)*ageB,bx1=right+(backRight-right)*ageB,baseB=base-zB;
-      const ampB=Math.min(amp*(1-ageB*.38),Math.max(span*.22,baseB-top-4));
-      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=sunMode?.12:.19;
-      fillGradient.addColorStop(0,wf3dColor(1,fillAlpha));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha));
-      fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha));
+      const ampB=Math.min(amp*(1-ageB*.52),baseB-top-4);
+      // Opaque, shaded faces hide rear lines instead of accumulating a bright
+      // transparent haze. Only the measured geometry changes the ridge height.
+      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=.96,shade=sunMode?.56:(.25+.18*(1-age));
+      fillGradient.addColorStop(0,wf3dColor(1,fillAlpha,shade));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha,shade));
+      fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha,shade));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha,shade));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha,shade));
       ctx.beginPath();
       for(let i=0;i<rowA.length;i++){const x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-rowA[i]*ridgeAmp;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
       for(let i=rowB.length-1;i>=0;i--){const x=bx0+i/(rowB.length-1)*(bx1-bx0),y=baseB-rowB[i]*ampB;ctx.lineTo(x,y);}
       ctx.closePath();ctx.fillStyle=fillGradient;ctx.fill();
     }
-    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2:1.05;ctx.beginPath();
+    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2.25:1.05;ctx.beginPath();
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i],x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
       if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
@@ -4405,7 +4465,8 @@ function drawSpec(W,H,nyquist,bins,xForFreq){
   for(let i=1;i<bins-1;i++){ if(floatData[i]>pk){pk=floatData[i];peakBin=i;} }
   pkf=interpolatedSpectrumHz(floatData,peakBin,nyquist);
   peakHzEl.textContent= pk>floorDb ? (pkf>=1000?(pkf/1000).toFixed(1)+' kHz':Math.round(pkf)+' Hz') : '—';  updateWaterfallDecayEvidence(nyquist);
-    drawWaterfallResonanceOverlay(W,specH,xForFreq);
+    const wfAxis=waterfallGeometry(W,specH),wfMaxHz=Math.min(20000,nyquist*.96);
+    drawWaterfallResonanceOverlay(W,specH,f=>wfAxis.left+Math.log(f/20)/Math.log(wfMaxHz/20)*(wfAxis.right-wfAxis.left));
     drawWaterfallFrequencyCursor(W,specH,nyquist);
 }
 
@@ -4924,7 +4985,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.22';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.23';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5068,15 +5129,24 @@ function v5RenderTraceRail(){
     return;
   }
   box.innerHTML=tfTraces.map((t,i)=>
-    '<div class="v5TraceRow" data-trace="'+i+'">'+
-      '<span class="v5TraceNum">'+(i+1)+'</span>'+
-      "<span class=\"v5TraceName\" title=\"Double click to change name\" style=\"color:"+t.color+'">'+escapeHtml(t.name)+(t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</span>'+
-      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+"\" title=\"Show/Hide\">◉</button>"+
-      '<button class="v5TraceAction" data-trace-del="'+i+"\" title=\"delete\">×</button>"+
+    '<div class="v5TraceRow" data-trace="'+i+'" style="--trace-color:'+t.color+'">'+
+      '<span class="v5TraceNum" style="color:'+t.color+';border-color:'+t.color+'">'+(i+1)+'</span>'+
+      '<div class="v5TraceName"><div class="v5TraceEdit"><input class="v5TraceNameInput" data-trace-name="'+i+'" value="'+escapeHtml(t.name)+'" maxlength="40" aria-label="Trace '+(i+1)+' name" title="Click to rename · Enter to save · Escape to cancel" style="color:'+t.color+'"><span aria-hidden="true">✎</span></div>'+
+      (t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</div>'+
+      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" title="Show/Hide">◉</button>'+
+      '<button class="v5TraceAction" data-trace-del="'+i+'" title="Delete">×</button>'+
     '</div>').join('');
   box.querySelectorAll('[data-trace-eye]').forEach(b=>b.addEventListener('click',()=>{const t=tfTraces[+b.dataset.traceEye];if(!t)return;t.visible=t.visible===false;renderTfTraceLegend();}));
   box.querySelectorAll('[data-trace-del]').forEach(b=>b.addEventListener('click',()=>{tfTraces.splice(+b.dataset.traceDel,1);renderTfTraceLegend();v3Toast("Trace deleted");}));
-  box.querySelectorAll('.v5TraceName').forEach((n,i)=>n.addEventListener('dblclick',()=>{const t=tfTraces[i];if(!t)return;const name=prompt("New trace name",t.name);if(name&&name.trim()){t.name=name.trim().slice(0,40);renderTfTraceLegend();}}));
+  box.querySelectorAll('[data-trace-name]').forEach(input=>{
+    const trace=tfTraces[+input.dataset.traceName];
+    input.addEventListener('focus',()=>input.select());
+    input.addEventListener('change',()=>{if(tfTraces.includes(trace)&&input.value.trim()){trace.name=input.value.trim().slice(0,40);renderTfTraceLegend();}else input.value=trace.name;});
+    input.addEventListener('keydown',event=>{
+      if(event.key==='Enter'){event.preventDefault();input.blur();}
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();input.value=trace.name;input.blur();}
+    });
+  });
 }
 function v5InitWorkspace(){
   const tv=lsGet('rta_target_visible');

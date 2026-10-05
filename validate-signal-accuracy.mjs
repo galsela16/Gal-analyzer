@@ -17,7 +17,7 @@ function engine(sr){
  const c={Float32Array,Math,Date,Number,TF_FFT_N:N,audioCtx:{sampleRate:sr},tfSwap:false,tfSmoothA:.8,tfDelaySamples:0,tfDelayMs:0,tfSweepAcquiring:false,tfCohGate:.55,meterMode:'rms',tfBandConfidence:()=>({label:'TEST'}),timeData:new Float32Array(N),timeDataRef:new Float32Array(N),tfWin:Float64Array.from({length:N},(_,i)=>.5-.5*Math.cos(2*Math.PI*i/(N-1)))};
  for(const name of ['tfXr','tfXi','tfYr','tfYi','tfPxx','tfPyy','tfPxyRe','tfPxyIm'])c[name]=new Float64Array(N);
  c.analyser={getFloatTimeDomainData:a=>a.set(c.mic)};c.analyserRef={fftSize:N,getFloatTimeDomainData:a=>a.set(c.ref)};
- vm.createContext(c);vm.runInContext(['fft','applyDelayPhaseToCross','computeComplexTf','tfCurrentSnapshot','tfNormalizedMagnitude','levelDb','tfWorkflowSignalPresent','evaluateTfVerification'].map(extract).join('\n'),c);
+ vm.createContext(c);vm.runInContext(['selectMedian','fft','applyDelayPhaseToCross','computeComplexTf','tfCurrentSnapshot','tfNormalizedMagnitude','levelDb','tfWorkflowSignalPresent','evaluateTfVerification'].map(extract).join('\n'),c);
  return c;
 }
 let seed=12345;const noise=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/2**32*2-1;};
@@ -66,9 +66,9 @@ for(const sr of [44100,48000,96000]){
 for(const qualityOk of [false,true]){
  const c={running:true,measureBusy:()=>false,analyserRef:{},tfDelayReady:true,tfWorkflowVerified:true,
   tfWorkingAverage:{mag:[0],ph:[0],coh:[1],refDb:[0],micDb:[0],confidence:{label:'HIGH'}},tfAverageFrames:18,
-  tfWorkflowQuality:()=>({ok:qualityOk}),tfCurrentSnapshot:()=>({mag:[0],ph:[0],coh:[1]}),
+  tfHasReferenceSignal:()=>true,nextTraceColor:()=> 'blue',tfWorkflowQuality:()=>({ok:qualityOk}),tfCurrentSnapshot:()=>({mag:[0],ph:[0],coh:[1]}),
   tfTraces:[],TF_TRACE_COLORS:['blue'],Float32Array,Date,renderTfTraceLegend(){},v3Toast(){},alert:assert.fail};
- vm.createContext(c);vm.runInContext(extract('captureTfTrace'),c);c.captureTfTrace();
+ vm.createContext(c);vm.runInContext(extract('cloneTfSnapshot')+'\n'+extract('captureTfTrace'),c);c.captureTfTrace();
  assert.equal(c.tfTraces[0].verified,qualityOk);
  rows.push({kind:'capture verification',qualityOk,verified:c.tfTraces[0].verified});
 }

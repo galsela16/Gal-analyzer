@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.22 — Desktop 6.0.0-preview.8
+# GAL Analyzer V5.7.23 — Desktop 6.0.0-preview.9
 
-Desktop preview.8 fixes multichannel recorder routing, TF trace retention and input continuity between measurements. Native Core Audio HAL input capture with actual device channel counts and sample-rate conversion while retaining the shared interface. EVO8 inputs are labeled as four analog inputs plus two loopback channels. Web capture, analysis and generator output retain their existing implementations. See [desktop documentation](desktop/README.md).
+Desktop preview.9 adds distinct trace colors, inline trace naming, a clearer shaded Waterfall perspective and background delay/sync analysis, while reducing redundant FFT work and native input delivery overhead. It preserves the preview.8 input and TF reliability fixes. Native Core Audio HAL input capture provides actual device channel counts and sample-rate conversion while retaining the shared interface. EVO8 inputs are labeled as four analog inputs plus two loopback channels. Analysis and generator output retain their shared implementations. See [desktop documentation](desktop/README.md).
 
 
 V5.7.10 adds a shared frequency scale to RTA, M/R and TF, restores the persistent Traces area, and animates the side rails. HPF/LPF handles retain capture priority and touch-safe dragging.

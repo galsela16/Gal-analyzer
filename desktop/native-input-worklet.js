@@ -1,6 +1,6 @@
 class NativeInputProcessor extends AudioWorkletProcessor {
  constructor(options){
-  super();this.channels=options.processorOptions.channels;this.capacity=Math.ceil(sampleRate*1);this.prefill=Math.ceil(sampleRate*.15);
+  super();this.channels=options.processorOptions.channels;this.capacity=Math.ceil(sampleRate*1);this.prefill=Math.ceil(sampleRate*.1);
   this.ring=new Float32Array(this.capacity*this.channels);this.read=0;this.write=0;this.frames=0;this.started=false;this.failed=false;this.sequence=-1;
   this.port.onmessage=event=>{
    const packet=event.data;if(this.failed)return;

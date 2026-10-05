@@ -31,16 +31,17 @@ window.GalMultiInput = (() => {
     }
     const title=document.getElementById('multiInputCount');if(title)title.textContent=`${count} active`;
   }
-  function update(frozen){
+  function update(frozen,spectra=true){
+    const paint=document.getElementById('v52IODock')?.classList.contains('open');
     const now=performance.now();const dt=lastTime?Math.max(.001,Math.min(.25,(now-lastTime)/1000)):1/30;lastTime=now;
     for(const c of channels){
       if(c.node.fftSize/2!==c.frequency.length)c.frequency=new Float32Array(c.node.frequencyBinCount);
       c.node.getFloatTimeDomainData(c.time);let power=0;for(const x of c.time)power+=x*x;
       const next=10*Math.log10(Math.max(1e-12,power/c.time.length));
       c.level+=(next-c.level)*(1-Math.exp(-dt/(next > c.level ? .045 : .34)));
-      if(c.fill)c.fill.style.width=`${Math.max(0,Math.min(100,(c.level+90)/90*100))}%`;
-      if(c.read)c.read.textContent=c.level<-110?'NO SIGNAL':`${c.level.toFixed(1)} dBFS`;
-      if(!frozen&&c.visible&&enabled)c.node.getFloatFrequencyData(c.frequency);
+      if(paint&&c.fill)c.fill.style.width=`${Math.max(0,Math.min(100,(c.level+90)/90*100))}%`;
+      if(paint&&c.read)c.read.textContent=c.level<-110?'NO SIGNAL':`${c.level.toFixed(1)} dBFS`;
+      if(spectra&&channels.length>2&&!frozen&&c.visible&&enabled)c.node.getFloatFrequencyData(c.frequency);
     }
     delta=dt;return dt;
   }

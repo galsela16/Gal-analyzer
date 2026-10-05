@@ -1,0 +1,70 @@
+{
+  "scope": "Before/after optimization in the same isolated desktop renderer; not a benchmark against Safari or Chrome. Synthetic native input; no physical device or audible playback.",
+  "settings": {
+    "channels": 6,
+    "fftSize": 16384,
+    "sampleRate": 48000,
+    "window": [
+      1440,
+      940
+    ],
+    "sampleSecondsPerMode": 3.5
+  },
+  "before": {
+    "rta": {
+      "frames": 106,
+      "drawMedianMs": 3.600000023841858,
+      "drawP95Ms": 4.099999904632568,
+      "packetsPerSecond": 99.95145215385358,
+      "sampleRate": 48000,
+      "channels": 6
+    },
+    "mr": {
+      "frames": 106,
+      "drawMedianMs": 3.799999952316284,
+      "drawP95Ms": 4.399999976158142,
+      "packetsPerSecond": 99.70289109544383,
+      "sampleRate": 48000,
+      "channels": 6
+    },
+    "tf": {
+      "frames": 105,
+      "drawMedianMs": 8,
+      "drawP95Ms": 8.899999976158142,
+      "packetsPerSecond": 100.06557003028438,
+      "sampleRate": 48000,
+      "channels": 6
+    }
+  },
+  "after": {
+    "rta": {
+      "frames": 107,
+      "drawMedianMs": 3.8000000715255737,
+      "drawP95Ms": 4.700000047683716,
+      "packetsPerSecond": 49.97858060831072,
+      "sampleRate": 48000,
+      "channels": 6
+    },
+    "mr": {
+      "frames": 113,
+      "drawMedianMs": 2.799999952316284,
+      "drawP95Ms": 3.700000047683716,
+      "packetsPerSecond": 49.98571836618109,
+      "sampleRate": 48000,
+      "channels": 6
+    },
+    "tf": {
+      "frames": 105,
+      "drawMedianMs": 5.900000095367432,
+      "drawP95Ms": 7.799999952316284,
+      "packetsPerSecond": 50.18105094985053,
+      "sampleRate": 48000,
+      "channels": 6
+    }
+  },
+  "waterfallVisualFixture": {
+    "scope": "Same 85-row, 240-point synthetic display fixture at 1082\u00d7687 CSS pixels; 12 redraws, no physical audio. Small timing difference is not a statistically established regression.",
+    "beforeMedianMs": 1.899999976158142,
+    "afterMedianMs": 2.0999999046325684
+  }
+}

@@ -3,7 +3,8 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const fs = require('node:fs');
 const origin = 'gal://app';
-const testing = process.argv.includes('--self-test');
+const profiling=process.argv.includes('--performance-test');
+const testing = process.argv.includes('--self-test')||profiling;
 const hardwareTesting=process.argv.includes('--hardware-test');
 if(testing||hardwareTesting)app.setPath('userData',fs.mkdtempSync(path.join(require('node:os').tmpdir(),'gal-audio-test-')));
 const {NativeHost}=require('./native-host.cjs');
@@ -49,7 +50,7 @@ app.whenReady().then(async () => {
     {role:'editMenu'},{role:'viewMenu'},{role:'windowMenu'}
   ]));
   const errors=[];
-  window.webContents.on('console-message',(_event,level,message)=>{if(level===3)errors.push(message);});
+  window.webContents.on('console-message',(event)=>{if(event.level==='error')errors.push(event.message+' '+event.sourceId+':'+event.lineNumber);});
   await window.loadURL(origin+'/index.html');
   if(hardwareTesting){
     try {
@@ -68,16 +69,40 @@ app.whenReady().then(async () => {
     }catch(error){console.error('Native hardware capture failed:',error);app.exit(1);}
     return;
   }
+  if(profiling){
+    try{
+      const result=await window.webContents.executeJavaScript(`(async()=>{
+        await start('coreaudio:field-test');setFft(16384);
+        let samples=[],packets=0;
+        const off=galNativeHost.onPacket(()=>packets++),realDraw=draw;
+        draw=()=>{const began=performance.now();realDraw();const elapsed=performance.now()-began;if(elapsed>.1)samples.push(elapsed);};
+        const report={};
+        for(const mode of ['rta','mr','tf']){
+          v5SetTab(mode);if(mode==='tf'){showModal(tfPanel);tfDelayMs=5;tfDelaySamples=Math.round(audioCtx.sampleRate*.005);tfDelayReady=true;tfWorkflowVerified=true;}
+          await new Promise(resolve=>setTimeout(resolve,800));samples=[];packets=0;const began=performance.now();
+          await new Promise(resolve=>setTimeout(resolve,3500));
+          const elapsed=performance.now()-began;const sorted=samples.slice().sort((a,b)=>a-b);
+          report[mode]={frames:sorted.length,drawMedianMs:sorted[Math.floor(sorted.length*.5)],drawP95Ms:sorted[Math.floor(sorted.length*.95)],packetsPerSecond:packets/elapsed*1000,sampleRate:audioCtx.sampleRate,channels:chReceived};
+        }
+        draw=realDraw;off();await stop();return report;
+      })()`);console.log('Performance profile:',JSON.stringify(result));app.exit(0);
+    }catch(error){console.error(error);app.exit(1);}return;
+  }
   if(testing){
     try {
       await new Promise(resolve=>setTimeout(resolve,2000));
       const result=await window.webContents.executeJavaScript(`(async()=>{
+        window.addEventListener('error',event=>console.error(event.error?.stack||event.message));
         const nativeAdapter=window.GalNativeInput;window.GalNativeInput=null;
+        for(let n=1;n<200;n++){
+          const values=Array.from({length:n},(_,i)=>((i*37+n*13)%29)-14),expected=values.slice().sort((a,b)=>a-b)[Math.floor(n/2)];
+          if(selectMedian(values)!==expected)throw Error('Median selection changes numerical TF normalization');
+        }
         const assert=(ok,text)=>{if(!ok)throw Error(text)};
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.8'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.9'),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');
@@ -176,7 +201,7 @@ app.whenReady().then(async () => {
         const realGenStart=genStart;
         genStart=options=>{assert(options.preserveTfSync,'TF source switch retains sync');genOn=true;};
         runWithSource('pink',verifyTfWorkflow,3000);await new Promise(resolve=>setTimeout(resolve,2800));genStart=realGenStart;
-        assert(tfWorkflowVerified,'TF verifies on real recorded reference');
+        assert(tfWorkflowVerified,'TF verifies on real recorded reference: '+JSON.stringify(tfWorkflowQuality())+' '+errBox.textContent);
         await new Promise(resolve=>setTimeout(resolve,2600));
         assert(tfAverageFrames>=18&&tfWorkingAverage?.confidence?.label==='HIGH','Stable TF working average');
         const before=tfTraces.length;requestTfTraceCapture();
@@ -199,7 +224,44 @@ app.whenReady().then(async () => {
         const blockedUntil=performance.now()+350;while(performance.now()<blockedUntil){}
         await new Promise(resolve=>setTimeout(resolve,1500));
         assert(running&&stableTrack.readyState==='live','UI stalls do not require microphone restart');
+        v5SetTab('rta');tfTraces=[];
+        for(let i=0;i<24;i++)captureWorkspaceTrace();
+        assert(new Set(tfTraces.map(t=>t.color)).size===24,'24 distinct captured trace colors');
+        v552DeleteTrace(1);captureWorkspaceTrace();
+        assert(new Set(tfTraces.map(t=>t.color)).size===24,'Deletion and capture reuse a free color');
+        const namedTrace=tfTraces[0],traceColor=namedTrace.color;
+        const nameInput=document.querySelector('[data-trace-name="0"]');nameInput.value='Front fill <Left>';nameInput.dispatchEvent(new Event('change'));
+        assert(namedTrace.name==='Front fill <Left>'&&namedTrace.color===traceColor,'Inline rename retains trace color and data');
+        assert(document.querySelector('[data-trace-name="0"]').value===namedTrace.name,'Name safely appears in the editable list');
+        assert(getComputedStyle(document.querySelector('[data-trace-name="0"]')).color===getComputedStyle(document.querySelector('.v5TraceNum')).borderLeftColor,'Name and marker use the same trace color');
+        const cancelInput=document.querySelector('[data-trace-name="0"]');cancelInput.value='Discarded';cancelInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+        assert(namedTrace.name==='Front fill <Left>'&&cancelInput.value===namedTrace.name,'Escape cancels trace rename');
+        // Cancellation during background analysis must terminate its worker and
+        // deliver exactly one failure while retaining the live input graph.
+        const originalEstimator=createDelayEstimator;let canceledCalls=0;
+        createDelayEstimator=()=>{const worker=originalEstimator();queueMicrotask(()=>delayCaptureCleanup?.());return worker;};
+        try{
+          const canceled=await new Promise((resolve,reject)=>{
+            const timer=setTimeout(()=>reject(Error('Worker cancellation timeout')),12000);
+            runDelayCapture(null,result=>{canceledCalls++;clearTimeout(timer);resolve(result)},{signalType:'noise',maxDelayMs:50});
+          });
+          assert(canceled?.reliable===false&&dlyState==='idle'&&running,'Background analysis cancellation keeps input active');
+          await new Promise(resolve=>setTimeout(resolve,300));assert(canceledCalls===1,'Terminated worker cannot publish a stale result');
+        }finally{createDelayEstimator=originalEstimator;}
         await stop();measChannel=0;refChannel=1;v5SetTab('rta');
+        assert(Number.isFinite(window.getTfPhaseCursorInfo(1000)?.freq),'Held TF cursor remains usable after audio stops');
+        // Numerical worker equivalence and renderer responsiveness on a long sweep.
+        const sr=48000,length=sr*3.2,reference=new Float32Array(length),microphone=new Float32Array(length);
+        for(let i=0;i<length;i++){const t=i/sr;reference[i]=Math.sin(2*Math.PI*40*3.2/Math.log(200)*(Math.pow(200,t/3.2)-1))*.2;if(i>=240)microphone[i]=reference[i-240]*.7;}
+        const expected=computeStableDelay(reference,microphone,sr,{signalType:'sweep',maxDelayMs:50});let heartbeats=0;
+        const workerResult=await new Promise((resolve,reject)=>{
+          const worker=createDelayEstimator(),beat=setInterval(()=>heartbeats++,10),timeout=setTimeout(()=>finish(Error('Worker sweep timeout')),12000);
+          const finish=(error,result)=>{clearInterval(beat);clearTimeout(timeout);worker.terminate();error?reject(error):resolve(result);};
+          worker.onmessage=e=>finish(e.data.error?Error(e.data.error):null,e.data.result);worker.onerror=()=>finish(Error('Worker failed'));
+          worker.postMessage({ref:reference,mic:microphone,sampleRate:sr,options:{signalType:'sweep',maxDelayMs:50}},[reference.buffer,microphone.buffer]);
+        });
+        assert(expected?.reliable&&workerResult?.reliable&&Math.abs(expected.ms-workerResult.ms)<1e-9,'Worker preserves sweep measurement accuracy');
+        assert(heartbeats>=2,'Renderer stays responsive during full-capture sweep analysis');
         const code=await fetch('js/app-core.js').then(r=>r.text());
         assert(code.includes('Desktop updates ship'),'Desktop cache policy');
         return {version:GAL.config.version,canvases:document.querySelectorAll('canvas').length,worklet:true,parallelInputs:8,monoReference:false,nativeChannels:6,repeatedFieldMeasurements:4,verifiedTrace:true};

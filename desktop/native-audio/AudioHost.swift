@@ -140,7 +140,7 @@ final class Capture {
         try check(AudioOutputUnitStart(unit!),"Start capture")
         started=true
         let timer=DispatchSource.makeTimerSource(queue:worker)
-        timer.schedule(deadline:.now(),repeating:.milliseconds(5))
+        timer.schedule(deadline:.now(),repeating:.milliseconds(20))
         timer.setEventHandler { [weak self] in self?.pump() }
         self.timer=timer
         event(["type":"ready","channels":device.channels,"labels":device.labels,"sampleRate":targetRate,"nativeSampleRate":nativeRate,"uid":device.uid,"name":device.name])
@@ -150,8 +150,9 @@ final class Capture {
         guard let ring=ring, let format=nativeFormat, let output=outputFormat else { return }
         let error=gal_capture_ring_error(ring)
         if error != 0 { event(["type":"error","message":"Native capture stopped: audio discontinuity (\(error)). Restart audio."]); exit(2) }
-        var samples=[Float](repeating:0,count:1024*device.channels)
-        let count=gal_capture_ring_read(ring,&samples,1024)
+        let limit=Int(ceil(nativeRate*0.025))
+        var samples=[Float](repeating:0,count:limit*device.channels)
+        let count=gal_capture_ring_read(ring,&samples,limit)
         guard count>0 else { return }
         if let converter=converter {
             let input=AVAudioPCMBuffer(pcmFormat:format,frameCapacity:AVAudioFrameCount(count))!
@@ -195,9 +196,9 @@ if test {
     var sequence:UInt32=0, frame=0
     var random:UInt32=123456789;let delay=Int(targetRate * 0.005);var history=[Float](repeating:0,count:delay);var historyIndex=0
     let timer=DispatchSource.makeTimerSource(queue:.main)
-    timer.schedule(deadline:.now() + .milliseconds(20),repeating:.milliseconds(10))
+    timer.schedule(deadline:.now() + .milliseconds(20),repeating:.milliseconds(20))
     timer.setEventHandler {
-        let frames=Int(targetRate/100)
+        let frames=Int(targetRate/50)
         var samples=[Float](repeating:0,count:frames*6)
         for i in 0..<frames { for c in 0..<6 { samples[i*6+c]=Float(pow(10,Double(-12-c*3)/20)*sin(2*Double.pi*Double(300+c*300)*Double(frame+i)/targetRate)) } }
         if requestedUID=="field-test" {

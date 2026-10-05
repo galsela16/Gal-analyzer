@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.8
+# GAL Analyzer Desktop — 6.0.0-preview.9
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.8-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.9-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 
@@ -64,3 +64,19 @@ A stable verified TF trace captures its held working average immediately, includ
 The native delivery buffer now tolerates longer UI work and automatically re-buffers after a delivery interruption. Both channels resume together. An interruption invalidates any in-flight measurement and resets TF verification rather than saving a result containing missing samples. The input itself stays active; format errors and physical disconnection still stop capture explicitly. This does not claim uninterrupted audio under arbitrary CPU overload.
 
 The synthetic field integration test uses six real helper/IPC/AudioWorklet channels with a known 5 ms broadband delay. It checks mono-to-multichannel routing, TF sync and verification, verified capture, held capture after stimulus ends, four consecutive path recordings, channels 3/4, persistence of the captured trace during subsequent measurements, and input survival during a 350 ms UI stall. It uses no audible playback. Physical electrical loopback and prolonged field validation remain necessary.
+
+## Trace labels and colors (preview.9)
+
+Every captured or averaged trace receives an unused color from a 24-color palette, with additional colors available for larger average collections. Deleting a trace makes its color available without changing existing trace colors. Trace names are directly editable in the sidebar with one click: Enter or leaving the field saves, Escape cancels, and blank names retain the original. Naming uses an inline field rather than an unsupported Electron prompt dialog. The list shows a matching colored marker and keeps TF trust on a separate line.
+
+## Performance work (preview.9)
+
+Extra input FFT data is fetched only when its RTA overlays can be drawn, and hidden I/O meter DOM is left alone. TF normalization and confidence use an exact upper-median selection instead of sorting full arrays. Snapshots are reused only for the same processed TF frame; captured traces always copy their arrays. Native capture delivers approximately 20 ms blocks, reducing IPC/message overhead, and playback prefill is reduced from 150 to 100 ms. Channel count, sample rate, FFT resolution and the selected analysis smoothing remain unchanged.
+
+Delay/TF sync correlation now runs in a dedicated worker using the same tested numerical functions. The renderer stays responsive and can deliver input packets during analysis. The recording graph detaches separately; the measurement stays busy until analysis finishes. Cancellation, input interruptions, errors and timeouts terminate the worker and cannot publish stale results. Integration checks compare worker and synchronous sweep results, exercise cancellation during analysis, and check that the renderer remains responsive.
+
+Run `Contents/MacOS/GAL Analyzer --performance-test` to profile the owned application with six synthetic inputs and no audible output. [Recorded results](performance-results.json) show TF draw median 8.0 → 5.9 ms and M/R 3.8 → 2.8 ms. RTA remained around 3.6–3.8 ms. Transport messages fell from approximately 100 to 50 per second in that fixture; physical capture previously pumped every 5 ms and now pumps every 20 ms. These are short controlled before/after measurements, not a comparison against the user's browser or proof of a field latency improvement.
+
+## Waterfall depth (preview.9)
+
+Stronger perspective and more vertical display relief make sustained peaks easier to distinguish. Shaded surface faces occlude the rear ridges instead of accumulating transparent haze; distant contours fade and the current slice remains prominent. Frequency cursor and resonance markers share the same floor axis, with room reserved for the level scale. Measured samples, history duration, spectral filtering and the bounded row/point count are unchanged.
