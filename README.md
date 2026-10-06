@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.25 — Desktop 6.0.0-preview.11
+# GAL Analyzer V5.7.26 — Desktop 6.0.0-preview.12
 
-Desktop preview.11 gives the expanded Waterfall a vivid, saturated rainbow with bright historical ridges and stronger shaded faces. The foreground uses the same frequency colors. Trace names now occupy their own full-width row, with Rename, visibility and delete controls below them. Geometry, measured samples, history and bounded rendering workload are unchanged. It preserves preview.9 audio responsiveness and named colored traces. See [desktop documentation](desktop/README.md).
+Desktop preview.12 restores the original Waterfall style with lower ridges, the original perspective and translucent faces instead of an opaque filled surface. The vivid palette remains bright. Shared cursor/marker geometry and toolbar clearance are retained; measured samples, ten-second history, filtering and bounded row/point workload are unchanged. Trace layout and native audio retain preview.11 behavior. See [desktop documentation](desktop/README.md).
 
 
 V5.7.10 adds a shared frequency scale to RTA, M/R and TF, restores the persistent Traces area, and animates the side rails. HPF/LPF handles retain capture priority and touch-safe dragging.

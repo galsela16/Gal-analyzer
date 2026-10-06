@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.11
+# GAL Analyzer Desktop — 6.0.0-preview.12
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.11-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.12-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 
@@ -94,3 +94,8 @@ The expanded Waterfall now uses a bright, saturated rainbow from hot pink and or
 ## Trace row layout (preview.11)
 
 Trace names use the available sidebar width on a separate row. Rename, visibility and delete controls sit below the name, so they cannot overlap or squeeze the editable field. Rename focuses the same inline field; Enter or leaving it saves, Escape cancels, and the full name is available on hover. Existing colors, measurements and trust labels are retained. The packaged integration check covers focus, name/action bounds and saving/cancellation at normal and smaller window sizes.
+
+
+## Classic Waterfall (preview.12)
+
+The original Waterfall style returns: lower measured ridges, the original perspective proportions and translucent faces rather than an opaque filled surface. The saturated palette and strong ridge colors remain. Cursor and resonance markers still share the rendering geometry, and resize still reserves toolbar clearance. Input capture, measurement data, ten-second history, display filtering and bounded row/point count are unchanged. Trace layout and name editing retain preview.11 behavior.

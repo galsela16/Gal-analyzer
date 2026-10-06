@@ -114,5 +114,22 @@
       "canvasTop": 125,
       "stripBottom": 156
     }
+  },
+  "waterfallClassicFixture": {
+    "scope": "Preview.12 original translucent Waterfall style, same 85-row/240-point synthetic fixture. Twelve redraws per view; isolated display checks, not hardware latency measurements.",
+    "normalWindow": {
+      "medianMs": 1,
+      "width": 1082,
+      "height": 687,
+      "canvasTop": 125,
+      "stripBottom": 156
+    },
+    "smallerWindow": {
+      "medianMs": 1.600000023841858,
+      "width": 760,
+      "height": 592,
+      "canvasTop": 125,
+      "stripBottom": 156
+    }
   }
 }

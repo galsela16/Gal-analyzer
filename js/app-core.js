@@ -393,7 +393,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.25-shared-frequency-axis',
+    version: 'v5.7.26-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -4355,8 +4355,7 @@ function captureWaterfall3dRow(nyquist){
 }
 function waterfallGeometry(W,H){
   const top=Math.min(H*.3,waterfallGeometry.toolbarTop||16),bottom=Math.max(top+1,H-24),span=bottom-top,left=38,right=Math.max(left+1,W-50);
-  const width=right-left;
-  return {top,bottom,span,left,right,base:bottom,depth:span*.86,amp:span*.50,backLeft:left+width*.06,backRight:right-width*.13};
+  return {top,bottom,span,left,right,base:bottom,depth:span*.72,amp:span*.20,backLeft:left+58,backRight:right-88};
 }
 function drawWaterfall3d(W,H,nyquist,xForFreq){
   captureWaterfall3dRow(nyquist);
@@ -4383,46 +4382,43 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     const age=rr/Math.max(1,wf3d.maxRows-1);if(age>1)continue;
     const z=age*depth;
     const x0=left+(backLeft-left)*age,x1=right+(backRight-right)*age,baseline=base-z;
-    const ridgeAmp=Math.min(amp*(1-age*.76),baseline-top-4);
+    const ridgeAmp=Math.min(amp*(1-age*.38),baseline-top-4);
     let rowMin=1,rowMax=0;
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i];if(v<rowMin)rowMin=v;if(v>rowMax)rowMax=v;
     }
     // One measured ridge and one stroke: predictable work and clean line separation.
     const contrast=Math.max(0,Math.min(1,(rowMax-rowMin)/.32));
-    const alpha=(rr===0?1:.98)*(1-age*.14)*(.96+.04*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
+    const alpha=Math.max(.64,1-age*.36)*(.92+.08*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
     ridgeGradient.addColorStop(0,wf3dColor(1,alpha));ridgeGradient.addColorStop(.28,wf3dColor(.72,alpha));
     ridgeGradient.addColorStop(.52,wf3dColor(.48,alpha));ridgeGradient.addColorStop(.75,wf3dColor(.25,alpha));ridgeGradient.addColorStop(1,wf3dColor(0,alpha));
-    // Join adjacent measurements into a vivid shaded 3D surface; the ridge stays as a crisp outline above it.
+    // Join adjacent measurements into a translucent 3D surface; the ridge stays as a crisp outline above it.
     if(rr<rows.length-1){
       const rowB=rows[rr+1],ageB=(rr+1)/Math.max(1,wf3d.maxRows-1),zB=ageB*depth;
       const bx0=left+(backLeft-left)*ageB,bx1=right+(backRight-right)*ageB,baseB=base-zB;
-      const ampB=Math.min(amp*(1-ageB*.76),baseB-top-4);
-      // Opaque, shaded faces hide rear lines instead of accumulating a bright
-      // transparent haze. Only the measured geometry changes the ridge height.
-      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=1,shade=sunMode?.80:(.62+.18*(1-age));
-      fillGradient.addColorStop(0,wf3dColor(1,fillAlpha,shade));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha,shade));
-      fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha,shade));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha,shade));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha,shade));
+      const ampB=Math.min(amp*(1-ageB*.38),baseB-top-4);
+      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=sunMode?.12:.19;
+      fillGradient.addColorStop(0,wf3dColor(1,fillAlpha));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha));
+      fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha));
       ctx.beginPath();
       for(let i=0;i<rowA.length;i++){const x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-rowA[i]*ridgeAmp;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
       for(let i=rowB.length-1;i>=0;i--){const x=bx0+i/(rowB.length-1)*(bx1-bx0),y=baseB-rowB[i]*ampB;ctx.lineTo(x,y);}
       ctx.closePath();ctx.fillStyle=fillGradient;ctx.fill();
     }
-    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2.5:1.25;ctx.beginPath();
+    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2:1.05;ctx.beginPath();
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i],x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
       if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
     }
     ctx.stroke();
   }
-  // A saturated foreground shares the same frequency colors as the surface.
+  // Current spectrum gets the original soft filled foreground silhouette.
   if(rows[0]){
     const row=rows[0];ctx.beginPath();ctx.moveTo(left,base);
     for(let i=0;i<row.length;i++){const x=left+i/(row.length-1)*(right-left),y=base-row[i]*amp;ctx.lineTo(x,y);}
     ctx.lineTo(right,base);ctx.closePath();
-    const g=ctx.createLinearGradient(left,0,right,0);
-    g.addColorStop(0,wf3dColor(1,.32));g.addColorStop(.28,wf3dColor(.72,.32));
-    g.addColorStop(.52,wf3dColor(.48,.32));g.addColorStop(.75,wf3dColor(.25,.32));g.addColorStop(1,wf3dColor(0,.32));
+    const g=ctx.createLinearGradient(0,base-amp,0,base);
+    g.addColorStop(0,'rgba(255,32,112,.19)');g.addColorStop(.28,'rgba(255,240,0,.16)');g.addColorStop(.56,'rgba(32,255,80,.13)');g.addColorStop(1,'rgba(96,48,255,.09)');
     ctx.fillStyle=g;ctx.fill();
   }
   ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font="10px Arial";ctx.textAlign='center';
@@ -4990,7 +4986,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.25';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.26';
   v3UpdateStatus();
 })();
 (function initAccent(){
