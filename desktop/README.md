@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.10
+# GAL Analyzer Desktop — 6.0.0-preview.11
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.10-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.11-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 
@@ -86,3 +86,11 @@ Stronger perspective and more vertical display relief make sustained peaks easie
 The surface now fills more of the graph with a wider horizon, greater time depth and taller level relief. Blue, cyan, teal and warm amber replace the previous full rainbow; softer historical contours and opaque shaded faces keep the foreground readable. Resize measures toolbar clearance once so tall peaks remain below the resolution controls. Frequency cursor and resonance guides follow the same perspective floor. The ten-second history, measured samples, smoothing and row/point bounds are unchanged.
 
 The same 85-row, 240-point synthetic display fixture was visually checked at normal and smaller window sizes. Short isolated draw timings are recorded in `performance-results.json`; they are display checks, not hardware latency measurements.
+
+## Vivid Waterfall (preview.11)
+
+The expanded Waterfall now uses a bright, saturated rainbow from hot pink and orange through yellow, green and cyan to electric blue and violet. Historical ridges retain their brightness, shaded faces are stronger, and the foreground shares the surface frequency colors. Crisp outlines maintain separation between slices without glow or blur effects. Perspective, toolbar clearance, ten-second history, measured samples, smoothing and row/point bounds are unchanged.
+
+## Trace row layout (preview.11)
+
+Trace names use the available sidebar width on a separate row. Rename, visibility and delete controls sit below the name, so they cannot overlap or squeeze the editable field. Rename focuses the same inline field; Enter or leaving it saves, Escape cancels, and the full name is available on hover. Existing colors, measurements and trust labels are retained. The packaged integration check covers focus, name/action bounds and saving/cancellation at normal and smaller window sizes.

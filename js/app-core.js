@@ -393,7 +393,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.24-shared-frequency-axis',
+    version: 'v5.7.25-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -4332,7 +4332,7 @@ function drawWaterfallFrequencyCursor(W,H,nyquist){
 
 function wf3dColor(t,alpha=1,shade=1){
   t=Math.max(0,Math.min(1,t));
-  const stops=[[0,49,73,160],[.25,42,114,220],[.5,31,196,215],[.75,70,220,164],[1,246,191,89]];
+  const stops=[[0,96,48,255],[.18,0,112,255],[.38,0,240,255],[.58,32,255,80],[.76,255,240,0],[.90,255,96,0],[1,255,32,112]];
   let a=stops[0],b=stops[stops.length-1];
   for(let i=1;i<stops.length;i++){if(t<=stops[i][0]){a=stops[i-1];b=stops[i];break;}}
   const u=(t-a[0])/Math.max(.0001,b[0]-a[0]);
@@ -4390,17 +4390,17 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     }
     // One measured ridge and one stroke: predictable work and clean line separation.
     const contrast=Math.max(0,Math.min(1,(rowMax-rowMin)/.32));
-    const alpha=(rr===0?1:.64)*(1-age*.62)*(.88+.12*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
+    const alpha=(rr===0?1:.98)*(1-age*.14)*(.96+.04*contrast),ridgeGradient=ctx.createLinearGradient(x0,0,x1,0);
     ridgeGradient.addColorStop(0,wf3dColor(1,alpha));ridgeGradient.addColorStop(.28,wf3dColor(.72,alpha));
     ridgeGradient.addColorStop(.52,wf3dColor(.48,alpha));ridgeGradient.addColorStop(.75,wf3dColor(.25,alpha));ridgeGradient.addColorStop(1,wf3dColor(0,alpha));
-    // Join adjacent measurements into a translucent 3D surface; the ridge stays as a crisp outline above it.
+    // Join adjacent measurements into a vivid shaded 3D surface; the ridge stays as a crisp outline above it.
     if(rr<rows.length-1){
       const rowB=rows[rr+1],ageB=(rr+1)/Math.max(1,wf3d.maxRows-1),zB=ageB*depth;
       const bx0=left+(backLeft-left)*ageB,bx1=right+(backRight-right)*ageB,baseB=base-zB;
       const ampB=Math.min(amp*(1-ageB*.76),baseB-top-4);
       // Opaque, shaded faces hide rear lines instead of accumulating a bright
       // transparent haze. Only the measured geometry changes the ridge height.
-      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=1,shade=sunMode?.56:(.20+.18*(1-age));
+      const fillGradient=ctx.createLinearGradient(x0,0,x1,0),fillAlpha=1,shade=sunMode?.80:(.62+.18*(1-age));
       fillGradient.addColorStop(0,wf3dColor(1,fillAlpha,shade));fillGradient.addColorStop(.28,wf3dColor(.72,fillAlpha,shade));
       fillGradient.addColorStop(.52,wf3dColor(.48,fillAlpha,shade));fillGradient.addColorStop(.75,wf3dColor(.25,fillAlpha,shade));fillGradient.addColorStop(1,wf3dColor(0,fillAlpha,shade));
       ctx.beginPath();
@@ -4408,20 +4408,21 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
       for(let i=rowB.length-1;i>=0;i--){const x=bx0+i/(rowB.length-1)*(bx1-bx0),y=baseB-rowB[i]*ampB;ctx.lineTo(x,y);}
       ctx.closePath();ctx.fillStyle=fillGradient;ctx.fill();
     }
-    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2:1;ctx.beginPath();
+    ctx.strokeStyle=ridgeGradient;ctx.lineWidth=rr===0?2.5:1.25;ctx.beginPath();
     for(let i=0;i<rowA.length;i++){
       const v=rowA[i],x=x0+i/(rowA.length-1)*(x1-x0),y=baseline-v*ridgeAmp;
       if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
     }
     ctx.stroke();
   }
-  // Current spectrum gets a soft filled foreground silhouette.
+  // A saturated foreground shares the same frequency colors as the surface.
   if(rows[0]){
     const row=rows[0];ctx.beginPath();ctx.moveTo(left,base);
     for(let i=0;i<row.length;i++){const x=left+i/(row.length-1)*(right-left),y=base-row[i]*amp;ctx.lineTo(x,y);}
     ctx.lineTo(right,base);ctx.closePath();
-    const g=ctx.createLinearGradient(0,base-amp,0,base);
-    g.addColorStop(0,'rgba(70,220,190,.15)');g.addColorStop(.45,'rgba(31,140,200,.10)');g.addColorStop(1,'rgba(20,54,100,.04)');
+    const g=ctx.createLinearGradient(left,0,right,0);
+    g.addColorStop(0,wf3dColor(1,.32));g.addColorStop(.28,wf3dColor(.72,.32));
+    g.addColorStop(.52,wf3dColor(.48,.32));g.addColorStop(.75,wf3dColor(.25,.32));g.addColorStop(1,wf3dColor(0,.32));
     ctx.fillStyle=g;ctx.fill();
   }
   ctx.fillStyle=sunMode?'#334155':'#aebbc6';ctx.font="10px Arial";ctx.textAlign='center';
@@ -4989,7 +4990,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.24';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.25';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5135,11 +5136,13 @@ function v5RenderTraceRail(){
   box.innerHTML=tfTraces.map((t,i)=>
     '<div class="v5TraceRow" data-trace="'+i+'" style="--trace-color:'+t.color+'">'+
       '<span class="v5TraceNum" style="color:'+t.color+';border-color:'+t.color+'">'+(i+1)+'</span>'+
-      '<div class="v5TraceName"><div class="v5TraceEdit"><input class="v5TraceNameInput" data-trace-name="'+i+'" value="'+escapeHtml(t.name)+'" maxlength="40" aria-label="Trace '+(i+1)+' name" title="Click to rename · Enter to save · Escape to cancel" style="color:'+t.color+'"><span aria-hidden="true">✎</span></div>'+
+      '<div class="v5TraceName"><div class="v5TraceEdit"><input class="v5TraceNameInput" data-trace-name="'+i+'" value="'+escapeHtml(t.name)+'" maxlength="40" aria-label="Trace '+(i+1)+' name" title="'+escapeHtml(t.name)+' · Enter to save · Escape to cancel" style="color:'+t.color+'"></div>'+
       (t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</div>'+
-      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" data-trace-eye="'+i+'" title="Show/Hide">◉</button>'+
-      '<button class="v5TraceAction" data-trace-del="'+i+'" title="Delete">×</button>'+
+      '<div class="v5TraceControls"><button class="v5TraceAction" type="button" data-trace-edit="'+i+'" title="Rename trace '+(i+1)+'">Rename</button>'+
+      '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" type="button" data-trace-eye="'+i+'" title="Show/Hide" aria-label="Show or hide trace '+(i+1)+'">◉</button>'+
+      '<button class="v5TraceAction" type="button" data-trace-del="'+i+'" title="Delete" aria-label="Delete trace '+(i+1)+'">×</button></div>'+
     '</div>').join('');
+  box.querySelectorAll('[data-trace-edit]').forEach(b=>b.addEventListener('click',()=>box.querySelector('[data-trace-name="'+b.dataset.traceEdit+'"]')?.focus()));
   box.querySelectorAll('[data-trace-eye]').forEach(b=>b.addEventListener('click',()=>{const t=tfTraces[+b.dataset.traceEye];if(!t)return;t.visible=t.visible===false;renderTfTraceLegend();}));
   box.querySelectorAll('[data-trace-del]').forEach(b=>b.addEventListener('click',()=>{tfTraces.splice(+b.dataset.traceDel,1);renderTfTraceLegend();v3Toast("Trace deleted");}));
   box.querySelectorAll('[data-trace-name]').forEach(input=>{

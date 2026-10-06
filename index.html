@@ -614,19 +614,19 @@
   }
   #v5TraceList{display:flex;flex-direction:column;gap:2px;overflow:auto;min-height:0;max-height:210px}
   .v5TraceRow{
-    display:grid;grid-template-columns:18px 1fr 26px 26px;align-items:center;gap:4px;
-    min-height:28px;padding:3px 4px;border-bottom:1px solid #17242f;font-size:10px;
+    display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;gap:3px 4px;
+    min-height:52px;padding:5px 4px;border-bottom:1px solid #17242f;font-size:10px;
   }
-  .v5TraceNum{color:#6f8090;border-left:3px solid transparent;padding-left:3px}
+  .v5TraceNum{color:#6f8090;border-left:3px solid transparent;padding-left:3px;align-self:center}
   .v5TraceName{min-width:0;font-weight:600;display:flex;flex-direction:column;gap:2px;align-items:stretch}
-  .v5TraceEdit{display:flex;align-items:center;gap:3px;min-width:0}
-  .v5TraceEdit>span{font-size:12px;color:var(--dim);pointer-events:none}
-  #v5TraceList .v5TraceNameInput{min-width:0;width:100%;padding:3px 1px!important;border:1px solid transparent!important;border-radius:3px!important;background:transparent!important;box-shadow:none!important;font:600 10px Arial,sans-serif;color:var(--trace-color)!important;text-overflow:ellipsis}
+  .v5TraceEdit{min-width:0}
+  .v5TraceControls{grid-column:2;display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0}
+  #v5TraceList .v5TraceNameInput{min-width:0;width:100%;height:24px;padding:3px 1px!important;border:1px solid transparent!important;border-radius:3px!important;background:transparent!important;box-shadow:none!important;font:600 11px Arial,sans-serif;color:var(--trace-color)!important;text-overflow:ellipsis}
   #v5TraceList .v5TraceNameInput:hover{border-color:var(--line)!important}
   #v5TraceList .v5TraceNameInput:focus{outline:1px solid var(--accent);border-color:var(--accent)!important;text-overflow:clip}
   .v5TraceName .v5TraceTrust{margin-left:0;font-size:8px}
   .v5TraceTrust{margin-left:auto}
-  .v5TraceAction{border:0;background:transparent;color:#90a1af;cursor:pointer;padding:4px;border-radius:4px}
+  .v5TraceAction{border:0;background:transparent;color:#90a1af;cursor:pointer;padding:4px;border-radius:4px;min-height:24px;min-width:24px;flex:0 0 auto;font:600 10px Arial,sans-serif}
   .v5TraceAction:hover{color:var(--accent);background:rgba(62,166,255,.1)}
   .v5TraceAction.off{opacity:.35}
   #v5AddTrace{
@@ -2650,7 +2650,7 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   box-shadow:inset 0 2px 5px rgba(0,0,0,.70)!important;border-radius:3px!important
 }
 
-/* V5.7.24 — readable compact Delay workspace. */
+/* V5.7.25 — readable compact Delay workspace. */
 @media(min-width:901px){
   #dlyPanel.measureDock:not(.expanded){
     grid-template-columns:1fr!important;grid-template-rows:22px 34px minmax(76px,auto)!important;
@@ -3194,7 +3194,7 @@ body.reference-unassigned #dlyPanel.measureDock .dlyInputs{grid-template-columns
   <div id="uiMenu" role="dialog" aria-label="Tools and settings">
     <div class="uiMenuHead">
       <div class="uiMenuHeadIcon">⌁</div>
-      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.24</div><div class="uiMenuSub">Professional measurement console</div></div>
+      <div><div class="uiMenuTitle">GAL ANALYZER · V5.7.25</div><div class="uiMenuSub">Professional measurement console</div></div>
     </div>
 
     <div class="uiMenuSectionLabel">SETTINGS</div>
@@ -3224,7 +3224,7 @@ body.reference-unassigned #dlyPanel.measureDock .dlyInputs{grid-template-columns
       <button class="uiMenuItem" id="uiPng"><span class="ico">▣</span><span><span class="txt">Export PNG</span><span class="meta">Save current graph</span></span></button>
       <button class="uiMenuItem" id="uiCsv"><span class="ico">⇩</span><span><span class="txt">Export CSV</span><span class="meta">Export measurement data</span></span></button>
     </div>
-    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.24</span><span id="uiMenuState">Ready</span></div>
+    <div class="uiMenuFoot"><span>GAL Analyzer V5.7.25</span><span id="uiMenuState">Ready</span></div>
   </div>
 
   <div id="stage">
@@ -3955,7 +3955,7 @@ body.reference-unassigned #dlyPanel.measureDock .dlyInputs{grid-template-columns
 
   <div id="v5StatusBar">
     <div><span class="live" id="v5MicStatus">● Mic: Off</span> &nbsp; <span id="v5InputStatus">Input: —</span> &nbsp; <span id="v5LatencyStatus">Audio: —</span></div>
-    <div id="v5StatusBrand">GAL Analyzer V5.7.24</div>
+    <div id="v5StatusBrand">GAL Analyzer V5.7.25</div>
     <div>Real-World Measurement Workspace</div>
   </div>
 
@@ -4156,7 +4156,7 @@ window.addEventListener('load', function(){
 });
 </script>
 
-<script src="app.js?v=5.7.24"></script>
+<script src="app.js?v=5.7.25"></script>
 
 <aside id="uiRightTools" aria-label="Quick tools">
   <div class="uiRightToolsTitle">TOOLS</div>

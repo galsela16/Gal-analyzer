@@ -1,6 +1,6 @@
 window.GAL=window.GAL||{};
 window.GAL.config=Object.freeze({
-  version:'5.7.24-shared-frequency-axis',
+  version:'5.7.25-shared-frequency-axis',
   appName:'GAL Analyzer',
   maxTraces:6,
   supportedFft:[8192,16384,32768]

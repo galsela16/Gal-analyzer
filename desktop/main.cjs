@@ -102,7 +102,7 @@ app.whenReady().then(async () => {
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.10'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.11'),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');
@@ -230,7 +230,9 @@ app.whenReady().then(async () => {
         v552DeleteTrace(1);captureWorkspaceTrace();
         assert(new Set(tfTraces.map(t=>t.color)).size===24,'Deletion and capture reuse a free color');
         const namedTrace=tfTraces[0],traceColor=namedTrace.color;
-        const nameInput=document.querySelector('[data-trace-name="0"]');nameInput.value='Front fill <Left>';nameInput.dispatchEvent(new Event('change'));
+        const nameInput=document.querySelector('[data-trace-name="0"]');document.querySelector('[data-trace-edit="0"]').click();
+        assert(document.activeElement===nameInput,'Rename button focuses the full-width name');
+        nameInput.value='Front fill <Left>';nameInput.dispatchEvent(new Event('change'));
         assert(namedTrace.name==='Front fill <Left>'&&namedTrace.color===traceColor,'Inline rename retains trace color and data');
         assert(document.querySelector('[data-trace-name="0"]').value===namedTrace.name,'Name safely appears in the editable list');
         assert(getComputedStyle(document.querySelector('[data-trace-name="0"]')).color===getComputedStyle(document.querySelector('.v5TraceNum')).borderLeftColor,'Name and marker use the same trace color');
@@ -273,6 +275,14 @@ app.whenReady().then(async () => {
           const check=(ok,message)=>{if(!ok)throw Error(message)};
           const rect=node=>node.getBoundingClientRect();
           const intersects=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+          const traceRow=document.querySelector('.v5TraceRow'),traceName=traceRow.querySelector('.v5TraceNameInput');
+          const nameRect=rect(traceName),rowRect=rect(traceRow);
+          check(nameRect.width>=rowRect.width*.65,'Trace name is squeezed by actions');
+          for(const button of traceRow.querySelectorAll('.v5TraceAction')){
+            const actionRect=rect(button);
+            check(!intersects(nameRect,actionRect),'Trace action covers its name');
+            check(actionRect.left>=rowRect.left&&actionRect.right<=rowRect.right,'Trace action exceeds its row');
+          }
           const panel=document.getElementById('dlyPanel');showModal(panel);
           panel.classList.remove('expanded');resize();updateMeasureDockHeight();
           await new Promise(resolve=>setTimeout(resolve,150));

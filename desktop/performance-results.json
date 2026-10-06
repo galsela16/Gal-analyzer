@@ -90,5 +90,29 @@
       "canvasTop": 125,
       "stripBottom": 156
     }
+  },
+  "waterfallVividFixture": {
+    "scope": "Preview.11 vivid palette, same 85-row/240-point synthetic display fixture. Twelve redraws per view; short isolated display checks, not a hardware latency benchmark.",
+    "normalWindow": {
+      "medianMs": 2,
+      "width": 1082,
+      "height": 687,
+      "canvasTop": 125,
+      "stripBottom": 156
+    },
+    "smallerWindow": {
+      "medianMs": 1.6999999284744263,
+      "width": 760,
+      "height": 592,
+      "canvasTop": 125,
+      "stripBottom": 156
+    },
+    "dayTheme": {
+      "medianMs": 1,
+      "width": 1082,
+      "height": 687,
+      "canvasTop": 125,
+      "stripBottom": 156
+    }
   }
 }
