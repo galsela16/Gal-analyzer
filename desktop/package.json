@@ -1,6 +1,6 @@
 {
   "name": "gal-analyzer-desktop",
-  "version": "6.0.0-preview.12",
+  "version": "6.0.0-preview.13",
   "private": true,
   "description": "GAL Analyzer desktop \u2014 shared web interface",
   "main": "main.cjs",

@@ -393,7 +393,7 @@ safeOn('jsonFileInput', 'change', importSessionJson);
 
 function exportSessionJson(){
   const data = {
-    version: 'v5.7.26-shared-frequency-axis',
+    version: 'v5.7.27-shared-frequency-axis',
     timestamp: new Date().toISOString(),
     saves: saves,
     eqPositions: eqPositions.map(p=>({name:p.name, db:Array.from(p.db)})),
@@ -4986,7 +4986,7 @@ document.addEventListener('keydown',e=>{
   setEqCorrectionRange(parseFloat(lsGet('rta_eq_min')),parseFloat(lsGet('rta_eq_max')),false);
   try{localStorage.removeItem('rta_tf_delay');}catch(_){}
   resetTfAutoDelay();
-  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.26';
+  const ver=document.getElementById('ver'); if(ver) ver.textContent='V5.7.27';
   v3UpdateStatus();
 })();
 (function initAccent(){
@@ -5132,13 +5132,12 @@ function v5RenderTraceRail(){
   box.innerHTML=tfTraces.map((t,i)=>
     '<div class="v5TraceRow" data-trace="'+i+'" style="--trace-color:'+t.color+'">'+
       '<span class="v5TraceNum" style="color:'+t.color+';border-color:'+t.color+'">'+(i+1)+'</span>'+
-      '<div class="v5TraceName"><div class="v5TraceEdit"><input class="v5TraceNameInput" data-trace-name="'+i+'" value="'+escapeHtml(t.name)+'" maxlength="40" aria-label="Trace '+(i+1)+' name" title="'+escapeHtml(t.name)+' · Enter to save · Escape to cancel" style="color:'+t.color+'"></div>'+
+      '<div class="v5TraceName"><div class="v5TraceEdit"><input class="v5TraceNameInput" data-trace-name="'+i+'" value="'+escapeHtml(t.name)+'" maxlength="40" aria-label="Trace '+(i+1)+' name" title="'+escapeHtml(t.name)+' · Click to edit · Enter to save · Escape to cancel" style="color:'+t.color+'"></div>'+
       (t.type==='tf'?'<small class="v5TraceTrust '+(t.verified===true?'verified':'unverified')+'">'+(t.verified===true?'Verified':'Unverified')+'</small>':'')+'</div>'+
-      '<div class="v5TraceControls"><button class="v5TraceAction" type="button" data-trace-edit="'+i+'" title="Rename trace '+(i+1)+'">Rename</button>'+
+      '<div class="v5TraceControls">'+
       '<button class="v5TraceAction'+(t.visible===false?' off':'')+'" type="button" data-trace-eye="'+i+'" title="Show/Hide" aria-label="Show or hide trace '+(i+1)+'">◉</button>'+
       '<button class="v5TraceAction" type="button" data-trace-del="'+i+'" title="Delete" aria-label="Delete trace '+(i+1)+'">×</button></div>'+
     '</div>').join('');
-  box.querySelectorAll('[data-trace-edit]').forEach(b=>b.addEventListener('click',()=>box.querySelector('[data-trace-name="'+b.dataset.traceEdit+'"]')?.focus()));
   box.querySelectorAll('[data-trace-eye]').forEach(b=>b.addEventListener('click',()=>{const t=tfTraces[+b.dataset.traceEye];if(!t)return;t.visible=t.visible===false;renderTfTraceLegend();}));
   box.querySelectorAll('[data-trace-del]').forEach(b=>b.addEventListener('click',()=>{tfTraces.splice(+b.dataset.traceDel,1);renderTfTraceLegend();v3Toast("Trace deleted");}));
   box.querySelectorAll('[data-trace-name]').forEach(input=>{

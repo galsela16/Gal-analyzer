@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.26 — Desktop 6.0.0-preview.12
+# GAL Analyzer V5.7.27 — Desktop 6.0.0-preview.13
 
-Desktop preview.12 restores the original Waterfall style with lower ridges, the original perspective and translucent faces instead of an opaque filled surface. The vivid palette remains bright. Shared cursor/marker geometry and toolbar clearance are retained; measured samples, ten-second history, filtering and bounded row/point workload are unchanged. Trace layout and native audio retain preview.11 behavior. See [desktop documentation](desktop/README.md).
+Desktop preview.13 removes the separate Rename button from the trace sidebar. Click a trace name and type directly; Enter or leaving the field saves, and Escape cancels. Visibility, deletion, colors, measurement data and the classic vivid Waterfall retain preview.12 behavior. See [desktop documentation](desktop/README.md).
 
 
 V5.7.10 adds a shared frequency scale to RTA, M/R and TF, restores the persistent Traces area, and animates the side rails. HPF/LPF handles retain capture priority and touch-safe dragging.

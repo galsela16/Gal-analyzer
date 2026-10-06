@@ -102,7 +102,7 @@ app.whenReady().then(async () => {
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.12'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.13'),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');
@@ -230,8 +230,8 @@ app.whenReady().then(async () => {
         v552DeleteTrace(1);captureWorkspaceTrace();
         assert(new Set(tfTraces.map(t=>t.color)).size===24,'Deletion and capture reuse a free color');
         const namedTrace=tfTraces[0],traceColor=namedTrace.color;
-        const nameInput=document.querySelector('[data-trace-name="0"]');document.querySelector('[data-trace-edit="0"]').click();
-        assert(document.activeElement===nameInput,'Rename button focuses the full-width name');
+        const nameInput=document.querySelector('[data-trace-name="0"]');nameInput.focus();
+        assert(document.activeElement===nameInput,'Trace name is directly editable');
         nameInput.value='Front fill <Left>';nameInput.dispatchEvent(new Event('change'));
         assert(namedTrace.name==='Front fill <Left>'&&namedTrace.color===traceColor,'Inline rename retains trace color and data');
         assert(document.querySelector('[data-trace-name="0"]').value===namedTrace.name,'Name safely appears in the editable list');
