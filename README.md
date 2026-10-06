@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.27 — Desktop 6.0.0-preview.13
+# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.14
 
-Desktop preview.13 removes the separate Rename button from the trace sidebar. Click a trace name and type directly; Enter or leaving the field saves, and Escape cancels. Visibility, deletion, colors, measurement data and the classic vivid Waterfall retain preview.12 behavior. See [desktop documentation](desktop/README.md).
+Desktop preview.14 aligns each trace name, visibility control and delete control on one compact row. Click the name and type directly; Enter or leaving the field saves, and Escape cancels. Trace colors, measurement data and the classic vivid Waterfall retain preview.13 behavior. See [desktop documentation](desktop/README.md).
 
 
 V5.7.10 adds a shared frequency scale to RTA, M/R and TF, restores the persistent Traces area, and animates the side rails. HPF/LPF handles retain capture priority and touch-safe dragging.

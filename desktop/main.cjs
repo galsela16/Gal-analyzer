@@ -102,7 +102,7 @@ app.whenReady().then(async () => {
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.13'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.14'),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');
@@ -277,12 +277,14 @@ app.whenReady().then(async () => {
           const intersects=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
           const traceRow=document.querySelector('.v5TraceRow'),traceName=traceRow.querySelector('.v5TraceNameInput');
           const nameRect=rect(traceName),rowRect=rect(traceRow);
-          check(nameRect.width>=rowRect.width*.65,'Trace name is squeezed by actions');
+          check(nameRect.width>=42,'Trace name is squeezed by actions');
           for(const button of traceRow.querySelectorAll('.v5TraceAction')){
             const actionRect=rect(button);
             check(!intersects(nameRect,actionRect),'Trace action covers its name');
             check(actionRect.left>=rowRect.left&&actionRect.right<=rowRect.right,'Trace action exceeds its row');
+            check(Math.abs((actionRect.top+actionRect.bottom)-(nameRect.top+nameRect.bottom))<=2,'Trace action is not level with its name');
           }
+          check(rowRect.height<=38,'Compact trace row became two levels');
           const panel=document.getElementById('dlyPanel');showModal(panel);
           panel.classList.remove('expanded');resize();updateMeasureDockHeight();
           await new Promise(resolve=>setTimeout(resolve,150));
