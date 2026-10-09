@@ -1,5 +1,6 @@
 const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('galNativeHost',{
+ setDayMode:value=>{if(typeof value==='boolean')ipcRenderer.send('gal:menu:day-mode',value)},
  setTargetVisible:value=>{if(typeof value==='boolean')ipcRenderer.send('gal:menu:target',value)},
  list:()=>ipcRenderer.invoke('gal:native:list'),
  start:options=>ipcRenderer.invoke('gal:native:start',options),

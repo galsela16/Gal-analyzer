@@ -202,6 +202,7 @@ window.addEventListener('resize',resize);
 safeOn('sunBtn', 'click', function(){
   sunMode = !sunMode;
   document.body.classList.toggle('sun-mode', sunMode);
+  window.galNativeHost?.setDayMode?.(sunMode);
   this.classList.toggle('on', sunMode);
   prefSet('rta_sunmode', sunMode ? '1' : '0');
   if(specCtx){
@@ -1813,16 +1814,16 @@ function tfDrawSelectedPhase(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=148,bottom=plotH-14,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";
   const labels=unwrap?[-720,-360,0,360,720]:[-180,-90,0,90,180];labels.forEach(d=>{const yy=y(d);ctx.strokeStyle=d===0?'rgba(80,230,140,.38)':'rgba(120,145,160,.15)';ctx.lineWidth=d===0?1.4:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((d>0?'+':'')+d+'°',5,yy-3);});
-  ctx.beginPath();let pen=false,have=false,prev=0,cum=0;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.ph.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),coh=s.coh[k]||0;if(gateOn&&coh<tfCohGate){pen=false;have=false;continue;}const raw=s.ph[k]||0;let ph=raw;if(unwrap){if(have){let d=raw-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;ph=cum;prev=raw;have=true;}let deg=ph*180/Math.PI;if(window.tfPhaseZeroAtCursor){const hz=Number(window.tfPhaseCursorHz)||1000,k0=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N)));deg-=(s.ph[k0]||0)*180/Math.PI;}const yy=y(deg);pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}ctx.strokeStyle='#00f590';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.shadowColor='rgba(80,230,140,.26)';ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
+  ctx.beginPath();let pen=false,have=false,prev=0,cum=0;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.ph.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),coh=s.coh[k]||0;if(gateOn&&coh<tfCohGate){pen=false;have=false;continue;}const raw=s.ph[k]||0;let ph=raw;if(unwrap){if(have){let d=raw-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;ph=cum;prev=raw;have=true;}let deg=ph*180/Math.PI;if(window.tfPhaseZeroAtCursor){const hz=Number(window.tfPhaseCursorHz)||1000,k0=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N)));deg-=(s.ph[k0]||0)*180/Math.PI;}const yy=y(deg);pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}ctx.strokeStyle=sunMode?'#008b59':'#00f590';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.shadowColor='rgba(80,230,140,.26)';ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
   const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),coh=s.coh[k]||0,deg=(s.ph[k]||0)*180/Math.PI,cy=y(window.tfPhaseZeroAtCursor?0:deg);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=coh>=tfCohGate?'#00f590':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
-  tfViewHeader('PHASE','cursor '+(hz>=1000?(hz/1000).toFixed(2)+' kHz':Math.round(hz)+' Hz')+' · '+(gateOn?'coherence gate on':'all data'),'#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+  tfViewHeader('PHASE','cursor '+(hz>=1000?(hz/1000).toFixed(2)+' kHz':Math.round(hz)+' Hz')+' · '+(gateOn?'coherence gate on':'all data'),sunMode?'#008b59':'#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedCoherence(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=148,bottom=plotH-14,y=v=>bottom-Math.max(0,Math.min(1,v))*(bottom-top);
   ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";[0,.25,.5,.75,1].forEach(v=>{const yy=y(v);ctx.strokeStyle='rgba(120,145,160,.15)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText(v.toFixed(2),5,yy-3);});const gy=y(tfCohGate);ctx.setLineDash([6,4]);ctx.strokeStyle='#f5b942';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f5b942';ctx.fillText('GATE '+tfCohGate.toFixed(2),W-72,gy-5);
-  const area=new Path2D(),line=new Path2D();area.moveTo(0,bottom);for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.coh.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),yy=y(s.coh[k]||0);px?line.lineTo(px,yy):line.moveTo(px,yy);area.lineTo(px,yy);}area.lineTo(W,bottom);area.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(80,230,140,.30)');grad.addColorStop(.55,'rgba(245,185,66,.16)');grad.addColorStop(1,'rgba(255,82,104,.22)');ctx.fillStyle=grad;ctx.fill(area);ctx.strokeStyle='#00f590';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke(line);
+  const area=new Path2D(),line=new Path2D();area.moveTo(0,bottom);for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.coh.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),yy=y(s.coh[k]||0);px?line.lineTo(px,yy):line.moveTo(px,yy);area.lineTo(px,yy);}area.lineTo(W,bottom);area.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(80,230,140,.30)');grad.addColorStop(.55,'rgba(245,185,66,.16)');grad.addColorStop(1,'rgba(255,82,104,.22)');ctx.fillStyle=grad;ctx.fill(area);ctx.strokeStyle=sunMode?'#008b59':'#00f590';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke(line);
   const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.coh.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),cv=s.coh[k]||0,cy=y(cv);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=cv>=tfCohGate?'#00f590':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
-  tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune','#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+  tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune',sunMode?'#008b59':'#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedView(W,plotH,nyquist,xForFreq){
   if(tfViewMode==='phase')return tfDrawSelectedPhase(W,plotH,xForFreq);
@@ -3099,7 +3100,7 @@ function syncAudioToggle(){
   const button=document.getElementById('uiLivePill');if(!button)return;
   button.classList.toggle('ready',running);button.setAttribute('aria-pressed',String(running));
   button.title=running?'Stop audio input':'Start audio input';button.setAttribute('aria-label',button.title);
-  const text=document.getElementById('uiReadyText');if(text)text.textContent=running?'AUDIO LIVE':'AUDIO OFF';
+  const text=document.getElementById('uiReadyText');if(text)text.textContent=running?'Stop audio':'Start audio';
 }
 safeOn('uiLivePill','click',async()=>{
   const button=document.getElementById('uiLivePill');button.disabled=true;
@@ -5038,6 +5039,7 @@ let v5WorkspaceMode='rta';
 
 
 function v5SyncTargetToggle(){
+  window.galNativeHost?.setDayMode?.(sunMode);
   window.galNativeHost?.setTargetVisible?.(targetVisible);
   const b=document.getElementById('v5TargetToggle'); if(!b)return;
   b.classList.toggle('on',targetVisible);
@@ -5232,6 +5234,12 @@ let v52MeasPeakDbfs=-120, v52RefPeakDbfs=-120, v52PeakAt=0, v52MeterPaintAt=0;
 
 function v52SetIo(open){
   v52IoOpen=!!open;
+  if(window.setAudioPreferences){
+    document.getElementById('v52IODock')?.classList.toggle('open',v52IoOpen);
+    window.setAudioPreferences(v52IoOpen);
+    if(v52IoOpen)v52RefreshDevices();
+    return;
+  }
   const dock=document.getElementById('v52IODock');
   const stage=document.getElementById('stage');
   const btn=document.getElementById('v52IoBtn');

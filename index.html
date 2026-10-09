@@ -2884,11 +2884,11 @@ body:not(.sun-mode) input,body:not(.sun-mode) select{
   #persistentTraceHost #v5AddTrace{display:block!important;min-height:28px!important;font-size:8px!important}
   #leftRailToggle,#rightRailToggle{display:none!important}
 
-  #targetMeasurementPanel{right:8px!important;top:74px!important;width:var(--console-right)!important;height:220px!important;border:1px solid #4b555a!important;border-radius:3px!important;background:linear-gradient(180deg,#171e22,#0b1114)!important;box-shadow:inset 0 1px rgba(255,255,255,.06),inset 0 0 14px rgba(0,0,0,.45)!important;padding:9px!important}
+  #targetMeasurementPanel{right:8px!important;top:74px!important;width:var(--console-right)!important;height:230px!important;border:1px solid #4b555a!important;border-radius:3px!important;background:linear-gradient(180deg,#171e22,#0b1114)!important;box-shadow:inset 0 1px rgba(255,255,255,.06),inset 0 0 14px rgba(0,0,0,.45)!important;padding:9px!important}
   .tmpHead{height:24px!important;padding:0 2px 7px!important;font-size:9px!important;color:#d3dade!important}
   .tmpValue{margin:7px 0 3px!important;padding:9px 5px!important;font-size:27px!important;text-align:center!important;border:1px solid #354148!important;background:#060a0c!important;color:#57d6ed!important}
   .tmpSub{text-align:center!important;color:#90a0a7!important}.tmpGrid{margin-top:7px!important}.tmpCell{padding:6px 3px!important;text-align:center!important}
-  #uiRightTools{right:8px!important;top:300px!important;bottom:calc(var(--console-bottom) + 10px)!important;width:var(--console-right)!important;padding:6px!important;gap:4px!important;border:1px solid #4b555a!important;border-radius:3px!important;background:linear-gradient(180deg,#171e22,#0b1114)!important;box-shadow:inset 0 1px rgba(255,255,255,.06),inset 0 0 12px rgba(0,0,0,.45)!important;grid-template-rows:20px repeat(5,minmax(32px,1fr))!important}
+  #uiRightTools{right:8px!important;top:310px!important;bottom:calc(var(--console-bottom) + 10px)!important;width:var(--console-right)!important;padding:6px!important;gap:4px!important;border:1px solid #4b555a!important;border-radius:3px!important;background:linear-gradient(180deg,#171e22,#0b1114)!important;box-shadow:inset 0 1px rgba(255,255,255,.06),inset 0 0 12px rgba(0,0,0,.45)!important;grid-template-rows:20px repeat(5,minmax(32px,1fr))!important}
   #uiRightTools .uiRightToolsTitle{justify-content:center!important;font-size:9px!important;color:#b8c2c6!important;border-bottom:1px solid #354046!important}
   #uiRightTools button{min-height:32px!important;flex-direction:row!important;justify-content:space-between!important;gap:5px!important;padding:6px 9px!important;font-size:8px!important;text-align:left!important;border-radius:2px!important}
   #uiRightTools .rtIcon{font-size:18px!important;min-width:22px!important;text-align:center!important}
@@ -3145,15 +3145,55 @@ body.reference-unassigned #dlyPanel.measureDock .dlyInputs{grid-template-columns
 </style><style>
 body.desktop-native-menus #uiMenuBtn,body.desktop-native-menus #uiMenu,body.desktop-native-menus #uiMenuBackdrop{display:none!important}
 @media(min-width:1000px){
- #stage{transition:margin-left .32s cubic-bezier(.22,1,.36,1),margin-right .32s cubic-bezier(.22,1,.36,1)!important}
- #targetLeftStatus,#targetMeasurementPanel,#uiRightTools{transition:opacity .22s ease,transform .32s cubic-bezier(.22,1,.36,1),visibility 0s linear 0s!important}
- body.left-rail-collapsed #targetLeftStatus,body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{transition-delay:0s,0s,.32s!important}
- .workspaceRailToggle{transition:left .32s cubic-bezier(.22,1,.36,1),right .32s cubic-bezier(.22,1,.36,1),color .16s ease,opacity .16s ease!important}
+ #stage{transition:margin-left .18s ease-in-out,margin-right .18s ease-in-out!important}
+ #targetLeftStatus,#targetMeasurementPanel,#uiRightTools{transform:none!important;transition:opacity .12s ease,visibility 0s linear 0s!important}
+ body.left-rail-collapsed #targetLeftStatus,body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{transition-delay:0s,.12s!important}
+ .workspaceRailToggle{transition:left .18s ease-in-out,right .18s ease-in-out,color .12s ease!important}
 }
 @media(prefers-reduced-motion:reduce){#stage,#targetLeftStatus,#targetMeasurementPanel,#uiRightTools,.workspaceRailToggle{transition:none!important}}
-#targetMeasurementPanel #uiLivePill{position:static!important;display:flex!important;width:max-content!important;height:20px!important;min-height:20px!important;padding:0 6px!important;margin:5px 0 4px!important;font-size:8px!important;border-radius:3px!important;cursor:pointer!important}
+#targetMeasurementPanel #uiLivePill{position:static!important;display:flex!important;width:max-content!important;height:30px!important;min-height:30px!important;padding:0 10px!important;margin:5px 0 6px!important;font-size:10px!important;border-radius:6px!important;cursor:pointer!important;gap:7px!important;border:1px solid #4b7b8b!important;background:linear-gradient(#244654,#142e3a)!important;color:#eefaff!important;box-shadow:0 1px 3px #0005!important}
 #targetMeasurementPanel #uiLivePill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #targetMeasurementPanel #uiLivePill:disabled{cursor:wait!important;opacity:.65}
+#targetMeasurementPanel #uiLivePill:hover{filter:brightness(1.2);border-color:#00c8ff!important}
+#targetMeasurementPanel #uiLivePill:active{box-shadow:inset 0 1px 4px #0006!important}
+body.sun-mode{--bg:#edf2f5;--panel:#fff;--text:#213640;--dim:#577080;--line:#cbd8df;background:#edf2f5!important;color:#213640!important}
+body.sun-mode header.uiRefreshed,body.sun-mode #v5ModeTabs,body.sun-mode #v53AnalysisGroup,body.sun-mode .tlsCard,body.sun-mode #targetMeasurementPanel,body.sun-mode #uiRightTools,body.sun-mode .measureDock,body.sun-mode #uiContextBar,body.sun-mode #genPanel,body.sun-mode #geqDock{background:#f8fbfd!important;background-image:none!important;color:#213640!important;border-color:#bacbd4!important;box-shadow:0 1px 4px #243f4b16!important}
+body.sun-mode header.uiRefreshed h1,body.sun-mode .tlsHead,body.sun-mode .tmpHead,body.sun-mode .uiRightToolsTitle,body.sun-mode .tlsMeterRead,body.sun-mode .tlsLine strong{color:#213640!important;text-shadow:none!important}
+body.sun-mode #v53AnalysisGroup button,body.sun-mode .measureDock button,body.sun-mode #uiContextBar button,body.sun-mode .tlsPatchActions button,body.sun-mode #v5AddTrace,body.sun-mode #v5ClearTraces,body.sun-mode #uiRightTools button{background:#edf4f8!important;background-image:none!important;color:#365665!important;border-color:#b1c6d1!important;box-shadow:0 1px 2px #26434f18!important}
+body.sun-mode #v53AnalysisGroup button.on,body.sun-mode #uiRightTools button.on,body.sun-mode .measureDock button.on{background:#c4efff!important;color:#075f80!important;border-color:#009ece!important}
+body.sun-mode .tlsMeterTrack,body.sun-mode .tlsMeterTrack::after,body.sun-mode .v52MeterTrack,body.sun-mode .chMeter,body.sun-mode .chBar,body.sun-mode #meter{background:#e0e9ef!important;background-image:none!important;border-color:#a8bfca!important;box-shadow:none!important}
+body.sun-mode .tmpValue,body.sun-mode .dlyMeasureCard,body.sun-mode .dlyInputs>*,body.sun-mode .tfWorkflowStep,body.sun-mode .v5TraceRow,body.sun-mode .v5TraceNameInput{background:#fff!important;color:#233f4d!important;border-color:#c2d3dc!important;box-shadow:none!important}
+body.sun-mode input,body.sun-mode select{color:#213e4c!important;background:#fff!important;border-color:#b2c6d1!important;box-shadow:none!important}
+body.sun-mode #targetMeasurementPanel #uiLivePill{background:linear-gradient(#f9fdff,#d9edf6)!important;color:#14566e!important;border-color:#70a6bc!important}
+#audioPreferences{position:fixed!important;inset:0!important;margin:auto!important;width:min(820px,calc(100vw - 60px));max-height:calc(100vh - 80px);padding:0;border:1px solid #415b68;border-radius:12px;background:#14232d;color:#e0edf3;box-shadow:0 24px 80px #0008;font:13px Arial;overflow:hidden}
+#audioPreferences::backdrop{background:#06101966}
+.audioPreferencesHead{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #ffffff20;font-size:18px;font-weight:700}
+.audioPreferencesHead button{font:20px Arial;background:transparent;color:inherit;border:0;cursor:pointer;padding:4px 9px}
+.audioPreferencesBody{display:grid;grid-template-columns:148px minmax(0,1fr);max-height:calc(100vh - 160px)}
+.audioPreferencesNav{padding:18px 10px;background:#0c1922}
+.audioPreferencesNav button{display:block;width:100%;padding:12px;text-align:left;border:0;border-radius:6px;color:#a9c3cf;background:transparent;font:13px Arial;cursor:pointer;margin-bottom:5px}
+.audioPreferencesNav button.on{color:#e6faff;background:#24536a}
+#audioPreferences #v52IODock{position:static!important;display:block!important;inset:auto!important;width:auto!important;height:auto!important;max-height:calc(100vh - 160px)!important;padding:20px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:auto!important;transform:none!important}
+#audioPreferences #v52IODockHeader{display:none!important}
+#audioPreferences .v52IOGrid{display:flex!important;flex-direction:column!important;gap:18px!important}
+#audioPreferences .v52IOCard{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+#audioPreferences .v52IOCard h4{font-size:14px!important;margin-bottom:14px!important}
+#audioPreferences .v52Field{display:grid!important;grid-template-columns:155px minmax(0,1fr)!important;align-items:center!important;gap:16px!important;margin:12px 0!important}
+#audioPreferences .v52Field input,#audioPreferences .v52Field select{min-height:32px!important;width:100%!important;font-size:12px!important}
+#audioPreferences .v52IOCard[hidden]{display:none!important}
+body.sun-mode #audioPreferences{background:#f7fafc;color:#213d4b;border-color:#aabfc9}
+body.sun-mode .audioPreferencesNav{background:#e5edf2}
+body.sun-mode .audioPreferencesNav button{color:#496675}
+body.sun-mode .audioPreferencesNav button.on{background:#c5e7f5;color:#0a5571}
+body.sun-mode .audioPreferencesHead{border-color:#bbced8}
+body.sun-mode #displayResolutionBar,body.sun-mode #displayResolutionBar button,body.sun-mode #multiInputPanel,body.sun-mode .multiInputTrack,body.sun-mode #rtCanvas{background:#e4eef4!important;background-image:none!important;border-color:#adbfca!important;box-shadow:none!important;color:#466373!important}
+body.sun-mode #v5ModeTabs #displayResolutionBar button.on{color:#087b9d!important}
+body.sun-mode #audioPreferences #v52IODock{color:#274552!important}
+body.sun-mode #audioPreferences select,body.sun-mode #audioPreferences input:not([type="checkbox"]){background:#fff!important;color:#213e4c!important;border-color:#a8beca!important;box-shadow:none!important}
+#audioPreferences [data-preferences-section-hidden]{display:none!important}
+body.sun-mode #stage .eqCanvasHandle{background:#f5fafc!important;background-image:none!important;color:#136487!important;box-shadow:0 1px 3px #26465626!important}
+body.sun-mode #stage #eqLpfHandle{color:#9b650d!important}
+body.sun-mode .tlsTraceCount,body.sun-mode .tlsMeterScale,body.sun-mode .tmpCell,body.sun-mode .tmpSub{color:#526e7c!important}
 </style></head>
 <body>
   <div id="sigTint"></div>
@@ -3167,7 +3207,7 @@ body.desktop-native-menus #uiMenuBtn,body.desktop-native-menus #uiMenu,body.desk
       <span class="mhItem" id="mhClip">CLIP —</span><span class="mhItem" id="mhStable">STABLE —</span>
       <strong class="mhReady" id="mhReady">NOT READY</strong>
     </div>
-    <button id="uiLivePill" type="button" aria-label="Start audio input" aria-pressed="false" title="Start audio input"><span class="uiLiveDot"></span><span id="uiReadyText">AUDIO OFF</span></button>
+    <button id="uiLivePill" type="button" aria-label="Start audio input" aria-pressed="false" title="Start audio input"><span aria-hidden="true">⏻</span><span class="uiLiveDot"></span><span id="uiReadyText">Start audio</span></button>
     <div class="modes">
       <button id="mRta" class="on">Spectrum · RTA</button>
       <button id="mSpec">Waterfall · Spectrogram</button>
@@ -3997,6 +4037,7 @@ window.addEventListener('load', function(){
       window.focusPersistentTraces?.();
       return;
     }
+    if(kind==='io'&&document.body.classList.contains('desktop-native-menus')){window.v52SetIo(true);return;}
     document.body.classList.add('ui-workspace-drawer','ui-drawer-'+kind);
     if(drawerLabel)drawerLabel.textContent=kind==='io'?'I/O & AUDIO':kind==='generator'?'GENERATOR':'TRACES';
     if(kind==='io'){if(typeof window.v52SetIo==='function')window.v52SetIo(true);else click('v52IoBtn');}
@@ -4456,9 +4497,8 @@ window.addEventListener('load', function(){
  const resizeTimers={left:0,right:0};
  function settleLayout(side){
    cancelAnimationFrame(resizeTimers[side]);
+   // The stage ResizeObserver keeps the canvas aligned throughout the transition.
    resizeTimers[side]=requestAnimationFrame(()=>{if(typeof resize==='function')resize()});
-   clearTimeout(settleLayout[side]);
-   settleLayout[side]=setTimeout(()=>{if(typeof resize==='function')resize()},320);
  }
  function setRail(side,open,persist=true){
    document.body.classList.toggle(side+'-rail-collapsed',!open);
@@ -4605,5 +4645,24 @@ window.addEventListener('load', function(){
 </script>
 <div id="rtaProStrip" aria-hidden="true"><span class="rpsChip">RES <strong id="rpsRes">—</strong></span><span class="rpsChip">AVG <strong id="rpsAvg">—</strong></span><span class="rpsChip">SMOOTH <strong id="rpsSmooth">—</strong></span><span class="rpsChip target">TARGET <strong id="rpsTarget">ON</strong></span></div>
 <script>(()=>{function t(q,f='—'){const x=document.querySelector(q);return(x?.selectedOptions?.[0]?.textContent||x?.textContent||x?.value||f).trim()}function sync(){const a=document.getElementById('rpsRes'),b=document.getElementById('rpsAvg'),c=document.getElementById('rpsSmooth'),d=document.getElementById('rpsTarget');if(a)a.textContent=(document.getElementById('v3ResChip')?.textContent||'—').replace('RES ','');if(b)b.textContent=document.getElementById('avgBtn')?.classList.contains('on')?t('#avgSpeedSeg .on','ON'):'OFF';if(c)c.textContent=t('#smoothVal',t('#smooth','—'));if(d)d.textContent=document.getElementById('v5TargetToggle')?.classList.contains('on')?'ON':'OFF'}setInterval(sync,500);sync()})();</script>
+<dialog id="audioPreferences" aria-labelledby="audioPreferencesTitle">
+ <div class="audioPreferencesHead"><span id="audioPreferencesTitle">Preferences</span><button id="audioPreferencesClose" type="button" aria-label="Close preferences">×</button></div>
+ <div class="audioPreferencesBody"><nav class="audioPreferencesNav" aria-label="Preferences sections"><button class="on" data-audio-page="audio">Audio</button><button data-audio-page="analysis">Analysis</button><button data-audio-page="calibration">Calibration</button></nav><div id="audioPreferencesContent"></div></div>
+</dialog>
+<script>
+(()=>{
+ if(!document.body.classList.contains('desktop-native-menus'))return;
+ const dialog=document.getElementById('audioPreferences'),dock=document.getElementById('v52IODock');
+ const cards=[...dock.querySelectorAll('.v52IOGrid > .v52IOCard')].filter(c=>c.id!=='multiInputPanel');
+ cards.forEach((card,i)=>card.dataset.preferencesPage=['audio','analysis','calibration'][i]);
+ document.getElementById('audioPreferencesContent').append(dock);
+ function page(name){for(const id of ['multiInputPanel','v53MicCalArea']){const node=document.getElementById(id);node?.toggleAttribute('data-preferences-section-hidden',name!==(id==='multiInputPanel'?'audio':'calibration'));}cards.forEach(c=>c.hidden=c.dataset.preferencesPage!==name);document.querySelectorAll('[data-audio-page]').forEach(b=>{b.classList.toggle('on',b.dataset.audioPage===name);b.setAttribute('aria-pressed',String(b.dataset.audioPage===name));});}
+ document.querySelectorAll('[data-audio-page]').forEach(b=>b.addEventListener('click',()=>page(b.dataset.audioPage)));
+ window.setAudioPreferences=open=>{if(open){page('audio');if(!dialog.open)dialog.showModal();}else if(dialog.open)dialog.close();};
+ document.getElementById('audioPreferencesClose').onclick=()=>v52SetIo(false);
+ dialog.addEventListener('cancel',event=>{event.preventDefault();v52SetIo(false)});
+ page('audio');
+})();
+</script>
 </body>
 </html>

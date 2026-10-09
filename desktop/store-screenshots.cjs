@@ -96,7 +96,44 @@ module.exports=async({window,release})=>{
   await capture('04-transfer-function.jpg','TF magnitude','Actual measured and verified synthetic 5 ms loopback.');
   await evaluate(`setTfViewMode('phase');`);
   await capture('05-phase.jpg','TF phase','Delay-compensated phase from the same selected input pair.');
-  await evaluate(`await stop();`);
+  await evaluate(`
+    document.getElementById('sunBtn').click();
+    if(!document.body.classList.contains('sun-mode'))throw Error('Day theme did not activate.');
+    for(const selector of ['header.uiRefreshed','#v5ModeTabs','.tlsCard','#targetMeasurementPanel','.tmpValue','#uiRightTools','#meter','#displayResolutionBar']){
+      const color=getComputedStyle(document.querySelector(selector)).backgroundColor;
+      const values=color.match(/[0-9.]+/g).map(Number);
+      if(values[0]<100&&values[1]<100&&values[2]<100&&(values[3]??1)>.5)throw Error('Dark day surface: '+selector+' '+color);
+    }
+    v54SetAnalysisView('rta');
+  `);
+  await wait(500);
+  const saveUi=async name=>fs.writeFileSync(path.join(output,name),(await window.webContents.capturePage()).resize({width:1440,height:900}).toJPEG(94));
+  if(require('electron').nativeTheme.themeSource!=='light')throw Error('Native window did not switch to the day theme.');
+  await saveUi('ui-day.jpg');
+  await evaluate(`v5OpenTf();`);await wait(300);await saveUi('ui-tf-day.jpg');
+  await evaluate(`v54SetAnalysisView('rta');document.querySelector('#v5ModeTabs [data-v5mode="delay"]').click();`);await wait(300);await saveUi('ui-delay-day.jpg');
+  await evaluate(`closeModals();v54SetAnalysisView('rta');`);
+  await evaluate(`
+    const before=document.getElementById('stage').getBoundingClientRect();
+    document.getElementById('uiSetOpenIo').click();
+    await new Promise(r=>setTimeout(r,100));
+    const dialog=document.getElementById('audioPreferences');
+    if(!dialog.open||!dialog.contains(document.getElementById('v52DeviceSelect')))throw Error('Audio preferences did not open.');
+    if(document.body.classList.contains('ui-drawer-io')||document.getElementById('stage').getBoundingClientRect().width!==before.width)throw Error('Preferences still alter the graph layout.');
+    for(const page of ['analysis','calibration','audio']){
+      document.querySelector('[data-audio-page="'+page+'"]').click();
+      if(![...dialog.querySelectorAll('[data-preferences-page]')].some(c=>!c.hidden&&c.dataset.preferencesPage===page))throw Error('Preferences section missing: '+page);
+    }
+    await new Promise(r=>setTimeout(r,300));
+    const values=getComputedStyle(document.getElementById('v52DeviceSelect')).backgroundColor.match(/[0-9.]+/g).map(Number);if(values.slice(0,3).some(v=>v<150))throw Error('Day preferences contain dark selects.');
+    if(document.querySelector('.multiInputRead').textContent==='NO SIGNAL')throw Error('Preferences meters are not updating.');
+    const r=dialog.getBoundingClientRect();if(r.left<10||r.top<10||r.bottom>innerHeight)throw Error('Preferences overflow window.');
+  `);
+  await saveUi('ui-audio-preferences-day.jpg');
+  await evaluate(`document.getElementById('audioPreferencesClose').click();if(document.getElementById('audioPreferences').open||v52IoOpen)throw Error('Preferences did not close.');document.getElementById('sunBtn').click();document.getElementById('uiSetOpenIo').click();`);
+  await wait(100);if(require('electron').nativeTheme.themeSource!=='dark')throw Error('Native window did not switch to the night theme.');
+  await saveUi('ui-audio-preferences-night.jpg');
+  await evaluate(`document.getElementById('audioPreferencesClose').click();await stop();`);
   const manifest={release:release.version,date:'2026-10-09',status:'Drafts. Recapture from the accepted signed MAS release before submission.',scope:'Real application renderer; synthetic PCM from the test helper; no physical microphone or playback.',tf,shots};
   fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   return {output,count:shots.length,tf};

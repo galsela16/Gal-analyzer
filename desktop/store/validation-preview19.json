@@ -1,0 +1,54 @@
+{
+  "release": "6.0.0-preview.19",
+  "date": "2026-10-09",
+  "scope": "Day theme surface corrections, short sidebar crossfade, explicit Start/Stop audio button and centered Audio Preferences.",
+  "checks": {
+    "desktopIntegration": {
+      "parallelInputs": 8,
+      "nativeChannelCounts": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "repeatedFieldMeasurements": 4,
+      "verifiedTrace": true
+    },
+    "nativeTargetMenu": true,
+    "audioStopRestart": true,
+    "exclusiveGraphSelection": true,
+    "generatorTwoActions": true,
+    "sidebarsCollapseExpand": true,
+    "measurementAudioControl": true,
+    "metadataValidated": true,
+    "bundleBuild": 19,
+    "uiVersion": "6.0.0-preview.19",
+    "screenshots": {
+      "count": 5,
+      "width": 1440,
+      "height": 900,
+      "synthetic": true,
+      "tfDelayMs": 5.00002095083718,
+      "verified": true
+    },
+    "dayThemeSurfaces": true,
+    "audioPreferencesSections": [
+      "Audio",
+      "Analysis",
+      "Calibration"
+    ],
+    "preferencesDoNotResizeGraph": true,
+    "preferencesLiveInputMeters": true,
+    "nativeWindowTheme": true
+  },
+  "readyToSubmit": false,
+  "pending": [
+    "Apple signing and signed sandbox acceptance",
+    "Physical multichannel hardware and sustained-session acceptance",
+    "Private review contacts and owner declarations",
+    "Final privacy/dependency and export compliance review",
+    "Final signed release screenshots and hardware walkthrough"
+  ]
+}
