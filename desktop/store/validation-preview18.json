@@ -1,0 +1,45 @@
+{
+  "release": "6.0.0-preview.18",
+  "date": "2026-10-09",
+  "scope": "Vivid chart colors, opt-in target, native macOS menus, sidebar motion, generator actions, exclusive analysis selection and audio input control.",
+  "checks": {
+    "desktopIntegration": {
+      "parallelInputs": 8,
+      "nativeChannelCounts": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ],
+      "repeatedFieldMeasurements": 4,
+      "verifiedTrace": true
+    },
+    "nativeTargetMenu": true,
+    "audioStopRestart": true,
+    "exclusiveGraphSelection": true,
+    "generatorTwoActions": true,
+    "sidebarsCollapseExpand": true,
+    "measurementAudioControl": true,
+    "metadataValidated": true,
+    "bundleBuild": 18,
+    "uiVersion": "6.0.0-preview.18",
+    "screenshots": {
+      "count": 5,
+      "width": 1440,
+      "height": 900,
+      "synthetic": true,
+      "tfDelayMs": 5.0000109747097055,
+      "verified": true
+    }
+  },
+  "readyToSubmit": false,
+  "pending": [
+    "Apple signing and signed sandbox acceptance",
+    "Physical multichannel hardware and sustained-session acceptance",
+    "Private review contacts and owner declarations",
+    "Final privacy/dependency and export compliance review",
+    "Final signed release screenshots and hardware walkthrough"
+  ]
+}

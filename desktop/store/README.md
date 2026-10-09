@@ -1,6 +1,6 @@
 # GAL Analyzer — submission preparation
 
-Prepared preview.17, October 9, 2026. This packet is not an App Store submission.
+Prepared preview.18, October 9, 2026. This packet is not an App Store submission.
 
 - `listing.en-US.json`: authoritative listing draft and pending owner fields.
 - `description.en-US.txt`, `promotional-text.en-US.txt`, `keywords.en-US.txt`:
@@ -16,6 +16,6 @@ manifest. Generated screenshots are not tracked in Git. Source capture and
 validation scripts are reproducible in the repository.
 
 Run `node store/validate.cjs` from desktop to check metadata. Add
-`--screenshots build/store-submission/6.0.0-preview.17/screenshots` to verify the
+`--screenshots build/store-submission/6.0.0-preview.18/screenshots` to verify the
 capture set and JPEG dimensions. Pending account/hardware details are reported
 separately; a successful metadata check does not grant release readiness.

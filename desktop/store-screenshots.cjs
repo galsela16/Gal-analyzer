@@ -9,6 +9,19 @@ module.exports=async({window,release})=>{
   const evaluate=code=>window.webContents.executeJavaScript(`(async()=>{${code}})()`);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const shots=[];
+  const menu=require('electron').Menu.getApplicationMenu();
+  if(!menu.getMenuItemById('target-curve'))throw Error('Native target menu missing.');
+  await evaluate(`
+    if(!document.body.classList.contains('desktop-native-menus')||getComputedStyle(document.getElementById('uiMenuBtn')).display!=='none')throw Error('Desktop still shows the in-app menu.');
+    if(!document.getElementById('targetMeasurementPanel').contains(document.getElementById('uiLivePill')))throw Error('Audio control is outside Measurement.');
+    if(document.querySelectorAll('.tlsPatchActions button').length!==2)throw Error('Generator must have exactly two buttons.');
+    for(const view of ['tf','rta','mr','spec','tf']){
+      v54SetAnalysisView(view);setMode(view==='spec'?'spec':'rta');
+      const active=[...document.querySelectorAll('#v53AnalysisGroup button.on')];
+      if(active.length!==1||active[0].id!==({tf:'v54TfGraphToggle',rta:'v53AnalysisToggle',mr:'v54MrToggle',spec:'v54WaterfallToggle'})[view])throw Error('Mode selectors are not exclusive: '+view);
+    }
+  `);
+
   await evaluate(`
     await start('coreaudio:field-test');
     if(!running||chReceived!==6)throw Error('Synthetic six-channel input did not start.');
@@ -16,7 +29,33 @@ module.exports=async({window,release})=>{
     const label=document.createElement('span');label.textContent='DEMO · Synthetic audio';
     label.style.cssText='position:fixed;top:19px;left:460px;z-index:9999;display:block;color:#9bcbd4;background:#0c2028;border:1px solid #294954;border-radius:4px;padding:4px 9px;font:11px Arial;white-space:nowrap;pointer-events:none';
     label.id='storeDemoLabel';document.body.appendChild(label);
-    targetVisible=false;
+    if(targetVisible)throw Error('Target must be hidden by default.');
+    document.getElementById('uiSetTarget').click();
+    await new Promise(resolve=>setTimeout(resolve,100));
+    if(!targetVisible)throw Error('Target cannot be enabled from settings.');
+    document.getElementById('uiSetTarget').click();
+    await new Promise(resolve=>setTimeout(resolve,100));
+    if(targetVisible)throw Error('Target cannot be hidden from settings.');
+  `);
+  await wait(100);
+  if(menu.getMenuItemById('target-curve').checked)throw Error('Native target menu does not mirror state.');
+  menu.getMenuItemById('target-curve').click();await wait(150);
+  if(!await evaluate('return targetVisible;'))throw Error('Native target menu does not enable the target.');
+  menu.getMenuItemById('target-curve').click();await wait(150);
+  if(await evaluate('return targetVisible;'))throw Error('Native target menu does not disable the target.');
+  await evaluate(`
+    document.getElementById('uiLivePill').click();
+    while(document.getElementById('uiLivePill').disabled)await new Promise(r=>setTimeout(r,20));
+    if(running||document.getElementById('uiLivePill').getAttribute('aria-pressed')!=='false')throw Error('Audio button does not stop capture.');
+    activeInId='coreaudio:field-test';document.getElementById('uiLivePill').click();
+    while(document.getElementById('uiLivePill').disabled)await new Promise(r=>setTimeout(r,20));
+    if(!running||chReceived!==6||document.getElementById('uiLivePill').getAttribute('aria-pressed')!=='true')throw Error('Audio button does not restart the selected input.');
+    for(const side of ['left','right']){
+      setWorkspaceRail(side,false);await new Promise(r=>setTimeout(r,360));
+      if(!document.body.classList.contains(side+'-rail-collapsed'))throw Error('Sidebar did not collapse.');
+      setWorkspaceRail(side,true);await new Promise(r=>setTimeout(r,360));
+      if(document.body.classList.contains(side+'-rail-collapsed'))throw Error('Sidebar did not expand.');
+    }
   `);
   const capture=async(file,view,description)=>{
     await wait(2800);

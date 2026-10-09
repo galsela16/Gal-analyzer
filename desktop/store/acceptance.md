@@ -1,9 +1,9 @@
-# Release acceptance — preview.17
+# Release acceptance — preview.18
 
 ## Completed without paid membership
 
 - Direct-download and MAS packaging target arm64; the native helper targets arm64.
-- Numeric bundle version 6.0.0 and build 17, with preview.17 shown in the UI.
+- Numeric bundle version 6.0.0 and build 18, with preview.18 shown in the UI.
 - Local privacy policy accessible through the native application menu.
 - Separate unsigned MAS assembly and signed development/distribution commands.
 - Signed commands refuse to proceed without the matching Apple signing profile.

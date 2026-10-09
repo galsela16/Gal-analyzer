@@ -1,4 +1,4 @@
-# App Store Connect materials — preview.17
+# App Store Connect materials — preview.18
 
 Prepared on October 9, 2026. No submission has been made.
 
@@ -11,7 +11,7 @@ The application interface and this listing use English.
 - Proposed category: Music
 - Price: Free
 - macOS 13 or later; Apple Silicon; up to 32 Core Audio inputs subject to driver support.
-- Numeric version: 6.0.0; prepared build: 17; UI: preview.17.
+- Numeric version: 6.0.0; prepared build: 18; UI: preview.18.
 - Privacy: https://github.com/galsela16/Gal-analyzer/blob/main/desktop/PRIVACY.md
 
 Public support email: galanalyzer@gmail.com

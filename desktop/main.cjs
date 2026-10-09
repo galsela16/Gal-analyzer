@@ -64,10 +64,19 @@ app.whenReady().then(async () => {
   window.webContents.setWindowOpenHandler(() => ({action:'deny'}));
   window.on('closed',()=>{privacyWindow?.close();audioHost?.stop();});
   window.webContents.on('will-navigate',(event,url) => {if(!local(url))event.preventDefault();});
-  Menu.setApplicationMenu(Menu.buildFromTemplate([
+  const command=selector=>()=>{if(window&&!window.isDestroyed())window.webContents.executeJavaScript(`document.querySelector(${JSON.stringify(selector)})?.click()`).catch(error=>console.error('Menu command failed:',error.message));};
+  const item=(label,id,accelerator)=>({label,accelerator,click:command('#'+id)});
+  const menu=Menu.buildFromTemplate([
     {label:app.name,submenu:[{role:'about'},{label:'Privacy Policy…',click:showPrivacy},{type:'separator'},{role:'quit'}]},
-    {role:'editMenu'},{role:'viewMenu'},{role:'windowMenu'}
-  ]));
+    {label:'File',submenu:[item('Export graph PNG…','uiPng'),item('Export measurement CSV…','uiCsv'),{type:'separator'},item('Export session…','exportJsonBtn'),item('Import session…','importJsonBtn')]},
+    {role:'editMenu'},
+    {label:'Audio',submenu:[item('Inputs, reference and calibration…','uiSetOpenIo','CmdOrCtrl+,'),item('Open generator…','tlsGenOpen'),item('Start / stop signal','tlsGenToggle')]},
+    {label:'Display',submenu:[{id:'target-curve',label:'Show target curve',type:'checkbox',checked:false,click:command('#uiSetTarget')},{label:'Target shape',submenu:['flat','house'].map(shape=>({label:shape[0].toUpperCase()+shape.slice(1),click:command('.tgtSeg [data-t="'+shape+'"]')}))},item('Day / night theme','uiSetTheme'),{label:'Resolution',submenu:[3,6,12,24,48].map(n=>({label:'1/'+n+' octave',click:command('[data-set-bpo="'+n+'"]')}))},{label:'Analysis speed',submenu:['slow','normal','fast'].map(speed=>({label:speed[0].toUpperCase()+speed.slice(1),click:command('[data-analysis-speed="'+speed+'"]')}))},{label:'Accent color',submenu:[['Blue','#3ea6ff'],['Green','#40d17a'],['Purple','#b57bff'],['Orange','#ff9d3c']].map(([label,color])=>({label,click:command('[data-ui-color="'+color+'"]')}))},item('Toggle left sidebar','leftRailToggle'),item('Toggle right sidebar','rightRailToggle')]},
+    {role:'viewMenu'},{role:'windowMenu'},
+    {label:'Help',submenu:[item('Measurement guide','uiGuide'),item('Context help','uiHelp')]}
+  ]);
+  Menu.setApplicationMenu(menu);
+  ipcMain.on('gal:menu:target',(event,value)=>{trusted(event);if(typeof value==='boolean')menu.getMenuItemById('target-curve').checked=value;});
   const errors=[];
   window.webContents.on('console-message',(event)=>{if(event.level==='error')errors.push(event.message+' '+event.sourceId+':'+event.lineNumber);});
   await window.loadURL(origin+'/index.html');

@@ -1,6 +1,6 @@
 /* Parallel input monitoring. Raw extra-channel levels are always digital dBFS. */
 window.GalMultiInput = (() => {
-  const colors=['#40c9ff','#ffad55','#d48dff','#55dc9a','#ff668f','#efe36b','#70e0df','#b4b8ff'];
+  const colors=['#00c8ff','#ffab00','#c84bff','#00f590','#ff285c','#fff000','#00efff','#8670ff'];
   let channels=[], splitter=null, sink=null, enabled=true, lastTime=0, delta=1/30;
   function dispose(){
     for(const c of channels)c.node.disconnect();

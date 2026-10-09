@@ -1,4 +1,4 @@
-# Submission handoff — prepared preview.17
+# Submission handoff — prepared preview.18
 
 Prepared October 9, 2026. Nothing here has been entered into App Store Connect.
 

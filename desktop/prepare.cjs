@@ -16,7 +16,7 @@ for(const file of ['native-input.js','native-input-worklet.js']) fs.copyFileSync
 for(const [file,size] of [['icon-192.png',192],['icon-512.png',512],['icon-512-maskable.png',512]]) {
   execFileSync('sips',['-s','format','png','-z',String(size),String(size),path.join(__dirname,'assets/gal-analyzer-logo-final.jpeg'),'--out',path.join(out,'icons',file)],{stdio:'pipe'});
 }
-const html=path.join(out,'index.html');fs.writeFileSync(html,fs.readFileSync(html,'utf8').replace('<head>','<head><script src="native-input.js"></script>'));
+const html=path.join(out,'index.html');fs.writeFileSync(html,fs.readFileSync(html,'utf8').replace('<head>','<head><script src="native-input.js"></script>').replace('<body>', '<body class="desktop-native-menus">'));
 // Desktop packaging is a generated copy. Web sources stay shared and unchanged.
 for (const file of ['index.html', 'app.js', 'js/core/config.js', 'js/app-core.js']) {
   const target = path.join(out,file);
