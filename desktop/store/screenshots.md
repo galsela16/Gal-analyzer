@@ -5,7 +5,7 @@ test transport in a separate temporary profile. They do not capture private audi
 or play a signal. They are not captures of the signed MAS distribution build.
 
 Run from desktop: `npm run screenshots:store`.
-Output: `build/store-submission/6.0.0-preview.16/screenshots/`.
+Output: `build/store-submission/6.0.0-preview.17/screenshots/`.
 
 | Order | File | Content |
 | --- | --- | --- |

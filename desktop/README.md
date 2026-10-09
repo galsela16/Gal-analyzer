@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.16
+# GAL Analyzer Desktop — 6.0.0-preview.17
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.16-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.17-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 

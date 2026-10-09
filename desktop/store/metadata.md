@@ -1,4 +1,4 @@
-# App Store Connect materials — preview.16
+# App Store Connect materials — preview.17
 
 Prepared on October 9, 2026. No submission has been made.
 
@@ -11,13 +11,15 @@ The application interface and this listing use English.
 - Proposed category: Music
 - Price: Free
 - macOS 13 or later; Apple Silicon; up to 32 Core Audio inputs subject to driver support.
-- Numeric version: 6.0.0; prepared build: 16; UI: preview.16.
+- Numeric version: 6.0.0; prepared build: 17; UI: preview.17.
 - Privacy: https://github.com/galsela16/Gal-analyzer/blob/main/desktop/PRIVACY.md
 
-The support URL is not finalized. The owner is creating a dedicated email address.
-The existing GitHub issues URL is a supplementary issue tracker, not a completed
-contact page. `SUPPORT.md` provides a draft to finish once the public email exists.
-Do not fill a nonexistent email or URL into App Store Connect.
+Public support email: galanalyzer@gmail.com
+
+Support URL: https://github.com/galsela16/Gal-analyzer/blob/main/desktop/store/SUPPORT.md
+
+The support page contains contact information and setup help. GitHub issues are a
+supplementary tracker. Private App Review contact details remain separate.
 
 The marketing version 6.0.0 is reserved for the future accepted release, not a
 statement that this preview is ready to submit. Refresh the build number and all

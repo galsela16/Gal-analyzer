@@ -1,9 +1,9 @@
-# Release acceptance — preview.16
+# Release acceptance — preview.17
 
 ## Completed without paid membership
 
 - Direct-download and MAS packaging target arm64; the native helper targets arm64.
-- Numeric bundle version 6.0.0 and build 16, with preview.16 shown in the UI.
+- Numeric bundle version 6.0.0 and build 17, with preview.17 shown in the UI.
 - Local privacy policy accessible through the native application menu.
 - Separate unsigned MAS assembly and signed development/distribution commands.
 - Signed commands refuse to proceed without the matching Apple signing profile.
@@ -14,9 +14,9 @@
 
 ## Submission material preparation
 
-English listing, review notes, screenshot capture and validation, a support-page
-draft and a hardware walkthrough are prepared in this directory. The public
-support email and private review contact still need the owner’s information.
+English listing, review notes, screenshot capture and validation, a public support page and a hardware walkthrough are prepared in this directory. The public
+support email is galanalyzer@gmail.com. Private review contact still needs the
+owner’s information.
 Draft screenshots are synthetic real-renderer captures, not final signed MAS
 release screenshots. Existing preview.15 test evidence remains historical.
 

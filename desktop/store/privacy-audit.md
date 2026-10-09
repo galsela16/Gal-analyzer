@@ -9,6 +9,10 @@ found in the runtime setup. Microphone permission precedes capture; settings and
 traces use local browser storage. Exports are user-initiated files. The local
 privacy policy documents these behaviors and the support-report boundary.
 
+Support contact is galanalyzer@gmail.com. Email is initiated outside the app by
+the user; the app does not send messages or attachments automatically. The policy
+now describes the developer/email-provider boundary for voluntary support.
+
 The proposed App Privacy response is Data Not Collected. Reconfirm this against
 the final signed binary and dependencies immediately before submission.
 

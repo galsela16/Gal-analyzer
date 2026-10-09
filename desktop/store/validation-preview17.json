@@ -1,0 +1,28 @@
+{
+  "release": "6.0.0-preview.17",
+  "date": "2026-10-09",
+  "scope": "Support contact, policy and listing update; previous full audio regression remains recorded in preview16.",
+  "checks": {
+    "publicSupportEmail": "galanalyzer@gmail.com",
+    "metadataValidated": true,
+    "packagedEmailAndPolicyURL": true,
+    "bundleBuild": 17,
+    "uiVersion": "6.0.0-preview.17",
+    "screenshots": {
+      "count": 5,
+      "width": 1440,
+      "height": 900,
+      "synthetic": true,
+      "tfDelayMs": 5.0000109747097055,
+      "verified": true
+    }
+  },
+  "readyToSubmit": false,
+  "pending": [
+    "Apple signing and signed sandbox acceptance",
+    "Physical multichannel hardware and sustained-session acceptance",
+    "Private review contacts and owner declarations",
+    "Final privacy/dependency and export compliance review",
+    "Final signed release screenshots and hardware walkthrough"
+  ]
+}

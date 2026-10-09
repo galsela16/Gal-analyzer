@@ -26,10 +26,13 @@ crash reporter is not enabled. Apple may separately process store purchases,
 downloads or diagnostic data under Apple's own privacy policy.
 
 Support
-If you choose to report an issue through the GitHub repository, GitHub processes
-that submission under its own policies. Do not include private recordings or
-personal information in public issues. The app does not automatically submit
-support reports. Support: https://github.com/galsela16/Gal-analyzer/issues
+If you choose to contact galanalyzer@gmail.com, your message and any attachments
+are shared with the developer and handled by the email services used to send and
+receive them. Send only the information needed for support. If you report an issue
+through GitHub, GitHub processes that submission under its own policies. Do not
+include private recordings or personal information in public issues. The app does
+not automatically send support messages or reports. Support contact and setup help:
+https://github.com/galsela16/Gal-analyzer/blob/main/desktop/store/SUPPORT.md
 
 The application is provided by the maintainer of that repository. Any change to
 these practices will be reflected in this policy in a future app release.

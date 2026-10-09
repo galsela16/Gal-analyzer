@@ -12,19 +12,19 @@
   "minimumOS": "13.0",
   "architecture": "arm64",
   "marketingVersion": "6.0.0",
-  "preparedBuild": 16,
-  "preparedDesktopVersion": "6.0.0-preview.16",
+  "preparedBuild": 17,
+  "preparedDesktopVersion": "6.0.0-preview.17",
   "bundleId": "com.galanalyzer.desktop",
   "signInRequired": false,
-  "supportURL": null,
+  "supportURL": "https://github.com/galsela16/Gal-analyzer/blob/main/desktop/store/SUPPORT.md",
   "privacyPolicyURL": "https://github.com/galsela16/Gal-analyzer/blob/main/desktop/PRIVACY.md",
   "reviewNotes": "GAL Analyzer is an offline audio measurement utility for Apple Silicon Macs running macOS 13 or later. No sign-in, subscription or network connection is required. There are no in-app purchases.\n\nBASIC REVIEW: Launch the app, select START MICROPHONE, and allow microphone access. A built-in microphone is sufficient. Open I / O to select an input device and available MIC/REF channels. Select RTA, change octave resolution, then select WATERFALL. Use Capture Trace, edit its name directly, and toggle its visibility. Use the application menu > Privacy Policy to read the local policy.\n\nHARDWARE-DEPENDENT FEATURES: TF and Delay require two distinct input signals: a measurement input and a reference feed from the same stimulus. A mono built-in microphone cannot provide a valid two-input transfer function. Missing channels are unavailable rather than duplicates. A Core Audio interface with at least two inputs can be used; no specific brand is required.\n\nTF REVIEW: Connect one line-level source to two compatible line inputs (or supply the measurement microphone and a reference feed from the same source). In I / O choose distinct MIC and REF channels. Keep the broadband source playing. Open TF Measurement; choose Sync TF and External source (no generator playback). Then Verify TF with the same external source, followed by Capture Trace. Confirm the trace is marked Verified. Capturing a trace does not stop the input. Magnitude, Phase and Coherence switch the displayed result. The attachment reviewer-guide.md describes setup and repeat checks.\n\nThe integrated generator starts only after an explicit Start signal action. Basic microphone review does not require output playback. Use moderate input/output levels for loopback; do not connect an amplified speaker output to an interface input.\n\nAll processing is local. File export/import uses the user's chosen files. App Store screenshots labeled DEMO show synthetic audio processed by the real app, not physical measurements. They are preparation drafts until recaptured from the accepted signed release.\n\nBefore submitting, replace these draft screenshots, attach the final hardware walkthrough, confirm the review contact details and select the matching signed build.",
   "releaseOption": "MANUAL (proposed)",
   "ownerFieldsPending": [
-    "Public support email and contact page URL",
     "Private App Review name, email and international phone",
     "Confirmed legal copyright owner",
     "Apple seller identity and trader declarations",
     "Territory availability and final release option"
-  ]
+  ],
+  "supportEmail": "galanalyzer@gmail.com"
 }

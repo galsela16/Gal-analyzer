@@ -1,8 +1,7 @@
-# GAL Analyzer support — contact page draft
+# GAL Analyzer support
 
-This page is not the final App Store Support URL. The owner is creating a
-public support email. Add that confirmed address and publish the completed page
-before submission; never publish private App Review contact details here.
+Contact us at **[galanalyzer@gmail.com](mailto:galanalyzer@gmail.com)** for app
+issues, setup questions and feedback. Updated October 9, 2026.
 
 GAL Analyzer is a local audio measurement application for Apple Silicon Macs
 with macOS 13 or later. It can capture up to 32 Core Audio inputs when exposed by
@@ -41,4 +40,4 @@ uploaded by the application.
 Privacy policy:
 https://github.com/galsela16/Gal-analyzer/blob/main/desktop/PRIVACY.md
 
-Public support email: pending owner's new dedicated address.
+Public support email: [galanalyzer@gmail.com](mailto:galanalyzer@gmail.com).

@@ -1,11 +1,11 @@
-# Submission handoff — prepared preview.16
+# Submission handoff — prepared preview.17
 
 Prepared October 9, 2026. Nothing here has been entered into App Store Connect.
 
 ## Prepared now
 
 - English listing fields and copyable text; lengths checked automatically.
-- Public privacy policy and support-page content draft.
+- Public privacy policy and support page with the confirmed contact email.
 - App Review notes and brand-independent MIC/REF loopback walkthrough.
 - Five real-renderer screenshot drafts at 1440 × 900, marked synthetic demo.
 - Final user-supplied logo; screenshot and build metadata kept separate.
@@ -13,7 +13,6 @@ Prepared October 9, 2026. Nothing here has been entered into App Store Connect.
 
 ## Owner information to provide later
 
-- Dedicated public support email and the completed public contact-page URL.
 - Legal seller/copyright details matching the enrolled Apple account.
 - Private App Review contact name, email and phone in international format.
 - Trader status, territories and release preference in App Store Connect.
