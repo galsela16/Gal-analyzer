@@ -1,0 +1,20 @@
+GAL Analyzer brings audio measurement tools into one local Mac application. Explore live frequency spectra, compare microphone and reference inputs, view frequency history, and capture named traces for sound system tuning.
+
+LIVE ANALYSIS
+• Real-time spectrum analysis with 1/3, 1/6, 1/12, 1/24 and 1/48 octave display resolution.
+• Microphone/reference spectrum comparison and Waterfall history.
+• Core Audio input capture with up to 32 simultaneous channels, subject to your interface and its macOS driver.
+• Choose microphone and reference channels from the available inputs.
+
+MEASUREMENT WORKFLOW
+• Transfer-function magnitude, phase and coherence for a selected input pair.
+• Delay measurement and an integrated signal generator.
+• Capture colored traces and edit their names directly.
+• Session import/export and CSV/image export tools.
+
+LOCAL BY DESIGN
+No account, advertising or cloud subscription. Audio processing and measurements remain on your Mac. You choose which files to export and share.
+
+Requires an Apple Silicon Mac with macOS 13 or later. Install any macOS driver required by your audio interface manufacturer; GAL Analyzer does not install drivers. A built-in microphone supports spectrum and Waterfall analysis. Transfer-function and delay measurements need valid microphone and reference signals. These tools measure a selected pair rather than a separate transfer function for every input simultaneously.
+
+Displayed SPL estimates require appropriate microphone calibration. GAL Analyzer is not a certified sound level meter. Use the reference feed and verification workflow for transfer-function measurements.

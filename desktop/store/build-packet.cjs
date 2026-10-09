@@ -1,0 +1,18 @@
+const fs=require('node:fs');
+const path=require('node:path');
+const {execFileSync}=require('node:child_process');
+const release=require('../release.cjs');
+const desktop=path.resolve(__dirname,'..');
+const base=path.join(desktop,'build','store-submission',release.version);
+const screenshots=path.join(base,'screenshots');
+const report=execFileSync(process.execPath,[path.join(__dirname,'validate.cjs'),'--screenshots',screenshots],{encoding:'utf8'});
+const output=path.join(base,'GAL-Analyzer-Store-Preparation-'+release.version);
+fs.mkdirSync(output,{recursive:true});
+for(const file of fs.readdirSync(__dirname))if(/\.(md|txt|json)$/.test(file))fs.copyFileSync(path.join(__dirname,file),path.join(output,file));
+fs.copyFileSync(path.join(desktop,'PRIVACY.md'),path.join(output,'PRIVACY.md'));
+fs.cpSync(screenshots,path.join(output,'screenshots'),{recursive:true});
+fs.writeFileSync(path.join(output,'metadata-validation.json'),report);
+execFileSync('sips',['-s','format','png','-z','1024','1024',path.join(desktop,'assets','gal-analyzer-logo-final.jpeg'),'--out',path.join(output,'approved-logo-1024.png')],{stdio:'pipe'});
+const zip=path.join(base,'GAL-Analyzer-Store-Preparation-'+release.version+'.zip');
+execFileSync('ditto',['-c','-k','--keepParent',output,zip],{stdio:'inherit'});
+console.log(JSON.stringify({output,zip,readyToSubmit:false},null,2));

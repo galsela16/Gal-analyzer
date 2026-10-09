@@ -3966,8 +3966,8 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     }
     
     ctx.font="11px Arial"; ctx.textAlign='start';
-    if(showTfCoh){ ctx.fillStyle='rgba(239, 68, 68, 0.9)'; ctx.fillText('- - COHERENCE', 10, 64); }
-    if(showTfPhase){ ctx.fillStyle='rgba(34, 197, 94, 0.9)'; ctx.fillText('— PHASE', 10, showTfCoh?78:64); }
+    if((alignView||tfViewMode==='overlay')&&showTfCoh){ ctx.fillStyle='rgba(239, 68, 68, 0.9)'; ctx.fillText('- - COHERENCE', 10, 64); }
+    if((alignView||tfViewMode==='overlay')&&showTfPhase){ ctx.fillStyle='rgba(34, 197, 94, 0.9)'; ctx.fillText('— PHASE', 10, showTfCoh?78:64); }
   }
   
   if(refCurve && refCurve.v && refCurve.bands===BANDS){

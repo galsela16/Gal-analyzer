@@ -1,0 +1,1 @@
+Explore live spectra, compare inputs, inspect Waterfall history and capture named traces. Local audio measurement tools for your Apple Silicon Mac.

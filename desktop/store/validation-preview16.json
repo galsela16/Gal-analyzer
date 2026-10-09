@@ -1,0 +1,51 @@
+{
+  "release": "6.0.0-preview.16",
+  "date": "2026-10-09",
+  "architecture": "arm64",
+  "scope": "Store preparation drafts and direct-download regression. No signed MAS acceptance or physical multichannel test in this release.",
+  "checks": {
+    "packagedIntegration": true,
+    "nativeIntegrationCounts": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "repeatedTfMeasurements": 4,
+    "verifiedTfTrace": true,
+    "unsignedMasAssembly": true,
+    "metadataLengths": {
+      "name": 12,
+      "subtitle": 30,
+      "promotionalText": 147,
+      "description": 1633,
+      "keywordBytes": 92,
+      "reviewNoteBytes": 2231
+    },
+    "screenshots": {
+      "count": 5,
+      "width": 1440,
+      "height": 900,
+      "format": "JPEG",
+      "visibleSyntheticLabel": true,
+      "visuallyInspected": true,
+      "tfDelayMs": 5.0000125954669015,
+      "verifiedSyntheticTf": true,
+      "source": "Real app renderer with synthetic native PCM",
+      "signedMas": false
+    },
+    "phaseHeaderOverlapFixed": true,
+    "privacyFinalParagraphLayoutFixed": true
+  },
+  "readyToSubmit": false,
+  "pending": [
+    "Dedicated public support email and published contact page",
+    "Private review contacts and owner/account declarations",
+    "Apple signing and signed App Sandbox validation",
+    "Physical interface and sustained-session acceptance",
+    "Final privacy/dependency and export compliance review",
+    "Final signed release screenshots and hardware review attachment"
+  ]
+}

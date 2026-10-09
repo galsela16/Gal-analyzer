@@ -19,8 +19,9 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const fs = require('node:fs');
 const origin = 'gal://app';
+const storeScreenshots=process.argv.includes('--store-screenshots');
 const profiling=process.argv.includes('--performance-test');
-const testing = process.argv.includes('--self-test')||profiling;
+const testing = process.argv.includes('--self-test')||profiling||storeScreenshots;
 const hardwareTesting=process.argv.includes('--hardware-test');
 if(testing||hardwareTesting)app.setPath('userData',fs.mkdtempSync(path.join(require('node:os').tmpdir(),'gal-audio-test-')));
 const {NativeHost}=require('./native-host.cjs');
@@ -70,6 +71,14 @@ app.whenReady().then(async () => {
   const errors=[];
   window.webContents.on('console-message',(event)=>{if(event.level==='error')errors.push(event.message+' '+event.sourceId+':'+event.lineNumber);});
   await window.loadURL(origin+'/index.html');
+  if(storeScreenshots){
+    try {
+      const result=await require('./store-screenshots.cjs')({window,release});
+      if(errors.length)throw Error(errors.join('\n'));
+      console.log('Store screenshot drafts captured:',JSON.stringify(result));app.exit(0);
+    }catch(error){console.error(error);app.exit(1);}
+    return;
+  }
   if(hardwareTesting){
     try {
       const result=await window.webContents.executeJavaScript(`(async()=>{

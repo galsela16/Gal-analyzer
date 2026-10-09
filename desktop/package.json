@@ -1,7 +1,7 @@
 {
   "name": "gal-analyzer-desktop",
-  "version": "6.0.0-preview.15",
-  "galBuildNumber": 15,
+  "version": "6.0.0-preview.16",
+  "galBuildNumber": 16,
   "private": true,
   "description": "GAL Analyzer desktop \u2014 shared web interface",
   "main": "main.cjs",
@@ -12,7 +12,9 @@
     "check:store": "node package-mas.cjs --check",
     "build:mas:unsigned": "node package-mas.cjs --assemble-only",
     "build:mas:development": "node package-mas.cjs --development",
-    "build:mas:distribution": "node package-mas.cjs --distribution"
+    "build:mas:distribution": "node package-mas.cjs --distribution",
+    "screenshots:store": "node prepare.cjs && electron . --store-screenshots",
+    "validate:store": "node store/validate.cjs"
   },
   "devDependencies": {
     "electron": "44.5.1",
