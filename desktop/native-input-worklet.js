@@ -1,6 +1,6 @@
 class NativeInputProcessor extends AudioWorkletProcessor {
  constructor(options){
-  super();this.channels=options.processorOptions.channels;this.capacity=Math.ceil(sampleRate*1);this.prefill=Math.ceil(sampleRate*.1);
+  super();this.channels=options.processorOptions.channels;this.capacity=Math.ceil(sampleRate*1);this.prefill=Math.ceil(sampleRate*.04);
   this.ring=new Float32Array(this.capacity*this.channels);this.read=0;this.write=0;this.frames=0;this.started=false;this.failed=false;this.sequence=-1;
   this.port.onmessage=event=>{
    const packet=event.data;if(this.failed)return;
@@ -9,13 +9,15 @@ class NativeInputProcessor extends AudioWorkletProcessor {
    if(this.sequence>=0&&packet.sequence!==((this.sequence+1)>>>0))this.rebuffer('Native audio sequence gap.');
    this.sequence=packet.sequence;
    if(packet.frames>this.capacity){this.fail('Invalid native packet size.');return;}
+   if(packet.frames+this.frames>Math.ceil(sampleRate*.12))this.rebuffer('Audio delivery latency exceeded 120 ms.');
    if(packet.frames>this.capacity-this.frames)this.rebuffer('Audio delivery buffer overflow.');
    const values=new Float32Array(packet.pcm.buffer,packet.pcm.byteOffset,packet.pcm.byteLength/4);
-   for(let i=0;i<packet.frames;i++){
+   const first=Math.max(0,packet.frames-Math.ceil(sampleRate*.12));
+   for(let i=first;i<packet.frames;i++){
     for(let c=0;c<this.channels;c++)this.ring[this.write*this.channels+c]=values[i*this.channels+c];
     this.write=(this.write+1)%this.capacity;
    }
-   this.frames+=packet.frames;
+   this.frames+=packet.frames-first;
   };
  }
  rebuffer(message){this.frames=0;this.read=0;this.write=0;this.started=false;this.port.postMessage({discontinuity:message});}

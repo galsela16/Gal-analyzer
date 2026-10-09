@@ -1,0 +1,23 @@
+{
+  "release": "6.0.0-preview.21",
+  "date": "2026-10-10",
+  "scope": "Whole-panel sidebar slide, measurement-scoped recovery errors and bounded native audio delivery latency.",
+  "checks": {
+    "idleRecoveryWithoutMeasurementError": true,
+    "activeMeasurementCancelledAndReported": true,
+    "sidebarSlideWithoutGraphOverlap": true,
+    "rapidReversal": true,
+    "reducedMotion": true,
+    "nativeWorkletChannelOrderAndRecovery": true,
+    "nativePrefillMs": 40,
+    "maximumWorkletQueueMs": 120,
+    "normalRtaSmoothingMs": 140,
+    "fastRtaSmoothingMs": 70,
+    "metadataValidated": true
+  },
+  "limitations": [
+    "Timing bounds describe the renderer audio queue, not measured end-to-end hardware latency.",
+    "Physical interface field acceptance remains required.",
+    "App Store signing and membership remain pending."
+  ]
+}

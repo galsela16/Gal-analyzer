@@ -111,7 +111,7 @@ let tfState='idle', tfSwap=false, tfMic=null, tfRef=null, tfFrames=0, tfResult=n
 let running=false, mode='rta';
 let peakHold=true, fbOn=true, avgOn=false;
 let avgAlpha=0.90;
-let rtaResponseMs=420;
+let rtaResponseMs=140;
 let _v3ToastTimer=null;
 let floorDb=-85, ceilDb=-15;
 let calib=0;
@@ -361,7 +361,7 @@ document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.addEventListener('
 }));
 function setAnalysisSpeed(name,persist=true){
   const key=['fast','normal','slow'].includes(name)?name:'normal';
-  const preset={fast:{rta:140,wf:70,tf:.82,label:'Fast'},normal:{rta:420,wf:120,tf:.93,label:'Normal'},slow:{rta:700,wf:220,tf:.97,label:'Slow'}}[key];
+  const preset={fast:{rta:70,wf:70,tf:.82,label:'Fast'},normal:{rta:140,wf:120,tf:.93,label:'Normal'},slow:{rta:700,wf:220,tf:.97,label:'Slow'}}[key];
   rtaResponseMs=preset.rta;tfSmoothA=preset.tf;
   tfLiveVisualDb=[];
   if(window.wf3d){
@@ -3175,7 +3175,9 @@ function buildWeighting(nyquist,bins){
 
 window.addEventListener('gal-input-discontinuity',event=>{
   const message=event.detail?.message||'Audio delivery was interrupted. Input is recovering; repeat this measurement.';
-  delayCaptureCleanup?.();cancelTimedMeasurements();resetTfAutoDelay();
+  const interruptedMeasurement=measureBusy();
+  cancelTimedMeasurements();resetTfAutoDelay();
+  if(!interruptedMeasurement)return;
   const status=document.getElementById('dlyStatus');if(status)status.textContent=message;
   errBox.textContent=message;errBox.style.display='block';v3Toast(message);
 });
@@ -3205,13 +3207,13 @@ async function startInput(deviceId){
     activeInId = deviceId || '';
     
     if(window.GalNativeInput){
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({latencyHint:'interactive'});
       if(audioCtx.state==='suspended')await audioCtx.resume();
       const capture=await window.GalNativeInput.open(audioCtx,deviceId);
       stream=capture.stream;source=capture.source;
     }else{
       stream = await navigator.mediaDevices.getUserMedia({ audio });
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({latencyHint:'interactive'});
     }
     
     if(outSinkId && typeof audioCtx.setSinkId === 'function'){ 

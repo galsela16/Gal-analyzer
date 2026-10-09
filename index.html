@@ -1247,7 +1247,7 @@
     .v52QuickBtn span{display:none}
   }
 
-  .err{position:absolute;bottom:14px;inset-inline:14px;z-index:5;background:rgba(255,59,107,.12);border:1px solid var(--hot);
+  .err{position:absolute;bottom:50px;inset-inline:14px;z-index:5;background:rgba(255,59,107,.12);border:1px solid var(--hot);
     color:var(--hot);padding:10px 14px;border-radius:4px;font-size:12px;line-height:1.6;display:none}
 
 
@@ -3146,9 +3146,9 @@ body.reference-unassigned #dlyPanel.measureDock .dlyInputs{grid-template-columns
 body.desktop-native-menus #uiMenuBtn,body.desktop-native-menus #uiMenu,body.desktop-native-menus #uiMenuBackdrop{display:none!important}
 @media(min-width:1000px){
  #stage{transition:margin-left .30s cubic-bezier(.22,.8,.25,1),margin-right .30s cubic-bezier(.22,.8,.25,1)!important}
- #targetLeftStatus,#targetMeasurementPanel,#uiRightTools{opacity:1!important;visibility:visible!important;clip-path:inset(0 0 0 0 round 3px);transform:translateX(0)!important;transition:clip-path .30s cubic-bezier(.22,.8,.25,1),transform .30s cubic-bezier(.22,.8,.25,1)!important}
- body.left-rail-collapsed #targetLeftStatus{opacity:1!important;visibility:visible!important;clip-path:inset(0 100% 0 0 round 3px);transform:translateX(-10px)!important;transition-delay:0s,0s,.30s!important}
- body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{opacity:1!important;visibility:visible!important;clip-path:inset(0 0 0 100% round 3px);transform:translateX(10px)!important;transition-delay:0s,0s,.30s!important}
+ #targetLeftStatus,#targetMeasurementPanel,#uiRightTools{opacity:1!important;visibility:visible!important;clip-path:none;transform:translateX(0)!important;transition:transform .30s cubic-bezier(.22,.8,.25,1)!important}
+ body.left-rail-collapsed #targetLeftStatus{opacity:1!important;visibility:visible!important;clip-path:none;transform:translateX(calc(-100% - 12px))!important;transition-delay:0s!important}
+ body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{opacity:1!important;visibility:visible!important;clip-path:none;transform:translateX(calc(100% + 12px))!important;transition-delay:0s!important}
  .workspaceRailToggle{transition:left .30s cubic-bezier(.22,.8,.25,1),right .30s cubic-bezier(.22,.8,.25,1),color .14s ease!important}
  .workspaceRailToggle:focus:not(:focus-visible){outline:none!important;box-shadow:none!important}
 }

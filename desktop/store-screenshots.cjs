@@ -67,25 +67,32 @@ module.exports=async({window,release})=>{
     shots.push({file,view,description,width:1440,height:900,syntheticAudio:true,finalSignedMas:false});
   };
   await wait(2000);
+  await evaluate(`
+    if(measureBusy())throw Error('Expected idle measurement state.');
+    errBox.style.display='none';
+    window.dispatchEvent(new CustomEvent('gal-input-discontinuity'));
+    if(errBox.style.display!=='none')throw Error('Idle recovery displayed measurement error.');
+    tfState='measuring';
+    window.dispatchEvent(new CustomEvent('gal-input-discontinuity'));
+    if(errBox.style.display!=='block'||tfState!=='idle')throw Error('Interrupted measurement was not cancelled and reported.');
+    errBox.style.display='none';
+  `);
   const motion=await evaluate(`
     const results=[];
     for(const side of ['left','right']){
       const rail=document.getElementById(side==='left'?'targetLeftStatus':'uiRightTools');
       const width=cv.width;setWorkspaceRail(side,false);
       await new Promise(r=>setTimeout(r,110));
-      const clip=getComputedStyle(rail).clipPath;
-      if(!workspaceRailAnimating||cv.width!==width||clip==='none'||clip.includes('100%'))throw Error('Sidebar does not reveal progressively: '+side+' '+clip+' transition='+getComputedStyle(rail).transition+' reduced='+matchMedia('(prefers-reduced-motion:reduce)').matches);
-      results.push({side,clip,canvasStayedStable:cv.width===width});
+      const shift=new DOMMatrix(getComputedStyle(rail).transform).m41;
+      if(!workspaceRailAnimating||cv.width!==width||Math.abs(shift)<1||Math.abs(shift)>=rail.offsetWidth+12)throw Error('Panel does not slide progressively: '+side);
+      results.push({side,shift,canvasStayedStable:cv.width===width});
       await new Promise(r=>setTimeout(r,250));
       if(workspaceRailAnimating||cv.width===width)throw Error('Canvas did not settle after collapse.');
       setWorkspaceRail(side,true);await new Promise(r=>setTimeout(r,80));
-      const opening=getComputedStyle(rail).clipPath;
-      const clips=opening.slice(opening.indexOf('(')+1,opening.indexOf(' round')).split(' ');
-      const amount=parseFloat(clips[side==='left'?1:3]);
-      if(amount<=0||amount>=100||rail.inert)throw Error('Opening jumps instead of revealing: '+side+' '+opening);
+      const opening=new DOMMatrix(getComputedStyle(rail).transform).m41;
+      if(Math.abs(opening)<=0||Math.abs(opening)>=rail.offsetWidth+12||rail.inert)throw Error('Opening does not slide: '+side);
       const panelRect=rail.getBoundingClientRect(),stageRect=document.getElementById('stage').getBoundingClientRect();
-      const edge=side==='left'?panelRect.right-amount/100*panelRect.width:panelRect.left+amount/100*panelRect.width;
-      if(side==='left'?stageRect.left<edge-2:stageRect.right>edge+2)throw Error('Panel overlaps graph during reveal.');
+      if(side==='left'?stageRect.left<panelRect.right-2:stageRect.right>panelRect.left+2)throw Error('Panel overlaps graph during slide.');
       setWorkspaceRail(side,false);await new Promise(r=>setTimeout(r,80));setWorkspaceRail(side,true);
       await new Promise(r=>setTimeout(r,360));
       if(workspaceRailAnimating||document.body.classList.contains(side+'-rail-collapsed'))throw Error('Rapid reversal did not settle.');
