@@ -16,6 +16,6 @@ manifest. Generated screenshots are not tracked in Git. Source capture and
 validation scripts are reproducible in the repository.
 
 Run `node store/validate.cjs` from desktop to check metadata. Add
-`--screenshots build/store-submission/6.0.0-preview.19/screenshots` to verify the
+`--screenshots build/store-submission/6.0.0-preview.20/screenshots` to verify the
 capture set and JPEG dimensions. Pending account/hardware details are reported
 separately; a successful metadata check does not grant release readiness.

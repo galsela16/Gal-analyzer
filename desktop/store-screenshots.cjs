@@ -67,6 +67,42 @@ module.exports=async({window,release})=>{
     shots.push({file,view,description,width:1440,height:900,syntheticAudio:true,finalSignedMas:false});
   };
   await wait(2000);
+  const motion=await evaluate(`
+    const results=[];
+    for(const side of ['left','right']){
+      const rail=document.getElementById(side==='left'?'targetLeftStatus':'uiRightTools');
+      const width=cv.width;setWorkspaceRail(side,false);
+      await new Promise(r=>setTimeout(r,110));
+      const clip=getComputedStyle(rail).clipPath;
+      if(!workspaceRailAnimating||cv.width!==width||clip==='none'||clip.includes('100%'))throw Error('Sidebar does not reveal progressively: '+side+' '+clip+' transition='+getComputedStyle(rail).transition+' reduced='+matchMedia('(prefers-reduced-motion:reduce)').matches);
+      results.push({side,clip,canvasStayedStable:cv.width===width});
+      await new Promise(r=>setTimeout(r,250));
+      if(workspaceRailAnimating||cv.width===width)throw Error('Canvas did not settle after collapse.');
+      setWorkspaceRail(side,true);await new Promise(r=>setTimeout(r,80));
+      const opening=getComputedStyle(rail).clipPath;
+      const clips=opening.slice(opening.indexOf('(')+1,opening.indexOf(' round')).split(' ');
+      const amount=parseFloat(clips[side==='left'?1:3]);
+      if(amount<=0||amount>=100||rail.inert)throw Error('Opening jumps instead of revealing: '+side+' '+opening);
+      const panelRect=rail.getBoundingClientRect(),stageRect=document.getElementById('stage').getBoundingClientRect();
+      const edge=side==='left'?panelRect.right-amount/100*panelRect.width:panelRect.left+amount/100*panelRect.width;
+      if(side==='left'?stageRect.left<edge-2:stageRect.right>edge+2)throw Error('Panel overlaps graph during reveal.');
+      setWorkspaceRail(side,false);await new Promise(r=>setTimeout(r,80));setWorkspaceRail(side,true);
+      await new Promise(r=>setTimeout(r,360));
+      if(workspaceRailAnimating||document.body.classList.contains(side+'-rail-collapsed'))throw Error('Rapid reversal did not settle.');
+    }
+    setInterfaceMotion('reduced');setWorkspaceRail('left',false);await new Promise(r=>setTimeout(r,40));
+    if(workspaceRailAnimating||getComputedStyle(document.getElementById('targetLeftStatus')).transitionDuration!=='0s')throw Error('Reduced motion is not respected.');
+    setWorkspaceRail('left',true);await new Promise(r=>setTimeout(r,40));setInterfaceMotion('full');
+    return results;
+  `);
+  console.log('Sidebar motion passed:',JSON.stringify(motion));
+  for(const side of ['left','right']){
+    await evaluate(`setWorkspaceRail('${side}',false);`);await wait(80);
+    fs.writeFileSync(path.join(output,'ui-motion-'+side+'-closing.jpg'),(await window.webContents.capturePage()).resize({width:1440,height:900}).toJPEG(94));
+    await wait(300);await evaluate(`setWorkspaceRail('${side}',true);`);await wait(80);
+    fs.writeFileSync(path.join(output,'ui-motion-'+side+'-opening.jpg'),(await window.webContents.capturePage()).resize({width:1440,height:900}).toJPEG(94));
+    await wait(300);
+  }
   await evaluate(`captureWorkspaceTrace();v552RenameTrace(0,'Input 1');measChannel=2;await switchInput('coreaudio:field-test');`);
   await wait(1800);
   await evaluate(`captureWorkspaceTrace();v552RenameTrace(1,'Input 3');measChannel=0;await switchInput('coreaudio:field-test');v54SetAnalysisView('rta');`);
@@ -134,7 +170,7 @@ module.exports=async({window,release})=>{
   await wait(100);if(require('electron').nativeTheme.themeSource!=='dark')throw Error('Native window did not switch to the night theme.');
   await saveUi('ui-audio-preferences-night.jpg');
   await evaluate(`document.getElementById('audioPreferencesClose').click();await stop();`);
-  const manifest={release:release.version,date:'2026-10-09',status:'Drafts. Recapture from the accepted signed MAS release before submission.',scope:'Real application renderer; synthetic PCM from the test helper; no physical microphone or playback.',tf,shots};
+  const manifest={release:release.version,date:'2026-10-10',status:'Drafts. Recapture from the accepted signed MAS release before submission.',scope:'Real application renderer; synthetic PCM from the test helper; no physical microphone or playback.',tf,shots};
   fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   return {output,count:shots.length,tf};
 };

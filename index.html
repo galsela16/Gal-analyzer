@@ -3145,12 +3145,15 @@ body.reference-unassigned #dlyPanel.measureDock .dlyInputs{grid-template-columns
 </style><style>
 body.desktop-native-menus #uiMenuBtn,body.desktop-native-menus #uiMenu,body.desktop-native-menus #uiMenuBackdrop{display:none!important}
 @media(min-width:1000px){
- #stage{transition:margin-left .18s ease-in-out,margin-right .18s ease-in-out!important}
- #targetLeftStatus,#targetMeasurementPanel,#uiRightTools{transform:none!important;transition:opacity .12s ease,visibility 0s linear 0s!important}
- body.left-rail-collapsed #targetLeftStatus,body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{transition-delay:0s,.12s!important}
- .workspaceRailToggle{transition:left .18s ease-in-out,right .18s ease-in-out,color .12s ease!important}
+ #stage{transition:margin-left .30s cubic-bezier(.22,.8,.25,1),margin-right .30s cubic-bezier(.22,.8,.25,1)!important}
+ #targetLeftStatus,#targetMeasurementPanel,#uiRightTools{opacity:1!important;visibility:visible!important;clip-path:inset(0 0 0 0 round 3px);transform:translateX(0)!important;transition:clip-path .30s cubic-bezier(.22,.8,.25,1),transform .30s cubic-bezier(.22,.8,.25,1)!important}
+ body.left-rail-collapsed #targetLeftStatus{opacity:1!important;visibility:visible!important;clip-path:inset(0 100% 0 0 round 3px);transform:translateX(-10px)!important;transition-delay:0s,0s,.30s!important}
+ body.right-rail-collapsed #targetMeasurementPanel,body.right-rail-collapsed #uiRightTools{opacity:1!important;visibility:visible!important;clip-path:inset(0 0 0 100% round 3px);transform:translateX(10px)!important;transition-delay:0s,0s,.30s!important}
+ .workspaceRailToggle{transition:left .30s cubic-bezier(.22,.8,.25,1),right .30s cubic-bezier(.22,.8,.25,1),color .14s ease!important}
+ .workspaceRailToggle:focus:not(:focus-visible){outline:none!important;box-shadow:none!important}
 }
-@media(prefers-reduced-motion:reduce){#stage,#targetLeftStatus,#targetMeasurementPanel,#uiRightTools,.workspaceRailToggle{transition:none!important}}
+@media(prefers-reduced-motion:reduce){body:not([data-interface-motion="full"]) #stage,body:not([data-interface-motion="full"]) #targetLeftStatus,body:not([data-interface-motion="full"]) #targetMeasurementPanel,body:not([data-interface-motion="full"]) #uiRightTools,body:not([data-interface-motion="full"]) .workspaceRailToggle{transition:none!important}}
+body[data-interface-motion="reduced"] #stage,body[data-interface-motion="reduced"] #targetLeftStatus,body[data-interface-motion="reduced"] #targetMeasurementPanel,body[data-interface-motion="reduced"] #uiRightTools,body[data-interface-motion="reduced"] .workspaceRailToggle{transition:none!important}
 #targetMeasurementPanel #uiLivePill{position:static!important;display:flex!important;width:max-content!important;height:30px!important;min-height:30px!important;padding:0 10px!important;margin:5px 0 6px!important;font-size:10px!important;border-radius:6px!important;cursor:pointer!important;gap:7px!important;border:1px solid #4b7b8b!important;background:linear-gradient(#244654,#142e3a)!important;color:#eefaff!important;box-shadow:0 1px 3px #0005!important}
 #targetMeasurementPanel #uiLivePill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #targetMeasurementPanel #uiLivePill:disabled{cursor:wait!important;opacity:.65}
@@ -3253,6 +3256,7 @@ body.sun-mode .tlsTraceCount,body.sun-mode .tlsMeterScale,body.sun-mode .tmpCell
     <div id="uiSettingsPanel">
       <div class="uiSettingsTabs"><button class="on" data-settings-page="display">Display</button><button data-settings-page="measurement">Measurement</button><button data-settings-page="audio">Audio</button></div>
       <div class="uiSettingsPage on" data-settings-content="display">
+        <div class="uiSettingsRow"><span>Interface motion</span><span><button data-interface-motion="full" type="button">Full</button><button data-interface-motion="system" type="button">System</button><button data-interface-motion="reduced" type="button">Reduced</button></span></div>
         <div class="uiSettingsRow"><span>Theme</span><button id="uiSetTheme">Day / Night</button></div>
         <div class="uiSettingsRow"><span>Accent color</span><span class="uiMenuColors"><button class="sw" data-ui-color="#3ea6ff" style="background:#3ea6ff" aria-label="Blue"></button><button class="sw" data-ui-color="#40d17a" style="background:#40d17a" aria-label="Green"></button><button class="sw" data-ui-color="#b57bff" style="background:#b57bff" aria-label="Purple"></button><button class="sw" data-ui-color="#ff9d3c" style="background:#ff9d3c" aria-label="Orange"></button></span></div>
         <div class="uiSettingsRow"><span>Target curve</span><button id="uiSetTarget">Show / Hide</button></div>
@@ -4491,17 +4495,39 @@ window.addEventListener('load', function(){
 
 <script>
 (()=>{
+ let motionPreference=document.body.classList.contains('desktop-native-menus')?'full':'system';
+ try{const saved=localStorage.getItem('gal_interface_motion');if(['full','system','reduced'].includes(saved))motionPreference=saved}catch(_){}
+ window.workspaceMotionAllowed=()=>document.body.dataset.interfaceMotion==='full'||(document.body.dataset.interfaceMotion==='system'&&!matchMedia('(prefers-reduced-motion:reduce)').matches);
+ window.setInterfaceMotion=(choice,persist=true)=>{
+   if(!['full','system','reduced'].includes(choice))return;
+   document.body.dataset.interfaceMotion=choice;
+   if(persist)try{localStorage.setItem('gal_interface_motion',choice)}catch(_){}
+   document.querySelectorAll('button[data-interface-motion]').forEach(button=>button.classList.toggle('on',button.dataset.interfaceMotion===choice));
+   window.galNativeHost?.setInterfaceMotion?.(choice);
+ };
+ setInterfaceMotion(motionPreference,false);
+ document.querySelectorAll('button[data-interface-motion]').forEach(button=>button.addEventListener('click',()=>setInterfaceMotion(button.dataset.interfaceMotion)));
  const livePill=document.getElementById('uiLivePill');
  document.querySelector('#targetMeasurementPanel .tmpHead')?.after(livePill);
  const buttons={left:document.getElementById('leftRailToggle'),right:document.getElementById('rightRailToggle')};
- const resizeTimers={left:0,right:0};
- function settleLayout(side){
-   cancelAnimationFrame(resizeTimers[side]);
-   // The stage ResizeObserver keeps the canvas aligned throughout the transition.
-   resizeTimers[side]=requestAnimationFrame(()=>{if(typeof resize==='function')resize()});
+ let motionFrame=0;
+ let motionUntil=0;
+ function settleLayout(animate){
+   cancelAnimationFrame(motionFrame);
+   const enabled=animate&&innerWidth>=1000&&workspaceMotionAllowed();
+   window.workspaceRailAnimating=enabled;
+   motionUntil=performance.now()+(enabled?320:0);
+   const finish=()=>{
+     if(performance.now()<motionUntil){motionFrame=requestAnimationFrame(finish);return;}
+     window.workspaceRailAnimating=false;
+     if(typeof resize==='function')resize();
+   };
+   motionFrame=requestAnimationFrame(finish);
  }
  function setRail(side,open,persist=true){
+   settleLayout(persist);
    document.body.classList.toggle(side+'-rail-collapsed',!open);
+   for(const id of side==='left'?['targetLeftStatus']:['targetMeasurementPanel','uiRightTools']){const panel=document.getElementById(id);if(panel){panel.inert=!open;panel.setAttribute('aria-hidden',String(!open));}}
    const b=buttons[side];
    if(b){
      const action=(open?"Collapse ":"Expand ")+(side==='left'?"left sidebar":"right sidebar");
@@ -4509,7 +4535,7 @@ window.addEventListener('load', function(){
      b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',action);b.title=action;
    }
    if(persist)try{localStorage.setItem('gal_'+side+'_rail_open',open?'1':'0')}catch(_){ }
-   settleLayout(side);
+
  }
  for(const side of ['left','right']){
    let open=true;try{open=localStorage.getItem('gal_'+side+'_rail_open')!=='0'}catch(_){ }

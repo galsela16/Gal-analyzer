@@ -1,4 +1,4 @@
-# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.19
+# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.20
 
 Desktop preview.15 prepares a separate Apple Silicon Mac App Store build path, adds an accessible offline privacy policy and the user's final sound icon, and reads channel names from any Core Audio driver rather than inferring them from EVO8. Native integration checks cover 1, 2, 4, 8, 16 and 32 channels. Apple signing, sandbox hardware acceptance and store submission remain pending membership. The shared web edition stays at V5.7.28. See [desktop documentation](desktop/README.md).
 

@@ -179,13 +179,20 @@ let smoothedDbfs = -120;
 let meterUpdateAt=0, meterTextAt=0;
 
 function resize(){
+  if(window.workspaceRailAnimating)return;
   const r=cv.getBoundingClientRect();
   const resolution=document.getElementById('displayResolutionBar');
   waterfallGeometry.toolbarTop=Math.max(16,(resolution?.getBoundingClientRect().bottom||r.top)-r.top+12);
   const MAXW=1440, MAXH=760;
   const dpr=Math.max(1, Math.min(window.devicePixelRatio||1, 2, MAXW/Math.max(1,r.width), MAXH/Math.max(1,r.height)));
-  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  const width=Math.round(r.width*dpr),height=Math.round(r.height*dpr);
+  if(cv.width===width&&cv.height===height&&ctx.getTransform().a===dpr)return;
+  // Keep the last plotted frame visible until the existing draw loop repaints.
+  let previous;
+  if(running&&cv.width&&cv.height){previous=document.createElement('canvas');previous.width=cv.width;previous.height=cv.height;previous.getContext('2d').drawImage(cv,0,0);}
+  cv.width=width;cv.height=height;
   ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(previous)ctx.drawImage(previous,0,0,r.width,r.height);
   
   const oldSpec=specCanvas;
   const nc=document.createElement('canvas');
@@ -3596,7 +3603,7 @@ function draw(){
   updateLevel();
   window.GalMultiInput?.update(frozen,v5WorkspaceMode==='rta'&&!alignOn);
   v52UpdateLiveMeters();
-  const W=cv.clientWidth,H=cv.clientHeight;
+  const W=window.workspaceRailAnimating?cv.width/ctx.getTransform().a:cv.clientWidth,H=window.workspaceRailAnimating?cv.height/ctx.getTransform().d:cv.clientHeight;
   const nyquist=audioCtx.sampleRate/2, bins=floatData.length;
   const logMin=Math.log(ISO[0]), logMax=Math.log(ISO[BANDS-1]);
   const xForFreq=f=>((Math.log(f)-logMin)/(logMax-logMin))*W;
