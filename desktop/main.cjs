@@ -1,4 +1,20 @@
 const { app, BrowserWindow, protocol, net, session, Menu, nativeTheme, ipcMain, systemPreferences } = require('electron');
+// Give native menus the product name without moving an existing user's profile.
+const previousProfile = app.getPath('userData');
+app.setName('GAL Analyzer');app.setPath('userData',previousProfile);
+const release = require('./release.cjs');
+const privacy = require('./privacy.cjs');
+let privacyWindow;
+function showPrivacy(){
+  if(privacyWindow&&!privacyWindow.isDestroyed()){privacyWindow.show();privacyWindow.focus();return;}
+  privacyWindow=new BrowserWindow({width:720,height:640,minWidth:460,minHeight:360,
+    parent:window,title:privacy.title+' — GAL Analyzer',backgroundColor:'#0d171d',
+    webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  privacyWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+  privacyWindow.webContents.on('will-navigate',(event,url)=>{if(!local(url))event.preventDefault();});
+  privacyWindow.on('closed',()=>{privacyWindow=null;});
+  privacyWindow.loadURL(origin+'/privacy.html').catch(error=>console.error('Privacy policy could not open:',error.message));
+}
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const fs = require('node:fs');
@@ -19,6 +35,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('gal:native:list',async event=>{trusted(event);return audioHost.list();});
   ipcMain.handle('gal:native:start',async(event,options)=>{
     trusted(event);
+    if(hardwareTesting && systemPreferences.getMediaAccessStatus('microphone')!=='granted')throw Error('Hardware validation needs existing microphone permission. Open the app and use Start audio to grant it, then run the hardware check again.');
     if(!testing && !await systemPreferences.askForMediaAccess('microphone'))throw Error('Allow GAL Analyzer microphone access in System Settings → Privacy & Security → Microphone.');
     return audioHost.start(options);
   });
@@ -44,9 +61,10 @@ app.whenReady().then(async () => {
   window = new BrowserWindow({width:1440,height:940,minWidth:1000,minHeight:650,show:!testing&&!hardwareTesting,
     title:'GAL Analyzer',backgroundColor:'#0d1117',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
   window.webContents.setWindowOpenHandler(() => ({action:'deny'}));
+  window.on('closed',()=>{privacyWindow?.close();audioHost?.stop();});
   window.webContents.on('will-navigate',(event,url) => {if(!local(url))event.preventDefault();});
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    {label:app.name,submenu:[{role:'about'},{type:'separator'},{role:'quit'}]},
+    {label:app.name,submenu:[{role:'about'},{label:'Privacy Policy…',click:showPrivacy},{type:'separator'},{role:'quit'}]},
     {role:'editMenu'},{role:'viewMenu'},{role:'windowMenu'}
   ]));
   const errors=[];
@@ -56,13 +74,16 @@ app.whenReady().then(async () => {
     try {
       const result=await window.webContents.executeJavaScript(`(async()=>{
         const devices=await GalNativeInput.listDevices();
-        const device=devices.find(d=>d.kind==='audioinput'&&/EVO8/i.test(d.label));
-        if(!device)throw Error('EVO8 is not connected.');
+        const requested=${JSON.stringify(process.env.GAL_AUDIO_DEVICE_UID||'')};
+        const inputs=devices.filter(d=>d.kind==='audioinput');
+        const device=requested?inputs.find(d=>d.deviceId==='coreaudio:'+requested):(inputs.find(d=>d.isDefault)||inputs[0]);
+        if(!device)throw Error('The requested Core Audio input is not connected.');
         await start(device.deviceId);
         if(!running||!stream?.native)throw Error(errBox.textContent||'Native application input did not start.');
         await new Promise(resolve=>setTimeout(resolve,8000));
         if(!running||stream.getAudioTracks()[0].readyState!=='live')throw Error(errBox.textContent||'Capture stopped.');
-        const result={...stream.info,contextRate:audioCtx.sampleRate,receivedChannels:chReceived,inputChoices:document.getElementById('v52MeasSelect').options.length,levels:GalMultiInput.snapshot().map(c=>c.level)};
+        if(chReceived!==device.channels)throw Error('Capture channel count does not match the device.');
+        const result={channels:stream.info.channels,sampleRate:stream.info.sampleRate,nativeSampleRate:stream.info.nativeSampleRate,contextRate:audioCtx.sampleRate,receivedChannels:chReceived,inputChoices:document.getElementById('v52MeasSelect').options.length,levels:GalMultiInput.snapshot().map(c=>c.level)};
         await stop();return result;
       })()`);
       console.log('Native hardware capture passed:',JSON.stringify(result));app.exit(0);
@@ -76,13 +97,15 @@ app.whenReady().then(async () => {
         let samples=[],packets=0;
         const off=galNativeHost.onPacket(()=>packets++),realDraw=draw;
         draw=()=>{const began=performance.now();realDraw();const elapsed=performance.now()-began;if(elapsed>.1)samples.push(elapsed);};
-        const report={};
-        for(const mode of ['rta','mr','tf']){
-          v5SetTab(mode);if(mode==='tf'){showModal(tfPanel);tfDelayMs=5;tfDelaySamples=Math.round(audioCtx.sampleRate*.005);tfDelayReady=true;tfWorkflowVerified=true;}
+        const report={scope:'Synthetic six-channel input; isolated draw timings, not physical capture latency or a browser comparison.',architecture:${JSON.stringify(process.arch)},sampleSecondsPerMode:3.5};
+        for(const view of ['rta','mr','tf','waterfall']){
+          closeModals();setMode(view==='waterfall'?'spec':'rta');v5SetTab(view);setTfOverlay(view==='tf');
+          if(view==='tf'){showModal(tfPanel);tfDelayMs=5;tfDelaySamples=Math.round(audioCtx.sampleRate*.005);tfDelayReady=true;tfWorkflowVerified=true;}
+          if((view==='waterfall')!==(mode==='spec') || tfOverlay!==(view==='tf'))throw Error('Performance test selected the wrong graph.');
           await new Promise(resolve=>setTimeout(resolve,800));samples=[];packets=0;const began=performance.now();
           await new Promise(resolve=>setTimeout(resolve,3500));
           const elapsed=performance.now()-began;const sorted=samples.slice().sort((a,b)=>a-b);
-          report[mode]={frames:sorted.length,drawMedianMs:sorted[Math.floor(sorted.length*.5)],drawP95Ms:sorted[Math.floor(sorted.length*.95)],packetsPerSecond:packets/elapsed*1000,sampleRate:audioCtx.sampleRate,channels:chReceived};
+          report[view]={frames:sorted.length,drawMedianMs:sorted[Math.floor(sorted.length*.5)],drawP95Ms:sorted[Math.floor(sorted.length*.95)],packetsPerSecond:packets/elapsed*1000,sampleRate:audioCtx.sampleRate,channels:chReceived};
         }
         draw=realDraw;off();await stop();return report;
       })()`);console.log('Performance profile:',JSON.stringify(result));app.exit(0);
@@ -102,10 +125,12 @@ app.whenReady().then(async () => {
         assert(window.isSecureContext,'Secure origin');
         assert(typeof navigator.mediaDevices?.getUserMedia==='function','Microphone API');
         assert(window.GAL?.config,'Shared bootstrap');
-        assert(document.getElementById('ver')?.textContent.includes('6.0.0-preview.14'),'Desktop version');
+        assert(document.getElementById('ver')?.textContent.includes(${JSON.stringify(release.version)}),'Desktop version');
         assert(document.querySelector('[data-bpo="48"]'),'1/48 resolution');
         assert(document.querySelectorAll('canvas').length>0,'Graph canvases');
         assert(typeof require==='undefined','Renderer isolation');
+        const policy=new DOMParser().parseFromString(await fetch('privacy.html').then(r=>r.text()),'text/html');
+        assert(policy.documentElement.dir==='ltr'&&policy.querySelector('article')?.textContent.includes('Audio processing'),'Accessible local privacy policy');
         const audio=new AudioContext();
         await audio.audioWorklet.addModule('recorder-worklet.js');
         const recorder=new AudioWorkletNode(audio,'recorder-worklet');
@@ -190,6 +215,23 @@ app.whenReady().then(async () => {
           assert(Math.abs(peak*nativeContext.sampleRate/8192-(300+i*300))<15,'Native PCM channel frequency '+i);
         });
         GalMultiInput.dispose();await nativeAdapter.stop();await nativeContext.close();
+        // Change the helper's real packet layout, not just renderer metadata.
+        const channelCounts=[1,2,4,8,16,32];
+        for(const channels of channelCounts){
+          const context=new AudioContext({sampleRate:48000});await context.resume();
+          const input=await nativeAdapter.open(context,'coreaudio:channels-'+channels);
+          assert(input.stream.info.channels===channels,'Native count '+channels);
+          const split=context.createChannelSplitter(channels),meter=context.createAnalyser(),sink=context.createGain();
+          meter.fftSize=8192;sink.gain.value=0;
+          input.source.connect(split);split.connect(meter,channels-1);meter.connect(sink);sink.connect(context.destination);
+          await new Promise(resolve=>setTimeout(resolve,450));
+          const spectrum=new Float32Array(meter.frequencyBinCount);meter.getFloatFrequencyData(spectrum);
+          const peak=spectrum.indexOf(Math.max(...spectrum));
+          assert(Math.abs(peak*context.sampleRate/8192-channels*300)<15,'Last physical packet channel '+channels);
+          assert(input.stream.getAudioTracks()[0].readyState==='live','Device change capture survived '+channels);
+          await nativeAdapter.stop();assert(input.stream.getAudioTracks()[0].readyState==='ended','Device change cleanup '+channels);
+          await context.close();
+        }
         // Exercise the complete TF workflow on six native inputs, without output playback.
         await start('coreaudio:field-test');v5SetTab('tf');showModal(tfPanel);
         assert(refChannel===1,'Mono to multichannel restores the real reference');
@@ -266,7 +308,7 @@ app.whenReady().then(async () => {
         assert(heartbeats>=2,'Renderer stays responsive during full-capture sweep analysis');
         const code=await fetch('js/app-core.js').then(r=>r.text());
         assert(code.includes('Desktop updates ship'),'Desktop cache policy');
-        return {version:GAL.config.version,canvases:document.querySelectorAll('canvas').length,worklet:true,parallelInputs:8,monoReference:false,nativeChannels:6,repeatedFieldMeasurements:4,verifiedTrace:true};
+        return {version:GAL.config.version,canvases:document.querySelectorAll('canvas').length,worklet:true,parallelInputs:8,monoReference:false,nativeChannels:6,nativeChannelCounts:channelCounts,repeatedFieldMeasurements:4,verifiedTrace:true};
       })()`);
       if(errors.length)throw Error(errors.join('\n'));
       for(const [width,height] of [[1440,940],[1080,760]]){

@@ -12,8 +12,8 @@ struct Device: Codable {
     let sampleRate: Double
     let isDefault: Bool
 }
-func stringProperty(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector, element: UInt32 = 0) -> String? {
-    var address = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal, mElement: element)
+func stringProperty(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector, element: UInt32 = 0, scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal) -> String? {
+    var address = AudioObjectPropertyAddress(mSelector: selector, mScope: scope, mElement: element)
     var value: Unmanaged<CFString>?
     var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
     guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, &value) == noErr, let value = value else { return nil }
@@ -39,13 +39,15 @@ func devices() -> [Device] {
         defer { memory.deallocate() }
         guard AudioObjectGetPropertyData(id, &config, 0, nil, &bytes, memory) == noErr else { return nil }
         let channels = UnsafeMutableAudioBufferListPointer(memory.assumingMemoryBound(to: AudioBufferList.self)).reduce(0) { $0 + Int($1.mNumberChannels) }
-        guard channels > 0, channels <= 32, let uid = stringProperty(id, kAudioDevicePropertyDeviceUID), let name = stringProperty(id,kAudioObjectPropertyName) else { return nil }
+        guard channels > 0, let uid = stringProperty(id, kAudioDevicePropertyDeviceUID), let name = stringProperty(id,kAudioObjectPropertyName) else { return nil }
         var rateAddress = AudioObjectPropertyAddress(mSelector:kAudioDevicePropertyNominalSampleRate,mScope:kAudioObjectPropertyScopeGlobal,mElement:0)
         var rate = 0.0, rateSize = UInt32(MemoryLayout<Double>.size)
         _ = AudioObjectGetPropertyData(id,&rateAddress,0,nil,&rateSize,&rate)
         let labels = (0..<channels).map { channel -> String in
-            // EVO8 exposes four analog inputs followed by its two loopback inputs.
-            if name.uppercased().replacingOccurrences(of: " ", with: "").contains("EVO8"), channels == 6, channel >= 4 { return "Loopback \(channel - 3)" }
+            // Ask the driver for channel labels; never infer routing from a brand/model.
+            if let label = stringProperty(id, kAudioObjectPropertyElementName, element:UInt32(channel+1), scope:kAudioObjectPropertyScopeInput)?.trimmingCharacters(in:.whitespacesAndNewlines), !label.isEmpty {
+                return String(label.prefix(96))
+            }
             return "Input \(channel + 1)"
         }
         return Device(id:id,uid:uid,name:name,channels:channels,labels:labels,sampleRate:rate,isDefault:id==defaultInput())
@@ -89,6 +91,7 @@ final class Capture {
         try withUnsafePointer(to:&value) { try check(AudioUnitSetProperty(unit,property,scope,element,$0,UInt32(MemoryLayout<T>.size)),"Configure audio input") }
     }
     func start() throws {
+        guard device.channels<=32 else { throw HostError(text:"This interface exposes \(device.channels) channels. This build supports up to 32 simultaneous inputs.") }
         var description=AudioComponentDescription(componentType:kAudioUnitType_Output,componentSubType:kAudioUnitSubType_HALOutput,componentManufacturer:kAudioUnitManufacturer_Apple,componentFlags:0,componentFlagsMask:0)
         guard let component=AudioComponentFindNext(nil,&description) else { throw HostError(text:"Core Audio input component not found.") }
         try check(AudioComponentInstanceNew(component,&unit),"Open Core Audio")
@@ -192,25 +195,27 @@ let requestedUID=arguments.count>2 ? arguments[2] : ""
 let targetRate=arguments.count>3 ? Double(arguments[3]) ?? 0 : 48000
 if !targetRate.isFinite || targetRate<40000 || targetRate>192000 { event(["type":"error","message":"Invalid analysis sample rate."]);exit(1) }
 if test {
-    event(["type":"ready","channels":6,"labels":(1...6).map { "Test input \($0)" },"sampleRate":targetRate,"nativeSampleRate":targetRate,"uid":"synthetic","name":"Native transport test"])
+    let channels=requestedUID.hasPrefix("channels-") ? Int(requestedUID.dropFirst(9)) ?? 0 : 6
+    guard channels>=1, channels<=32 else { event(["type":"error","message":"Invalid synthetic channel count."]);exit(1) }
+    event(["type":"ready","channels":channels,"labels":(1...channels).map { "Test input \($0)" },"sampleRate":targetRate,"nativeSampleRate":targetRate,"uid":"synthetic","name":"Native transport test"])
     var sequence:UInt32=0, frame=0
     var random:UInt32=123456789;let delay=Int(targetRate * 0.005);var history=[Float](repeating:0,count:delay);var historyIndex=0
     let timer=DispatchSource.makeTimerSource(queue:.main)
     timer.schedule(deadline:.now() + .milliseconds(20),repeating:.milliseconds(20))
     timer.setEventHandler {
         let frames=Int(targetRate/50)
-        var samples=[Float](repeating:0,count:frames*6)
-        for i in 0..<frames { for c in 0..<6 { samples[i*6+c]=Float(pow(10,Double(-12-c*3)/20)*sin(2*Double.pi*Double(300+c*300)*Double(frame+i)/targetRate)) } }
+        var samples=[Float](repeating:0,count:frames*channels)
+        for i in 0..<frames { for c in 0..<channels { samples[i*channels+c]=Float(pow(10,Double(-12-c*3)/20)*sin(2*Double.pi*Double(300+c*300)*Double(frame+i)/targetRate)) } }
         if requestedUID=="field-test" {
             for i in 0..<frames {
                 random ^= random << 13;random ^= random >> 17;random ^= random << 5
                 let value=(Float(random)/Float(UInt32.max)*2-1)*0.2
                 let delayed=history[historyIndex];history[historyIndex]=value;historyIndex=(historyIndex+1)%delay
-                samples[i*6]=delayed*0.7;samples[i*6+1]=value
-                samples[i*6+2]=delayed*0.5;samples[i*6+3]=value*0.8
+                samples[i*channels]=delayed*0.7;samples[i*channels+1]=value
+                samples[i*channels+2]=delayed*0.5;samples[i*channels+3]=value*0.8
             }
         }
-        packet(samples,channels:6,rate:targetRate,sequence:sequence);sequence &+= 1;frame+=frames
+        packet(samples,channels:channels,rate:targetRate,sequence:sequence);sequence &+= 1;frame+=frames
     }
     timer.resume();dispatchMain()
 }

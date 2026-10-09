@@ -1,0 +1,69 @@
+{
+  "release": "6.0.0-preview.15",
+  "architecture": "arm64",
+  "scope": "Local direct-download preparation. MAS signing and physical multichannel acceptance are not complete.",
+  "checks": {
+    "nativeRing": true,
+    "nativeWorklet": true,
+    "recorderCounts": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "nativeIntegrationCounts": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "repeatedTfMeasurements": 4,
+    "verifiedTfTrace": true,
+    "signalAccuracyCases": 32,
+    "signalAccuracyRates": [
+      44100,
+      48000,
+      96000
+    ],
+    "delayEngineCases": 30,
+    "inputRouting": true,
+    "englishAndSharedFont": true,
+    "measurementLifecycle": true,
+    "tfSyncLifecycle": true,
+    "meterStability": true,
+    "unsignedMasAssembly": true,
+    "missingSigningCredentialsRejected": true,
+    "packagedIntegration": true,
+    "initialPrivacyReview": true,
+    "privacyWindow": "scrollable English/Arial local page"
+  },
+  "physicalMultichannelHardwareAvailable": false,
+  "physicalHardwareCapture": {
+    "device": "Built-in mono input",
+    "channels": 1,
+    "sampleRate": 48000,
+    "seconds": 8,
+    "continuity": true,
+    "audioSaved": false
+  },
+  "performance": {
+    "scope": "Synthetic six-channel input, 48 kHz, FFT 16384, 3.5 seconds per mode; draw timings, not latency or a browser comparison.",
+    "rtaMedianMs": 2.9,
+    "mrMedianMs": 3,
+    "tfMedianMs": 6.2,
+    "waterfallMedianMs": 2.6,
+    "tfP95Ms": 7.5,
+    "waterfallP95Ms": 3.3
+  },
+  "pending": [
+    "Apple development/distribution certificates and provisioning profiles",
+    "Signed App Sandbox microphone/helper/import/export acceptance",
+    "Physical Core Audio interfaces and electrical loopback",
+    "Required-reason API / dependency privacy manifest audit",
+    "Final MAS screenshots and App Store Connect submission"
+  ]
+}

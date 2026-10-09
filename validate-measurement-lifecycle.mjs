@@ -29,17 +29,20 @@ const ctx={
   areaMeasureTimer:11,eqMeasureTimer:12,tfMeasureTimer:13,
   areaState:'measuring',areaAccum:{},areaFrames:7,measState:'measuring',measAccum:{},measFrames:8,
   tfState:'measuring',tfMic:{},tfRef:{},tfFrames:9,tfSweepAcquiring:true,
+  delayCaptureCleanup:()=>cleared.push('capture'),cancelTfWorkflowVerification:()=>cleared.push('verification'),tfTraceCaptureTimer:14,tfTraceCapturePending:true,
   clearTimeout:id=>cleared.push(id),updateAreaMeasBtn(){},updateEqUI(){},
   document:{getElementById:id=>{if(!nodes.has(id))nodes.set(id,{textContent:'busy',style:{}});return nodes.get(id);}}
 };
 vm.createContext(ctx);vm.runInContext(`${extract('cancelTimedMeasurements')};cancelTimedMeasurements()`,ctx);
-assert.deepEqual(cleared,[11,12,13]);
+assert.deepEqual(cleared,['capture','verification',14,11,12,13]);
+assert.equal(ctx.tfTraceCapturePending,false);assert.equal(ctx.tfTraceCaptureTimer,null);
 assert.equal(ctx.areaState,'idle');assert.equal(ctx.measState,'idle');assert.equal(ctx.tfState,'idle');
 assert.equal(ctx.tfSweepAcquiring,false);
 
 assert(extract('setFft').includes("if(measureBusy())"),'FFT changes must be blocked while measuring');
 assert(extract('switchInput').includes('await stop()'),'Input switching must cancel the old measurement session');
-for(const name of ['stop','resetSession']){
+assert(extract('stop').includes('audioTransition.then(stopInput)'),'Stop transitions must remain serialized');
+for(const name of ['stopInput','resetSession']){
   const fn=extract(name);
   assert(fn.includes('cancelManagedSourceRun(true)')&&fn.includes('cancelTimedMeasurements()'),`${name} must cancel timed and managed-source measurements`);
 }

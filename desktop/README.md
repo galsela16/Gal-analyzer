@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.14
+# GAL Analyzer Desktop — 6.0.0-preview.15
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.14-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.15-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 
@@ -107,3 +107,30 @@ The trace sidebar no longer shows a separate Rename button. Click the trace name
 ## Single-line trace controls (preview.14)
 
 The editable trace name, visibility control and delete control now share one compact row and the same vertical center. The row no longer reserves a second line for actions. Direct name editing, Enter/Escape behavior, trace colors, trust state and measurement data are unchanged. Packaged checks verify the alignment and compact row height at normal and smaller window sizes.
+
+## Store preparation and generic interfaces (preview.15)
+
+The desktop uses the user's final G/audio logo. Its offline privacy policy is
+available through the native GAL Analyzer menu. Release metadata is centralized:
+the UI shows preview.15, while the bundle uses numeric version 6.0.0 and build 15.
+All components still target Apple Silicon directly; no Rosetta is needed.
+
+Channel names now come from the Core Audio driver, falling back to Input N. No
+EVO8 model-name test is used to infer loopback routing. Devices above the current
+32-input limit remain visible and produce an explicit unsupported-count error.
+Capture still requires the device's driver to expose a valid supported format.
+
+Native integration checks exercise packet layouts with 1, 2, 4, 8, 16 and 32
+channels, device-size transitions and the last available input. Recorder checks
+cover the highest input in each layout. The hardware test chooses any explicit
+GAL_AUDIO_DEVICE_UID, or the system default; it never requires EVO8.
+
+Separate MAS commands assemble an unsigned bundle or sign development/distribution
+builds once Apple credentials exist. An unsigned MAS assembly is packaging evidence,
+not a runnable sandbox test or submission-ready package. No paid membership is
+needed for the direct-download build or these synthetic tests.
+
+See [store build instructions](mas/README.md), [listing draft](store/metadata.md),
+[acceptance requirements](store/acceptance.md) and [privacy policy](PRIVACY.md).
+The required-reason API/dependency privacy audit and signed sandbox/hardware checks
+remain open before App Store submission.

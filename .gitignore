@@ -1,0 +1,8 @@
+desktop/node_modules/
+desktop/build/
+desktop/web/
+desktop/tools/
+*.provisionprofile
+*.mobileprovision
+*.p12
+.DS_Store

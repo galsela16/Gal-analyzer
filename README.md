@@ -1,6 +1,6 @@
-# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.14
+# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.15
 
-Desktop preview.14 aligns each trace name, visibility control and delete control on one compact row. Click the name and type directly; Enter or leaving the field saves, and Escape cancels. Trace colors, measurement data and the classic vivid Waterfall retain preview.13 behavior. See [desktop documentation](desktop/README.md).
+Desktop preview.15 prepares a separate Apple Silicon Mac App Store build path, adds an accessible offline privacy policy and the user's final sound icon, and reads channel names from any Core Audio driver rather than inferring them from EVO8. Native integration checks cover 1, 2, 4, 8, 16 and 32 channels. Apple signing, sandbox hardware acceptance and store submission remain pending membership. The shared web edition stays at V5.7.28. See [desktop documentation](desktop/README.md).
 
 
 V5.7.10 adds a shared frequency scale to RTA, M/R and TF, restores the persistent Traces area, and animates the side rails. HPF/LPF handles retain capture priority and touch-safe dragging.

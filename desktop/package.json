@@ -1,16 +1,22 @@
 {
   "name": "gal-analyzer-desktop",
-  "version": "6.0.0-preview.14",
+  "version": "6.0.0-preview.15",
+  "galBuildNumber": 15,
   "private": true,
   "description": "GAL Analyzer desktop \u2014 shared web interface",
   "main": "main.cjs",
   "scripts": {
     "prepare:web": "node prepare.cjs",
     "test": "node build-native.cjs && node test-native-worklet.cjs && node test-recorder.cjs && node prepare.cjs && electron . --self-test",
-    "build:mac": "node build-native.cjs && node prepare.cjs && node package.cjs"
+    "build:mac": "node build-native.cjs && node build-icon.cjs && node prepare.cjs && node package.cjs",
+    "check:store": "node package-mas.cjs --check",
+    "build:mas:unsigned": "node package-mas.cjs --assemble-only",
+    "build:mas:development": "node package-mas.cjs --development",
+    "build:mas:distribution": "node package-mas.cjs --distribution"
   },
   "devDependencies": {
     "electron": "44.5.1",
-    "@electron/packager": "20.3.0"
+    "@electron/packager": "20.3.0",
+    "@electron/osx-sign": "2.7.1"
   }
 }

@@ -13,7 +13,8 @@ for(const kind of ['pink','sweep'])for(const previouslyOn of [false,true]){
     managedSourcePending:false,managedSourceStartTimer:null,managedSourceRestoreTimer:null,managedSourcePrevious:null,
     document:{getElementById:()=>null},alert:assert.fail,setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},
     makeNoiseBuffer(){},setGenTypeUI(){},syncGeneratorLoopbackUi(){},syncInlineGenBtns(){},scheduleSweepCycle(){},
-    refreshReferenceRouting:(preserve)=>routes.push(preserve),scheduleLoopbackAutoSync:()=>autoSync.push(true)};
+    refreshReferenceRouting:(preserve)=>routes.push(preserve),scheduleLoopbackAutoSync:()=>autoSync.push(true),
+    verifyTfWorkflow(){},tfMeasure(){},captureTfTraceFromSource(){}};
   ctx.genStop=()=>{ctx.genOn=false;};
   vm.createContext(ctx);vm.runInContext(lifecycle,ctx);
   let measured=0;
