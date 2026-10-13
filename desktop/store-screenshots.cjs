@@ -15,6 +15,9 @@ module.exports=async({window,release})=>{
     if(!document.body.classList.contains('desktop-native-menus')||getComputedStyle(document.getElementById('uiMenuBtn')).display!=='none')throw Error('Desktop still shows the in-app menu.');
     if(!document.getElementById('targetMeasurementPanel').contains(document.getElementById('uiLivePill')))throw Error('Audio control is outside Measurement.');
     if(document.querySelectorAll('.tlsPatchActions button').length!==2)throw Error('Generator must have exactly two buttons.');
+    const audioRect=document.getElementById('uiLivePill').getBoundingClientRect(),readoutRect=document.querySelector('#targetMeasurementPanel .tmpValue').getBoundingClientRect();
+    if(Math.abs(audioRect.width-readoutRect.width)>1||Math.abs(audioRect.left-readoutRect.left)>1)throw Error('Audio button and readout widths do not align.');
+    if(document.getElementById('bottomSweepDuration'))throw Error('Sweep duration is still visible.');
     const lower=document.getElementById('studioBottom');
     if(!lower.contains(document.getElementById('v5TraceList'))||!lower.contains(document.getElementById('tlsGenToggle')))throw Error('Lower workspace controls not moved.');
     const lowerRect=lower.getBoundingClientRect(),graphRect=document.getElementById('stage').getBoundingClientRect();

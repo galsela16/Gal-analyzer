@@ -1,0 +1,19 @@
+{
+  "version": "6.0.0-preview.31",
+  "date": "2026-10-13",
+  "changes": [
+    "Remove sweep duration setting from the integrated generator and hide the legacy duration control",
+    "Align Start/Stop audio button width and left edge with the Measurement readout"
+  ],
+  "checks": {
+    "audioButtonReadoutAlignment": true,
+    "durationControlRemoved": true,
+    "dayNightScreenshotsAndTraceAlignment": true,
+    "audioStartStopRestart": true,
+    "knownVerifiedTfDelayMs": 5.000021260713554,
+    "visualInspection": "1440 x 900 screenshot: generator without duration and full-width audio button"
+  },
+  "limitations": [
+    "Synthetic verification excludes physical audio interfaces"
+  ]
+}

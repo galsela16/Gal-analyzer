@@ -3272,7 +3272,7 @@ body:not(.sun-mode) .tmpGrid,body:not(.sun-mode) .tmpGrid>div,body:not(.sun-mode
 </style><style>
 @media(min-width:1000px){
  body{--console-bottom:196px!important}#studioBottom{height:188px!important}
- #bottomSignalHz{width:80px}#bottomSweepDuration{width:64px}
+ #bottomSignalHz{width:80px}
  #bottomGenerator #tlsGenOpen{display:none!important}
  body #stage .floatingMeasurementDock .dockMoreBtn{display:none!important}
  body #stage .floatingMeasurementDock .dockAdvanced{display:flex!important}
@@ -3317,7 +3317,7 @@ body.overview-mode #stage>canvas,body.overview-mode #displayResolutionBar,body.o
  #bottomGenerator #tlsGenToggle{min-width:92px;white-space:normal;font-size:12px!important}
 }
 @media(min-width:1000px) and (max-width:1150px){#studioBottom{grid-template-columns:minmax(280px,.8fr) minmax(430px,1.2fr)}#bottomTraces .tlsTraceCount{font-size:9px!important;gap:4px!important}#bottomTraces #v5TraceActions{top:28px;left:12px;right:auto}#bottomTraces{padding-top:58px!important}}
-</style></head>
+</style><style>body #targetMeasurementPanel #uiLivePill{width:100%!important;box-sizing:border-box!important;justify-content:center!important}body #genSweepWrap{display:none!important}</style></head>
 <body>
   <div id="sigTint"></div>
   <header class="uiRefreshed">
@@ -4818,7 +4818,7 @@ window.addEventListener('load', function(){
  <section class="studioBottomCard" id="bottomGenerator" aria-label="Signal generator">
   <h2 class="studioBottomTitle">SIGNAL GENERATOR</h2>
   <div class="studioGeneratorControls"><label>Signal <select id="bottomSignalType"><option value="pink">Pink noise</option><option value="white">White noise</option><option value="sine">Sine</option><option value="sweep">Sweep</option></select></label><label>Level <input id="bottomSignalLevel" type="number" min="-46" max="-8" step="1" value="-34" aria-label="Generator level in decibels"> dB</label></div>
-  <div class="studioGeneratorControls"><label>Sine <input id="bottomSignalHz" type="number" min="20" max="20000" step="1" value="1000" aria-label="Sine frequency in hertz"> Hz</label><label>Sweep <input id="bottomSweepDuration" type="number" min="1" max="10" step="0.5" value="4" aria-label="Sweep duration in seconds"> s</label></div>
+  <div class="studioGeneratorControls"><label>Sine <input id="bottomSignalHz" type="number" min="20" max="20000" step="1" value="1000" aria-label="Sine frequency in hertz"> Hz</label></div>
   <div id="bottomGeneratorState" role="status">Signal stopped</div>
  </section>
 </section>
@@ -4832,9 +4832,8 @@ window.addEventListener('load', function(){
  const type=document.getElementById('bottomSignalType'),level=document.getElementById('bottomSignalLevel'),state=document.getElementById('bottomGeneratorState');
  type.addEventListener('change',()=>document.querySelector('#genType [data-t="'+type.value+'"]')?.click());
  document.getElementById('bottomSignalHz').addEventListener('change',e=>applyGenHz(Number(e.target.value),'bottom'));
- document.getElementById('bottomSweepDuration').addEventListener('change',e=>{const input=document.getElementById('genSweep');input.value=Math.max(1,Math.min(10,Number(e.target.value)||4));input.dispatchEvent(new Event('input',{bubbles:true}));e.target.value=input.value});
  level.addEventListener('change',()=>{const input=document.getElementById('genLvl');input.value=Math.max(-46,Math.min(-8,Number(level.value)||-34));input.dispatchEvent(new Event('input',{bubbles:true}));level.value=input.value});
- setInterval(()=>{if(!media.matches)return;if(document.activeElement!==type)type.value=genType;if(document.activeElement!==level)level.value=genDb;const hz=document.getElementById('bottomSignalHz'),sweep=document.getElementById('bottomSweepDuration');hz.disabled=genType!=='sine';sweep.disabled=genType!=='sweep';if(document.activeElement!==hz)hz.value=genHz;if(document.activeElement!==sweep)sweep.value=genSweepDur;state.textContent=genOn?'Signal playing · '+(genType==='sine'?genHz+' Hz':genType==='sweep'?genSweepDur+' s sweep':'Continuous noise'):'Signal stopped';},150);
+ setInterval(()=>{if(!media.matches)return;if(document.activeElement!==type)type.value=genType;if(document.activeElement!==level)level.value=genDb;const hz=document.getElementById('bottomSignalHz');hz.disabled=genType!=='sine';if(document.activeElement!==hz)hz.value=genHz;state.textContent=genOn?'Signal playing · '+(genType==='sine'?genHz+' Hz':genType==='sweep'?'Sweep':'Continuous noise'):'Signal stopped';},150);
 })();
 </script>
 <script src="js/overview.js"></script></body>

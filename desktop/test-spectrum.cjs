@@ -68,6 +68,6 @@ module.exports=async({window})=>window.webContents.executeJavaScript(`(async()=>
   const traceCount=tfTraces.length,traceValues=lastV.slice();captureWorkspaceTrace();if(tfTraces.length!==traceCount+1||tfTraces.at(-1).type!=='rta'||JSON.stringify(tfTraces.at(-1).values)!==JSON.stringify(traceValues))throw Error('Overview trace capture no longer uses canonical measured bands');
   const type=document.getElementById('bottomSignalType');type.value='sine';type.dispatchEvent(new Event('change'));
   const hz=document.getElementById('bottomSignalHz');hz.value='250';hz.dispatchEvent(new Event('change'));await wait(170);if(genHz!==250||hz.disabled||genOn)throw Error('Inline sine control failed');
-  type.value='sweep';type.dispatchEvent(new Event('change'));const duration=document.getElementById('bottomSweepDuration');duration.value='6';duration.dispatchEvent(new Event('change'));await wait(170);if(genSweepDur!==6||duration.disabled||genOn)throw Error('Inline sweep control failed');
+  type.value='sweep';type.dispatchEvent(new Event('change'));await wait(170);if(genType!=='sweep'||genOn||document.getElementById('bottomSweepDuration'))throw Error('Sweep selection failed or duration control remains');
   v54SetAnalysisView('rta');await stop();return {results,freezePreserved:true,calibrationVerified:true,overviewCadence:cadence};
 })()`);
