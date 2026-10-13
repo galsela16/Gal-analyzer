@@ -191,6 +191,7 @@ module.exports=async({window,release})=>{
   `);
   await capture('04-transfer-function.jpg','TF magnitude','Actual measured and verified synthetic 5 ms loopback.');
   await evaluate(`setTfViewMode('phase');`);
+  await evaluate(`const tools=document.getElementById('tfPhaseTools'),read=tools.querySelector('.phaseRead').getBoundingClientRect(),actions=tools.querySelector('.tfPhaseActions').getBoundingClientRect(),bounds=tools.getBoundingClientRect();if(bounds.width<100||read.bottom>actions.top||tools.scrollWidth>tools.clientWidth+1)throw Error('Phase values and controls overlap');for(const button of tools.querySelectorAll('.tfPhaseActions button')){const r=button.getBoundingClientRect();if(r.left<bounds.left||r.right>bounds.right||r.top<read.bottom)throw Error('Phase control outside its row');}`);
   await capture('05-phase.jpg','TF phase','Delay-compensated phase from the same selected input pair.');
   await evaluate(`
     document.getElementById('sunBtn').click();

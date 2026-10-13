@@ -1,0 +1,12 @@
+{
+  "version": "6.0.0-preview.41",
+  "date": "2026-10-14",
+  "changes": [
+    "Separate phase/coherence readouts, cursor frequency slider and action buttons into distinct rows",
+    "Prevent minimum-width badges and action controls overlapping in the floating panel",
+    "Keep coherence-only mode without phase action buttons"
+  ],
+  "checks": {
+    "phasePanelNonOverlap": true
+  }
+}
