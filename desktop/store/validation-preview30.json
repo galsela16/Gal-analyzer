@@ -1,0 +1,37 @@
+{
+  "version": "6.0.0-preview.30",
+  "date": "2026-10-13",
+  "changes": [
+    "Remove duplicate horizontal level meter at desktop widths; retain left input meters and Measurement statistics",
+    "Reclaim graph height consistently in RTA, Waterfall and EQ overlays",
+    "Compact lower workspace and trace rows, with name editing, visibility and delete controls aligned",
+    "Place capture and clear actions in the trace header; retain all integrated generator options"
+  ],
+  "checks": {
+    "uiScreenshotsAndTraceAlignment": true,
+    "packagedSpectrumConsistencyAllResolutions": true,
+    "calibrationFreezeTraceAndPngChecks": true,
+    "packagedOverviewCadence": [
+      29.965,
+      29.152
+    ],
+    "hiddenMainCanvasPaints": 0,
+    "knownTfDelayMs": 5.000003074761063,
+    "sourceResponseMs": {
+      "left": [
+        113.4,
+        99.9,
+        93
+      ],
+      "graph": [
+        267.9,
+        267.8,
+        292.2
+      ]
+    },
+    "visualInspection": "1440 x 900 RTA with two named traces, compact footer and no horizontal meter"
+  },
+  "limitations": [
+    "Synthetic tests exclude physical interface and end-to-end field latency"
+  ]
+}

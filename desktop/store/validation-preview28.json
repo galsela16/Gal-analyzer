@@ -1,0 +1,73 @@
+{
+  "version": "6.0.0-preview.28",
+  "date": "2026-10-13",
+  "changes": [
+    "Extract one canonical spectrum-data update shared by ordinary views and Overview",
+    "No hidden main-canvas drawing during Overview; preserve peak-hold state without drawing",
+    "Overview renders at normal graph cadence instead of a 100 ms cap",
+    "Cache waterfall pixels by actual history row and blit once instead of recoloring 14400 cells each frame",
+    "Freeze holds the last TF snapshot, spectrum bands and history",
+    "Overview PNG export composites the visible four charts instead of exporting a stale hidden canvas"
+  ],
+  "checks": {
+    "packagedOverviewCadence": [
+      {
+        "reference": 1,
+        "fps": 29.985,
+        "hiddenMainCanvasPaints": 0
+      },
+      {
+        "reference": -1,
+        "fps": 29.983,
+        "hiddenMainCanvasPaints": 0
+      }
+    ],
+    "fixture": "Broadband synthetic six-channel input with actual REF/None routing",
+    "spectrumConsistency": [
+      3,
+      6,
+      12,
+      24,
+      48
+    ],
+    "calibrationPreserved": true,
+    "frozenTfBandsAndHistoryPreserved": true,
+    "canonicalTraceCapturePreserved": true,
+    "overviewPngIncludesVisibleGrid": true,
+    "uiWorkflowAndAllPanelChecks": true,
+    "verifiedKnownTfDelayMs": 4.999996536228041,
+    "screenshots": 5
+  },
+  "packagedPerformance": {
+    "scope": "Synthetic six-channel arm64; isolated draw times, not physical capture latency or browser comparison",
+    "overviewMedianMs": 3.4,
+    "overviewP95Ms": 7.9,
+    "overviewPacketsPerSecond": 49.977,
+    "rtaP95Ms": 3.8,
+    "tfP95Ms": 8.0
+  },
+  "packagedResponse": {
+    "timingOrigin": "Gain step after native delivery; excludes interface and native input buffer",
+    "meterMs": [
+      66.6,
+      64.1,
+      63.6
+    ],
+    "graphMs": [
+      266.6,
+      265.4,
+      266.7
+    ],
+    "leftMeterTextMs": [
+      113.0,
+      117.4,
+      81.2
+    ],
+    "fftSize": 16384,
+    "rmsWindow": 2048
+  },
+  "limitations": [
+    "Physical interface and end-to-end field latency require separate acceptance",
+    "GitHub upload remains blocked pending exact approval previously requested"
+  ]
+}

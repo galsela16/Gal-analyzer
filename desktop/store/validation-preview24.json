@@ -1,0 +1,24 @@
+{
+  "version": "6.0.0-preview.24",
+  "date": "2026-10-12",
+  "scope": "Visual studio theme inspired by user reference; preserves existing single main graph layout and English UI",
+  "changes": [
+    "Navy surfaces with cyan accents",
+    "Remove metal textures and decorative screws",
+    "Thin borders and rounded panel corners",
+    "Clear active states and colored trace readability",
+    "Light theme preserved"
+  ],
+  "checks": {
+    "uiWorkflowPassed": true,
+    "screenshots": 5,
+    "knownTfDelayMs": 4.999987644300221,
+    "sidebarAndExclusiveModeChecksPassed": true,
+    "visualInspection": "RTA screenshot reviewed for trace readability and overlapping controls",
+    "gitDiffCheck": true
+  },
+  "limitations": [
+    "Multi-graph dashboard from reference is not implemented in this visual pass",
+    "GitHub upload remains blocked pending exact authorization previously requested"
+  ]
+}

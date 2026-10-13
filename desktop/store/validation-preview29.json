@@ -1,0 +1,46 @@
+{
+  "version": "6.0.0-preview.29",
+  "date": "2026-10-13",
+  "changes": [
+    "Same shared 3D Waterfall renderer in full view and Overview, replacing the heatmap",
+    "Identical frequency colors, level range and time/depth model; adaptive viewport geometry",
+    "Shared frequency cursor and resonance overlays; common evidence updates",
+    "Preserve active or frozen history when expanding and returning to Overview",
+    "Cache the 3D scene by actual history row, viewport and settings; no hidden main canvas painting",
+    "Remove unused legacy 2D spectrogram painting from full Waterfall",
+    "Correct shared level-axis label to dBFS for the plotted input-spectrum levels"
+  ],
+  "checks": {
+    "sourceAndPackagedPixelComparisonWithSharedRenderer": true,
+    "frozenHistorySurvivesExpandAndReturn": true,
+    "fullHistoryStress": true,
+    "packagedOverviewCadence": [
+      {
+        "reference": 1,
+        "fps": 29.96,
+        "hiddenMainCanvasPaints": 0
+      },
+      {
+        "reference": -1,
+        "fps": 29.978,
+        "hiddenMainCanvasPaints": 0
+      }
+    ],
+    "fixture": "Broadband synthetic six-channel native transport, full history",
+    "spectrumConsistency": [
+      3,
+      6,
+      12,
+      24,
+      48
+    ],
+    "calibrationFreezeTraceAndPngChecks": true,
+    "verifiedKnownTfDelayMs": 5.000021066760244,
+    "uiScreenshotChecks": true,
+    "visualInspection": "Final Overview 3D Waterfall screenshot inspected at 1440 x 900"
+  },
+  "limitations": [
+    "Synthetic verification excludes physical interface and end-to-end field latency",
+    "GitHub upload remains blocked pending exact approval previously requested"
+  ]
+}

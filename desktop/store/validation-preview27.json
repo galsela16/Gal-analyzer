@@ -1,0 +1,47 @@
+{
+  "version": "6.0.0-preview.27",
+  "date": "2026-10-13",
+  "changes": [
+    "All floating measurement options exposed without More/Less",
+    "Sub/Top alignment uses the common left floating panel and opens through the actual Tools button",
+    "Generator type, level, sine frequency, sweep duration and start/stop integrated in lower workspace; no separate desktop generator popup",
+    "Overview displays real RTA, MIC/REF, frequency history and normalized TF magnitude from the same capture; individual Expand actions and native Display menu shortcut"
+  ],
+  "checks": {
+    "sourceAndPackagedWorkspaceChecks": true,
+    "allSixPanelsNoHorizontalOverflow": true,
+    "actualSubTopButtonOpens": true,
+    "noNestedExpansionRequired": true,
+    "inlineSineAndSweepControls": true,
+    "generatorNeverPlayedDuringTests": true,
+    "overviewWorksWithAudioOffAndLive": true,
+    "overviewSelectorExclusive": true,
+    "noReferenceTfUnavailable": true,
+    "spectrumConsistency": [
+      3,
+      6,
+      12,
+      24,
+      48
+    ],
+    "knownVerifiedTfDelayMs": 4.9999916964692,
+    "storeScreenshots": 5,
+    "overviewScreenshotReviewed": true,
+    "sidebarCappedRetinaSizingVerified": true
+  },
+  "performance": {
+    "scope": "Isolated synthetic six-channel arm64 draw timings; excludes physical capture latency and browser comparisons",
+    "overviewMedianMs": 1.8,
+    "overviewP95Ms": 16.9,
+    "overviewPacketsPerSecond": 49.997,
+    "rtaMedianMs": 1.9,
+    "rtaP95Ms": 3.5,
+    "tfMedianMs": 6.0,
+    "tfP95Ms": 8.1
+  },
+  "limitations": [
+    "Overview waterfall is a compact frequency/time heatmap; Expand opens the full waterfall",
+    "Physical interface acceptance remains separate",
+    "GitHub upload remains blocked pending exact approval previously requested"
+  ]
+}

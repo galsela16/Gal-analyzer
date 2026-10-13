@@ -21,7 +21,9 @@ const fs = require('node:fs');
 const origin = 'gal://app';
 const storeScreenshots=process.argv.includes('--store-screenshots');
 const profiling=process.argv.includes('--performance-test');
-const testing = process.argv.includes('--self-test')||profiling||storeScreenshots;
+const spectrumTesting=process.argv.includes('--spectrum-test');
+const responseTesting=process.argv.includes('--response-test');
+const testing = process.argv.includes('--self-test')||profiling||storeScreenshots||responseTesting||spectrumTesting;
 const hardwareTesting=process.argv.includes('--hardware-test');
 if(testing||hardwareTesting)app.setPath('userData',fs.mkdtempSync(path.join(require('node:os').tmpdir(),'gal-audio-test-')));
 const {NativeHost}=require('./native-host.cjs');
@@ -70,8 +72,8 @@ app.whenReady().then(async () => {
     {label:app.name,submenu:[{role:'about'},item('Preferences…','uiSetOpenIo','CmdOrCtrl+,'),{label:'Privacy Policy…',click:showPrivacy},{type:'separator'},{role:'quit'}]},
     {label:'File',submenu:[item('Export graph PNG…','uiPng'),item('Export measurement CSV…','uiCsv'),{type:'separator'},item('Export session…','exportJsonBtn'),item('Import session…','importJsonBtn')]},
     {role:'editMenu'},
-    {label:'Audio',submenu:[item('Audio settings…','uiSetOpenIo'),item('Open generator…','tlsGenOpen'),item('Start / stop signal','tlsGenToggle')]},
-    {label:'Display',submenu:[{label:'Interface motion',submenu:[['full','Full animation'],['system','Follow macOS'],['reduced','Reduced motion']].map(([choice,label])=>({id:'motion-'+choice,label,type:'radio',checked:choice==='full',click:command('button[data-interface-motion="'+choice+'"]')}))},{id:'target-curve',label:'Show target curve',type:'checkbox',checked:false,click:command('#uiSetTarget')},{label:'Target shape',submenu:['flat','house'].map(shape=>({label:shape[0].toUpperCase()+shape.slice(1),click:command('.tgtSeg [data-t="'+shape+'"]')}))},item('Day / night theme','uiSetTheme'),{label:'Resolution',submenu:[3,6,12,24,48].map(n=>({label:'1/'+n+' octave',click:command('[data-set-bpo="'+n+'"]')}))},{label:'Analysis speed',submenu:['slow','normal','fast'].map(speed=>({label:speed[0].toUpperCase()+speed.slice(1),click:command('[data-analysis-speed="'+speed+'"]')}))},{label:'Accent color',submenu:[['Blue','#3ea6ff'],['Green','#40d17a'],['Purple','#b57bff'],['Orange','#ff9d3c']].map(([label,color])=>({label,click:command('[data-ui-color="'+color+'"]')}))},item('Toggle left sidebar','leftRailToggle'),item('Toggle right sidebar','rightRailToggle')]},
+    {label:'Audio',submenu:[item('Audio settings…','uiSetOpenIo'),item('Signal generator','bottomSignalType'),item('Start / stop signal','tlsGenToggle')]},
+    {label:'Display',submenu:[item('Overview · all graphs','overviewToggle'),{label:'Interface motion',submenu:[['full','Full animation'],['system','Follow macOS'],['reduced','Reduced motion']].map(([choice,label])=>({id:'motion-'+choice,label,type:'radio',checked:choice==='full',click:command('button[data-interface-motion="'+choice+'"]')}))},{id:'target-curve',label:'Show target curve',type:'checkbox',checked:false,click:command('#uiSetTarget')},{label:'Target shape',submenu:['flat','house'].map(shape=>({label:shape[0].toUpperCase()+shape.slice(1),click:command('.tgtSeg [data-t="'+shape+'"]')}))},item('Day / night theme','uiSetTheme'),{label:'Resolution',submenu:[3,6,12,24,48].map(n=>({label:'1/'+n+' octave',click:command('[data-set-bpo="'+n+'"]')}))},{label:'Analysis speed',submenu:['slow','normal','fast'].map(speed=>({label:speed[0].toUpperCase()+speed.slice(1),click:command('[data-analysis-speed="'+speed+'"]')}))},{label:'Accent color',submenu:[['Blue','#3ea6ff'],['Green','#40d17a'],['Purple','#b57bff'],['Orange','#ff9d3c']].map(([label,color])=>({label,click:command('[data-ui-color="'+color+'"]')}))},item('Toggle left sidebar','leftRailToggle'),item('Toggle right sidebar','rightRailToggle')]},
     {role:'viewMenu'},{role:'windowMenu'},
     {label:'Help',submenu:[item('Measurement guide','uiGuide'),item('Context help','uiHelp')]}
   ]);
@@ -82,6 +84,16 @@ app.whenReady().then(async () => {
   const errors=[];
   window.webContents.on('console-message',(event)=>{if(event.level==='error')errors.push(event.message+' '+event.sourceId+':'+event.lineNumber);});
   await window.loadURL(origin+'/index.html');
+  if(spectrumTesting){
+    try{const result=await require('./test-spectrum.cjs')({window});if(errors.length)throw Error(errors.join('\n'));console.log('Spectrum consistency:',JSON.stringify(result));app.exit(0);}catch(error){console.error(error);app.exit(1);}return;
+  }
+  if(responseTesting){
+    try{
+      const result=await require('./test-response.cjs')({window});
+      if(errors.length)throw Error(errors.join('\n'));
+      console.log('Audio response:',JSON.stringify(result));app.exit(0);
+    }catch(error){console.error(error);app.exit(1);}return;
+  }
   if(storeScreenshots){
     try {
       const result=await require('./store-screenshots.cjs')({window,release});
@@ -118,8 +130,8 @@ app.whenReady().then(async () => {
         const off=galNativeHost.onPacket(()=>packets++),realDraw=draw;
         draw=()=>{const began=performance.now();realDraw();const elapsed=performance.now()-began;if(elapsed>.1)samples.push(elapsed);};
         const report={scope:'Synthetic six-channel input; isolated draw timings, not physical capture latency or a browser comparison.',architecture:${JSON.stringify(process.arch)},sampleSecondsPerMode:3.5};
-        for(const view of ['rta','mr','tf','waterfall']){
-          closeModals();setMode(view==='waterfall'?'spec':'rta');v5SetTab(view);setTfOverlay(view==='tf');
+        for(const view of ['rta','mr','tf','waterfall','overview']){
+          v54SetAnalysisView(view==='waterfall'?'spec':view);
           if(view==='tf'){showModal(tfPanel);tfDelayMs=5;tfDelaySamples=Math.round(audioCtx.sampleRate*.005);tfDelayReady=true;tfWorkflowVerified=true;}
           if((view==='waterfall')!==(mode==='spec') || tfOverlay!==(view==='tf'))throw Error('Performance test selected the wrong graph.');
           await new Promise(resolve=>setTimeout(resolve,800));samples=[];packets=0;const began=performance.now();

@@ -1,0 +1,28 @@
+{
+  "version": "6.0.0-preview.26",
+  "date": "2026-10-13",
+  "changes": [
+    "Floating 340px left measurement panels with distinct blue-gray surfaces, cyan border, rounded corners and subtle shadow",
+    "Graph reserves horizontal room rather than losing height; bottom traces and generator remain accessible",
+    "Reusable header with expand/close controls; vertically stacked TF workflow and advanced utilities behind expansion",
+    "Compact/expanded layouts for TF, Delay, RT60, SPL/EQ and Area"
+  ],
+  "checks": {
+    "allFivePanelsCompactAndExpandedNoHorizontalOverflow": true,
+    "spectrumConsistencyAllFiveResolutions": true,
+    "freezeAndCalibrationPreserved": true,
+    "floatingTfNoGraphOrBottomWorkspaceOverlap": true,
+    "graphHeightPreserved": true,
+    "dayAndNightUiWorkflow": true,
+    "visualInspection": "TF floating panel and full-height graph reviewed at 1440 x 900",
+    "tfWorkflow": {
+      "verified": true,
+      "knownDelayMs": 5.000057433617967,
+      "screenshots": 5
+    }
+  },
+  "limitations": [
+    "Desktop floating layout at widths >=1000px; smaller views retain bottom docks",
+    "GitHub upload remains blocked pending exact approval previously requested"
+  ]
+}

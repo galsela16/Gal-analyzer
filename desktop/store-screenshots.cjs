@@ -15,10 +15,19 @@ module.exports=async({window,release})=>{
     if(!document.body.classList.contains('desktop-native-menus')||getComputedStyle(document.getElementById('uiMenuBtn')).display!=='none')throw Error('Desktop still shows the in-app menu.');
     if(!document.getElementById('targetMeasurementPanel').contains(document.getElementById('uiLivePill')))throw Error('Audio control is outside Measurement.');
     if(document.querySelectorAll('.tlsPatchActions button').length!==2)throw Error('Generator must have exactly two buttons.');
-    for(const view of ['tf','rta','mr','spec','tf']){
+    const lower=document.getElementById('studioBottom');
+    if(!lower.contains(document.getElementById('v5TraceList'))||!lower.contains(document.getElementById('tlsGenToggle')))throw Error('Lower workspace controls not moved.');
+    const lowerRect=lower.getBoundingClientRect(),graphRect=document.getElementById('stage').getBoundingClientRect();
+    if(getComputedStyle(document.getElementById('meter')).display!=='none')throw Error('Duplicate graph meter is visible.');
+    if(lowerRect.height<120||lowerRect.height>150||graphRect.bottom>lowerRect.top)throw Error('Lower workspace overlaps graph.');
+    const type=document.getElementById('bottomSignalType'),level=document.getElementById('bottomSignalLevel');
+    type.value='sine';type.dispatchEvent(new Event('change'));if(genType!=='sine'||genOn)throw Error('Signal type sync failed or unexpectedly played.');
+    level.value='-38';level.dispatchEvent(new Event('change'));if(genDb!==-38)throw Error('Signal level sync failed.');
+    type.value='pink';type.dispatchEvent(new Event('change'));level.value='-34';level.dispatchEvent(new Event('change'));
+    for(const view of ['tf','rta','mr','spec','overview','tf']){
       v54SetAnalysisView(view);setMode(view==='spec'?'spec':'rta');
       const active=[...document.querySelectorAll('#v53AnalysisGroup button.on')];
-      if(active.length!==1||active[0].id!==({tf:'v54TfGraphToggle',rta:'v53AnalysisToggle',mr:'v54MrToggle',spec:'v54WaterfallToggle'})[view])throw Error('Mode selectors are not exclusive: '+view);
+      if(active.length!==1||active[0].id!==({tf:'v54TfGraphToggle',rta:'v53AnalysisToggle',mr:'v54MrToggle',spec:'v54WaterfallToggle',overview:'overviewToggle'})[view])throw Error('Mode selectors are not exclusive: '+view);
     }
   `);
 
@@ -81,13 +90,13 @@ module.exports=async({window,release})=>{
     const results=[];
     for(const side of ['left','right']){
       const rail=document.getElementById(side==='left'?'targetLeftStatus':'uiRightTools');
-      const width=cv.width;setWorkspaceRail(side,false);
+      const width=cv.width,initialClientWidth=cv.clientWidth;setWorkspaceRail(side,false);
       await new Promise(r=>setTimeout(r,110));
       const shift=new DOMMatrix(getComputedStyle(rail).transform).m41;
       if(!workspaceRailAnimating||cv.width!==width||Math.abs(shift)<1||Math.abs(shift)>=rail.offsetWidth+12)throw Error('Panel does not slide progressively: '+side);
       results.push({side,shift,canvasStayedStable:cv.width===width});
       await new Promise(r=>setTimeout(r,250));
-      if(workspaceRailAnimating||cv.width===width)throw Error('Canvas did not settle after collapse.');
+      const canvasRect=cv.getBoundingClientRect(),expectedScale=Math.max(1,Math.min(devicePixelRatio||1,2,1440/Math.max(1,canvasRect.width),760/Math.max(1,canvasRect.height)));if(workspaceRailAnimating||cv.clientWidth===initialClientWidth||cv.width!==Math.round(canvasRect.width*expectedScale)||Math.abs(ctx.getTransform().a-expectedScale)>.001)throw Error('Canvas did not settle at the capped render resolution.');
       setWorkspaceRail(side,true);await new Promise(r=>setTimeout(r,80));
       const opening=new DOMMatrix(getComputedStyle(rail).transform).m41;
       if(Math.abs(opening)<=0||Math.abs(opening)>=rail.offsetWidth+12||rail.inert)throw Error('Opening does not slide: '+side);
@@ -113,14 +122,29 @@ module.exports=async({window,release})=>{
   await evaluate(`captureWorkspaceTrace();v552RenameTrace(0,'Input 1');measChannel=2;await switchInput('coreaudio:field-test');`);
   await wait(1800);
   await evaluate(`captureWorkspaceTrace();v552RenameTrace(1,'Input 3');measChannel=0;await switchInput('coreaudio:field-test');v54SetAnalysisView('rta');`);
-  await capture('01-rta-traces.jpg','RTA','Live spectrum and two named, colored captured traces.');
+  await evaluate(`
+    const viewport=document.getElementById('v5TraceList').getBoundingClientRect();
+    const rows=[...document.querySelectorAll('#v5TraceList .v5TraceRow')];
+    if(rows.length!==2)throw Error('Expected two lower trace cards.');
+    for(const row of rows){const name=row.querySelector('input').getBoundingClientRect(),controls=row.querySelector('.v5TraceControls').getBoundingClientRect();if(name.top<viewport.top||name.bottom>viewport.bottom||name.right>controls.left||Math.abs((name.top+name.bottom-controls.top-controls.bottom)/2)>5)throw Error('Lower trace name or controls clipped/misaligned.');}
+  `);
+  await capture('01-rta-traces.jpg' ,'RTA','Live spectrum and two named, colored captured traces.');
   await evaluate(`v54SetAnalysisView('mr');`);
   await capture('02-input-comparison.jpg','M/R','Selected microphone and reference spectra.');
   await evaluate(`v54SetAnalysisView('spec');`);
   await wait(10500);
   await capture('03-waterfall.jpg','Waterfall','Frequency history from the live synthetic input.');
+  await evaluate(`v54SetAnalysisView('overview');`);await wait(1600);fs.writeFileSync(path.join(output,'ui-overview.jpg'),(await window.webContents.capturePage()).resize({width:1440,height:900}).toJPEG(94));
   await evaluate(`
-    v5OpenTf();
+    v5OpenTf();await new Promise(r=>setTimeout(r,100));
+    const dock=document.getElementById('tfPanel');
+    for(const expanded of [false,true,false]){
+      dock.classList.toggle('expanded',expanded);updateMeasureDockHeight();await new Promise(r=>setTimeout(r,100));
+      const panel=dock.getBoundingClientRect(),graph=document.getElementById('stage').getBoundingClientRect(),lower=document.getElementById('studioBottom').getBoundingClientRect();
+      if(panel.width<320||panel.width>360||panel.right>graph.left||panel.bottom>lower.top||dock.scrollWidth>dock.clientWidth+2)throw Error('Floating TF panel overlaps or clips horizontally: '+JSON.stringify({panelWidth:panel.width,panelRight:panel.right,graphLeft:graph.left,scroll:dock.scrollWidth,client:dock.clientWidth,offenders:[...dock.querySelectorAll('*')].filter(e=>e.getBoundingClientRect().right>panel.right-4&&e.getBoundingClientRect().width>0).map(e=>e.id||e.className).slice(0,15)}));
+      if(document.getElementById('cv').getBoundingClientRect().height<graph.height-80)throw Error('Floating panel still reduces graph height.');
+      if(!dock.querySelector('.floatingDockHead .dockClose'))throw Error('Floating panel close missing');
+    }
     const delay=await new Promise((resolve,reject)=>{
       const timer=setTimeout(()=>reject(Error('TF sync timed out.')),12000);
       runDelayCapture(null,result=>{clearTimeout(timer);resolve(result);},{signalType:'noise',maxDelayMs:50});
@@ -155,7 +179,7 @@ module.exports=async({window,release})=>{
   await saveUi('ui-day.jpg');
   await evaluate(`v5OpenTf();`);await wait(300);await saveUi('ui-tf-day.jpg');
   await evaluate(`v54SetAnalysisView('rta');document.querySelector('#v5ModeTabs [data-v5mode="delay"]').click();`);await wait(300);await saveUi('ui-delay-day.jpg');
-  await evaluate(`closeModals();v54SetAnalysisView('rta');`);
+  await evaluate(`closeModals();v54SetAnalysisView('rta');`);await wait(350);
   await evaluate(`
     const before=document.getElementById('stage').getBoundingClientRect();
     document.getElementById('uiSetOpenIo').click();
@@ -177,7 +201,7 @@ module.exports=async({window,release})=>{
   await wait(100);if(require('electron').nativeTheme.themeSource!=='dark')throw Error('Native window did not switch to the night theme.');
   await saveUi('ui-audio-preferences-night.jpg');
   await evaluate(`document.getElementById('audioPreferencesClose').click();await stop();`);
-  const manifest={release:release.version,date:'2026-10-10',status:'Drafts. Recapture from the accepted signed MAS release before submission.',scope:'Real application renderer; synthetic PCM from the test helper; no physical microphone or playback.',tf,shots};
+  const manifest={release:release.version,date:'2026-10-13',status:'Drafts. Recapture from the accepted signed MAS release before submission.',scope:'Real application renderer; synthetic PCM from the test helper; no physical microphone or playback.',tf,shots};
   fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   return {output,count:shots.length,tf};
 };

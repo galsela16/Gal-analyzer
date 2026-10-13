@@ -6,7 +6,7 @@ let ISO=[], BANDS=0, R=1;
 let peaks=[];
 let avgBuf=[], snapCurve=null, lastV=[], lastRefV=[], lastBandDb=[], frozen=false;
 let _lastRtaSmoothTime=0;
-let rtaVisualDb=[];
+let rtaVisualDb=[],rtaRefVisualDb=[],refAvgBuf=[],lastRefBandDb=[];
 let refCurve=null;
 let abA=null, abB=null, abView='off';
 let sunMode=false;
@@ -77,6 +77,7 @@ function buildBands(bpo){
   lastRefV=new Array(BANDS).fill(0);
   lastBandDb=new Array(BANDS).fill(-120);
   rtaVisualDb=new Array(BANDS).fill(NaN);
+  rtaRefVisualDb=new Array(BANDS).fill(NaN);refAvgBuf=new Array(BANDS).fill(NaN);lastRefBandDb=new Array(BANDS).fill(-120);
   snapCurve=null; frozen=false; _lastRtaSmoothTime=0;
   refCurve=null;
   { const rb=document.getElementById("refCurveBtn"); if(rb){ rb.classList.remove("on"); rb.textContent="Save Before"; } }
@@ -111,7 +112,7 @@ let tfState='idle', tfSwap=false, tfMic=null, tfRef=null, tfFrames=0, tfResult=n
 let running=false, mode='rta';
 let peakHold=true, fbOn=true, avgOn=false;
 let avgAlpha=0.90;
-let rtaResponseMs=140;
+let rtaResponseMs=70;
 let _v3ToastTimer=null;
 let floorDb=-85, ceilDb=-15;
 let calib=0;
@@ -144,7 +145,7 @@ let tfOverlay=false;
 let analysisView='rta';
 function syncAnalysisView(){
   const selected=mode==='spec'?'spec':analysisView;
-  for(const [id,view] of [['v53AnalysisToggle','rta'],['v54MrToggle','mr'],['v54WaterfallToggle','spec'],['v54TfGraphToggle','tf']]){
+  for(const [id,view] of [['v53AnalysisToggle','rta'],['v54MrToggle','mr'],['v54WaterfallToggle','spec'],['v54TfGraphToggle','tf'],['overviewToggle','overview']]){
     const button=document.getElementById(id);button?.classList.toggle('on',selected===view);button?.setAttribute('aria-pressed',String(selected===view));
   }
 }
@@ -361,9 +362,8 @@ document.querySelectorAll('#avgSpeedSeg button').forEach(b=>b.addEventListener('
 }));
 function setAnalysisSpeed(name,persist=true){
   const key=['fast','normal','slow'].includes(name)?name:'normal';
-  const preset={fast:{rta:70,wf:70,tf:.82,label:'Fast'},normal:{rta:140,wf:120,tf:.93,label:'Normal'},slow:{rta:700,wf:220,tf:.97,label:'Slow'}}[key];
+  const preset={fast:{rta:35,wf:70,tf:.82,label:'Fast'},normal:{rta:70,wf:120,tf:.93,label:'Normal'},slow:{rta:700,wf:220,tf:.97,label:'Slow'}}[key];
   rtaResponseMs=preset.rta;tfSmoothA=preset.tf;
-  tfLiveVisualDb=[];
   if(window.wf3d){
     window.wf3d.intervalMs=preset.wf;
     window.wf3d.maxRows=Math.ceil(10000/preset.wf)+1;
@@ -388,6 +388,7 @@ function download(name, blobUrl){
   document.body.appendChild(a); a.click(); a.remove();
 }
 function exportPNG(){
+  if(analysisView==='overview'&&window.GalOverview){download('overview_'+stamp()+'.png',GalOverview.exportCanvas().toDataURL('image/png'));return;}
   const W=cv.clientWidth,H=cv.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
   const off=document.createElement('canvas'); off.width=W*dpr; off.height=H*dpr;
   const o=off.getContext('2d'); o.scale(dpr,dpr);
@@ -682,6 +683,8 @@ safeOn('genBtn', 'click',function(){
   v53SetGeneratorDock(open);
 });
 function v53SetGeneratorDock(open){
+  if(innerWidth>=1000&&document.getElementById('bottomSignalType')){genPanel.classList.remove('open');document.getElementById('stage')?.classList.remove('v53-gen-open');if(open)document.getElementById('bottomSignalType').focus();return;}
+
   const stage=document.getElementById('stage');
   const quick=document.getElementById('v52GenBtn');
   const header=document.getElementById('v5GenAction');
@@ -1197,7 +1200,7 @@ safeOn('calResetBtn', 'click',()=>{
 var alignOn=false;
 const modalBg=document.getElementById('modalBg');
 const guidePanel=document.getElementById('guidePanel');
-const measureDockIds=['rtPanel','eqPanel','tfPanel','areaPanel','dlyPanel'];
+const measureDockIds=['rtPanel','eqPanel','tfPanel','areaPanel','dlyPanel','alignBar'];
 const stageEl=document.getElementById('stage');
 function dockAdvanced(id, parentLevels=0, block=false){
   let e=document.getElementById(id); if(!e) return;
@@ -1207,7 +1210,7 @@ function dockAdvanced(id, parentLevels=0, block=false){
 function setupMeasureDocks(){
   measureDockIds.forEach(id=>{
     const p=document.getElementById(id); if(!p)return;
-    p.classList.add('measureDock'); if(stageEl) stageEl.appendChild(p);
+    p.classList.add('measureDock','floatingMeasurementDock'); if(stageEl) stageEl.appendChild(p);
     const close=p.querySelector('[id$="Close"]'); if(close){close.classList.add('dockClose');close.textContent='✕';close.title="Close";}
     const more=document.createElement('button');more.className='dockMoreBtn';more.type='button';more.textContent="More ▾";
     more.addEventListener('click',()=>{
@@ -1224,6 +1227,8 @@ function setupMeasureDocks(){
       p.appendChild(more);
     }
   });
+  const titles={rtPanel:'Reverberation · RT60',eqPanel:'SPL / EQ',tfPanel:'Transfer Function',areaPanel:'Area measurement',dlyPanel:'Delay measurement',alignBar:'Sub / Top alignment'};
+  measureDockIds.forEach(id=>{const panel=document.getElementById(id);if(!panel)return;const head=document.createElement('div');head.className='floatingDockHead';const label=document.createElement('strong');label.textContent=titles[id];head.append(label);const actions=document.createElement('div');actions.className='floatingDockActions';const more=panel.querySelector('.dockMoreBtn'),close=panel.querySelector('.dockClose');if(more)actions.append(more);if(close)actions.append(close);head.append(actions);panel.prepend(head)});
   // heavy/advanced sections stay hidden until "More"
   ['tfCanvas','tfModeSeg','tfGeqList','tfInfo','eqPosList','eqList','combResult','areaList','areaEqCanvas','areaEqList','areaCombResult','rtCanvas'].forEach(id=>dockAdvanced(id,0,true));
   ['tfSmooth','tfCohGate'].forEach(id=>dockAdvanced(id,1));
@@ -1239,7 +1244,7 @@ function setupMeasureDocks(){
 }
 function updateMeasureDockHeight(){
   const open=measureDockIds.map(id=>document.getElementById(id)).find(p=>p&&p.classList.contains('open'));
-  if(open){stageEl.style.setProperty('--measure-h',open.offsetHeight+'px');stageEl.classList.add('measure-open');}
+  if(open){stageEl.style.setProperty('--measure-h',(innerWidth>=1000?0:open.offsetHeight)+'px');stageEl.classList.add('measure-open');}
   else{stageEl.style.setProperty('--measure-h','0px');stageEl.classList.remove('measure-open');}
   if(typeof resize==='function')resize();
   if(typeof v5SyncRail==='function')v5SyncRail();
@@ -1248,7 +1253,7 @@ setupMeasureDocks();
 ['calPanel','savePanel'].forEach(id=>{const p=document.getElementById(id);if(p)modalBg.appendChild(p);});
 function showModal(p){
   if(!p) return;
-  setAlign(false); closeModals(); p.classList.add('open');
+  setAlign(false); closeModals(); p.classList.add('open');if(innerWidth>=1000&&p.classList.contains('floatingMeasurementDock'))p.classList.add('expanded');
   if(p.classList.contains('measureDock')){modalBg.classList.remove('show');setTimeout(updateMeasureDockHeight,0);}
   else modalBg.classList.add('show');
 }
@@ -1267,13 +1272,14 @@ function abortRT60(restoreGenerator=true){
   if(rt60ArmTimer){clearTimeout(rt60ArmTimer);rt60ArmTimer=null;}
   if(rt60CutTimer){clearTimeout(rt60CutTimer);rt60CutTimer=null;}
   if(rt60FinishTimer){clearTimeout(rt60FinishTimer);rt60FinishTimer=null;}
-  if(analyser) analyser.smoothingTimeConstant=parseFloat(document.getElementById('smooth').value);
+  if(analyser) analyser.smoothingTimeConstant=0;
   restoreRt60Generator(restoreGenerator);
   if(rtStatus) rtStatus.textContent="The measurement was cancelled.";
 }
 function closeModals(){
+  alignOn=false;document.getElementById('alignBar')?.classList.remove('show');stageEl?.classList.remove('bar-open');
   abortRT60();
-  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','savePanel','guidePanel'].forEach(id=>{const p=document.getElementById(id);if(p){p.classList.remove('open','expanded');const m=p.querySelector('.dockMoreBtn');if(m)m.textContent="More ▾";}});
+  ['rtPanel','eqPanel','calPanel','tfPanel','areaPanel','dlyPanel','alignBar','savePanel','guidePanel'].forEach(id=>{const p=document.getElementById(id);if(p){p.classList.remove('open','expanded');const m=p.querySelector('.dockMoreBtn');if(m)m.textContent="More ▾";}});
   modalBg.classList.remove('show');
   if(typeof updateMeasureDockHeight==='function') updateMeasureDockHeight();
 }
@@ -1756,7 +1762,6 @@ function tfHasReferenceSignal(){
   return peak>-85;
 }
 let tfDisplaySnapshot=null;
-let tfLiveVisualDb=[];
 const TF_DELTA_COLORS=['rgba(239,68,68,.82)','rgba(249,115,22,.78)','rgba(250,204,21,.74)','rgba(132,204,22,.72)','rgba(34,211,238,.74)','rgba(14,165,233,.78)','rgba(37,99,235,.82)'];
 function tfDeltaBucket(db){return db>=8?0:db>=4?1:db>=1.5?2:db>-1.5?3:db>-4?4:db>-8?5:6;}
 function tfDrawTrustGuide(W,plotH,verified,reason){
@@ -1815,7 +1820,7 @@ function tfDrawSelectedMagnitude(W,plotH,xForFreq){
   for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(tfNormalizedMagnitude(s,k));if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
   fill.lineTo(W,zero);fill.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.25)');grad.addColorStop(.5,'rgba(82,217,255,.08)');grad.addColorStop(1,'rgba(37,99,235,.25)');ctx.fillStyle=grad;ctx.fill(fill);ctx.strokeStyle='#00d5ff';ctx.lineWidth=2.7;ctx.lineJoin='round';ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke(line);ctx.shadowBlur=0;
   tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const yy=y(tfNormalizedMagnitude(t,k));p?ctx.lineTo(px,yy):ctx.moveTo(px,yy);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
-  tfViewHeader('MAGNITUDE · MIC − REF','0 dB = no change · above = boost · below = loss','#00d5ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+  tfViewHeader('MAGNITUDE · RELATIVE RESPONSE','Normalized 0 dB · above = relative rise · below = relative dip','#00d5ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
 }
 function tfDrawSelectedPhase(W,plotH,xForFreq){
   const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=148,bottom=plotH-14,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
@@ -1838,67 +1843,35 @@ function tfDrawSelectedView(W,plotH,nyquist,xForFreq){
   return tfDrawSelectedMagnitude(W,plotH,xForFreq);
 }
 
+// Both input-spectrum views use the same continuously updated, calibrated bands.
 function tfDrawDualLiveView(W,plotH,nyquist){
-  if(!floatData?.length || !lastV.length || !lastRefV.length) return;
-  const sample=(data,x)=>{const f=freqForX(x),p=Math.max(0,Math.min(data.length-1,f/nyquist*(data.length-1))),i=Math.floor(p),t=p-i;return data[i]+((data[Math.min(data.length-1,i+1)]||data[i])-data[i])*t;};
-  const yForDb=db=>plotH-Math.max(0,Math.min(1,(db-floorDb)/(ceilDb-floorDb)))*plotH;
-  const mic=[];let visualIndex=0;
-  for(let x=0;x<=W;x+=2,visualIndex++){
-    const raw=sample(floatData,x),previous=tfLiveVisualDb[visualIndex];
-    const display=Number.isFinite(previous)?previous*tfSmoothA+raw*(1-tfSmoothA):raw;
-    tfLiveVisualDb[visualIndex]=display;mic.push({x,y:yForDb(display)});
-  }
-  tfLiveVisualDb.length=visualIndex;
-  const spectrumGradient=ctx.createLinearGradient(0,0,W,0);
-  [['#ef4444',0],['#f97316',.12],['#facc15',.28],['#84cc16',.43],['#22d3ee',.65],['#0ea5e9',.82],['#2563eb',1]].forEach(([color,stop])=>spectrumGradient.addColorStop(stop,color));
-  // A dense FFT silhouette stays useful even before a valid reference is connected.
-  ctx.beginPath();ctx.moveTo(0,plotH);mic.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=.26;ctx.fillStyle=spectrumGradient;ctx.fill();ctx.globalAlpha=1;
-  ctx.beginPath();mic.forEach((p,i)=>{ctx.moveTo(p.x,plotH);ctx.lineTo(p.x,p.y);});ctx.strokeStyle=spectrumGradient;ctx.globalAlpha=.48;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
-  ctx.beginPath();mic.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#b7f34a';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
-  ctx.save();ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.font="700 10px Arial";ctx.textAlign='left';ctx.direction='ltr';ctx.fillText('MIC SPECTRUM ONLY · not a transfer-function measurement',12,60,W*.52);ctx.restore();
-  tfDrawTrustGuide(W,plotH,false,'Next: connect a Reference channel, run Delay Sync, then Verify.');
-  const drawCurve=(values,color,dash=[])=>{const bw=W/BANDS;ctx.beginPath();values.forEach((v,b)=>{const x=b*bw+bw/2,y=plotH-Math.max(0,Math.min(1,v))*plotH;b?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.setLineDash(dash);ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);};
-  ctx.save();
-  drawCurve(lastRefV,'#f59e0b',[6,4]);
-  ctx.font="700 11px Arial";ctx.textAlign='left';
-  const micLevel=Number.isFinite(v52MeasDbfs)?v52MeasDbfs:smoothedDbfs;
-  const refLevel=Number.isFinite(v52RefDbfs)?v52RefDbfs:-120;
-  const legendX=12;
-  ctx.font="500 10px Arial";
-  ctx.fillStyle=sunMode?'#167fa0':'#75b5cf';ctx.fillText('MIC '+(measChannel+1)+' · '+micLevel.toFixed(1)+' dBFS',legendX,78);
-  ctx.fillStyle=sunMode?'#85692f':'#b5a17c';ctx.fillText(refChannel<0?'REF · Not assigned':refLevel<=-110?'REF '+(refChannel+1)+' · No input signal':'REF '+(refChannel+1)+' · '+refLevel.toFixed(1)+' dBFS',legendX,94);
-  ctx.textAlign='right';ctx.font="9px Arial";ctx.fillStyle=sunMode?'#64748b':'#8193a2';
-  ctx.fillText(ceilDb+' dBFS',W-7,13);ctx.fillText(Math.round((ceilDb+floorDb)/2)+' dBFS',W-7,plotH/2);ctx.fillText(floorDb+' dBFS',W-7,plotH-5);
-  ctx.restore();
+  return drawDualInputRta(W,plotH,nyquist,true);
 }
-
-// V5.5.36 — one canonical RTA plot for both physical inputs.
-let mrMicSmooth=[],mrRefSmooth=[];
-function drawDualInputRta(W,plotH,nyquist){
-  if(!analyserRef||!floatData?.length||!floatDataRef?.length)return false;
-  if(!frozen)analyserRef.getFloatFrequencyData(floatDataRef);
-  const yForDb=db=>plotH-Math.max(0,Math.min(1,(db-floorDb)/(ceilDb-floorDb)))*plotH;
-  const bandPoints=(data,history,isMic)=>ISO.slice(0,BANDS).map((fc,i)=>{
-    let raw=binOverlapPowerDb(data,fc/R,fc*R,nyquist);
-    if(isMic)raw=calibratedResponseDb(raw,fc);
-    const old=history[i],db=Number.isFinite(old)?old*tfSmoothA+raw*(1-tfSmoothA):raw;
-    history[i]=db;return {x:(i+.5)*W/BANDS,y:yForDb(db)};
-  });
-  const ref=bandPoints(floatDataRef,mrRefSmooth,false),mic=bandPoints(floatData,mrMicSmooth,true);
-  const fill=(pts,color,alpha)=>{ctx.beginPath();ctx.moveTo(0,plotH);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;};
-  const stroke=(pts,color,width)=>{ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineJoin='round';ctx.stroke();};
-  fill(ref,'#ff2850',.48);fill(mic,'#008dff',.65);stroke(ref,'#ff4d5e',2.1);stroke(mic,'#45a5ff',2.1);
-  ctx.save();ctx.font="800 10px Arial";ctx.fillStyle='rgba(3,13,19,.78)';ctx.fillRect(10,10,232,27);ctx.fillStyle='#45a5ff';ctx.fillText('━ MIC 1',20,28);ctx.fillStyle='#ff4d5e';ctx.fillText('━ REF 2',112,28);ctx.fillStyle=sunMode?'#334b58':'#b6c8cf';ctx.fillText('M/R',202,28);ctx.restore();
-  if(!tfHasReferenceSignal()){
-    ctx.save();
-    // Keep the reference status visible without covering the plot with an alert box.
-    ctx.font="500 10px Arial";
-    ctx.fillStyle=sunMode?'#526674':'#94a8b3';
-    ctx.textAlign='right';
-    ctx.fillText('REF 2 · No input signal',W-12,W<480?52:27);
-    ctx.restore();
+function drawDualInputRta(W,plotH,nyquist,tfFallback=false){
+  if(!floatData?.length||!rtaVisualDb.length)return false;
+  const top=0,height=plotH,yForDb=db=>height*(1-norm(db));
+  const bandPoints=values=>values.map((db,i)=>({x:(i+.5)*W/BANDS,y:yForDb(db)}));
+  const mic=bandPoints(rtaVisualDb),ref=refChannel>=0?bandPoints(rtaRefVisualDb):[];
+  ctx.save();ctx.strokeStyle=sunMode?'rgba(82,102,116,.18)':'rgba(120,145,160,.15)';ctx.lineWidth=1;
+  for(let db=Math.ceil(floorDb/10)*10;db<=ceilDb;db+=10){const y=yForDb(db);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}ctx.restore();
+  const fill=(pts,color,alpha)=>{if(!pts.length)return;ctx.beginPath();ctx.moveTo(0,plotH);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,plotH);ctx.closePath();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;};
+  const stroke=(pts,color)=>{if(!pts.length)return;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=2.1;ctx.lineJoin='round';ctx.stroke();};
+  fill(ref,'#ff2850',.48);fill(mic,'#008dff',.65);stroke(ref,'#ff4d5e');stroke(mic,'#45a5ff');
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="700 10px Arial";
+  ctx.fillStyle='#45a5ff';ctx.fillText('MIC '+(measChannel+1),12,106);
+  ctx.fillStyle='#ff4d5e';ctx.fillText(refChannel<0?'REF · None':'REF '+(refChannel+1),90,106);
+  ctx.fillStyle=sunMode?'#526674':'#94a8b3';ctx.fillText('1/'+curBpo+' octave · dBFS'+(micCal?' · Mic calibration applied':''),190,106,W-202);
+  // Explicit dBFS ticks use the identical vertical scale in both spectrum views.
+  for(let db=Math.ceil(floorDb/10)*10;db<=ceilDb;db+=10){const y=yForDb(db);ctx.fillText(db+' dBFS',5,Math.max(top+10,Math.min(plotH-12,y-3)));}
+  const reason=refChannel<0?'Reference not assigned · choose REF in Audio settings':'Reference has no signal · check routing and input level';
+  if(tfFallback){
+    ctx.font="800 12px Arial";ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.fillText('SPECTRUM ONLY · TF unavailable',12,60,W-24);
+    ctx.font="10px Arial";ctx.fillStyle=sunMode?'#7b6847':'#b5a17c';ctx.fillText(reason,12,80,W-24);
+  }else{
+    ctx.font="800 12px Arial";ctx.fillStyle=sunMode?'#172b38':'#d9e8ed';ctx.fillText('INPUT SPECTRUM · MIC / REF',12,60,W-24);
+    if(!tfHasReferenceSignal()){ctx.font="10px Arial";ctx.fillStyle=sunMode?'#7b6847':'#b5a17c';ctx.fillText(reason,12,80,W-24);}
   }
-  return true;
+  ctx.restore();return true;
 }
 
 function detectComb(){
@@ -3088,18 +3061,14 @@ safeOn('mRta', 'click',()=>{setMode('rta'); if(typeof v5SetTab==='function')v5Se
 safeOn('mSpec', 'click',()=>{setMode('spec'); if(typeof v5SetTab==='function')v5SetTab('analysis');});
 safeOn('tfOverlayHdr', 'click',()=>setTfOverlay(!tfOverlay));
 function setAlign(on){
+  if(on){closeModals();analysisView='tf';document.body.classList.remove('overview-mode');document.getElementById('overviewToggle')?.classList.remove('on');syncAnalysisView();}
   alignOn=on;
-  const bar=document.getElementById('alignBar'); if(bar) bar.classList.toggle('show',on);
+  const bar=document.getElementById('alignBar');
+  if(bar){bar.classList.toggle('show',on);bar.classList.toggle('open',on);bar.classList.toggle('expanded',on&&innerWidth>=1000);}
+  document.getElementById('alignBtn')?.classList.toggle('on',on);
   const stage=document.getElementById('stage');
-  const b=document.getElementById('alignBtn'); if(b) b.classList.toggle('on',on);
-  if(on) closeModals();
-  // Resize the canvas to reserve space for the toolbar
-  if(stage){
-    const h = (on && bar) ? bar.offsetHeight : 0;   // offsetHeight forces a layout measurement
-    stage.style.setProperty('--bar-h', h+'px');
-    stage.classList.toggle('bar-open', on);
-  }
-  if(typeof resize==='function') resize();
+  if(stage){stage.style.setProperty('--bar-h','0px');stage.classList.remove('bar-open');}
+  updateMeasureDockHeight();
 }
 safeOn('alignBtn','click',()=>setAlign(!alignOn));
 safeOn('alignClose','click',()=>setAlign(false));
@@ -3150,7 +3119,7 @@ function resetSession(){
 
 function setMode(m){
   const prevMode=mode;mode=m;
-  if(m==='spec'&&prevMode!=='spec')resetWaterfallResonances();
+  if(m==='spec'&&prevMode!=='spec'&&!(frozen||performance.now()-wf3d.lastCapture<Math.max(500,wf3d.intervalMs*3)))resetWaterfallResonances();
   document.getElementById('mRta').classList.toggle('on',m==='rta');
   document.getElementById('mSpec').classList.toggle('on',m==='spec');
   if(m==='spec')analysisView='spec';
@@ -3318,13 +3287,14 @@ async function startInput(deviceId){
     floatDataRef = new Float32Array(analyserRef.frequencyBinCount);
     timeData = new Float32Array(analyser.fftSize);
     timeDataRef = new Float32Array(analyserRef.fftSize);
-    timeDataMeter = new Float32Array(2048);
+    timeDataMeter = new Float32Array(analyserMeter.fftSize);
     
     buildWeighting(audioCtx.sampleRate / 2, analyser.frequencyBinCount);
     resize();
     peaks.fill(0); fbTrack.clear(); fbPanel.innerHTML = ''; lvlPeak = -120;
     leqSumP = 0; leqN = 0; splMax = -120;
     smoothedDbfs = -120;
+    avgBuf.fill(NaN);refAvgBuf.fill(NaN);rtaVisualDb.fill(NaN);rtaRefVisualDb.fill(NaN);_lastRtaSmoothTime=0;
     running = true; idle.style.display = 'none'; dot.classList.add('live'); v3UpdateStatus();
     meterEl.style.display = 'flex'; document.getElementById('stats').style.display = 'flex';
     document.getElementById('stopBtn').style.display = '';
@@ -3443,16 +3413,16 @@ function binOverlapLinearPower(linearData,fLo,fHi,nyquist,divisor){
 function calibratedResponseDb(db,f){ return db-(micCal?micCalAt(f):0); }
 function rtaTimeConstant(){
   const s=Math.max(0,Math.min(.98,parseFloat(document.getElementById('smooth')?.value)||0));
-  const base=s<=0?0:(.02+.60*s*s);
+  const base=s<=0?0:(.02+.60*s*s)*Math.min(1,rtaResponseMs/420);
   if(!avgOn) return Math.max(base,rtaResponseMs/1000);
   const preset=Math.max(.5,Math.min(.995,avgAlpha));
   const extra=-1/30/Math.log(preset);
   return Math.max(base,rtaResponseMs/1000,extra);
 }
-function smoothBandDb(index,nextDb,alpha){
-  const nextPower=db2lin(nextDb), previous=avgBuf[index];
+function smoothBandDb(index,nextDb,alpha,history=avgBuf){
+  const nextPower=db2lin(nextDb), previous=history[index];
   const power=Number.isFinite(previous)?previous*alpha+nextPower*(1-alpha):nextPower;
-  avgBuf[index]=power;
+  history[index]=power;
   return 10*Math.log10(power+1e-12);
 }
 // Presentation-only ballistics: keep measured/exported band levels unchanged.
@@ -3491,26 +3461,28 @@ function drawSharedFrequencyAxis(W,plotH,xForFreq){
   ctx.restore();
 }
 
-function updateLevel(){
+function updateInputLevel(){
   if(!analyserMeter) return;
   analyserMeter.getFloatTimeDomainData(timeDataMeter);
-  const dbfs = levelDb(timeDataMeter, 2048);
+  const dbfs = levelDb(timeDataMeter);
 
   const now=performance.now();
   const dt=meterUpdateAt?Math.min(.25,Math.max(.001,(now-meterUpdateAt)/1000)):1/60;
   meterUpdateAt=now;
-  const tau=dbfs>smoothedDbfs?.045:.34;
+  const tau=dbfs>smoothedDbfs?(dbfs-smoothedDbfs>6?.012:.045):.34;
   smoothedDbfs+=(dbfs-smoothedDbfs)*(1-Math.exp(-dt/tau));
   if(smoothedDbfs>lvlPeak || now-lvlPeakT>1500){ lvlPeak=smoothedDbfs; lvlPeakT=now; }
   const pct=v=>Math.max(0,Math.min(100,(v+60)/60*100));
   meterFill.style.width=pct(smoothedDbfs)+'%';
   meterPeak.style.insetInlineStart=pct(lvlPeak)+'%';
-  if(now-meterTextAt>=100){
+  if(now-meterTextAt>=50){
     meterTextAt=now;
     if(meterUnit==='SPL') meterVal.textContent=(smoothedDbfs+calib).toFixed(0)+' dB SPL≈';
     else meterVal.textContent=smoothedDbfs.toFixed(1)+' dBFS';
   }
 
+}
+function updateLevel(){
   const w = weightMode==='A'?weightA : weightMode==='C'?weightC : null;
   let p=0;
   for(let i=1;i<floatData.length;i++){
@@ -3532,6 +3504,8 @@ let _lastDraw=0;
 function draw(){
   raf=requestAnimationFrame(draw);
   const now=performance.now();
+  updateInputLevel();
+  v52UpdateLiveMeters();
   if(now-_lastDraw < 32) return;
   _lastDraw=now;
   updateSignalTint();
@@ -3604,13 +3578,16 @@ function draw(){
   }
   updateLevel();
   window.GalMultiInput?.update(frozen,v5WorkspaceMode==='rta'&&!alignOn);
-  v52UpdateLiveMeters();
   const W=window.workspaceRailAnimating?cv.width/ctx.getTransform().a:cv.clientWidth,H=window.workspaceRailAnimating?cv.height/ctx.getTransform().d:cv.clientHeight;
   const nyquist=audioCtx.sampleRate/2, bins=floatData.length;
   const logMin=Math.log(ISO[0]), logMax=Math.log(ISO[BANDS-1]);
   const xForFreq=f=>((Math.log(f)-logMin)/(logMax-logMin))*W;
 
-  if(mode==='rta'){
+  if(analysisView==='overview'){
+    const {dt}=updateSpectrumBands(nyquist);
+    if(peakHold&&!frozen&&!((abView==='both'||abView==='delta')&&(abA||abB)))rtaVisualDb.forEach((db,b)=>{const v=norm(db);peaks[b]=v>=peaks[b]?v:Math.max(v,peaks[b]-dt*.15);});
+    window.GalOverview?.render(nyquist);
+  }else if(mode==='rta'){
     drawRta(W,H,nyquist,bins,xForFreq);
     if(eqRangeWorkspaceOpen()){
       drawRtaEqRange(W,H,xForFreq);
@@ -3677,7 +3654,7 @@ function applyDelayPhaseToCross(re,im,k,n,delaySamples){
 }
 
 function drawRtaEqRange(W,H,xForFreq){
-  const meterH=(meterEl&&meterEl.style.display!=='none')?28:6,plotH=H-meterH-6;
+  const meterH=(window.innerWidth>=1000)?0:((meterEl&&meterEl.style.display!=='none')?28:6),plotH=H-meterH-6;
   const xLo=xForFreq(eqMinFreq),xHi=xForFreq(eqMaxFreq);
   syncEqRangeDomHandles();
   ctx.save();ctx.setLineDash([]);
@@ -3699,7 +3676,7 @@ function drawRtaEqRange(W,H,xForFreq){
 
 function drawRtaEqCorrection(W,H,xForFreq){
   if(!eqCorrectionVisible||!eqCurveData||!eqCurveData.freqs||!eqCurveData.corr)return;
-  const meterH=(meterEl&&meterEl.style.display!=='none')?28:6,plotH=H-meterH-6;
+  const meterH=(window.innerWidth>=1000)?0:((meterEl&&meterEl.style.display!=='none')?28:6),plotH=H-meterH-6;
   const ribbonH=Math.min(82,Math.max(58,plotH*.18)),top=plotH-ribbonH-5,mid=top+ribbonH/2,scale=(ribbonH*.38)/6;
   const pts=[];for(let i=0;i<eqCurveData.freqs.length;i++){const f=eqCurveData.freqs[i],v=eqCurveData.corr[i];if(v!=null&&Number.isFinite(v))pts.push({x:xForFreq(f),y:mid-v*scale,v});}
   if(!pts.length)return;
@@ -3712,19 +3689,43 @@ function drawRtaEqCorrection(W,H,xForFreq){
   ctx.restore();
 }
 
-function drawRta(W,H,nyquist,bins,xForFreq){
-  ctx.clearRect(0,0,W,H);
-  if(sunMode){
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(0,0,W,H);
-  }
+function updateSpectrumBands(nyquist){
   const now=performance.now();
   const firstVisualFrame=!_lastRtaSmoothTime;
   const dt=_lastRtaSmoothTime?Math.max(.001,Math.min(.25,(now-_lastRtaSmoothTime)/1000)):1/30;
   _lastRtaSmoothTime=now;
   const tau=rtaTimeConstant();
   const smoothAlpha=tau>0?Math.exp(-dt/tau):0;
-  const meterH = (meterEl && meterEl.style.display!=='none') ? 28 : 6;
+  if(!frozen&&analyserRef&&refChannel>=0)analyserRef.getFloatFrequencyData(floatDataRef);
+  let peakBand=-1,peakVal=0;
+  for(let b=0;b<BANDS;b++){
+    const fc=ISO[b];
+    const rawDb=calibratedResponseDb(binOverlapPowerDb(floatData,fc/R,fc*R,nyquist),fc);
+    const displayDb=frozen&&Number.isFinite(avgBuf[b])?lastBandDb[b]:smoothBandDb(b,rawDb,smoothAlpha);
+    lastBandDb[b]=displayDb;
+    let v=norm(displayDb);
+    lastV[b]=v;
+    if(!frozen||!Number.isFinite(rtaVisualDb[b]))rtaVisualDb[b]=smoothRtaVisualDb(firstVisualFrame?NaN:rtaVisualDb[b],displayDb,dt,fc,rtaResponseMs);
+    if(refChannel>=0&&floatDataRef){
+      const rawRef=binOverlapPowerDb(floatDataRef,fc/R,fc*R,nyquist);
+      const refDb=frozen&&Number.isFinite(refAvgBuf[b])?lastRefBandDb[b]:smoothBandDb(b,rawRef,smoothAlpha,refAvgBuf);
+      lastRefBandDb[b]=refDb;lastRefV[b]=norm(refDb);
+      if(!frozen||!Number.isFinite(rtaRefVisualDb[b]))rtaRefVisualDb[b]=smoothRtaVisualDb(firstVisualFrame?NaN:rtaRefVisualDb[b],refDb,dt,fc,rtaResponseMs);
+    }else{refAvgBuf[b]=NaN;lastRefBandDb[b]=-120;lastRefV[b]=0;rtaRefVisualDb[b]=-120;}
+    if(v>peakVal){peakVal=v;peakBand=b;}
+
+  }
+  return {dt,peakBand,peakVal};
+}
+
+function drawRta(W,H,nyquist,bins,xForFreq){
+  ctx.clearRect(0,0,W,H);
+  if(sunMode){
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0,0,W,H);
+  }
+  const {dt,peakBand,peakVal}=updateSpectrumBands(nyquist);
+  const meterH = (window.innerWidth>=1000) ? 0 : ((meterEl && meterEl.style.display!=='none') ? 28 : 6);
   const plotH = H - meterH - 6;
   ctx.strokeStyle=sunMode ? '#cbd5e1' : '#2b3646'; 
   ctx.fillStyle=sunMode ? '#475569' : '#aeb9c7'; 
@@ -3743,26 +3744,17 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   const qBar = document.getElementById('tfQuickBar');
   if(qBar) qBar.classList.toggle('show', tfRequested && !alignOn);
 
-  let peakBand=-1,peakVal=0;
+  const studioBars=ctx.createLinearGradient(0,plotH,0,0);
+  [['#0875ff',0],['#00c9ee',.28],['#00ecb0',.50],['#62f052',.70],['#ffdc31',.86],['#ff5266',1]].forEach(([color,stop])=>studioBars.addColorStop(stop,color));
   const abCompare = (abView==='both' || abView==='delta') && (abA || abB);
 
   for(let b=0;b<BANDS;b++){
-    const fc=ISO[b];
-    const rawDb=calibratedResponseDb(binOverlapPowerDb(floatData,fc/R,fc*R,nyquist),fc);
-    const displayDb=smoothBandDb(b,rawDb,smoothAlpha);
-    lastBandDb[b]=displayDb;
-    let v=norm(displayDb);
-    lastV[b]=v;
-    if(tfRequested||abCompare||(v5WorkspaceMode==='mr'&&analyserRef))rtaVisualDb[b]=NaN;
-    if(v>peakVal){peakVal=v;peakBand=b;}
-    
     if(!tfRequested && !abCompare && !(v5WorkspaceMode==='mr'&&analyserRef)){
-      if(!frozen||!Number.isFinite(rtaVisualDb[b]))rtaVisualDb[b]=smoothRtaVisualDb(firstVisualFrame?NaN:rtaVisualDb[b],displayDb,dt,fc,rtaResponseMs);
       const barV=norm(rtaVisualDb[b]);
       const x=b*bw+gap/2, barW=bw-gap;
       const barH=barV*plotH, y=plotH-barH;
       let col= barV<0.85?'rgba('+accentRgb[0]+','+accentRgb[1]+','+accentRgb[2]+','+(sunMode?.90:.98)+')' : 'var(--hot)';
-      ctx.fillStyle=col; ctx.fillRect(x,y,barW,barH);
+      ctx.fillStyle=sunMode?col:studioBars; ctx.fillRect(x,y,barW,barH);
       if(peakHold){
         if(!frozen){if(barV>=peaks[b])peaks[b]=barV;else peaks[b]=Math.max(barV,peaks[b]-dt*.15);}
         const py=plotH-peaks[b]*plotH;
@@ -3776,12 +3768,6 @@ function drawRta(W,H,nyquist,bins,xForFreq){
   
   if(tfRequested){
     const alignView = alignOn;
-    if(!frozen) analyserRef.getFloatFrequencyData(floatDataRef);
-    for(let b=0;b<BANDS;b++){
-      const rv=norm(binOverlapPowerDb(floatDataRef,ISO[b]/R,ISO[b]*R,nyquist));
-      const a=Math.exp(-dt/.10);
-      lastRefV[b]=lastRefV[b]*a+rv*(1-a);
-    }
     
     if(tfOpen)computeComplexTf();
     // V5.5.3 TF Pro: when TF is selected, the main graph is the transfer
@@ -4012,7 +3998,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
       t.values.forEach((v,b)=>{const x=b*bw+bw/2,yy=plotH-v*plotH;b===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);});
       ctx.stroke();ctx.globalAlpha=1;
     });
-    if(tfRequested && !alignOn && !tfHasReferenceSignal()){
+    if(tfRequested && !alignOn && !tfHasReferenceSignal() && tfWorkingAverage){
       ctx.save();ctx.font="600 10px Arial";ctx.textAlign='right';
       ctx.font="500 10px Arial";
       ctx.fillStyle=sunMode?'#526674':'#94a8b3';
@@ -4315,7 +4301,8 @@ function waterfallConfidence(c){
 function waterfallConfidenceTier(q){return q>=.78?'HIGH':q>=.58?'MEDIUM':'LOW';}
 window.waterfallConfidence=waterfallConfidence;
 
-function drawWaterfallResonanceOverlay(W,specH,xForFreq){
+function drawWaterfallResonanceOverlay(W,specH,xForFreq,drawingContext=ctx,options={}){
+  const ctx=drawingContext;
   if(!wfResonance.enabled)return;
   ctx.save();
   const visible=wfResonance.candidates.filter(r=>{
@@ -4324,7 +4311,7 @@ function drawWaterfallResonanceOverlay(W,specH,xForFreq){
   }).slice(0,3);
   visible.forEach((r,i)=>{
     const x=xForFreq(r.hz);if(x<0||x>W)return;
-    const g=waterfallGeometry(W,specH),u=(x-g.left)/(g.right-g.left),backX=g.backLeft+u*(g.backRight-g.backLeft),horizon=g.base-g.depth;
+    const g=waterfallGeometry(W,specH,options.toolbarTop),u=(x-g.left)/(g.right-g.left),backX=g.backLeft+u*(g.backRight-g.backLeft),horizon=g.base-g.depth;
     const q=waterfallConfidence(r),hz=Math.round(r.hz)+' Hz';
     ctx.strokeStyle=r.validated?'rgba(60,224,177,.34)':'rgba(245,190,70,.26)';ctx.lineWidth=1;ctx.setLineDash([3,7]);
     ctx.beginPath();ctx.moveTo(backX,horizon);ctx.lineTo(x,g.base);ctx.stroke();ctx.setLineDash([]);
@@ -4339,9 +4326,10 @@ function drawWaterfallResonanceOverlay(W,specH,xForFreq){
     :(performance.now()-wfResonance.started<wfResonance.minAgeMs?'Analyzing resonances…':'No persistent resonance');
 }
 
-function drawWaterfallFrequencyCursor(W,H,nyquist){
-  if(cursorX==null)return;
-  const {left,right,top,base,depth,backLeft,backRight}=waterfallGeometry(W,H),x=Math.max(left,Math.min(right,cursorX));
+function drawWaterfallFrequencyCursor(W,H,nyquist,drawingContext=ctx,options={}){
+  const ctx=drawingContext,cursor=options.cursorX!==undefined?options.cursorX:cursorX;
+  if(cursor==null)return;
+  const {left,right,top,base,depth,backLeft,backRight}=waterfallGeometry(W,H,options.toolbarTop),x=Math.max(left,Math.min(right,cursor));
   const maxHz=Math.min(20000,nyquist*.96),u=(x-left)/Math.max(1,right-left);
   const hz=20*Math.pow(maxHz/20,u);
   const label=hz<1000?hz.toFixed(1)+' Hz':(hz/1000).toFixed(3)+' kHz';
@@ -4381,14 +4369,15 @@ function captureWaterfall3dRow(nyquist){
   const row=raw.map((v,i)=>(raw[Math.max(0,i-2)]+2*raw[Math.max(0,i-1)]+3*v+2*raw[Math.min(N-1,i+1)]+raw[Math.min(N-1,i+2)])/9);
   wf3d.rows.unshift(row);if(wf3d.rows.length>wf3d.maxRows)wf3d.rows.length=wf3d.maxRows;
 }
-function waterfallGeometry(W,H){
-  const top=Math.min(H*.3,waterfallGeometry.toolbarTop||16),bottom=Math.max(top+1,H-24),span=bottom-top,left=38,right=Math.max(left+1,W-50);
+function waterfallGeometry(W,H,toolbarTop=waterfallGeometry.toolbarTop||16){
+  const top=Math.min(H*.3,toolbarTop),bottom=Math.max(top+1,H-24),span=bottom-top,left=38,right=Math.max(left+1,W-50);
   return {top,bottom,span,left,right,base:bottom,depth:span*.72,amp:span*.20,backLeft:left+58,backRight:right-88};
 }
-function drawWaterfall3d(W,H,nyquist,xForFreq){
-  captureWaterfall3dRow(nyquist);
+function drawWaterfall3d(W,H,nyquist,xForFreq,drawingContext=ctx,options={}){
+  const ctx=drawingContext;
+  if(options.capture!==false&&!frozen)captureWaterfall3dRow(nyquist);
   const rows=wf3d.rows;
-  const {top,span,depth,amp,left,right,base,backLeft,backRight}=waterfallGeometry(W,H);
+  const {top,span,depth,amp,left,right,base,backLeft,backRight}=waterfallGeometry(W,H,options.toolbarTop);
   const timeSpan=Math.max(.1,(Math.max(1,wf3d.maxRows-1)*wf3d.intervalMs)/1000);
   ctx.fillStyle=sunMode?'#f8fafc':'#071015';ctx.fillRect(0,0,W,H);
   // Perspective floor: frequency runs left-to-right, time recedes toward the horizon.
@@ -4456,7 +4445,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
     ctx.fillText(f>=1000?(f/1000)+'k':f,x,H-9);
   });
   // Level scale inside the plot, matching the compact reference instrument style.
-  ctx.textAlign='left';ctx.fillStyle=sunMode?'#475569':'#93a3ad';ctx.fillText('dB SPL',7,13);
+  ctx.textAlign='left';ctx.fillStyle=sunMode?'#475569':'#93a3ad';ctx.fillText('dBFS',7,13);
   for(let j=0;j<=4;j++){
     const p=j/4,y=base-p*amp,label=Math.round(floorDb+(ceilDb-floorDb)*p);
     ctx.fillStyle=sunMode?'rgba(71,85,105,.72)':'rgba(147,163,173,.78)';ctx.fillText(String(label),7,Math.max(24,y+3));
@@ -4474,18 +4463,7 @@ function drawWaterfall3d(W,H,nyquist,xForFreq){
 
 function drawSpec(W,H,nyquist,bins,xForFreq){
   updateWaterfallResonances(nyquist);
-  specCtx.drawImage(specCanvas,0,-1);
-  const y=specCanvas.height-1;
-  for(let px=0;px<specCanvas.width;px++){
-    const x0=Math.max(0,px-.5)/specCanvas.width, x1=Math.min(specCanvas.width,px+.5)/specCanvas.width;
-    const fLo=Math.exp(x0*(Math.log(ISO[BANDS-1])-Math.log(ISO[0]))+Math.log(ISO[0]));
-    const fHi=Math.exp(x1*(Math.log(ISO[BANDS-1])-Math.log(ISO[0]))+Math.log(ISO[0]));
-    const fc=Math.sqrt(fLo*fHi);
-    const db=calibratedResponseDb(binOverlapPowerDb(floatData,fLo,fHi,nyquist),fc);
-    specCtx.fillStyle=heat(norm(db));
-    specCtx.fillRect(px,y,1,1);
-  }
-  const meterH = (meterEl && meterEl.style.display!=='none') ? 28 : 6;
+  const meterH = (window.innerWidth>=1000) ? 0 : ((meterEl && meterEl.style.display!=='none') ? 28 : 6);
   const specH = H - meterH;
   ctx.clearRect(0,0,W,H);
   drawWaterfall3d(W,specH,nyquist,xForFreq);
@@ -5076,7 +5054,7 @@ function v54SetSideRail(open){
   setTimeout(resize,0);
 }
 function v54SetAnalysisView(view,event){
-  analysisView=view;
+  analysisView=view;document.body.classList.toggle('overview-mode',view==='overview');document.getElementById('overviewToggle')?.classList.toggle('on',view==='overview');
   if(event){event.preventDefault();event.stopImmediatePropagation();}
   closeModals();
   setAlign(false);
@@ -5096,6 +5074,7 @@ function v54SetAnalysisView(view,event){
     setMode(view==='spec'?'spec':'rta');
     v5SetTab(view==='mr'?'mr':'analysis');
   }
+  if(view==='overview')requestAnimationFrame(()=>window.GalOverview?.render(audioCtx?audioCtx.sampleRate/2:24000));
   // setMode('rta') supplies TF's underlying frequency canvas; restore the
   // visible selector state afterwards so TF alone remains highlighted.
   rtaBtn?.classList.toggle('on',view==='rta');
@@ -5306,7 +5285,7 @@ function v52UpdateLiveMeters(){
   if(analyserRef && refChannel >= 0){
     if(!timeDataRef || timeDataRef.length!==analyserRef.fftSize) timeDataRef=new Float32Array(analyserRef.fftSize);
     analyserRef.getFloatTimeDomainData(timeDataRef);
-    ref=levelDb(timeDataRef,timeDataRef.length);
+    ref=levelDb(timeDataRef,2048);
   }
   const smooth=(old,next)=>next>old ? old+(next-old)*.62 : old+(next-old)*.055;
   // Share the bottom microphone meter envelope without a second smoothing pass.

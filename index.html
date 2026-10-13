@@ -3197,6 +3197,126 @@ body.sun-mode #audioPreferences select,body.sun-mode #audioPreferences input:not
 body.sun-mode #stage .eqCanvasHandle{background:#f5fafc!important;background-image:none!important;color:#136487!important;box-shadow:0 1px 3px #26465626!important}
 body.sun-mode #stage #eqLpfHandle{color:#9b650d!important}
 body.sun-mode .tlsTraceCount,body.sun-mode .tlsMeterScale,body.sun-mode .tmpCell,body.sun-mode .tmpSub{color:#526e7c!important}
+</style><style>
+/* Studio visual language: restrained navy surfaces and luminous cyan accents. */
+body:not(.sun-mode){--panel:#071924;--panel-2:#0b2330;--line:#183e50;--grid:#123241;--text:#e4f5fc;--dim:#8aaaba;--accent:#00e4ef;background:#04121b!important;color:var(--text)!important}
+body:not(.sun-mode)::before{display:none!important}
+body:not(.sun-mode) header.uiRefreshed{background:#061923!important;background-image:none!important;border:0!important;border-bottom:1px solid #173b4b!important;box-shadow:none!important}
+body:not(.sun-mode) header.uiRefreshed .dot{background:#00dfeb!important;box-shadow:0 0 12px #00dfeb40!important;width:6px!important;height:6px!important}
+body:not(.sun-mode) header.uiRefreshed h1{color:#dceef7!important;text-shadow:none!important;letter-spacing:.1em!important}
+body:not(.sun-mode) header.uiRefreshed h1 span{color:#00e4ef!important;text-shadow:none!important}
+body:not(.sun-mode) #stage{background:#04141e!important;border:1px solid #194152!important;border-radius:8px!important;box-shadow:none!important}
+body:not(.sun-mode) .tlsCard,body:not(.sun-mode) #targetMeasurementPanel,body:not(.sun-mode) #uiRightTools,body:not(.sun-mode) .measureDock,body:not(.sun-mode) #uiContextBar,body:not(.sun-mode) #genPanel,body:not(.sun-mode) #geqDock{background:#071c28!important;background-image:none!important;border:1px solid #193d4d!important;border-radius:8px!important;box-shadow:none!important}
+body:not(.sun-mode) .tlsCard::before,body:not(.sun-mode) .tlsCard::after,body:not(.sun-mode) #targetMeasurementPanel::before,body:not(.sun-mode) #targetMeasurementPanel::after,body:not(.sun-mode) #uiRightTools::before,body:not(.sun-mode) #uiRightTools::after{display:none!important}
+body:not(.sun-mode) .tlsHead,body:not(.sun-mode) .tmpHead{color:#b2d1df!important;border-color:#193d4d!important;letter-spacing:.1em!important}
+body:not(.sun-mode) #v5ModeTabs,body:not(.sun-mode) #v53AnalysisGroup{background:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
+body:not(.sun-mode) #v53AnalysisGroup button,body:not(.sun-mode) #uiRightTools button,body:not(.sun-mode) .measureDock button,body:not(.sun-mode) #uiContextBar button,body:not(.sun-mode) .tlsPatchActions button,body:not(.sun-mode) #v5AddTrace,body:not(.sun-mode) #v5ClearTraces{background:#092331!important;background-image:none!important;color:#b7d4e2!important;border:1px solid #214659!important;border-radius:6px!important;box-shadow:none!important;text-shadow:none!important}
+body:not(.sun-mode) #v53AnalysisGroup button:hover,body:not(.sun-mode) #uiRightTools button:hover,body:not(.sun-mode) .tlsPatchActions button:hover{background:#0d3040!important;border-color:#318494!important;color:#e5fcff!important}
+body:not(.sun-mode) #v53AnalysisGroup button.on,body:not(.sun-mode) #uiRightTools button.on,body:not(.sun-mode) .measureDock button.on{background:#073a47!important;background-image:none!important;border-color:#00dce8!important;color:#6efaff!important;box-shadow:inset 0 0 16px #00e4ef0c!important}
+body:not(.sun-mode) #displayResolutionBar,body:not(.sun-mode) .tfProCard,body:not(.sun-mode) .tfProViewBar,body:not(.sun-mode) #tfAverageBar{background:#071c28!important;background-image:none!important;border-color:#214659!important;box-shadow:none!important;border-radius:6px!important}
+body:not(.sun-mode) input,body:not(.sun-mode) select{background:#051823!important;color:#d5eaf4!important;border-color:#214659!important;border-radius:6px!important;box-shadow:none!important}
+body:not(.sun-mode) .tlsMeterTrack,body:not(.sun-mode) .tlsMeterTrack::after,body:not(.sun-mode) .v52MeterTrack,body:not(.sun-mode) #meter{background:#03111b!important;background-image:none!important;border-color:#234758!important;box-shadow:none!important}
+body:not(.sun-mode) .tmpValue{background:#041620!important;border-color:#234758!important;border-radius:6px!important;box-shadow:none!important;color:#75f4ff!important}
+body:not(.sun-mode) #measurementAudioToggle{background:#073b47!important;border-color:#00bacd!important;border-radius:6px!important;color:#c8fbff!important;box-shadow:none!important}
+body:not(.sun-mode) .workspaceRailToggle{color:#46deed!important}
+body:not(.sun-mode) .tmpGrid,body:not(.sun-mode) .tmpGrid>div,body:not(.sun-mode) .tlsTraceHead{border-color:#193d4d!important}
+</style><style>
+#studioBottom{display:none}
+@media(min-width:1000px){
+ body{--console-bottom:156px!important}
+ #targetLeftStatus{grid-template-rows:minmax(180px,1fr)!important}
+ #targetTraceCard{display:none!important}
+ #studioBottom{position:fixed;bottom:8px;left:8px;right:8px;height:148px;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(360px,1fr);gap:10px;z-index:12;color:var(--text);font:12px Arial}
+ .studioBottomCard{min-width:0;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+ .studioBottomTitle{font-size:11px;letter-spacing:.12em;color:var(--dim);font-weight:700}
+ #bottomTraces .tlsTraceCount{display:flex!important;gap:8px!important;border:0!important;padding:0!important;margin:0!important;font-size:10px!important}
+ #bottomTraces #persistentTraceHost{display:flex!important;flex-direction:column;gap:8px;flex:1;min-height:0}
+ #bottomTraces #v5TraceList{display:flex;flex-direction:row;gap:10px;overflow:auto!important;min-height:0!important;flex:1;align-items:center}
+ #bottomTraces .v5TraceRow{flex:0 0 230px;display:flex!important;align-items:center!important;gap:7px!important;padding:8px!important;border:1px solid var(--line)!important;border-left:3px solid var(--trace-color)!important;border-radius:5px;margin:0!important;min-width:0}
+ #bottomTraces .v5TraceName{flex:1;min-width:0}#bottomTraces .v5TraceControls{display:flex!important;align-items:center;flex:none}
+ #bottomTraces .v5TraceNameInput{font-size:13px!important;width:100%;min-width:0}
+ #bottomTraces #v5TraceActions{justify-content:flex-start;margin:0!important}#bottomTraces #v5TraceActions button{flex:0 0 auto;min-width:110px;font-size:11px;padding:6px 12px}
+ #bottomGenerator .tlsLine{display:none}#bottomGenerator .tlsPatchActions{display:flex;gap:8px;margin:0!important}
+ #bottomGenerator .tlsPatchActions button{font-size:11px!important;padding:7px 12px!important;flex:1}
+ .studioGeneratorControls{display:flex;gap:12px;align-items:center}.studioGeneratorControls label{display:flex;gap:6px;align-items:center;min-width:0;color:var(--dim)}
+ .studioGeneratorControls select,.studioGeneratorControls input{font:12px Arial;min-width:0;padding:6px;border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--text)}
+ #bottomSignalLevel{width:65px}.studioGeneratorControls select{width:120px}#bottomGeneratorState{font-size:11px;color:var(--dim)}
+}
+</style><style>
+.floatingDockHead{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}.floatingDockActions{display:flex;gap:5px}
+@media(min-width:1000px){
+ body #stage.measure-open{margin-left:calc(var(--console-left) + 376px)!important}
+ body.left-rail-collapsed #stage.measure-open{margin-left:370px!important}
+ body #stage .measureDock.floatingMeasurementDock{position:fixed!important;inset-inline:auto!important;left:calc(var(--console-left) + 22px)!important;right:auto!important;top:74px!important;bottom:calc(var(--console-bottom) + 10px)!important;width:340px!important;min-width:0!important;max-width:340px!important;height:calc(100dvh - var(--console-bottom) - 84px)!important;max-height:none!important;min-height:0!important;padding:14px!important;margin:0!important;border:1px solid #256172!important;border-radius:12px!important;background:#102936!important;background-image:none!important;box-shadow:0 12px 30px #00000038!important;overflow:auto!important;flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;justify-content:flex-start!important;gap:12px!important;grid-template-columns:minmax(0,1fr)!important;grid-template-areas:none!important;align-content:start!important}
+ body #stage .measureDock.floatingMeasurementDock.open,body #stage .measureDock.floatingMeasurementDock.expanded.open{display:flex!important}
+ body.left-rail-collapsed #stage .measureDock.floatingMeasurementDock{left:12px!important}
+ body #stage .measureDock.floatingMeasurementDock .floatingDockHead{display:flex!important;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #2b4e5c;padding-bottom:12px;flex:none;color:#dcf7fc;font:700 13px Arial}
+ body #stage .measureDock.floatingMeasurementDock .floatingDockActions{display:flex;gap:5px;flex:none}
+ body #stage .measureDock.floatingMeasurementDock .dockMoreBtn,body #stage .measureDock.floatingMeasurementDock .dockClose{position:static!important;inset:auto!important;padding:5px 7px!important;min-height:28px!important;min-width:28px!important;font:11px Arial!important;float:none!important}
+ body #stage .measureDock.floatingMeasurementDock>h3,body #stage .measureDock.floatingMeasurementDock .tfProHeader{display:none!important}
+ body #stage .measureDock.floatingMeasurementDock .dlyActions{display:none!important}
+ body #stage .measureDock.floatingMeasurementDock>*{min-width:0!important;max-width:100%!important;flex-shrink:0;grid-column:auto!important;grid-area:auto!important}
+ body #stage .measureDock.floatingMeasurementDock .chBar,body #stage .measureDock.floatingMeasurementDock .ctrl{min-width:0!important;max-width:100%!important;flex:0 0 auto!important;width:100%!important}
+ body #stage .measureDock.floatingMeasurementDock #tfBtns,body #stage .measureDock.floatingMeasurementDock #tfInputLevels,body #stage .measureDock.floatingMeasurementDock.expanded #tfAdvancedTuning,body #stage .measureDock.floatingMeasurementDock .dlyInputs,body #stage .measureDock.floatingMeasurementDock .dlyMeasureCard{display:flex!important;flex-direction:column!important;gap:8px!important;grid-template-areas:none!important;grid-template-columns:minmax(0,1fr)!important}
+ body #stage .measureDock.floatingMeasurementDock #tfWorkflowSteps,body #stage .measureDock.floatingMeasurementDock #tfUtilityBtns{display:flex!important;flex-direction:column!important;min-width:0!important;width:100%!important;max-width:100%!important;gap:8px!important}
+ body #stage .measureDock.floatingMeasurementDock:not(.expanded) #tfUtilityBtns{display:none!important}
+ body #stage .measureDock.floatingMeasurementDock #tfBtns button{width:100%;flex:none!important;margin:0!important}
+ body #stage .measureDock.floatingMeasurementDock #tfFieldGuide{white-space:normal!important;flex-wrap:wrap!important;text-overflow:clip!important;line-height:1.5!important;padding:9px!important;background:#173541!important;border-color:#356474!important;color:#bad4df!important}
+ body #stage .measureDock.floatingMeasurementDock .tfProViewBar,body #stage .measureDock.floatingMeasurementDock .seg,body #stage .measureDock.floatingMeasurementDock #tfAverageBar{flex-wrap:wrap!important;min-width:0!important;gap:4px!important}
+ body #stage .measureDock.floatingMeasurementDock #tfAverageBar{display:flex!important;align-items:center}
+ body #stage .measureDock.floatingMeasurementDock #tfUtilityBtns{flex-wrap:wrap!important}
+ body #stage .measureDock.floatingMeasurementDock .dlyMeasureCard{padding:10px!important}
+ body.sun-mode #stage .measureDock.floatingMeasurementDock{background:#edf6fb!important;border-color:#9cbcc9!important;box-shadow:0 12px 28px #243f4b20!important;color:#213640!important}
+ body.sun-mode #stage .measureDock.floatingMeasurementDock .floatingDockHead{color:#173e50!important;border-color:#b6cdd7!important}
+}
+</style><style>
+@media(min-width:1000px){
+ body{--console-bottom:196px!important}#studioBottom{height:188px!important}
+ #bottomSignalHz{width:80px}#bottomSweepDuration{width:64px}
+ #bottomGenerator #tlsGenOpen{display:none!important}
+ body #stage .floatingMeasurementDock .dockMoreBtn{display:none!important}
+ body #stage .floatingMeasurementDock .dockAdvanced{display:flex!important}
+ body #stage .floatingMeasurementDock .dockAdvanced.block,body #stage .floatingMeasurementDock canvas.dockAdvanced{display:block!important}
+ body #stage .floatingMeasurementDock:not(.expanded) #tfUtilityBtns,body #stage .floatingMeasurementDock.expanded #tfUtilityBtns{display:flex!important;flex-direction:column!important}
+ body #stage #alignBar.floatingMeasurementDock.show{display:flex!important}
+ body #stage #alignBar #phWorkflowSteps{display:flex;flex-direction:column;width:100%;gap:8px}
+ body #stage #alignBar #phStatus,body #stage #alignBar #phRecommendation{white-space:normal!important;max-width:100%!important}
+ body #stage #alignBar #alignProResult{grid-template-columns:1fr 1fr!important;width:100%}
+ body #stage #alignBar #alignProApply{flex-wrap:wrap;width:100%}
+}
+body #stage #v53AnalysisGroup{grid-template-columns:repeat(5,minmax(0,1fr))!important;max-width:660px!important;width:100%!important}
+#overviewGrid{display:none}
+body.overview-mode #overviewGrid{position:absolute;inset:68px 8px 8px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;z-index:6}
+body.overview-mode #stage>canvas,body.overview-mode #displayResolutionBar,body.overview-mode #stage>.stats,body.overview-mode #stage>.readout,body.overview-mode #stage>.meter,body.overview-mode #tfQuickBar{visibility:hidden}
+.overviewCard{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.overviewCard header{height:32px!important;min-height:32px!important;padding:5px 10px;display:flex;justify-content:space-between;font:700 11px Arial;color:var(--text);background:var(--panel-2)}
+.overviewCard button{padding:3px 6px;font:10px Arial;border:1px solid var(--line);background:transparent;color:var(--dim);border-radius:4px;cursor:pointer}
+.overviewCard canvas{display:block;width:100%;height:calc(100% - 32px)}
+</style><style>
+@media(min-width:1000px){
+ body{--console-bottom:140px!important}
+ body #meter{display:none!important}
+ #studioBottom{height:132px!important;grid-template-columns:minmax(300px,1fr) minmax(430px,1.1fr)}
+ #studioBottom .studioBottomCard{padding:10px 12px;gap:6px}
+ #bottomTraces{position:relative;padding-top:40px!important}
+ #bottomTraces .tlsTraceCount{position:absolute;top:14px;left:12px}
+ #bottomTraces #v5TraceActions{position:absolute;top:7px;right:12px;gap:6px}
+ #bottomTraces #v5TraceActions button{min-width:0;padding:5px 8px}
+ #bottomTraces #persistentTraceHost{gap:0}
+ #bottomTraces #v5TraceList{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-content:start;align-items:start;gap:6px;overflow:auto!important}
+ #bottomTraces .v5TraceRow{width:auto;min-height:32px; padding:3px 6px!important;gap:5px!important}
+ #bottomTraces .v5TraceNameInput{height:24px!important;font-size:12px!important;padding:2px 4px!important}
+ #bottomTraces .v5TraceControls button{padding:3px 5px!important;min-width:24px!important}
+ #bottomGenerator{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:16px 30px 30px;align-content:space-between;column-gap:8px}
+ #bottomGenerator .studioBottomTitle{grid-column:1; margin:0}
+ #bottomGeneratorState{grid-column:2;grid-row:1;font-size:10px;align-self:center}
+ #bottomGenerator .studioGeneratorControls{grid-column:1;gap:10px;flex-wrap:nowrap}
+ #bottomGenerator .studioGeneratorControls label{font-size:11px;gap:5px}
+ #bottomGenerator .studioGeneratorControls input,#bottomGenerator .studioGeneratorControls select{padding:4px 6px;font-size:12px}
+ #bottomGenerator .tlsPatchActions{grid-column:2;grid-row:2 / 4;align-self:stretch;display:flex!important;margin:0!important}
+ #bottomGenerator #tlsGenToggle{min-width:92px;white-space:normal;font-size:12px!important}
+}
+@media(min-width:1000px) and (max-width:1150px){#studioBottom{grid-template-columns:minmax(280px,.8fr) minmax(430px,1.2fr)}#bottomTraces .tlsTraceCount{font-size:9px!important;gap:4px!important}#bottomTraces #v5TraceActions{top:28px;left:12px;right:auto}#bottomTraces{padding-top:58px!important}}
 </style></head>
 <body>
   <div id="sigTint"></div>
@@ -3293,6 +3413,7 @@ body.sun-mode .tlsTraceCount,body.sun-mode .tlsMeterScale,body.sun-mode .tmpCell
         <button id="v53AnalysisToggle" data-v5mode="analysis" type="button" class="on" onclick="v54SetAnalysisView('rta',event)">RTA</button>
         <button id="v54MrToggle" type="button" onclick="v54SetAnalysisView('mr',event)" title="Microphone / Reference comparison">M/R</button>
         <button id="v54WaterfallToggle" type="button" onclick="v54SetAnalysisView('spec',event)">Waterfall</button>
+        <button id="overviewToggle" type="button" onclick="v54SetAnalysisView('overview',event)">Overview</button>
         <button id="v54TfGraphToggle" type="button" onclick="v54SetAnalysisView('tf',event)">TF</button>
       </div>
       <div id="displayResolutionBar" aria-label="RTA resolution">
@@ -3348,7 +3469,8 @@ body.sun-mode .tlsTraceCount,body.sun-mode .tlsMeterScale,body.sun-mode .tmpCell
       <button id="qbPhase" title="Show / hide phase">📐 Phase</button>
     </div>
 
-    <div id="alignBar">
+    <div id="overviewGrid" aria-label="All live graph views"><section class="overviewCard"><header><span>RTA · Input spectrum</span><button type="button" onclick="v54SetAnalysisView('rta')">Expand</button></header><canvas id="overview-rta" aria-label="RTA · Input spectrum live graph"></canvas></section><section class="overviewCard"><header><span>M/R · Input comparison</span><button type="button" onclick="v54SetAnalysisView('mr')">Expand</button></header><canvas id="overview-mr" aria-label="M/R · Input comparison live graph"></canvas></section><section class="overviewCard"><header><span>Waterfall · Frequency history</span><button type="button" onclick="v54SetAnalysisView('spec')">Expand</button></header><canvas id="overview-spec" aria-label="Waterfall · Frequency history live graph"></canvas></section><section class="overviewCard"><header><span>TF · Relative magnitude</span><button type="button" onclick="v54SetAnalysisView('tf')">Expand</button></header><canvas id="overview-tf" aria-label="TF · Relative magnitude live graph"></canvas></section></div>
+<div id="alignBar">
       <div id="phWorkflowSteps" aria-label="Sub / Top measurement workflow">
         <button id="phSyncBtn" title="Step 1: Synchronize the microphone and reference signal paths">1 · Sync TF</button>
         <button id="phSubBtn" title="Step 2: Choose internal pink noise or an external source and capture only the subwoofer" disabled>2 · Measure Sub</button>
@@ -4606,11 +4728,11 @@ window.addEventListener('load', function(){
      const level=pct(db),held=pct(peakDb);
      if(fill)fill.style.height=level+'%';
      if(peak)peak.style.bottom='calc('+held+'% - 1px)';
-     if(value&&now-lastTextAt>=100)value.textContent=live.running&&db>-110?db.toFixed(1)+' dBFS':'NO SIG';
+     if(value&&now-lastTextAt>=50)value.textContent=live.running&&db>-110?db.toFixed(1)+' dBFS':'NO SIG';
    };
    paint('tlsMicMeterFill','tlsMicMeterPeak','tlsMic',live.micDb,live.micPeakDb);
    paint('tlsRefMeterFill','tlsRefMeterPeak','tlsRef',live.refDb,live.refPeakDb);
-   if(now-lastTextAt>=100)lastTextAt=now;
+   if(now-lastTextAt>=50)lastTextAt=now;
    requestAnimationFrame(paintLiveInputMeters);
  }
  setInterval(syncLeftInstrument,500);syncLeftInstrument();requestAnimationFrame(paintLiveInputMeters);
@@ -4690,5 +4812,30 @@ window.addEventListener('load', function(){
  page('audio');
 })();
 </script>
-</body>
+
+<section id="studioBottom" aria-label="Traces and signal generator">
+ <section class="studioBottomCard" id="bottomTraces" aria-label="Captured traces"></section>
+ <section class="studioBottomCard" id="bottomGenerator" aria-label="Signal generator">
+  <h2 class="studioBottomTitle">SIGNAL GENERATOR</h2>
+  <div class="studioGeneratorControls"><label>Signal <select id="bottomSignalType"><option value="pink">Pink noise</option><option value="white">White noise</option><option value="sine">Sine</option><option value="sweep">Sweep</option></select></label><label>Level <input id="bottomSignalLevel" type="number" min="-46" max="-8" step="1" value="-34" aria-label="Generator level in decibels"> dB</label></div>
+  <div class="studioGeneratorControls"><label>Sine <input id="bottomSignalHz" type="number" min="20" max="20000" step="1" value="1000" aria-label="Sine frequency in hertz"> Hz</label><label>Sweep <input id="bottomSweepDuration" type="number" min="1" max="10" step="0.5" value="4" aria-label="Sweep duration in seconds"> s</label></div>
+  <div id="bottomGeneratorState" role="status">Signal stopped</div>
+ </section>
+</section>
+<script>
+(()=>{
+ const card=document.getElementById('targetTraceCard'),traces=document.getElementById('bottomTraces'),generator=document.getElementById('bottomGenerator');
+ const count=card.querySelector('.tlsTraceCount'),host=document.getElementById('persistentTraceHost'),actions=card.querySelector('.tlsPatchActions');
+ const media=matchMedia('(min-width:1000px)');
+ const arrange=()=>{if(media.matches){traces.append(count,host);generator.append(actions);document.getElementById('tlsGenOpen').hidden=true}else{document.getElementById('tlsGenOpen').hidden=false;card.append(actions,count,host)}if(typeof resize==='function')resize()};
+ media.addEventListener('change',arrange);arrange();
+ const type=document.getElementById('bottomSignalType'),level=document.getElementById('bottomSignalLevel'),state=document.getElementById('bottomGeneratorState');
+ type.addEventListener('change',()=>document.querySelector('#genType [data-t="'+type.value+'"]')?.click());
+ document.getElementById('bottomSignalHz').addEventListener('change',e=>applyGenHz(Number(e.target.value),'bottom'));
+ document.getElementById('bottomSweepDuration').addEventListener('change',e=>{const input=document.getElementById('genSweep');input.value=Math.max(1,Math.min(10,Number(e.target.value)||4));input.dispatchEvent(new Event('input',{bubbles:true}));e.target.value=input.value});
+ level.addEventListener('change',()=>{const input=document.getElementById('genLvl');input.value=Math.max(-46,Math.min(-8,Number(level.value)||-34));input.dispatchEvent(new Event('input',{bubbles:true}));level.value=input.value});
+ setInterval(()=>{if(!media.matches)return;if(document.activeElement!==type)type.value=genType;if(document.activeElement!==level)level.value=genDb;const hz=document.getElementById('bottomSignalHz'),sweep=document.getElementById('bottomSweepDuration');hz.disabled=genType!=='sine';sweep.disabled=genType!=='sweep';if(document.activeElement!==hz)hz.value=genHz;if(document.activeElement!==sweep)sweep.value=genSweepDur;state.textContent=genOn?'Signal playing · '+(genType==='sine'?genHz+' Hz':genType==='sweep'?genSweepDur+' s sweep':'Continuous noise'):'Signal stopped';},150);
+})();
+</script>
+<script src="js/overview.js"></script></body>
 </html>

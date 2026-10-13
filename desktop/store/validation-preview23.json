@@ -1,0 +1,61 @@
+{
+  "version": "6.0.0-preview.23",
+  "date": "2026-10-10",
+  "changes": [
+    "Shared calibrated octave-band spectra, power averaging and presentation ballistics for M/R and TF without valid reference",
+    "Consistent microphone/reference colors, dBFS scale and actual channel labels",
+    "No phantom reference when unassigned; explicit spectrum-only state",
+    "Correct normalized relative-response label for actual TF"
+  ],
+  "checks": {
+    "spectrumConsistency": {
+      "resolutions": [
+        3,
+        6,
+        12,
+        24,
+        48
+      ],
+      "bands": [
+        31,
+        61,
+        121,
+        240,
+        479
+      ],
+      "identicalCanvasPaths": true,
+      "freezePreserved": true,
+      "calibrationVerified": true
+    },
+    "packagedResponse": {
+      "meterMs": [
+        65.4,
+        66.4,
+        63.6
+      ],
+      "graphMs": [
+        291.8,
+        272.3,
+        263.2
+      ],
+      "leftMeterTextMs": [
+        75.4,
+        100.8,
+        127.3
+      ],
+      "timingOrigin": "Synthetic gain step after native delivery; excludes physical interface and native capture buffer"
+    },
+    "syntaxAndDiff": true,
+    "uiAndTfWorkflow": {
+      "screenshots": 5,
+      "verifiedKnownDelayMs": 5.000027231088901,
+      "sidebarAndExclusiveModeChecksPassed": true,
+      "visualInspection": "M/R image reviewed, no overlapping controls"
+    }
+  },
+  "limitations": [
+    "Physical audio interface acceptance remains required",
+    "GitHub upload awaits exact approval after automatic-review rejection",
+    "Apple signing and App Store submission remain pending"
+  ]
+}

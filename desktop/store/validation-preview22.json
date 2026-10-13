@@ -1,0 +1,63 @@
+{
+  "release": "6.0.0-preview.22",
+  "date": "2026-10-10",
+  "scope": "Faster RTA smoothing and independent frame-rate meter detection, retaining spectrum FFT and RMS windows.",
+  "responseTest": {
+    "origin": "Synthetic input gain step after native delivery; excludes physical interface and native delivery buffer",
+    "fft": 16384,
+    "rmsWindow": 2048,
+    "steadyRmsToleranceDb": 0.6,
+    "baselinePreview21": [
+      {
+        "meterMs": 200.2,
+        "graphMs": 431.8,
+        "leftMs": 217.9
+      },
+      {
+        "meterMs": 204.2,
+        "graphMs": 436.6,
+        "leftMs": 304.7
+      },
+      {
+        "meterMs": 198,
+        "graphMs": 427.4,
+        "leftMs": 260.9
+      }
+    ],
+    "packagedPreview22": [
+      {
+        "meterMs": 68.1,
+        "graphMs": 273.7,
+        "leftMs": 118.2
+      },
+      {
+        "meterMs": 57.1,
+        "graphMs": 277.6,
+        "leftMs": 75.5
+      },
+      {
+        "meterMs": 62,
+        "graphMs": 277.9,
+        "leftMs": 109.4
+      }
+    ],
+    "outlierObservedMs": {
+      "meter": 297.4,
+      "graph": 297.4,
+      "left": 362
+    },
+    "outlierNote": "An initial packaged run failed its timing threshold; the isolated repeat passed all three steps. Scheduling under load remains a practical latency limitation."
+  },
+  "checks": {
+    "steadyRmsCalibration": true,
+    "rt60DoesNotRestoreDoubleSmoothing": true,
+    "nativeWorkletRecovery": true,
+    "uiRecoveryAndAudioRestart": true,
+    "tfVerifiedDelayMs": 5.000049296219179,
+    "metadataValidated": true
+  },
+  "limitations": [
+    "End-to-end hardware latency still requires physical measurement.",
+    "Explicit averaging and Slow mode intentionally retain longer response."
+  ]
+}

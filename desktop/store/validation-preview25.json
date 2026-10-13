@@ -1,0 +1,25 @@
+{
+  "version": "6.0.0-preview.25",
+  "date": "2026-10-12",
+  "changes": [
+    "Persistent lower workspace with horizontally scrollable editable trace cards and existing capture/clear actions",
+    "Signal generator type, output level, start/stop and settings in lower card",
+    "Moves existing controls, preserves trace identities and bindings",
+    "Vertical vivid RTA bar gradient without changing measured levels"
+  ],
+  "checks": {
+    "traceNamesAndActionsVisibleAndAligned": true,
+    "generatorTypeAndLevelSynchronization": true,
+    "generatorStayedOffDuringChecks": true,
+    "lowerWorkspaceDoesNotOverlapGraph": true,
+    "sidebarAndExclusiveModeChecks": true,
+    "knownTfDelayMs": 5.000027231088901,
+    "tfVerified": true,
+    "screenshots": 5,
+    "visualInspection": "Final RTA and lower cards inspected at 1440 x 900"
+  },
+  "limitations": [
+    "Lower workspace shown at desktop widths >=1000px; narrower view retains original controls",
+    "GitHub upload pending explicit exact-destination approval previously requested"
+  ]
+}
