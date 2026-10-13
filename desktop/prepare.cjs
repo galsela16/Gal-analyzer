@@ -14,7 +14,7 @@ for (const file of ['index.html','app.js','js','recorder-worklet.js','icons','br
 for(const file of ['native-input.js','native-input-worklet.js']) fs.copyFileSync(path.join(__dirname,file),path.join(out,file));
 // Resize the user-approved artwork without redrawing it. Shared web assets stay untouched.
 for(const [file,size] of [['icon-192.png',192],['icon-512.png',512],['icon-512-maskable.png',512]]) {
-  execFileSync('sips',['-s','format','png','-z',String(size),String(size),path.join(__dirname,'assets/gal-analyzer-logo-final.jpeg'),'--out',path.join(out,'icons',file)],{stdio:'pipe'});
+  execFileSync('sips',['-s','format','png','-z',String(size),String(size),path.join(__dirname,'assets/gal-analyzer-icon-full.png'),'--out',path.join(out,'icons',file)],{stdio:'pipe'});
 }
 const html=path.join(out,'index.html');fs.writeFileSync(html,fs.readFileSync(html,'utf8').replace('<head>','<head><script src="native-input.js"></script>').replace('<body>', '<body class="desktop-native-menus">'));
 // Desktop packaging is a generated copy. Web sources stay shared and unchanged.

@@ -1,7 +1,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {execFileSync}=require('node:child_process');
-const input=path.join(__dirname,'assets/gal-analyzer-logo-final.jpeg');
+const input=path.join(__dirname,'assets/gal-analyzer-icon-full.png');
 const out=path.join(__dirname,'build');
 const iconset=path.join(out,'GAL Analyzer.iconset');
 fs.mkdirSync(iconset,{recursive:true});

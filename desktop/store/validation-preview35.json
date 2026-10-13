@@ -1,0 +1,14 @@
+{
+  "version": "6.0.0-preview.35",
+  "date": "2026-10-13",
+  "changes": [
+    "Replace desktop and bundled web icons with user-approved full-size transparent artwork",
+    "Retain the original logo source file"
+  ],
+  "checks": {
+    "sourcePngAlpha": true,
+    "generatedNativeIconMatchesPackagedResource": true,
+    "uiScreenshotWorkflow": true,
+    "knownVerifiedTfDelayMs": 5.000021260713554
+  }
+}
