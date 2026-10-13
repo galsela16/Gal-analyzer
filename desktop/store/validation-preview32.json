@@ -1,0 +1,14 @@
+{
+  "version": "6.0.0-preview.32",
+  "date": "2026-10-13",
+  "changes": [
+    "Move Overview to the rightmost display tab; retain preview31 generator and audio-button refinements"
+  ],
+  "checks": {
+    "uiScreenshotWorkflow": true,
+    "visualInspection": "Overview rightmost in 1440 x 900 screenshot",
+    "knownVerifiedTfDelayMs": 4.999995826265713,
+    "audioButtonReadoutAlignment": true,
+    "durationControlRemoved": true
+  }
+}
