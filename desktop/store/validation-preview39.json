@@ -1,0 +1,14 @@
+{
+  "version": "6.0.0-preview.39",
+  "date": "2026-10-14",
+  "changes": [
+    "Clean true-TF magnitude, phase and coherence presentation with expanded graph height",
+    "Remove filled magnitude/coherence areas and glow",
+    "Shared TF cursor: normalized magnitude, wrapped phase and coherence; low-coherence values explicitly gated",
+    "Keep verified snapshots, averaging, delay compensation and saved TF traces"
+  ],
+  "checks": {
+    "trueTfMeasurementWorkflow": true,
+    "verifiedSyntheticDelayMs": 5.0
+  }
+}

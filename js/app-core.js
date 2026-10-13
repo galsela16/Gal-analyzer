@@ -1769,7 +1769,7 @@ function tfDrawTrustGuide(W,plotH,verified,reason){
   ctx.textAlign='right';
   ctx.fillStyle=verified?(sunMode?'#278052':'#8bbba1'):(sunMode?'#7b6847':'#b5a17c');
   ctx.font="500 9px Arial";
-  ctx.fillText(verified?'Verified · ready to tune':'Unverified · verify before tuning',W-12,80,W*.42);
+  ctx.fillText(verified?'Verified · ready to tune':'Unverified · verify before tuning',W-12,32,W*.42);
   ctx.restore();
 }
 function tfDrawMagnitudeView(W,plotH,nyquist){
@@ -1800,6 +1800,19 @@ function tfDrawMagnitudeView(W,plotH,nyquist){
   ctx.restore();
 }
 
+function tfCleanCanvas(W,H,xForFreq){
+ ctx.clearRect(0,0,W,H);ctx.fillStyle=sunMode?'#f8fafc':'#04141e';ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle=sunMode?'#cbdce5':'#183846';ctx.lineWidth=1;
+ for(const f of [20,31.5,50,100,200,500,1000,2000,5000,10000,20000]){const x=xForFreq(f);if(x<0||x>W)continue;ctx.beginPath();ctx.moveTo(x,60);ctx.lineTo(x,H-24);ctx.stroke();}
+}
+function tfCleanCursor(W,H,s){
+ if(cursorX==null||cursorX<0||cursorX>W)return;
+ const hz=freqForX(cursorX),k=Math.min(s.mag.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),coh=s.coh[k]||0;
+ const values=[(hz>=1000?(hz/1000).toFixed(2)+' kHz':hz.toFixed(1)+' Hz'),coh>=tfCohGate?'Magnitude '+tfNormalizedMagnitude(s,k).toFixed(1)+' dB':'Magnitude · below coherence gate',coh>=tfCohGate?'Phase (wrapped) '+((s.ph[k]||0)*180/Math.PI).toFixed(1)+'°':'Phase · below coherence gate','Coherence '+coh.toFixed(2)];
+ ctx.save();ctx.font='11px Arial';ctx.textAlign='left';ctx.setLineDash([3,4]);ctx.strokeStyle=sunMode?'#678492':'#9bb6c5';ctx.beginPath();ctx.moveTo(cursorX,60);ctx.lineTo(cursorX,H-24);ctx.stroke();ctx.setLineDash([]);
+ const width=Math.max(...values.map(v=>ctx.measureText(v).width))+20,x=Math.max(2,Math.min(W-width-2,cursorX+10));ctx.fillStyle=sunMode?'#fff':'#0d2936';ctx.fillRect(x,68,width,76);ctx.strokeStyle='#18daf4';ctx.strokeRect(x,68,width,76);ctx.fillStyle=sunMode?'#456373':'#c9e4ef';values.forEach((v,i)=>ctx.fillText(v,x+10,86+i*16));ctx.restore();
+}
+
 // V5.5.56 — one full-canvas TF quantity at a time.
 function tfPrepareSelectedView(){
   const liveSignal=tfHasReferenceSignal(),live=liveSignal?tfCurrentSnapshot():tfWorkingAverage;if(!live)return null;
@@ -1810,32 +1823,32 @@ function tfPrepareSelectedView(){
   return {snap,liveSignal,verified};
 }
 function tfViewHeader(label,detail,color){
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="800 11px Arial";ctx.fillStyle=color;ctx.fillText(label,12,60,cv.clientWidth*.52);ctx.font="9px Arial";ctx.fillStyle=sunMode?'#526776':'#91a4b1';ctx.fillText(detail,12,78,cv.clientWidth*.52);ctx.restore();
+  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="800 11px Arial";ctx.fillStyle=color;ctx.fillText(label,12,16,cv.clientWidth*.42);ctx.font="9px Arial";ctx.fillStyle=sunMode?'#526776':'#91a4b1';ctx.fillText(detail,12,32,cv.clientWidth*.42);ctx.restore();
 }
 function tfDrawSelectedMagnitude(W,plotH,xForFreq){
-  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=148,bottom=plotH-14,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=60,bottom=plotH-24,y=db=>top+(18-Math.max(-18,Math.min(18,db)))/36*(bottom-top),zero=y(0);
+  ctx.save();tfCleanCanvas(W,plotH,xForFreq);ctx.direction='ltr';ctx.textAlign='left';ctx.font="10px Arial";
   [18,12,6,0,-6,-12,-18].forEach(db=>{const yy=y(db);ctx.strokeStyle=db===0?'rgba(226,236,241,.62)':'rgba(120,145,160,.15)';ctx.lineWidth=db===0?1.5:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((db>0?'+':'')+db+' dB',5,yy-3);});
-  const fill=new Path2D(),line=new Path2D();let pen=false;fill.moveTo(0,zero);
-  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(tfNormalizedMagnitude(s,k));if(!pen){line.moveTo(px,yy);fill.moveTo(px,zero);fill.lineTo(px,yy);}else{line.lineTo(px,yy);fill.lineTo(px,yy);}pen=true;}
-  fill.lineTo(W,zero);fill.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(245,82,104,.25)');grad.addColorStop(.5,'rgba(82,217,255,.08)');grad.addColorStop(1,'rgba(37,99,235,.25)');ctx.fillStyle=grad;ctx.fill(fill);ctx.strokeStyle='#00d5ff';ctx.lineWidth=2.7;ctx.lineJoin='round';ctx.shadowColor='rgba(82,217,255,.32)';ctx.shadowBlur=5;ctx.stroke(line);ctx.shadowBlur=0;
+  ctx.beginPath();let pen=false;
+  for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.mag.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N)));if((s.coh[k]||0)<tfCohGate){pen=false;continue;}const yy=y(tfNormalizedMagnitude(s,k));pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}
+  ctx.strokeStyle=sunMode?'#0087b1':'#18daf4';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
   tfTraces.filter(t=>t.type==='tf'&&t.visible!==false).forEach(t=>{ctx.beginPath();let p=false;for(let px=0;px<=W;px+=3){const f=freqForX(px),k=Math.min(t.mag.length-1,Math.max(1,Math.round(f/t.sr*TF_FFT_N)));if((t.coh?.[k]||0)<tfCohGate){p=false;continue;}const yy=y(tfNormalizedMagnitude(t,k));p?ctx.lineTo(px,yy):ctx.moveTo(px,yy);p=true;}ctx.strokeStyle=t.color;ctx.globalAlpha=.62;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;});
-  tfViewHeader('MAGNITUDE · RELATIVE RESPONSE','Normalized 0 dB · above = relative rise · below = relative dip','#00d5ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+  tfViewHeader('MAGNITUDE · RELATIVE RESPONSE','Normalized 0 dB · above = relative rise · below = relative dip','#00d5ff');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);tfCleanCursor(W,plotH,s);ctx.restore();return true;
 }
 function tfDrawSelectedPhase(W,plotH,xForFreq){
-  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=148,bottom=plotH-14,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,unwrap=!!window.tfPhaseUnwrap,gateOn=window.tfPhaseGateEnabled!==false,limit=unwrap?720:180,top=60,bottom=plotH-24,y=deg=>top+(limit-Math.max(-limit,Math.min(limit,deg)))/(limit*2)*(bottom-top);
+  ctx.save();tfCleanCanvas(W,plotH,xForFreq);ctx.direction='ltr';ctx.textAlign='left';ctx.font="10px Arial";
   const labels=unwrap?[-720,-360,0,360,720]:[-180,-90,0,90,180];labels.forEach(d=>{const yy=y(d);ctx.strokeStyle=d===0?'rgba(80,230,140,.38)':'rgba(120,145,160,.15)';ctx.lineWidth=d===0?1.4:1;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText((d>0?'+':'')+d+'°',5,yy-3);});
-  ctx.beginPath();let pen=false,have=false,prev=0,cum=0;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.ph.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),coh=s.coh[k]||0;if(gateOn&&coh<tfCohGate){pen=false;have=false;continue;}const raw=s.ph[k]||0;let ph=raw;if(unwrap){if(have){let d=raw-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;ph=cum;prev=raw;have=true;}let deg=ph*180/Math.PI;if(window.tfPhaseZeroAtCursor){const hz=Number(window.tfPhaseCursorHz)||1000,k0=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N)));deg-=(s.ph[k0]||0)*180/Math.PI;}const yy=y(deg);pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}ctx.strokeStyle=sunMode?'#008b59':'#00f590';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.shadowColor='rgba(80,230,140,.26)';ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
+  ctx.beginPath();let pen=false,have=false,prev=0,cum=0;for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.ph.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),coh=s.coh[k]||0;if(gateOn&&coh<tfCohGate){pen=false;have=false;continue;}const raw=s.ph[k]||0;let ph=raw;if(unwrap){if(have){let d=raw-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;cum+=d}else cum=raw;ph=cum;prev=raw;have=true;}let deg=ph*180/Math.PI;if(window.tfPhaseZeroAtCursor){const hz=Number(window.tfPhaseCursorHz)||1000,k0=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N)));deg-=(s.ph[k0]||0)*180/Math.PI;}const yy=y(deg);pen?ctx.lineTo(px,yy):ctx.moveTo(px,yy);pen=true;}ctx.strokeStyle=sunMode?'#008b59':'#00f590';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
   const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.ph.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),coh=s.coh[k]||0,deg=(s.ph[k]||0)*180/Math.PI,cy=y(window.tfPhaseZeroAtCursor?0:deg);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=coh>=tfCohGate?'#00f590':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
-  tfViewHeader('PHASE','cursor '+(hz>=1000?(hz/1000).toFixed(2)+' kHz':Math.round(hz)+' Hz')+' · '+(gateOn?'coherence gate on':'all data'),sunMode?'#008b59':'#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+  tfViewHeader('PHASE','cursor '+(hz>=1000?(hz/1000).toFixed(2)+' kHz':Math.round(hz)+' Hz')+' · '+(gateOn?'coherence gate on':'all data'),sunMode?'#008b59':'#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);tfCleanCursor(W,plotH,s);ctx.restore();return true;
 }
 function tfDrawSelectedCoherence(W,plotH,xForFreq){
-  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=148,bottom=plotH-14,y=v=>bottom-Math.max(0,Math.min(1,v))*(bottom-top);
-  ctx.save();ctx.direction='ltr';ctx.textAlign='left';ctx.font="9px Arial";[0,.25,.5,.75,1].forEach(v=>{const yy=y(v);ctx.strokeStyle='rgba(120,145,160,.15)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText(v.toFixed(2),5,yy-3);});const gy=y(tfCohGate);ctx.setLineDash([6,4]);ctx.strokeStyle='#f5b942';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f5b942';ctx.fillText('GATE '+tfCohGate.toFixed(2),W-72,gy-5);
-  const area=new Path2D(),line=new Path2D();area.moveTo(0,bottom);for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.coh.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),yy=y(s.coh[k]||0);px?line.lineTo(px,yy):line.moveTo(px,yy);area.lineTo(px,yy);}area.lineTo(W,bottom);area.closePath();const grad=ctx.createLinearGradient(0,top,0,bottom);grad.addColorStop(0,'rgba(80,230,140,.30)');grad.addColorStop(.55,'rgba(245,185,66,.16)');grad.addColorStop(1,'rgba(255,82,104,.22)');ctx.fillStyle=grad;ctx.fill(area);ctx.strokeStyle=sunMode?'#008b59':'#00f590';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke(line);
+  const frame=tfPrepareSelectedView();if(!frame)return false;const s=frame.snap,top=60,bottom=plotH-24,y=v=>bottom-Math.max(0,Math.min(1,v))*(bottom-top);
+  ctx.save();tfCleanCanvas(W,plotH,xForFreq);ctx.direction='ltr';ctx.textAlign='left';ctx.font="10px Arial";[0,.25,.5,.75,1].forEach(v=>{const yy=y(v);ctx.strokeStyle='rgba(120,145,160,.15)';ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();ctx.fillStyle=sunMode?'#526776':'#81939f';ctx.fillText(v.toFixed(2),5,yy-3);});const gy=y(tfCohGate);ctx.setLineDash([6,4]);ctx.strokeStyle='#f5b942';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f5b942';ctx.fillText('GATE '+tfCohGate.toFixed(2),W-72,gy-5);
+  ctx.beginPath();for(let px=0;px<=W;px+=2){const f=freqForX(px),k=Math.min(s.coh.length-1,Math.max(1,Math.round(f/s.sr*TF_FFT_N))),yy=y(s.coh[k]||0);px?ctx.lineTo(px,yy):ctx.moveTo(px,yy);}ctx.strokeStyle=sunMode?'#008b59':'#00f590';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
   const hz=Number(window.tfPhaseCursorHz)||1000,k=Math.min(s.coh.length-1,Math.max(1,Math.round(hz/s.sr*TF_FFT_N))),cx=xForFreq(hz),cv=s.coh[k]||0,cy=y(cv);ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bottom);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.fillStyle=cv>=tfCohGate?'#00f590':'#ff6474';ctx.fill();ctx.strokeStyle=sunMode?'#fff':'#07151c';ctx.lineWidth=2;ctx.stroke();
-  tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune',sunMode?'#008b59':'#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);ctx.restore();return true;
+  tfViewHeader('COHERENCE','1.00 = reliable · below gate = do not tune',sunMode?'#008b59':'#00f590');tfDrawTrustGuide(W,plotH,frame.verified,s.confidence?.reason);tfCleanCursor(W,plotH,s);ctx.restore();return true;
 }
 function tfDrawSelectedView(W,plotH,nyquist,xForFreq){
   if(tfViewMode==='phase')return tfDrawSelectedPhase(W,plotH,xForFreq);
@@ -4098,7 +4111,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.fillStyle='rgba(80,230,140,.9)'; ctx.font="10px Arial"; ctx.textAlign='end';
     ctx.fillText(tfOpen?(targetMode==='house'?'Target House · TF':'Target 0dB · TF'):(targetMode==='house'?"Target House":"flat target"), W-8, 12);
   }
-  if(cursorX!=null && cursorX>=0 && cursorX<=W){
+  if(!tfRequested && cursorX!=null && cursorX>=0 && cursorX<=W){
     const cf=freqForX(cursorX);
     const bi=Math.max(0,Math.min(BANDS-1,Math.floor(cursorX/bw)));
     ctx.strokeStyle=sunMode?'rgba(0,0,0,.55)':'rgba(255,255,255,.55)'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
