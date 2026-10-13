@@ -1,0 +1,22 @@
+{
+  "version": "6.0.0-preview.34",
+  "date": "2026-10-13",
+  "changes": [
+    "Integrated I/O footer between traces and generator",
+    "Mirror existing input, output, MIC and REF controls with no separate audio engine",
+    "Disable channel routing while audio is stopped",
+    "Contain traces and right tools in minimum-size window"
+  ],
+  "checks": {
+    "syntheticMicRefRoutingAndPreferenceSync": true,
+    "footerOrderAndNonOverlap": true,
+    "customKeyboardRegression": true,
+    "visualInspection": "1440 x 900 footer with three cards",
+    "minimumWindow1000x650": true,
+    "startupNoRendererErrors": true,
+    "knownVerifiedTfDelayMs": 5.000020395822162
+  },
+  "limitations": [
+    "Audio routing tested with synthetic six-channel transport; physical interface acceptance remains a field check"
+  ]
+}

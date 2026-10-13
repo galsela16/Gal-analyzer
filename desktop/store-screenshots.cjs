@@ -38,6 +38,15 @@ module.exports=async({window,release})=>{
   await evaluate(`
     await start('coreaudio:field-test');
     if(!running||chReceived!==6)throw Error('Synthetic six-channel input did not start.');
+    const labelSyntheticDevice=()=>{const sourceDevice=document.getElementById('v52DeviceSelect');if(![...sourceDevice.options].some(o=>o.value===activeInId)){const option=document.createElement('option');option.value=activeInId;option.textContent='Synthetic six-channel test interface';sourceDevice.append(option);}sourceDevice.value=activeInId;};labelSyntheticDevice();
+    await new Promise(r=>setTimeout(r,200));
+    const settle=async()=>{await new Promise(r=>setTimeout(r,100));const deadline=performance.now()+5000;while(!running){if(performance.now()>deadline)throw Error('Footer I/O restart timed out');await new Promise(r=>setTimeout(r,20));}await new Promise(r=>setTimeout(r,200));};
+    const choose=async(id,value)=>{const select=document.getElementById(id);select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));await settle();};
+    await choose('bottomMicInput','3');if(measChannel!==3||document.getElementById('v52MeasSelect').value!=='3')throw Error('Footer MIC routing failed');
+    await choose('bottomRefInput','4');if(refChannel!==4||document.getElementById('v52RefSelect').value!=='4')throw Error('Footer REF routing failed');
+    await choose('bottomMicInput','0');await choose('bottomRefInput','1');labelSyntheticDevice();await new Promise(r=>setTimeout(r,200));
+    const io=document.getElementById('bottomIo'),traces=document.getElementById('bottomTraces'),gen=document.getElementById('bottomGenerator');
+    if(traces.getBoundingClientRect().right>io.getBoundingClientRect().left||io.getBoundingClientRect().right>gen.getBoundingClientRect().left)throw Error('Footer I/O order or overlap incorrect');
     setFft(16384);v54SetAnalysisView('rta');
     const label=document.createElement('span');label.textContent='DEMO · Synthetic audio';
     label.style.cssText='position:fixed;top:19px;left:460px;z-index:9999;display:block;color:#9bcbd4;background:#0c2028;border:1px solid #294954;border-radius:4px;padding:4px 9px;font:11px Arial;white-space:nowrap;pointer-events:none';
@@ -207,6 +216,10 @@ module.exports=async({window,release})=>{
   await evaluate(`document.querySelector('[data-audio-page="keys"]').click();`);
   await saveUi('ui-key-commands.jpg');
   await evaluate(`document.getElementById('audioPreferencesClose').click();await stop();`);
+  window.setContentSize(1000,650);await wait(300);
+  await saveUi('ui-minimum-window.jpg');
+  await evaluate(`for(const id of ['bottomTraces','bottomIo','bottomGenerator']){const card=document.getElementById(id);if(card.scrollWidth>card.clientWidth+1||card.scrollHeight>card.clientHeight+1)throw Error('Footer card overflows at minimum window size: '+id+' '+JSON.stringify({width:card.clientWidth,scrollWidth:card.scrollWidth,height:card.clientHeight,scrollHeight:card.scrollHeight}));}if(getComputedStyle(document.getElementById('meter')).display!=='none')throw Error('Duplicate meter returned');`);
+  await saveUi('ui-minimum-window.jpg');window.setContentSize(1440,900);
   const manifest={release:release.version,date:'2026-10-13',status:'Drafts. Recapture from the accepted signed MAS release before submission.',scope:'Real application renderer; synthetic PCM from the test helper; no physical microphone or playback.',tf,shots};
   fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   return {output,count:shots.length,tf};
