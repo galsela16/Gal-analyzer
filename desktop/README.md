@@ -1,10 +1,10 @@
-# GAL Analyzer Desktop — 6.0.0-preview.32
+# GAL Analyzer Desktop — 6.0.0-preview.33
 
 This is the preferred Mac edition: the existing GAL Analyzer web interface and measurement code packaged as an offline Electron application. It keeps the existing RTA, transfer-function, delay, RT60, generator, meters, routing and trace/session controls instead of rebuilding them in SwiftUI. Their existing web implementation and accuracy limitations still apply. The independent `native/` preview remains an experimental DSP foundation; this desktop edition does not yet connect that C++ engine.
 
 ## Run
 
-Unzip `GAL-Analyzer-Desktop-6.0.0-preview.32-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
+Unzip `GAL-Analyzer-Desktop-6.0.0-preview.33-arm64.zip`, then open **GAL Analyzer.app**. This build is for Apple Silicon Macs. It is locally ad-hoc signed, not notarized for public distribution. No server, account, subscription or network connection is required. Microphone access is requested by macOS when the existing Start audio control is used. No microphone or audible generator playback is started by build tests.
 
 The desktop profile is independent of browser storage. Export a session from the web edition and import it with the existing session controls to transfer settings/traces. Closing the application stops its audio processes. Input capture uses a native Core Audio HAL helper and preserves the device's actual channel count. Analysis and generator output retain the existing Web Audio implementation.
 
@@ -147,3 +147,7 @@ signed MAS release before submission.
 ### Signal response regression check
 
 Run `npm run test:response` for three silent synthetic signal steps through the actual renderer. The test retains the 16,384-sample spectrum FFT and 2,048-sample RMS meter window, verifies steady RMS calibration, and measures the graph and both meter presentations. Timing starts at a gain change after native delivery; it does not measure physical interface latency. Explicit averaging and Slow mode retain longer settling times.
+
+### Custom keyboard shortcuts
+
+Open Preferences (⌘,) and choose **Key Commands**. Click an assignment, press the desired keys, and close Preferences to use it. Bindings are stored locally across restarts. Duplicate and reserved macOS shortcuts are rejected; typing fields and Preferences pause commands. Clear an assignment or use Reset defaults to restore the original shortcuts.

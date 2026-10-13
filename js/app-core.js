@@ -4953,19 +4953,8 @@ function v3UpdateStatus(){
 function v3ToggleButton(id){
   const el=document.getElementById(id); if(el) el.click();
 }
-document.addEventListener('keydown',e=>{
-  const t=e.target;
-  if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)) return;
-  if(e.ctrlKey||e.metaKey||e.altKey) return;
-  const k=e.key.toLowerCase();
-  if(k===' '){ e.preventDefault(); v3ToggleButton('freezeBtn'); v3Toast(frozen?"Frozen view":"Live view"); }
-  else if(k==='p'){ v3ToggleButton('peakBtn'); v3Toast(peakHold?"Peak Hold on":"Peak Hold off"); }
-  else if(k==='a'){ v3ToggleButton('avgBtn'); v3Toast(avgOn?"Averaging on":"Averaging off"); }
-  else if(k==='r'){ const el=document.getElementById('resetPeakBtn'); if(el) el.click(); }
-  else if(k==='f'){ const z=document.getElementById('zoomBtn'); if(z && z.style.display!=='none') z.click(); }
-  else if(k==='g'){ v3ToggleButton('genBtn'); v3Toast('Generator'); }
-  else if(k==='s'){ v3ToggleButton('saveBtn'); }
-});
+// Keyboard bindings are managed by key-commands.js.
+
 
 (function initPrefs(){
   const applyInput=(id,key)=>{ const v=lsGet(key); if(v==null) return; const el=document.getElementById(id); if(!el) return; el.value=v; el.dispatchEvent(new Event('input')); };

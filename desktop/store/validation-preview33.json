@@ -1,0 +1,22 @@
+{
+  "version": "6.0.0-preview.33",
+  "date": "2026-10-13",
+  "changes": [
+    "Custom Key Commands page in Preferences with search, assign, clear and reset",
+    "Persist bindings locally and retain original single-key defaults",
+    "Reject conflicting and reserved native shortcuts; pause shortcuts while typing or in dialogs"
+  ],
+  "checks": {
+    "assignment": true,
+    "conflictRejection": true,
+    "escapeCancel": true,
+    "typingProtection": true,
+    "reloadPersistence": true,
+    "reservedKeys": true,
+    "clearAndReset": true,
+    "visualInspection": "Night Key Commands page at 1440 x 900; scrollable command list"
+  },
+  "limitations": [
+    "Custom shortcuts operate while the application window has focus"
+  ]
+}

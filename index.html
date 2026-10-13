@@ -3317,7 +3317,11 @@ body.overview-mode #stage>canvas,body.overview-mode #displayResolutionBar,body.o
  #bottomGenerator #tlsGenToggle{min-width:92px;white-space:normal;font-size:12px!important}
 }
 @media(min-width:1000px) and (max-width:1150px){#studioBottom{grid-template-columns:minmax(280px,.8fr) minmax(430px,1.2fr)}#bottomTraces .tlsTraceCount{font-size:9px!important;gap:4px!important}#bottomTraces #v5TraceActions{top:28px;left:12px;right:auto}#bottomTraces{padding-top:58px!important}}
-</style><style>body #targetMeasurementPanel #uiLivePill{width:100%!important;box-sizing:border-box!important;justify-content:center!important}body #genSweepWrap{display:none!important}</style></head>
+</style><style>body #targetMeasurementPanel #uiLivePill{width:100%!important;box-sizing:border-box!important;justify-content:center!important}body #genSweepWrap{display:none!important}</style><style>
+#keyCommandsRows{display:flex;flex-direction:column;gap:6px}.keyCommandRow{display:grid;grid-template-columns:minmax(0,1fr) 150px 50px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.keyCommandsPanel p{color:var(--dim);line-height:1.5;margin:0 0 12px}.keyCommandsToolbar{display:flex;gap:10px;margin-bottom:10px}.keyCommandsToolbar input{flex:1;min-width:0}#keyCommandsStatus{min-height:32px;color:var(--accent);line-height:1.4}
+.keyCommandsPanel button{border:1px solid var(--line);border-radius:5px;background:var(--panel-2);color:var(--text);padding:7px;cursor:pointer;font:12px Arial}.keyCommandsPanel button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}.keyCommandsPanel button:disabled{opacity:.4;cursor:default}body.sun-mode .keyCommandsPanel button{background:#fff;color:#274552;border-color:#a8beca}
+</style></head>
 <body>
   <div id="sigTint"></div>
   <header class="uiRefreshed">
@@ -4804,8 +4808,8 @@ window.addEventListener('load', function(){
  const cards=[...dock.querySelectorAll('.v52IOGrid > .v52IOCard')].filter(c=>c.id!=='multiInputPanel');
  cards.forEach((card,i)=>card.dataset.preferencesPage=['audio','analysis','calibration'][i]);
  document.getElementById('audioPreferencesContent').append(dock);
- function page(name){for(const id of ['multiInputPanel','v53MicCalArea']){const node=document.getElementById(id);node?.toggleAttribute('data-preferences-section-hidden',name!==(id==='multiInputPanel'?'audio':'calibration'));}cards.forEach(c=>c.hidden=c.dataset.preferencesPage!==name);document.querySelectorAll('[data-audio-page]').forEach(b=>{b.classList.toggle('on',b.dataset.audioPage===name);b.setAttribute('aria-pressed',String(b.dataset.audioPage===name));});}
- document.querySelectorAll('[data-audio-page]').forEach(b=>b.addEventListener('click',()=>page(b.dataset.audioPage)));
+ function page(name){const keys=dock.querySelector('.keyCommandsPanel');if(keys)keys.hidden=name!=='keys';for(const id of ['multiInputPanel','v53MicCalArea']){const node=document.getElementById(id);node?.toggleAttribute('data-preferences-section-hidden',name!==(id==='multiInputPanel'?'audio':'calibration'));}cards.forEach(c=>c.hidden=c.dataset.preferencesPage!==name);document.querySelectorAll('[data-audio-page]').forEach(b=>{b.classList.toggle('on',b.dataset.audioPage===name);b.setAttribute('aria-pressed',String(b.dataset.audioPage===name));});}
+ const nav=dialog.querySelector('.audioPreferencesNav');nav.addEventListener('click',event=>{const b=event.target.closest('[data-audio-page]');if(b)page(b.dataset.audioPage)});
  window.setAudioPreferences=open=>{if(open){page('audio');if(!dialog.open)dialog.showModal();}else if(dialog.open)dialog.close();};
  document.getElementById('audioPreferencesClose').onclick=()=>v52SetIo(false);
  dialog.addEventListener('cancel',event=>{event.preventDefault();v52SetIo(false)});
@@ -4836,5 +4840,5 @@ window.addEventListener('load', function(){
  setInterval(()=>{if(!media.matches)return;if(document.activeElement!==type)type.value=genType;if(document.activeElement!==level)level.value=genDb;const hz=document.getElementById('bottomSignalHz');hz.disabled=genType!=='sine';if(document.activeElement!==hz)hz.value=genHz;state.textContent=genOn?'Signal playing · '+(genType==='sine'?genHz+' Hz':genType==='sweep'?'Sweep':'Continuous noise'):'Signal stopped';},150);
 })();
 </script>
-<script src="js/overview.js"></script></body>
+<script src="js/overview.js"></script><script src="js/key-commands.js"></script></body>
 </html>

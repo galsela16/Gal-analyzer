@@ -9,6 +9,7 @@ module.exports=async({window,release})=>{
   const evaluate=code=>window.webContents.executeJavaScript(`(async()=>{${code}})()`);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const shots=[];
+  console.log("Key Commands:",JSON.stringify(await require("./test-keycommands.cjs")({window})));
   const menu=require('electron').Menu.getApplicationMenu();
   if(!menu.getMenuItemById('target-curve'))throw Error('Native target menu missing.');
   await evaluate(`
@@ -203,6 +204,8 @@ module.exports=async({window,release})=>{
   await evaluate(`document.getElementById('audioPreferencesClose').click();if(document.getElementById('audioPreferences').open||v52IoOpen)throw Error('Preferences did not close.');document.getElementById('sunBtn').click();document.getElementById('uiSetOpenIo').click();`);
   await wait(100);if(require('electron').nativeTheme.themeSource!=='dark')throw Error('Native window did not switch to the night theme.');
   await saveUi('ui-audio-preferences-night.jpg');
+  await evaluate(`document.querySelector('[data-audio-page="keys"]').click();`);
+  await saveUi('ui-key-commands.jpg');
   await evaluate(`document.getElementById('audioPreferencesClose').click();await stop();`);
   const manifest={release:release.version,date:'2026-10-13',status:'Drafts. Recapture from the accepted signed MAS release before submission.',scope:'Real application renderer; synthetic PCM from the test helper; no physical microphone or playback.',tf,shots};
   fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
