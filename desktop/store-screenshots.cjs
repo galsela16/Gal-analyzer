@@ -19,6 +19,7 @@ module.exports=async({window,release})=>{
     const audioRect=document.getElementById('uiLivePill').getBoundingClientRect(),readoutRect=document.querySelector('#targetMeasurementPanel .tmpValue').getBoundingClientRect();
     if(Math.abs(audioRect.width-readoutRect.width)>1||Math.abs(audioRect.left-readoutRect.left)>1)throw Error('Audio button and readout widths do not align.');
     if(document.getElementById('bottomSweepDuration'))throw Error('Sweep duration is still visible.');
+    const stageTop=document.getElementById('stage').getBoundingClientRect().top;for(const id of ['targetLeftStatus','targetMeasurementPanel'])if(Math.abs(document.getElementById(id).getBoundingClientRect().top-stageTop)>1)throw Error('Side panel does not align with graph: '+id);
     const lower=document.getElementById('studioBottom');
     if(!lower.contains(document.getElementById('v5TraceList'))||!lower.contains(document.getElementById('tlsGenToggle')))throw Error('Lower workspace controls not moved.');
     const lowerRect=lower.getBoundingClientRect(),graphRect=document.getElementById('stage').getBoundingClientRect();

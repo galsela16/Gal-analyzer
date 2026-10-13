@@ -1,0 +1,10 @@
+{
+  "version": "6.0.0-preview.36",
+  "date": "2026-10-13",
+  "changes": [
+    "Align MIC/input rail and Measurement panel top edges with the main graph frame"
+  ],
+  "checks": {
+    "sidePanelGraphTopAlignment": true
+  }
+}
