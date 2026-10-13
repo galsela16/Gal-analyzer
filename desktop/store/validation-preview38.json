@@ -1,0 +1,12 @@
+{
+  "version": "6.0.0-preview.38",
+  "date": "2026-10-14",
+  "changes": [
+    "Remove M/R difference graph and delta cursor readout",
+    "Use full graph height for MIC and REF in full view and Overview",
+    "Add subtle 5 dB minor grid lines; retain named saved traces and calibrated band data"
+  ],
+  "checks": {
+    "micRefCurvesOnly": true
+  }
+}
