@@ -4304,17 +4304,18 @@ window.addEventListener('load', function(){
   phaseFreq?.addEventListener('input',()=>{document.getElementById('tfPhaseFreqVal').textContent=phaseFreqLabel(phaseFreq.value);window.tfPhaseCursorHz=Number(phaseFreq.value)});
   document.getElementById('tfPhaseUnwrap')?.addEventListener('click',function(){tfPhaseUnwrapUi=!tfPhaseUnwrapUi;this.classList.toggle('on',tfPhaseUnwrapUi);window.tfPhaseUnwrap=tfPhaseUnwrapUi});
   document.getElementById('tfPhaseZero')?.addEventListener('click',function(){tfPhaseZeroUi=!tfPhaseZeroUi;this.classList.toggle('on',tfPhaseZeroUi);window.tfPhaseZeroAtCursor=tfPhaseZeroUi});
-  document.getElementById('tfPhaseGate')?.addEventListener('click',function(){window.tfPhaseGateEnabled=window.tfPhaseGateEnabled===false?true:false;this.classList.toggle('on',window.tfPhaseGateEnabled!==false)});
+  document.getElementById('tfPhaseGate')?.addEventListener('click',function(){window.tfPhaseGateEnabled=window.tfPhaseGateEnabled===false?true:false;this.classList.toggle('on',window.tfPhaseGateEnabled!==false);this.textContent=window.tfPhaseGateEnabled!==false?'Coh Gate ✓':'Diagnostic · all data';this.setAttribute('aria-pressed',String(window.tfPhaseGateEnabled!==false))});
   window.tfPhaseCursorHz=1000;window.tfPhaseGateEnabled=true;window.tfPhaseUnwrap=false;window.tfPhaseZeroAtCursor=false;
   setInterval(()=>{
+    const gate=document.getElementById('tfPhaseGate');if(gate){const on=window.tfPhaseGateEnabled!==false;gate.textContent=on?'Coh Gate ✓':'Diagnostic · all data';gate.classList.toggle('on',on);gate.setAttribute('aria-pressed',String(on));}
     const phaseOn=window.tfViewMode==='phase'||window.tfViewMode==='coherence';
     phaseTools?.classList.toggle('show',phaseOn);
     if(typeof window.getTfPhaseCursorInfo==='function'){
       const q=window.getTfPhaseCursorInfo(window.tfPhaseCursorHz||1000,window.tfPhaseUnwrap,window.tfPhaseZeroAtCursor);
-      if(q){
+      {
         const pr=document.getElementById('tfPhaseReadout'),cr=document.getElementById('tfPhaseCohReadout');
-        if(pr)pr.textContent=Number.isFinite(q.phaseDeg)?(q.phaseDeg>0?'+':'')+q.phaseDeg.toFixed(0)+'°':'—°';
-        if(cr)cr.textContent=Number.isFinite(q.coh)?q.coh.toFixed(2):'—';
+        if(pr)pr.textContent=q&&Number.isFinite(q.phaseDeg)?(q.phaseDeg>0?'+':'')+q.phaseDeg.toFixed(0)+'°':'—°';
+        if(cr)cr.textContent=q&&Number.isFinite(q.coh)?q.coh.toFixed(2):'—';
       }
     }
   },160);

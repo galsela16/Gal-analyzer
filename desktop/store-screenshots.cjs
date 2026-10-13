@@ -9,6 +9,16 @@ module.exports=async({window,release})=>{
   const evaluate=code=>window.webContents.executeJavaScript(`(async()=>{${code}})()`);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const shots=[];
+  await evaluate(`
+    const s={sr:16000,ph:Float32Array.from([0,179,-179,30,20,30,40,50],d=>d*Math.PI/180),coh:Float32Array.from([1,1,1,.01,1,1,1,1])};
+    const frequency=x=>(x/2+1)*s.sr/TF_FFT_N;
+    const wrapped=tfPhasePlotPoints(s,12,{},frequency);if(!wrapped[1].start||!wrapped.find(p=>p.x===6)?.start||wrapped.some(p=>p.x===4))throw Error('Phase wraps or coherence gaps were connected');
+    const unwrapped=tfPhasePlotPoints(s,12,{unwrap:true},frequency);if(unwrapped[1].start||Math.abs(unwrapped[1].deg-181)>.01)throw Error('Phase unwrap failed');
+    s.coh.fill(.01);if(tfPhasePlotPoints(s,12,{},frequency).length)throw Error('Low-coherence phase is displayed');
+    if(!tfPhasePlotPoints(s,12,{gateOn:false},frequency).length)throw Error('Diagnostic mode unavailable');
+    const button=document.getElementById('tfPhaseGate');button.click();await new Promise(r=>setTimeout(r,200));if(button.getAttribute('aria-pressed')!=='false'||!button.textContent.includes('Diagnostic'))throw Error('Phase gate state is misleading');button.click();await new Promise(r=>setTimeout(r,200));if(button.getAttribute('aria-pressed')!=='true')throw Error('Phase gate reset failed');
+  `);
+
   console.log("Key Commands:",JSON.stringify(await require("./test-keycommands.cjs")({window})));
   const menu=require('electron').Menu.getApplicationMenu();
   if(!menu.getMenuItemById('target-curve'))throw Error('Native target menu missing.');

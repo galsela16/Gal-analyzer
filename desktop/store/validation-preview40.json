@@ -1,0 +1,17 @@
+{
+  "version": "6.0.0-preview.40",
+  "date": "2026-10-14",
+  "changes": [
+    "Hide unsynchronized phase with actionable sync instructions",
+    "Gate low-coherence phase and suppress unreliable cursor readouts",
+    "Break wrapped phase paths at +/-180 degrees and at coherence gaps",
+    "Accurate Coh Gate label and aria state; diagnostic all-data mode marked explicitly"
+  ],
+  "checks": {
+    "wrapDiscontinuity": true,
+    "coherenceGaps": true,
+    "allLowCoherenceHidden": true,
+    "unwrapContinuity": true,
+    "diagnosticStateLabel": true
+  }
+}
