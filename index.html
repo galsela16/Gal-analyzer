@@ -4857,5 +4857,5 @@ window.addEventListener('load', function(){
  setInterval(()=>{if(!media.matches)return;if(document.activeElement!==type)type.value=genType;if(document.activeElement!==level)level.value=genDb;const hz=document.getElementById('bottomSignalHz');hz.disabled=genType!=='sine';if(document.activeElement!==hz)hz.value=genHz;state.textContent=genOn?'Signal playing · '+(genType==='sine'?genHz+' Hz':genType==='sweep'?'Sweep':'Continuous noise'):'Signal stopped';},150);
 })();
 </script>
-<script src="js/overview.js"></script><script src="js/key-commands.js"></script><script src="js/bottom-io.js"></script></body>
+<script src="js/mr-view.js"></script><script src="js/overview.js"></script><script src="js/key-commands.js"></script><script src="js/bottom-io.js"></script></body>
 </html>

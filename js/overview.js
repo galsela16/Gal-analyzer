@@ -16,6 +16,7 @@ window.GalOverview={last:0,frames:0,exportCanvas(){
     const scale=Math.min(devicePixelRatio||1,2);
     if(canvas.width!==Math.round(W*scale)||canvas.height!==Math.round(H*scale)){canvas.width=Math.round(W*scale);canvas.height=Math.round(H*scale);}
     c.setTransform(scale,0,0,scale,0,0);c.clearRect(0,0,W,H);
+    if(view==='mr'&&window.GalMr){if(!canvas.dataset.mrCursor){canvas.dataset.mrCursor='true';canvas.addEventListener('pointermove',e=>{this.mrCursor=e.offsetX});canvas.addEventListener('pointerleave',()=>{this.mrCursor=null});}GalMr.render(c,W,H,{compact:true,cursorX:this.mrCursor??null});continue;}
     if(view==='spec'){
       if(!canvas.dataset.waterfallCursor){canvas.dataset.waterfallCursor='true';canvas.addEventListener('pointermove',event=>{this.waterfallCursor=event.offsetX});canvas.addEventListener('pointerleave',()=>{this.waterfallCursor=null});}
       const key=[W,H,scale,sunMode,floorDb,ceilDb,wf3d.intervalMs,wf3d.maxRows,nyquist].join('|');

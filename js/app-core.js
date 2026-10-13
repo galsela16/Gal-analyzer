@@ -3725,6 +3725,7 @@ function drawRta(W,H,nyquist,bins,xForFreq){
     ctx.fillRect(0,0,W,H);
   }
   const {dt,peakBand,peakVal}=updateSpectrumBands(nyquist);
+  if(v5WorkspaceMode==='mr'&&window.GalMr){GalMr.render(ctx,W,H,{cursorX});return;}
   const meterH = (window.innerWidth>=1000) ? 0 : ((meterEl && meterEl.style.display!=='none') ? 28 : 6);
   const plotH = H - meterH - 6;
   ctx.strokeStyle=sunMode ? '#cbd5e1' : '#2b3646'; 

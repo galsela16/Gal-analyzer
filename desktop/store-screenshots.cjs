@@ -144,7 +144,12 @@ module.exports=async({window,release})=>{
   `);
   await capture('01-rta-traces.jpg' ,'RTA','Live spectrum and two named, colored captured traces.');
   await evaluate(`v54SetAnalysisView('mr');`);
-  await capture('02-input-comparison.jpg','M/R','Selected microphone and reference spectra.');
+  await evaluate(`
+    const off=document.createElement('canvas');off.width=1000;off.height=650;const c=off.getContext('2d'),colors=[],texts=[];const stroke=c.stroke.bind(c),text=c.fillText.bind(c),line=c.lineTo.bind(c);c.stroke=()=>{colors.push(c.strokeStyle);stroke()};c.fillText=(v,...rest)=>{texts.push(v);text(v,...rest)};c.lineTo=(x,y)=>{if(!Number.isFinite(x)||!Number.isFinite(y))throw Error('Invalid M/R point');line(x,y)};
+    GalMr.render(c,1000,650,{cursorX:500});if(!colors.includes('#18daf4')||!colors.includes('#ffb744')||!colors.includes('#62e3ad')||!texts.some(v=>v.startsWith('Δ ')))throw Error('M/R curves, difference or cursor missing');
+    const previousRef=refChannel;try{refChannel=-1;colors.length=0;texts.length=0;GalMr.render(c,1000,650);if(colors.includes('#ffb744')||colors.includes('#62e3ad')||!texts.includes('Assign REF in I/O to compare inputs'))throw Error('M/R fabricated a missing reference');}finally{refChannel=previousRef}
+  `);
+  await capture('02-input-comparison.jpg','M/R','MIC and REF lines with a separate level-difference graph.');
   await evaluate(`v54SetAnalysisView('spec');`);
   await wait(10500);
   await capture('03-waterfall.jpg','Waterfall','Frequency history from the live synthetic input.');

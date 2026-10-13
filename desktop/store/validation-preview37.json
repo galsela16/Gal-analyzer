@@ -1,0 +1,24 @@
+{
+  "version": "6.0.0-preview.37",
+  "date": "2026-10-13",
+  "changes": [
+    "Shared M/R renderer in full view and Overview: cyan MIC, amber REF and separate MIC-minus-REF level difference",
+    "Shared frequency cursor with band frequency, both dBFS values and difference",
+    "Explicit missing/low reference states; no fabricated difference; spectrum trace overlays retained"
+  ],
+  "checks": {
+    "calibrationAndFreezePreserved": true,
+    "allBandResolutions": true,
+    "overviewFps": [
+      30.741,
+      29.993
+    ],
+    "hiddenMainCanvasPaints": 0,
+    "mrCurvesDifferenceAndCursor": true,
+    "missingReferenceNotFabricated": true,
+    "uiScreenshotWorkflow": true
+  },
+  "limitations": [
+    "M/R level difference is not a synchronized transfer-function measurement"
+  ]
+}
