@@ -15,6 +15,8 @@ module.exports=async({window})=>window.webContents.executeJavaScript(`(async()=>
   genStart=o=>options.push(o);window.setTimeout=(fn,delay)=>{delays.push(delay);return 123};window.clearTimeout=()=>{};
   runWithSource('pink',()=>{},3000);if(delays[0]!==1100||delays[1]!==4400)throw Error('Noise capture includes fade or stops early');
   delays.length=0;runWithSource('sweep',()=>{},3000);if(delays[0]!==1100||options.at(-1).sweepDelayMs<1600||delays[1]<genSweepDur*1000+1650)throw Error('Sweep pre-roll/capture timing invalid');
+  delays.length=0;runWithSource('sub-sweep',()=>{},3000);if(genSweepLow!==25||genSweepHigh!==160||genSweepDur!==6||delays[1]<7650)throw Error('Sub sweep profile/timing invalid');
+  cancelManagedSourceRun();if(genSweepLow!==20||genSweepHigh!==20000||genSweepDur!==4)throw Error('Sub sweep profile leaked after cancel');
  }finally{managedSourceStartTimer=null;managedSourceRestoreTimer=null;genStart=originalStart;window.setTimeout=originalSet;window.clearTimeout=originalClear;genType=previous.type;genSweepSingleShot=false;setGenTypeUI(genType);}
  return {fadeSeconds:1,ratios,noiseCaptureDelayMs:1100,sweepStartDelayMs:1650,offlineNoPlayback:true};
 })()`);

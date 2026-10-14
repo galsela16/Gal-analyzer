@@ -11,6 +11,21 @@ module.exports=async({window,release})=>{
   const shots=[];
   console.log("Generator fade:",JSON.stringify(await require("./test-generator-fade.cjs")({window})));
   await evaluate(`
+    const savedRunning=running,originalCapture=runDelayCapture,originalSource=runWithSource;let selected=null;
+    try{
+      running=true;runDelayCapture=(button,callback,options)=>{selected=options};
+      runWithSource=(kind,fn)=>fn(kind);setDlyCount(2);
+      document.querySelector('.dlyMeasOne').click();
+      const sub=document.querySelector('#srcBox [data-src="sub-sweep"]');if(getComputedStyle(sub).display==='none')throw Error('Sub sweep choice missing');
+      sub.click();if(selected?.signalType!=='sub-sweep'||selected.mode!=='speaker')throw Error('Speaker sweep selection lost');
+      document.getElementById('dlyMeasBtn').click();sub.click();if(selected?.signalType!=='sub-sweep'||selected.mode!=='arrival')throw Error('Path sweep selection lost');
+    }finally{running=savedRunning;runDelayCapture=originalCapture;runWithSource=originalSource;srcOverlay.classList.remove('show');}
+    const sr=48000,ref=new Float32Array(81920),mic=new Float32Array(81920);let phase=0;
+    for(let i=0;i<ref.length;i++){phase+=2*Math.PI*25*Math.pow(160/25,i/ref.length)/sr;ref[i]=.2*Math.sin(phase);if(i>=600)mic[i]=ref[i-600];}
+    const result=await new Promise((resolve,reject)=>{const worker=createDelayEstimator();worker.onmessage=e=>{worker.terminate();e.data.error?reject(Error(e.data.error)):resolve(e.data.result)};worker.onerror=e=>{worker.terminate();reject(Error(e.message))};worker.postMessage({ref,mic,sampleRate:sr,options:{signalType:'sweep',subSweep:true,maxDelayMs:50}})});
+    if(!result?.subSweep||!result.reliable||Math.abs(result.ms-12.5)>.2)throw Error('Sub sweep worker failed');
+  `);
+  await evaluate(`
     const s={sr:16000,ph:Float32Array.from([0,179,-179,30,20,30,40,50],d=>d*Math.PI/180),coh:Float32Array.from([1,1,1,.01,1,1,1,1])};
     const frequency=x=>(x/2+1)*s.sr/TF_FFT_N;
     const wrapped=tfPhasePlotPoints(s,12,{},frequency);if(!wrapped[1].start||!wrapped.find(p=>p.x===6)?.start||wrapped.some(p=>p.x===4))throw Error('Phase wraps or coherence gaps were connected');

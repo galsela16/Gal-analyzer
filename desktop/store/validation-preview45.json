@@ -1,0 +1,111 @@
+{
+  "version": "6.0.0-preview.45",
+  "date": "2026-10-14",
+  "changes": [
+    "Dedicated 25\u2013160 Hz six-second sub sweep for path and speaker measurements",
+    "Pass selected source through speaker/path capture into estimator worker",
+    "Weight only usable cross-spectrum bins; preserve ambiguity rejection",
+    "Restore full sweep profile after completion/cancellation"
+  ],
+  "checks": {
+    "sampleRates": [
+      48000,
+      96000
+    ],
+    "knownSubDelayMs": 12.5,
+    "120HzFourthOrderLowpassAccepted": true,
+    "modestBackgroundNoiseAccepted": true,
+    "unrelatedNoiseRejected": true,
+    "equalCompetingArrivalsRejected": true,
+    "singleToneRejected": true,
+    "fullSweep5msRegressionPassed": true,
+    "rendererSourceRoutingAndWorkerPassed": true,
+    "oneSecondFadePreserved": true
+  },
+  "numericalResults": [
+    {
+      "case": "sub pure",
+      "sr": 48000,
+      "ms": 12.499920196302137,
+      "samples": 599.9961694225026,
+      "confidence": 0.8794254509090312,
+      "reliable": true,
+      "stable": true,
+      "validChecks": 3,
+      "spreadMs": 0.00042456380222333223,
+      "fullMs": 12.499920196302137,
+      "alternatives": [],
+      "maxDelayMs": 50,
+      "activeBins": 1406,
+      "bandwidthHz": 128.631591796875,
+      "resolutionMs": 7.774139976275207,
+      "method": "sweep",
+      "subSweep": true,
+      "uncertaintyMs": 0.7774139976275207
+    },
+    {
+      "case": "120 Hz crossover (includes group delay)",
+      "sr": 48000,
+      "ms": 16.618615851417434,
+      "samples": 797.6935608680368,
+      "confidence": 0.8708513415303626,
+      "reliable": true,
+      "stable": true,
+      "validChecks": 3,
+      "spreadMs": 0.025938287666111393,
+      "fullMs": 16.618615851417434,
+      "alternatives": [],
+      "maxDelayMs": 50,
+      "activeBins": 1259,
+      "bandwidthHz": 115.17333984375,
+      "resolutionMs": 8.682564917859036,
+      "method": "sweep",
+      "subSweep": true,
+      "uncertaintyMs": 0.8682564917859037
+    },
+    {
+      "case": "sub pure",
+      "sr": 96000,
+      "ms": 12.49952590587342,
+      "samples": 1199.9544869638482,
+      "confidence": 0.8538553072212847,
+      "reliable": true,
+      "stable": true,
+      "validChecks": 3,
+      "spreadMs": 0.00030948232209837556,
+      "fullMs": 12.49952590587342,
+      "alternatives": [],
+      "maxDelayMs": 50,
+      "activeBins": 548,
+      "bandwidthHz": 100.15869140625,
+      "resolutionMs": 9.984156002437539,
+      "method": "sweep",
+      "subSweep": true,
+      "uncertaintyMs": 0.9984156002437539
+    },
+    {
+      "case": "120 Hz crossover (includes group delay)",
+      "sr": 96000,
+      "ms": 16.642350242421713,
+      "samples": 1597.6656232724845,
+      "confidence": 0.8267852922192652,
+      "reliable": true,
+      "stable": true,
+      "validChecks": 3,
+      "spreadMs": 0.04608916529187823,
+      "fullMs": 16.642350242421713,
+      "alternatives": [],
+      "maxDelayMs": 50,
+      "activeBins": 532,
+      "bandwidthHz": 97.22900390625,
+      "resolutionMs": 10.284996861268048,
+      "method": "sweep",
+      "subSweep": true,
+      "uncertaintyMs": 1.028499686126805
+    }
+  ],
+  "limitations": [
+    "Synthetic validation; field confirmation with the actual subwoofer remains necessary",
+    "Bass correlation time includes crossover/filter group delay; bandwidth-based precision is a heuristic, not calibrated uncertainty"
+  ]
+}

@@ -150,6 +150,7 @@ function syncAnalysisView(){
     const button=document.getElementById(id);button?.classList.toggle('on',selected===view);button?.setAttribute('aria-pressed',String(selected===view));
   }
 }
+let genSweepLow=20,genSweepHigh=20000;
 let genSweepDur=4, sweepTimer=null, sweepStartT=0, genSweepSingleShot=false, genSweepStartTimer=null;
 let subTopSourceKind=null;
 let rt60State='idle', rt60Samples=[], rt60CutT=0, rtRange=10, rt60Timer=null, rt60ArmTimer=null, rt60CutTimer=null, rt60FinishTimer=null, rtLevel=-6;
@@ -166,7 +167,7 @@ let areas=[];
 let areaState='idle', areaAccum=null, areaFrames=0;
 let measState='idle', measAccum=null, measFrames=0;
 let areaMeasureTimer=null,eqMeasureTimer=null,tfMeasureTimer=null;
-let managedSourceStartTimer=null,managedSourceRestoreTimer=null;
+let managedSourceStartTimer=null,managedSourceRestoreTimer=null,managedSweepRestore=null;
 let eqPositions=[];
 let micCalList=[], activeCalId=null, micCal=null;
 const CAL_KEY='rta_miccals';
@@ -621,8 +622,8 @@ function scheduleSweepCycle(){
   sweepStartT=t;
   try{
     genOsc.frequency.cancelScheduledValues(t);
-    genOsc.frequency.setValueAtTime(20, t);
-    genOsc.frequency.exponentialRampToValueAtTime(20000, t+genSweepDur);
+    genOsc.frequency.setValueAtTime(genSweepLow, t);
+    genOsc.frequency.exponentialRampToValueAtTime(genSweepHigh, t+genSweepDur);
   }catch(_){}
   if(!genSweepSingleShot)sweepTimer=setTimeout(scheduleSweepCycle, genSweepDur*1000);
 }
@@ -657,6 +658,7 @@ function genStart(options={}){
 function cancelManagedSourceRun(stopGenerator=false){
   if(managedSourceStartTimer){clearTimeout(managedSourceStartTimer);managedSourceStartTimer=null;}
   if(managedSourceRestoreTimer){clearTimeout(managedSourceRestoreTimer);managedSourceRestoreTimer=null;}
+  if(managedSweepRestore){managedSweepRestore();managedSweepRestore=null;}
   genSweepSingleShot=false;
   if(stopGenerator&&genOn)genStop();
 }
@@ -1324,18 +1326,25 @@ function setGenTypeUI(kind){
   document.getElementById('genFreqWrap').style.display='none';
   document.getElementById('genSweepWrap').style.display = kind==='sweep'?'flex':'none';
 }
-function isSweepSource(kind){return kind==='sweep'||kind==='external-sweep';}
+function isSweepSource(kind){return kind==='sweep'||kind==='sub-sweep'||kind==='external-sweep';}
+const DELAY_SOURCE_OPTIONS={allowed:['pink','sweep','sub-sweep','external','external-sweep']};
 function runWithSource(kind, measureFn, durMs){
   cancelManagedSourceRun(false);
   durMs=durMs||5000;
+  const subSweep=kind==='sub-sweep';
+  if(subSweep)kind='sweep';
+  const previousSweep={low:genSweepLow,high:genSweepHigh,duration:genSweepDur};
+  managedSweepRestore=()=>{genSweepLow=previousSweep.low;genSweepHigh=previousSweep.high;genSweepDur=previousSweep.duration;};
+  if(subSweep){genSweepLow=25;genSweepHigh=160;genSweepDur=6;}
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
   if(kind==='external'||kind==='external-sweep'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
   const preserveTfSync=[verifyTfWorkflow,tfMeasure,captureTfTraceFromSource].includes(measureFn);
   genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:1650,preserveTfSync,autoSync:false}:{preserveTfSync,autoSync:false});
-  managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(kind);}, 1100);
+  managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(subSweep?'sub-sweep':kind);}, 1100);
   managedSourceRestoreTimer=setTimeout(()=>{
     managedSourceRestoreTimer=null;
+    managedSweepRestore?.();managedSweepRestore=null;
     genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart({preserveTfSync:true,autoSync:false}); }
     else genStop();
   }, 1100+durMs+300);
@@ -2090,7 +2099,7 @@ function resetDelay(){
   renderDlySpk();
 }
 safeOn('dlyReset', 'click',resetDelay);
-safeOn('dlyMeasBtn', 'click',()=>pickSource(measureDelay,3800));
+safeOn('dlyMeasBtn', 'click',()=>pickSource(measureDelay,3800,DELAY_SOURCE_OPTIONS));
 
 function syncDelayRangeUi(){
   document.querySelectorAll('[data-delay-range] button').forEach(b=>b.classList.toggle('on',Number(b.dataset.ms)===delaySearchMs));
@@ -2224,6 +2233,7 @@ function delayFailureText(res,silent){
   if(res&&res.method==='noise'&&bw>0&&bw<900){
     return "Pink Noise measurement unreliable — the usable bandwidth is too narrow ("+Math.round(bw)+" Hz). Try Sweep, level up or get a little closer to the PA.";
   }
+  if(res?.method==='sweep'&&bw>0&&bw<120)return "Sub bandwidth / arrival is unclear ("+Math.round(bw)+" Hz). Choose Sub sweep (25–160 Hz), check REF and move away from reflections. Filter delay is included.";
   if(res&&checks)return "UNSTABLE — only "+checks+" of 3 checks matched · confidence "+conf+"%. Try a sweep, increase the level or reduce nearby reflections.";
   return "No clear arrival time found - make sure both channels are receiving the same broadband signal. If you're working remotely from the PA, try Sweep.";
 }
@@ -2246,10 +2256,10 @@ function renderDelayPathResult(res){
   const confidencePct=Math.round(res.confidence*100);
   const stableLabel=res.reliable?'STABLE ✓':'UNSTABLE';
   const bw=Number.isFinite(res.bandwidthHz)&&res.bandwidthHz>0?Math.round(res.bandwidthHz):null;
-  const method=res.method==='sweep'?'SWEEP':(res.method==='noise'?'PINK / NOISE':'AUTO');
+  const method=res.subSweep?'SUB SWEEP':res.method==='sweep'?'SWEEP':(res.method==='noise'?'PINK / NOISE':'AUTO');
   const quality=stableLabel+' · '+res.validChecks+'/3 · Confidence '+confidencePct+"% · Dispersion "+spread;
   const acousticDistance=(ms>0?delayMsToMeters(ms):null);
-  const diagnostic='<br><span style="font-size:11px;color:var(--dim)">'+method+(bw?' · Usable bandwidth ≈ '+bw+' Hz':'')+(acousticDistance!=null?" · Equivalent transit time ≈ "+acousticDistance.toFixed(1)+'m':'')+'</span>';
+  const diagnostic='<br><span style="font-size:11px;color:var(--dim)">'+method+(bw?' · Usable bandwidth ≈ '+bw+' Hz':'')+(res.subSweep?' · Estimated precision ≈ '+res.uncertaintyMs.toFixed(1)+' ms · Includes crossover / filter delay':'')+(acousticDistance!=null?" · Equivalent transit time ≈ "+acousticDistance.toFixed(1)+'m':'')+'</span>';
   const alternativeValues=res.alternatives&&res.alternatives.length
     ? res.alternatives.map(v=>{
         const displayed=delayDisplayValue(v,dlyDisplayUnit,dlyDistanceOffsetMs);
@@ -2260,13 +2270,13 @@ function renderDelayPathResult(res){
   st.innerHTML=dlyPathResultHtml(ms)+' '+delayChecksHtml(res)+'<br><span style="font-size:11px;color:var(--dim)">'+quality+(dlyDisplayUnit==='ms'?" · Do not convert this number to distance":'')+alternatives+'</span>'+diagnostic;
   st.dataset.delayResult='path';
 }
-function measureDelay(){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
+function measureDelay(sourceKind){ runDelayCapture(document.getElementById('dlyMeasBtn'), (res, silent)=>{
   const st=document.getElementById('dlyStatus');
   dlyLastSpeakerResult=null;
   if(!res||!res.reliable){ dlyLastPathResult=null;delete st.dataset.delayResult;st.textContent=delayFailureText(res,silent); return; }
   dlyLastPathResult=res;
   renderDelayPathResult(res);
-},{maxDelayMs:delaySearchMs,mode:'arrival'}); }
+},{maxDelayMs:delaySearchMs,mode:'arrival',signalType:sourceKind}); }
 function delayChunkSize(sr,maxDelayMs){
   const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
   let n=8192; while(n/2-2<required&&n<65536)n*=2; return n;
@@ -2344,7 +2354,7 @@ function runDelayCapture(btn, cb, options){
       };
       estimator.onerror=()=>fail('Delay analysis failed. Retry the measurement.');
       timeout=setTimeout(()=>fail('Delay analysis timed out. Retry the measurement.'),30000);
-      estimator.postMessage({ref:r,mic:m,sampleRate:sr,options:{maxDelayMs,signalType}},[r.buffer,m.buffer]);
+      estimator.postMessage({ref:r,mic:m,sampleRate:sr,options:{maxDelayMs,signalType,subSweep:requestedSignal==='sub-sweep'}},[r.buffer,m.buffer]);
     }catch(_){
       fail('Delay analysis could not start. Retry the measurement.');
     }
@@ -2453,20 +2463,20 @@ function renderDlySpk(){
   box.querySelectorAll('.dlyMeasOne').forEach(b=>b.addEventListener('click',function(){
     const i=+this.dataset.i, btn=this;
     const status=document.getElementById('dlyStatus');dlyLastPathResult=null;dlyLastSpeakerResult=null;if(status)delete status.dataset.delayResult;
-    pickSource(()=>runDelayCapture(btn,(res,silent)=>{
+    pickSource(sourceKind=>runDelayCapture(btn,(res,silent)=>{
       if(res==null){ btn.textContent="Failed"; setTimeout(()=>btn.textContent="Measure",1500); return; }
       if(!res.reliable){ btn.textContent="Unstable"; const st=document.getElementById('dlyStatus');if(st)st.textContent=delayFailureText(res,silent);setTimeout(()=>btn.textContent="Measure",1800); return; }
       dlySpeakers[i].ms=res.ms;dlySpeakers[i].confidence=res.confidence;dlySpeakers[i].spreadMs=res.spreadMs;
       dlyLastSpeakerResult={index:i,result:res};renderSpeakerMeasurementStatus(i,res);
       renderDlySpk();
-    },{maxDelayMs:delaySearchMs,mode:'speaker'}),3800);
+    },{maxDelayMs:delaySearchMs,mode:'speaker',signalType:sourceKind}),3800,DELAY_SOURCE_OPTIONS);
   }));
 }
 function renderSpeakerMeasurementStatus(i,res){
   const st=document.getElementById('dlyStatus');if(!st||!res)return;
   const displayed=delayDisplayValue(res.ms,dlyDisplayUnit,dlyDistanceOffsetMs);
   const value=displayed?(displayed.unit==='m'?displayed.value.toFixed(2)+'m':displayed.value.toFixed(2)+'ms'):"Saved · Calibration required to display meters";
-  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+" Saved:<b>"+value+'</b> '+delayChecksHtml(res)+" · Now measure the next speaker without moving the microphone.";
+  st.innerHTML='✓ '+escapeHtml((dlySpeakers[i]&&dlySpeakers[i].name)||dlyName(i))+" Saved:<b>"+value+'</b> '+delayChecksHtml(res)+(res.subSweep?' · Sub sweep · Estimated precision ≈ '+res.uncertaintyMs.toFixed(1)+'ms · Includes crossover / filter delay':'')+" · Now measure the next speaker without moving the microphone.";
   st.dataset.delayResult='speaker';
 }
 document.querySelectorAll('#dlyCountSeg button').forEach(b=>b.addEventListener('click',function(){
@@ -2612,6 +2622,8 @@ function computeSweepDelay(ref,mic,sr,options){
   const L=Math.min(ref.length,mic.length);
   const maxDelayMs=Math.max(2,Math.min(100,Number(options.maxDelayMs)||50));
   if(L<8192)return null;
+  const subSweep=!!options.subSweep;
+  const lowHz=25,highHz=subSweep?160:16000;
   const maxFft=1<<19;
   const maxLag=Math.min(Math.floor(sr*maxDelayMs/1000),maxFft/2-2);
   if(maxLag<2)return null;
@@ -2651,7 +2663,7 @@ function computeSweepDelay(ref,mic,sr,options){
     fft(xr,xi,false);fft(yr,yi,false);
     let crossMax=0;
     for(let k=1;k<N/2;k++){
-      const f=k*sr/N;if(f<25||f>16000)continue;
+      const f=k*sr/N;if(f<lowHz||f>highHz)continue;
       const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
       const m=Math.hypot(cr,ci);if(m>crossMax)crossMax=m;
     }
@@ -2660,12 +2672,15 @@ function computeSweepDelay(ref,mic,sr,options){
       const signedK=k<=N/2?k:k-N,f=Math.abs(signedK)*sr/N;
       const cr=yr[k]*xr[k]+yi[k]*xi[k],ci=yi[k]*xr[k]-yr[k]*xi[k];
       const mag=Math.hypot(cr,ci)+1e-12;
-      if(k>0&&k<N/2&&f>=25&&f<=16000&&mag>=crossMax*.05){activeBins++;activeLo=Math.min(activeLo,f);activeHi=Math.max(activeHi,f);}
+      if(k>0&&k<N/2&&f>=lowHz&&f<=highHz&&mag>=crossMax*.05){activeBins++;activeLo=Math.min(activeLo,f);activeHi=Math.max(activeHi,f);}
       let w=0;
       if(f>=20&&f<=18000){
         const lo=Math.min(1,(f-20)/40),hi=Math.min(1,(18000-f)/3000);
         w=Math.max(0,Math.min(lo,hi));
       }
+      // PHAT must not amplify silent / stop-band bins into equal-weight noise.
+      if(f<lowHz||f>highHz)w=0;
+      else w*=Math.min(1,Math.pow(mag/(crossMax*.05+1e-12),2));
       xr[k]=w*cr/mag;xi[k]=w*ci/mag;
     }
     fft(xr,xi,true);
@@ -2692,23 +2707,23 @@ function computeSweepDelay(ref,mic,sr,options){
     const frac=Math.abs(denom)>1e-12?.5*(xr[li]-xr[ri])/denom:0;
     const lag=bestLag+Math.max(-.5,Math.min(.5,frac));
     const separation=best>0?Math.max(0,Math.min(1,(best-Math.max(0,second))/best)):0;
-    const toleranceMs=Math.min(1,Math.max(.30,resolutionMs*.10));
+    const toleranceMs=Math.min(subSweep?2:1,Math.max(.30,resolutionMs*.10));
     results.push({ms:lag/sr*1000,samples:lag,peak:best,separation,activeBins,bandwidthHz,resolutionMs,toleranceMs});
   }
 
   const full=results[0];
   if(!full)return null;
   const tol=full.toleranceMs;
-  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=70&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
+  const checks=results.map(r=>({reliable:!!(r&&r.separation>=.30&&r.activeBins>=40&&r.bandwidthHz>=(subSweep?45:70)&&Math.abs(r.ms-full.ms)<=Math.max(tol,r.toleranceMs))}));
   const validChecks=checks.filter(c=>c.reliable).length;
   const agreeMs=results.filter((r,i)=>checks[i].reliable).map(r=>r.ms);
   const spreadMs=agreeMs.length>1?Math.max.apply(null,agreeMs)-Math.min.apply(null,agreeMs):0;
-  const reliable=!!(full.separation>=.40&&full.activeBins>=60&&full.bandwidthHz>=70&&validChecks>=2&&spreadMs<=tol);
+  const reliable=!!(full.separation>=.40&&full.activeBins>=60&&full.bandwidthHz>=(subSweep?45:70)&&validChecks>=2&&spreadMs<=tol);
   const confidence=Math.max(0,Math.min(1,full.separation*Math.min(1,full.activeBins/120)*Math.min(1,full.bandwidthHz/100)));
   return {
     ms:full.ms,samples:full.samples,confidence,reliable,stable:reliable,
     checks,validChecks,spreadMs,fullMs:full.ms,alternatives:[],maxDelayMs,
-    activeBins:full.activeBins,bandwidthHz:full.bandwidthHz,resolutionMs:full.resolutionMs,method:'sweep'
+    activeBins:full.activeBins,bandwidthHz:full.bandwidthHz,resolutionMs:full.resolutionMs,method:'sweep',subSweep,uncertaintyMs:Math.max(spreadMs/2,full.resolutionMs*.1)
   };
 }
 
@@ -2726,8 +2741,8 @@ function computeStableDelay(ref,mic,sr,options){
   // A swept sine goes straight to the full-capture correlator.
   let sweepResult=null;
   if(signalType==='sweep'){
-    sweepResult=computeSweepDelay(ref,mic,sr,{maxDelayMs});
-    if(sweepResult&&sweepResult.reliable)return sweepResult;
+    sweepResult=computeSweepDelay(ref,mic,sr,{maxDelayMs,subSweep:!!options.subSweep});
+    if(options.subSweep||sweepResult?.reliable)return sweepResult;
   }
 
   const full=computeDelay(ref,mic,sr,{maxDelayMs});
