@@ -1,0 +1,87 @@
+{
+  "version": "6.0.0-preview.46",
+  "date": "2026-10-14",
+  "changes": [
+    "Capture synchronized PCM and align MIC/REF before FFT using common locked TF delay",
+    "Crossover sweep (half to twice crossover frequency), six seconds with one-second fade",
+    "Reject weak/empty/sparse measurements; block Top until Sub accepted",
+    "Invalidate old Top on new Sub and invalidate snapshots after crossover change",
+    "Require same excitation type; preserve TF Sync while generating capture signals"
+  ],
+  "checks": {
+    "rendererLowCoherenceRejected": true,
+    "silentReferenceRejected": true,
+    "singleFrameRejected": true,
+    "changedSyncRejected": true,
+    "captureCancellationPassed": true,
+    "validSubAndTopAccepted": true,
+    "realRecorderWorkerPhaseSnapshotPassed": true,
+    "crossoverSweepRangeAndFadePassed": true,
+    "existingDelayEstimatorRegressionPassed": true,
+    "unrelatedNoiseRejected": true,
+    "existingTF5msSyncVerified": true
+  },
+  "numericalResults": [
+    {
+      "sr": 48000,
+      "crossover": 90,
+      "pathDelayMs": 39,
+      "lowpassHz": 120,
+      "ok": true,
+      "coherence": 0.9974725587027413,
+      "coverage": 1,
+      "passing": 14,
+      "checked": 14,
+      "lo": 71.43304733856897,
+      "hi": 113.39289449053858,
+      "frames": 38
+    },
+    {
+      "sr": 48000,
+      "crossover": 120,
+      "pathDelayMs": 39,
+      "lowpassHz": 120,
+      "ok": true,
+      "coherence": 0.9977382107784873,
+      "coverage": 1,
+      "passing": 19,
+      "checked": 19,
+      "lo": 95.24406311809197,
+      "hi": 151.19052598738477,
+      "frames": 38
+    },
+    {
+      "sr": 96000,
+      "crossover": 90,
+      "pathDelayMs": 39,
+      "lowpassHz": 120,
+      "ok": true,
+      "coherence": 0.9899626459394183,
+      "coverage": 1,
+      "passing": 7,
+      "checked": 7,
+      "lo": 71.43304733856897,
+      "hi": 113.39289449053858,
+      "frames": 78
+    },
+    {
+      "sr": 96000,
+      "crossover": 120,
+      "pathDelayMs": 39,
+      "lowpassHz": 120,
+      "ok": true,
+      "coherence": 0.9908068312538995,
+      "coverage": 1,
+      "passing": 9,
+      "checked": 9,
+      "lo": 95.24406311809197,
+      "hi": 151.19052598738477,
+      "frames": 78
+    }
+  ],
+  "limitations": [
+    "Tests use synthetic PCM; confirm with the actual sub/top hardware in the field",
+    "Keep microphone, routing and locked TF delay unchanged between Sub and Top",
+    "Filter phase remains part of the measured response; no automatic DSP applied"
+  ]
+}

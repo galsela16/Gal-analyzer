@@ -16,6 +16,7 @@ module.exports=async({window})=>window.webContents.executeJavaScript(`(async()=>
   runWithSource('pink',()=>{},3000);if(delays[0]!==1100||delays[1]!==4400)throw Error('Noise capture includes fade or stops early');
   delays.length=0;runWithSource('sweep',()=>{},3000);if(delays[0]!==1100||options.at(-1).sweepDelayMs<1600||delays[1]<genSweepDur*1000+1650)throw Error('Sweep pre-roll/capture timing invalid');
   delays.length=0;runWithSource('sub-sweep',()=>{},3000);if(genSweepLow!==25||genSweepHigh!==160||genSweepDur!==6||delays[1]<7650)throw Error('Sub sweep profile/timing invalid');
+  cancelManagedSourceRun();delays.length=0;runWithSource('crossover-sweep',()=>{},3000);if(genSweepLow!==Math.max(20,xoverF/2)||genSweepHigh!==Math.min(20000,xoverF*2)||genSweepDur!==6||!options.at(-1).preserveTfSync)throw Error('Crossover sweep range/sync changed');
   cancelManagedSourceRun();if(genSweepLow!==20||genSweepHigh!==20000||genSweepDur!==4)throw Error('Sub sweep profile leaked after cancel');
  }finally{managedSourceStartTimer=null;managedSourceRestoreTimer=null;genStart=originalStart;window.setTimeout=originalSet;window.clearTimeout=originalClear;genType=previous.type;genSweepSingleShot=false;setGenTypeUI(genType);}
  return {fadeSeconds:1,ratios,noiseCaptureDelayMs:1100,sweepStartDelayMs:1650,offlineNoPlayback:true};

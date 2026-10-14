@@ -1326,22 +1326,23 @@ function setGenTypeUI(kind){
   document.getElementById('genFreqWrap').style.display='none';
   document.getElementById('genSweepWrap').style.display = kind==='sweep'?'flex':'none';
 }
-function isSweepSource(kind){return kind==='sweep'||kind==='sub-sweep'||kind==='external-sweep';}
+function isSweepSource(kind){return kind==='sweep'||kind==='sub-sweep'||kind==='crossover-sweep'||kind==='external-sweep';}
 const DELAY_SOURCE_OPTIONS={allowed:['pink','sweep','sub-sweep','external','external-sweep']};
 function runWithSource(kind, measureFn, durMs){
   cancelManagedSourceRun(false);
   durMs=durMs||5000;
-  const subSweep=kind==='sub-sweep';
-  if(subSweep)kind='sweep';
+  const subSweep=kind==='sub-sweep',crossoverSweep=kind==='crossover-sweep';
+  if(subSweep||crossoverSweep)kind='sweep';
   const previousSweep={low:genSweepLow,high:genSweepHigh,duration:genSweepDur};
   managedSweepRestore=()=>{genSweepLow=previousSweep.low;genSweepHigh=previousSweep.high;genSweepDur=previousSweep.duration;};
   if(subSweep){genSweepLow=25;genSweepHigh=160;genSweepDur=6;}
+  if(crossoverSweep){genSweepLow=Math.max(20,xoverF/2);genSweepHigh=Math.min(20000,xoverF*2);genSweepDur=6;}
   if(kind==='sweep') durMs=Math.max(durMs, genSweepDur*1000+1200);
   if(kind==='external'||kind==='external-sweep'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
-  const preserveTfSync=[verifyTfWorkflow,tfMeasure,captureTfTraceFromSource].includes(measureFn);
+  const preserveTfSync=!!measureFn.preserveTfSync||crossoverSweep||[verifyTfWorkflow,tfMeasure,captureTfTraceFromSource].includes(measureFn);
   genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:1650,preserveTfSync,autoSync:false}:{preserveTfSync,autoSync:false});
-  managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(subSweep?'sub-sweep':kind);}, 1100);
+  managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(crossoverSweep?'crossover-sweep':subSweep?'sub-sweep':kind);}, 1100);
   managedSourceRestoreTimer=setTimeout(()=>{
     managedSourceRestoreTimer=null;
     managedSweepRestore?.();managedSweepRestore=null;
@@ -2281,19 +2282,38 @@ function delayChunkSize(sr,maxDelayMs){
   const required=Math.ceil(sr*Math.max(2,Math.min(100,Number(maxDelayMs)||50))/1000);
   let n=8192; while(n/2-2<required&&n<65536)n*=2; return n;
 }
+// Align PCM before windowing: phase rotation alone cannot align a chirp's
+// changing instantaneous frequency. Both sources use the same locked delay.
+function computeAlignedPhaseSnapshot(ref,mic,sr,options){
+  const n=Math.max(8192,Math.min(32768,Number(options.fftN)||16384)),half=n/2;
+  const delay=Number(options.delaySamples)||0,refOffset=Math.max(0,-delay),micOffset=Math.max(0,delay);
+  const length=Math.min(ref.length-refOffset,mic.length-micOffset)-1;
+  const pxx=new Float64Array(half),pyy=new Float64Array(half),re=new Float64Array(half),im=new Float64Array(half);
+  const sample=(a,index)=>{const i=Math.floor(index),t=index-i;return a[i]*(1-t)+a[i+1]*t;};
+  let frames=0;
+  for(let start=0;start+n<=length;start+=n/2){
+    const xr=new Float64Array(n),xi=new Float64Array(n),yr=new Float64Array(n),yi=new Float64Array(n);
+    for(let i=0;i<n;i++){const w=.5*(1-Math.cos(2*Math.PI*i/(n-1)));xr[i]=sample(ref,start+i+refOffset)*w;yr[i]=sample(mic,start+i+micOffset)*w;}
+    fft(xr,xi,false);fft(yr,yi,false);frames++;
+    for(let k=0;k<half;k++){pxx[k]+=xr[k]*xr[k]+xi[k]*xi[k];pyy[k]+=yr[k]*yr[k]+yi[k]*yi[k];re[k]+=yr[k]*xr[k]+yi[k]*xi[k];im[k]+=yi[k]*xr[k]-yr[k]*xi[k];}
+  }
+  const ph=new Float32Array(half),mag=new Float32Array(half),coh=new Float32Array(half);
+  for(let k=0;k<half;k++){ph[k]=Math.atan2(im[k],re[k]);mag[k]=20*Math.log10(Math.hypot(re[k],im[k])/(pxx[k]+1e-12)+1e-12);coh[k]=Math.max(0,Math.min(1,(re[k]*re[k]+im[k]*im[k])/(pxx[k]*pyy[k]+1e-12)));}
+  return {ph,mag,coh,refPower:pxx,micPower:pyy,sr,fftN:n,frames,delaySamples:delay};
+}
 let delayEstimatorUrl=null;
 function createDelayEstimator(){
   if(!delayEstimatorUrl){
     // Use the same numerical implementation in the worker and accuracy tests.
-    const code=[fft,delayChunkSize,computeDelay,computeSweepDelay,computeStableDelay].map(fn=>fn.toString()).join('\n');
-    delayEstimatorUrl=URL.createObjectURL(new Blob([code,'\nonmessage=e=>{try{postMessage({result:computeStableDelay(e.data.ref,e.data.mic,e.data.sampleRate,e.data.options)});}catch(error){postMessage({error:error.message});}};'],{type:'text/javascript'}));
+    const code=[fft,delayChunkSize,computeDelay,computeSweepDelay,computeStableDelay,computeAlignedPhaseSnapshot].map(fn=>fn.toString()).join('\n');
+    delayEstimatorUrl=URL.createObjectURL(new Blob([code,'\nonmessage=e=>{try{postMessage({result:(e.data.options.phaseSnapshot?computeAlignedPhaseSnapshot:computeStableDelay)(e.data.ref,e.data.mic,e.data.sampleRate,e.data.options)});}catch(error){postMessage({error:error.message});}};'],{type:'text/javascript'}));
   }
   return new Worker(delayEstimatorUrl);
 }
 function runDelayCapture(btn, cb, options){
   options=options||{};
-  if(!running||!analyserRef||!source||refChannel<0||refChannel===measChannel){ v3Toast("Assign separate MIC and REF inputs in I/O before measuring delay."); return; }
-  if(measureBusy()){ alert("Another measurement is active - wait for it to end."); return; }
+  if(!running||!analyserRef||!source||refChannel<0||refChannel===measChannel){ v3Toast("Assign separate MIC and REF inputs in I/O before measuring."); if(options.phaseSnapshot)cb({reason:'Assign separate MIC and REF inputs and start audio.'});return; }
+  if(measureBusy()&&!(options.phaseSnapshot&&phMeasuring&&dlyState==='idle')){ alert("Another measurement is active - wait for it to end."); return; }
   unfreezeForMeasure();
   dlyState='measuring';
   const prevTxt=btn?btn.textContent:''; if(btn){btn.textContent="Check 1 · 2 · 3…";btn.style.opacity=.5;btn.disabled=true;}
@@ -2305,7 +2325,7 @@ function runDelayCapture(btn, cb, options){
     :(requestedSignal==='pink'||requestedSignal==='noise')?'noise'
     :(genOn&&genType==='sweep')?'sweep'
     :(genOn&&(genType==='pink'||genType==='white'))?'noise':'auto';
-  const captureSec = signalType==='sweep' ? Math.max(3.2,minCapture,genSweepDur+0.8) : Math.max(3.2,minCapture);
+  const captureSec = options.phaseSnapshot ? (isSweepSource(requestedSignal)?Math.max(5,genSweepDur+.8):3.2) : signalType==='sweep' ? Math.max(3.2,minCapture,genSweepDur+0.8) : Math.max(3.2,minCapture);
   const want=Math.floor(sr*captureSec);
   const mic=new Float32Array(want), ref=new Float32Array(want); let pos=0;
   let workletNode;
@@ -2314,7 +2334,7 @@ function runDelayCapture(btn, cb, options){
   } catch(e) {
     alert("AudioWorklet not loaded. Open the site through a server (eg Live Server in VSCode) and not as a file from a folder.");
     dlyState='idle'; if(btn){btn.textContent=prevTxt;btn.style.opacity=1;btn.disabled=false;}
-    return;
+    if(options.phaseSnapshot)cb({reason:'Audio recorder could not start. Retry the measurement.'});return;
   }
 
   const captureSource=source,captureContext=audioCtx;
@@ -2354,7 +2374,7 @@ function runDelayCapture(btn, cb, options){
       };
       estimator.onerror=()=>fail('Delay analysis failed. Retry the measurement.');
       timeout=setTimeout(()=>fail('Delay analysis timed out. Retry the measurement.'),30000);
-      estimator.postMessage({ref:r,mic:m,sampleRate:sr,options:{maxDelayMs,signalType,subSweep:requestedSignal==='sub-sweep'}},[r.buffer,m.buffer]);
+      estimator.postMessage({ref:r,mic:m,sampleRate:sr,options:{maxDelayMs,signalType,subSweep:requestedSignal==='sub-sweep',phaseSnapshot:!!options.phaseSnapshot,delaySamples:options.delaySamples,fftN:options.fftN}},[r.buffer,m.buffer]);
     }catch(_){
       fail('Delay analysis could not start. Retry the measurement.');
     }
@@ -2787,6 +2807,7 @@ function measureBusy(){
       || dlyState==='measuring' || phMeasuring || tfWorkflowVerifying || tfTraceCapturePending || rt60State!=='idle';
 }
 function cancelTimedMeasurements(){
+  if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}phMeasuring=false;document.getElementById('xoverF')?.removeAttribute('disabled');
   delayCaptureCleanup?.();cancelTfWorkflowVerification();
   if(tfTraceCaptureTimer){clearTimeout(tfTraceCaptureTimer);tfTraceCaptureTimer=null;}tfTraceCapturePending=false;
   if(areaMeasureTimer){clearTimeout(areaMeasureTimer);areaMeasureTimer=null;}
@@ -4737,7 +4758,7 @@ function updateAlignmentRecommendation(){
     document.getElementById('alignProResult')?.classList.remove('show');
     document.getElementById('alignProApply')?.classList.remove('show');
     if(!tfDelayReady) el.innerHTML="<strong>Step 1:</strong><span>Keep only the top speaker active, then sync TF</span>";
-    else if(!phaseSub) el.innerHTML="<strong>Step 2:</strong><span>Mute the top, click Measure Sub and choose internal pink noise or an external source</span>";
+    else if(!phaseSub) el.innerHTML="<strong>Step 2:</strong><span>Mute the top, click Measure Sub and choose Crossover sweep or a continuous broadband source</span>";
     else el.innerHTML="<strong>Step 3:</strong><span>Mute the sub, click Measure Top and choose the same signal source</span>";
     scheduleAlignBarResize();
     return;
@@ -4796,7 +4817,22 @@ function tfPhaseSnapshot(){
     coh[k]=Math.max(0,Math.min(1, pxySq/(tfPxx[k]*tfPyy[k]+1e-12)));
     mag[k]=20*Math.log10(Math.hypot(tfPxyRe[k],tfPxyIm[k])/(tfPxx[k]+1e-12)+1e-12);
   }
-  return {ph,coh,mag,sr:audioCtx?audioCtx.sampleRate:48000,fftN:TF_FFT_N};
+  return {ph,coh,mag,refPower:tfPxx.slice(),micPower:tfPyy.slice(),sr:audioCtx?audioCtx.sampleRate:48000,fftN:TF_FFT_N};
+}
+// Check the same crossover band used by the alignment optimizer. A captured
+// window is not a successful measurement until it contains coherent signal.
+function subTopCaptureQuality(snap,crossoverHz,gate=.4){
+  const ratio=Math.pow(2,1/3),lo=crossoverHz/ratio,hi=crossoverHz*ratio;
+  const threshold=Math.max(.55,gate),frames=snap?.frames||0;
+  let checked=0,passing=0,sum=0;
+  if(snap?.coh&&snap.ph&&snap.mag)for(let k=1;k<snap.coh.length;k++){
+    const f=k*snap.sr/snap.fftN;if(f<lo||f>hi)continue;checked++;
+    const c=Number.isFinite(snap.coh[k])?snap.coh[k]:0;sum+=c;
+    if(c>=threshold&&Number.isFinite(snap.ph[k])&&Number.isFinite(snap.mag[k])&&
+       snap.refPower?.[k]/Math.max(1,frames)>1e-6&&snap.micPower?.[k]/Math.max(1,frames)>1e-6)passing++;
+  }
+  const coverage=checked?passing/checked:0,coherence=checked?sum/checked:0;
+  return {ok:frames>=12&&passing>=3&&coherence>=threshold&&coverage>=.55,coherence,coverage,passing,checked,lo,hi,frames};
 }
 let phMeasuring=false,phMeasureTimer=null;
 function syncSubTopWorkflowUi(){
@@ -4809,20 +4845,24 @@ function syncSubTopWorkflowUi(){
     sync.disabled=phMeasuring;
   }
   if(sub){
-    if(!phaseSub)sub.textContent="2 · Measure Sub";
+    sub.classList.toggle('on',!!phaseSub);
+    sub.textContent=phaseSub?"✓ 2 · Sub ready":"2 · Measure Sub";
     sub.disabled=phMeasuring||!tfDelayReady;
   }
   if(top){
-    if(!phaseTop)top.textContent="3 · Measure Top";
+    top.classList.toggle('on',!!phaseTop);
+    top.textContent=phaseTop?"✓ 3 · Top ready":"3 · Measure Top";
     top.disabled=phMeasuring||!tfDelayReady||!phaseSub;
   }
 }
 function clearSubTopSnapshots(message){
+  if(phMeasuring)delayCaptureCleanup?.();
   if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}
+  document.getElementById('xoverF')?.removeAttribute('disabled');
   phMeasuring=false;phaseSub=null;phaseTop=null;showXover=false;alignRecommendation=null;tfSweepAcquiring=false;subTopSourceKind=null;
   const s=document.getElementById('phSubBtn');if(s)s.classList.remove('on');
   const t=document.getElementById('phTopBtn');if(t)t.classList.remove('on');
-  const st=document.getElementById('phStatus');if(st){st.textContent=message||"Measure sub then top — at each step select internal pink noise or external source.";st.style.color='var(--dim)';}
+  const st=document.getElementById('phStatus');if(st){st.textContent=message||"Mute the top, measure Sub, then mute the sub and measure Top with the same signal.";st.style.color='var(--dim)';}
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
 }
@@ -4837,49 +4877,47 @@ function capturePhase(which,sourceKind='external'){
   const other=document.getElementById(which==='sub'?'phTopBtn':'phSubBtn');
   const st=document.getElementById('phStatus');
   const label=which==='sub'?"Sub":"Top";
-  if(which==='sub')phaseSub=null;else phaseTop=null;
+  if(which==='sub'){phaseSub=null;phaseTop=null;subTopSourceKind=null;}else phaseTop=null;
   alignRecommendation=null;
   if(btn)btn.classList.remove('on');
   syncSubTopWorkflowUi();
   updateAlignmentRecommendation();
-  // Reset accumulators for a fresh measurement window
-  tfPxx.fill(0); tfPyy.fill(0); tfPxyRe.fill(0); tfPxyIm.fill(0);
-  tfSweepAcquiring=isSweepSource(sourceKind);
-  let t=isSweepSource(sourceKind)?Math.max(5,Math.ceil(genSweepDur+1)):3;
-  const sourceLabel=sourceKind==='sweep'?"Internal sweep":sourceKind==='external-sweep'?"External sweep":sourceKind==='pink'?"Pink noise":"external source";
-  const tick=()=>{ if(btn) btn.textContent="Measuring… "+t; if(st){ st.textContent="Measuring "+label+" with "+sourceLabel+'… '+t+" seconds"; st.style.color='var(--accent)'; } };
-  tick();
-  phMeasureTimer=setInterval(()=>{
-    t--;
-    if(t>0){ tick(); return; }
-    clearInterval(phMeasureTimer);phMeasureTimer=null;
-    const snap=tfPhaseSnapshot();
-    if(which==='sub'){phaseSub=snap;subTopSourceKind=sourceKind;}else phaseTop=snap;
-    tfSweepAcquiring=false;
-    showXover=true;
-    const N2=TF_FFT_N/2, nyq=(typeof audioCtx!=='undefined'&&audioCtx)?audioCtx.sampleRate/2:24000;
-    const k=Math.min(N2-1, Math.round(xoverF/nyq*N2));
-    const ratio=Math.pow(2,1/6), lo=xoverF/ratio, hi=xoverF*ratio, cvals=[];
-    for(let j=1;j<N2;j++){const f=j*nyq/N2;if(f>=lo&&f<=hi&&Number.isFinite(snap.coh[j]))cvals.push(snap.coh[j]);}
-    const c=cvals.length?cvals.reduce((a,b)=>a+b,0)/cvals.length:snap.coh[k];
-    const coverage=cvals.length?cvals.filter(v=>v>=tfCohGate).length/cvals.length:0;
-    if(btn){ btn.classList.add('on'); btn.textContent='✓ '+(which==='sub'?'2':'3')+' · '+label+" captured"; }
+  const captureContext=audioCtx,captureDelay=tfDelaySamples,captureFft=TF_FFT_N,captureXover=xoverF;
+  const crossoverControl=document.getElementById('xoverF');if(crossoverControl)crossoverControl.disabled=true;
+  let t=isSweepSource(sourceKind)?Math.ceil(genSweepDur+.8):4;
+  const sourceLabel=sourceKind==='crossover-sweep'?"Crossover sweep":sourceKind==='external-sweep'?"External sweep":sourceKind==='pink'?"Pink noise":"External source";
+  const tick=()=>{if(btn)btn.textContent='Measuring… '+Math.max(0,t);if(st){st.textContent='Measuring '+label+' · '+sourceLabel+' · Keep the other speaker muted';st.style.color='var(--accent)';}};
+  tick();phMeasureTimer=setInterval(()=>{t--;tick();},1000);
+  runDelayCapture(null,(snap,silent)=>{
+    if(phMeasureTimer){clearInterval(phMeasureTimer);phMeasureTimer=null;}
+    const quality=subTopCaptureQuality(snap,captureXover,tfCohGate);
+    const unchanged=running&&audioCtx===captureContext&&tfDelayReady&&tfDelaySamples===captureDelay&&TF_FFT_N===captureFft&&xoverF===captureXover;
+    const accepted=unchanged&&quality.ok;
+    if(accepted){if(which==='sub'){phaseSub=snap;subTopSourceKind=sourceKind;}else phaseTop=snap;}
+    showXover=!!(phaseSub||phaseTop);if(crossoverControl)crossoverControl.disabled=false;
     if(st){
-      if(c>=Math.max(.55,tfCohGate)&&coverage>=.55){ st.textContent='✓ '+label+" Captured · Coherence "+c.toFixed(2)+" · coverage "+Math.round(coverage*100)+"% — reliable"; st.style.color='#22c55e'; }
-      else { st.textContent='⚠ '+label+" · Coherence "+c.toFixed(2)+" · coverage "+Math.round(coverage*100)+"% — Measure again before Alignment"; st.style.color='#f59e0b'; }
+      st.textContent=accepted?'✓ '+label+' ready · Coherence '+quality.coherence.toFixed(2)+' · coverage '+Math.round(quality.coverage*100)+'%':
+        '⚠ '+label+' not saved · '+(snap?.reason|| (silent?'No signal on '+(silent==='mic'?'MIC':'REF'):unchanged?'Coherence '+quality.coherence.toFixed(2)+' · coverage '+Math.round(quality.coverage*100)+'% · Check MIC / REF, mute the other speaker and retry Crossover sweep':'Audio or TF settings changed — sync TF and measure again'));
+      st.style.color=accepted?'#22c55e':'#f59e0b';
     }
-    phMeasuring=false;
-    syncSubTopWorkflowUi();
-    updateAlignmentRecommendation();
-  },1000);
+    phMeasuring=false;syncSubTopWorkflowUi();updateAlignmentRecommendation();
+  },{phaseSnapshot:true,delaySamples:captureDelay,fftN:captureFft,signalType:sourceKind,mode:'phase'});
 }
-safeOn('phSubBtn','click',()=>pickSource(kind=>capturePhase('sub',kind),3200,{title:"Signal for measuring the subwoofer alone · Only the crossover field is tested",allowed:['pink','sweep','external','external-sweep']}));
-safeOn('phTopBtn','click',()=>pickSource(kind=>capturePhase('top',kind),3200,{title:"Signal to measure the top alone · Use the same source",allowed:['pink','sweep','external','external-sweep']}));
+
+function pickSubTopSource(which){
+  const capture=kind=>capturePhase(which,kind);capture.preserveTfSync=true;
+  const allowed=which==='top'&&subTopSourceKind?[subTopSourceKind]:['crossover-sweep','pink','external','external-sweep'];
+  pickSource(capture,3200,{title:which==='sub'?"Measure Sub alone · Mute Top · Signal around the crossover":"Measure Top alone · Mute Sub · Same signal as Sub",allowed});
+}
+safeOn('phSubBtn','click',()=>pickSubTopSource('sub'));
+safeOn('phTopBtn','click',()=>pickSubTopSource('top'));
 safeOn('phClearBtn','click',function(){
   clearSubTopSnapshots();
 });
 safeOn('xoverF','input',function(e){
+  if(phMeasuring)return;
   xoverF=parseInt(e.target.value,10);
+  clearSubTopSnapshots('Crossover changed — measure Sub and Top again at this frequency.');
   const t=document.getElementById('xoverFVal'); if(t) t.textContent=xoverF+' Hz';
   updateAlignmentRecommendation();
 });

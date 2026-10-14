@@ -1,4 +1,4 @@
-# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.45
+# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.46
 
 Desktop preview.15 prepares a separate Apple Silicon Mac App Store build path, adds an accessible offline privacy policy and the user's final sound icon, and reads channel names from any Core Audio driver rather than inferring them from EVO8. Native integration checks cover 1, 2, 4, 8, 16 and 32 channels. Apple signing, sandbox hardware acceptance and store submission remain pending membership. The shared web edition stays at V5.7.28. See [desktop documentation](desktop/README.md).
 
@@ -236,3 +236,9 @@ The preferred desktop path packages this same interface and measurement code loc
 Delay path and individual speaker measurements offer **Sub sweep · 25–160 Hz**, a six-second sweep with the existing one-second fade. Source selection now reaches the delay worker explicitly. The correlator suppresses empty / stop-band bins and applies bandwidth-aware agreement checks while rejecting unrelated noise, isolated tones and competing arrivals. Sub results include filter delay and a bandwidth-based precision estimate; confirm phase at the crossover for final alignment.
 
 Numerical regression: `node desktop/test-sub-delay.cjs` (48 / 96 kHz, known delay, 120 Hz low-pass, background noise and rejection cases).
+
+### preview.46 — Reliable Sub / Top capture
+
+Sub / Top measurements capture synchronized PCM into the existing recorder worker and align samples with the common TF Sync delay before the FFT. This preserves phase differences while avoiding chirp coherence loss from phase-only compensation. Crossover sweep spans half to twice the crossover frequency over six seconds, with the same source required for Top. Captures require sufficient coherent energized bins and independent windows; failed captures are not saved, old Top data is invalidated on Sub recapture, and changes to crossover require fresh captures.
+
+Validation: `node desktop/test-crossover-sweep.cjs`; renderer capture-state tests and a real recorder/worker test use isolated synthetic inputs. Field confirmation remains necessary.

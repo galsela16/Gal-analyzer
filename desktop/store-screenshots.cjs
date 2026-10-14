@@ -35,6 +35,7 @@ module.exports=async({window,release})=>{
     const button=document.getElementById('tfPhaseGate');button.click();await new Promise(r=>setTimeout(r,200));if(button.getAttribute('aria-pressed')!=='false'||!button.textContent.includes('Diagnostic'))throw Error('Phase gate state is misleading');button.click();await new Promise(r=>setTimeout(r,200));if(button.getAttribute('aria-pressed')!=='true')throw Error('Phase gate reset failed');
   `);
 
+  console.log("Sub / Top capture:",JSON.stringify(await require("./test-subtop-capture.cjs")({window})));
   console.log("Key Commands:",JSON.stringify(await require("./test-keycommands.cjs")({window})));
   const menu=require('electron').Menu.getApplicationMenu();
   if(!menu.getMenuItemById('target-curve'))throw Error('Native target menu missing.');
@@ -202,6 +203,8 @@ module.exports=async({window,release})=>{
   `);
   await wait(5200);
   const tf=await evaluate(`
+    const phaseCapture=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('PCM phase capture timed out')),15000);runDelayCapture(null,result=>{clearTimeout(timer);resolve(result)},{phaseSnapshot:true,delaySamples:tfDelaySamples,fftN:TF_FFT_N,signalType:'external',mode:'phase'});});
+    const phaseQuality=subTopCaptureQuality(phaseCapture,90,.4);if(!phaseQuality.ok||phaseCapture.frames<12)throw Error('Recorded PCM phase snapshot unreliable: '+JSON.stringify(phaseQuality));
     if(!tfWorkflowVerified||tfAverageFrames<18)throw Error('TF demo did not verify.');
     captureTfTrace();v552RenameTrace(tfTraces.length-1,'TF pair');
     if(!tfTraces.at(-1).verified)throw Error('TF trace was not verified.');
