@@ -125,6 +125,7 @@ let activeInId='';
 let weightA=null, weightC=null;
 let leqSumP=0, leqN=0, splMax=-120;
 let dragging=false, dragX0=0, dragX1=0, cursorX=null, eqRtaRangeDrag=null;
+const GEN_FADE_IN_SECONDS=1;let genFadeEndsAt=0;
 let genType='pink', genOn=false, genGain=null, genSrc=null, genOsc=null;
 let genDb=-34, genHz=1000, targetMode='flat';
 let targetVisible=false;
@@ -639,11 +640,12 @@ function genStart(options={}){
     genSrc.loop=true; genSrc.connect(genGain); genSrc.start();
   }
   genGain.connect(audioCtx.destination);
-  const target=Math.pow(10,genDb/20);
-  genGain.gain.setTargetAtTime(target,audioCtx.currentTime,0.15);
+  const target=Math.pow(10,(Number.isFinite(options.levelDb)?options.levelDb:genDb)/20),now=audioCtx.currentTime;
+  genFadeEndsAt=now+GEN_FADE_IN_SECONDS;
+  genGain.gain.setValueAtTime(0,now);genGain.gain.linearRampToValueAtTime(target,genFadeEndsAt);
   genOn=true;
   if(genType==='sweep'){
-    const wait=Math.max(0,Number(options.sweepDelayMs)||0);
+    const wait=Math.max(GEN_FADE_IN_SECONDS*1000,Number(options.sweepDelayMs)||0);
     if(wait)genSweepStartTimer=setTimeout(()=>{genSweepStartTimer=null;scheduleSweepCycle();},wait);else scheduleSweepCycle();
   }
   if(typeof refreshReferenceRouting==='function')refreshReferenceRouting(!!options.preserveTfSync);
@@ -671,7 +673,7 @@ function syncInlineGenBtns(){
 }
 
 function genApplyLevel(){
-  if(genGain){ genGain.gain.setTargetAtTime(Math.pow(10,genDb/20),audioCtx.currentTime,0.1); }
+  if(genGain){const now=audioCtx.currentTime,target=Math.pow(10,genDb/20);if(now<genFadeEndsAt){const current=genGain.gain.value;genGain.gain.cancelScheduledValues(now);genGain.gain.setValueAtTime(current,now);genGain.gain.linearRampToValueAtTime(target,genFadeEndsAt);}else genGain.gain.setTargetAtTime(target,now,0.1);}
 }
 
 const genPanel=document.getElementById('genPanel');
@@ -1330,13 +1332,13 @@ function runWithSource(kind, measureFn, durMs){
   if(kind==='external'||kind==='external-sweep'){ measureFn(kind); return; }
   const prevOn=genOn, prevType=genType;
   const preserveTfSync=[verifyTfWorkflow,tfMeasure,captureTfTraceFromSource].includes(measureFn);
-  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:650,preserveTfSync,autoSync:false}:{preserveTfSync,autoSync:false});
-  managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(kind);}, kind==='sweep'?100:450);
+  genType=kind;genSweepSingleShot=kind==='sweep';setGenTypeUI(kind);genStart(kind==='sweep'?{sweepDelayMs:1650,preserveTfSync,autoSync:false}:{preserveTfSync,autoSync:false});
+  managedSourceStartTimer=setTimeout(()=>{managedSourceStartTimer=null;measureFn(kind);}, 1100);
   managedSourceRestoreTimer=setTimeout(()=>{
     managedSourceRestoreTimer=null;
     genSweepSingleShot=false;if(prevOn){ genType=prevType; setGenTypeUI(prevType); genStart({preserveTfSync:true,autoSync:false}); }
     else genStop();
-  }, 450+durMs+300);
+  }, 1100+durMs+300);
 }
 
 safeOn('areaCombBtn', 'click',()=>runCombCheck('areaCombResult'));
@@ -2918,9 +2920,7 @@ function startRT60(){
   rt60State='arming';
   rtStatus.innerHTML="Preparing… playing pink noise";
   rt60PreviousGenerator={on:genOn,type:genType};
-  genType='pink';setGenTypeUI('pink');genStart({preserveTfSync:true,autoSync:false});
-  const boost=rtLevel;
-  if(genGain) genGain.gain.setTargetAtTime(Math.pow(10,boost/20),audioCtx.currentTime,0.1);
+  genType='pink';setGenTypeUI('pink');genStart({preserveTfSync:true,autoSync:false,levelDb:rtLevel});
   const prevSmooth=analyser.smoothingTimeConstant; analyser.smoothingTimeConstant=0;
 
   rt60ArmTimer=setTimeout(()=>{

@@ -9,6 +9,7 @@ module.exports=async({window,release})=>{
   const evaluate=code=>window.webContents.executeJavaScript(`(async()=>{${code}})()`);
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const shots=[];
+  console.log("Generator fade:",JSON.stringify(await require("./test-generator-fade.cjs")({window})));
   await evaluate(`
     const s={sr:16000,ph:Float32Array.from([0,179,-179,30,20,30,40,50],d=>d*Math.PI/180),coh:Float32Array.from([1,1,1,.01,1,1,1,1])};
     const frequency=x=>(x/2+1)*s.sr/TF_FFT_N;

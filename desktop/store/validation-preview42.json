@@ -1,0 +1,16 @@
+{
+  "version": "6.0.0-preview.42",
+  "date": "2026-10-14",
+  "changes": [
+    "One-second linear fade-in for app-generated signals",
+    "Noise capture starts after fade; sweep capture armed after fade and before full sweep",
+    "RT60 excitation ramps to its selected measurement level; preserve existing abrupt cutoff needed for decay analysis"
+  ],
+  "checks": {
+    "offlineNoPlaybackFadeSeconds": 1,
+    "halfTimeAmplitudeRatio": 0.5000333,
+    "fullTimeAmplitudeRatio": 1,
+    "noiseCaptureDelayMs": 1100,
+    "sweepStartDelayMs": 1650
+  }
+}
