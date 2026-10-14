@@ -31,6 +31,8 @@ module.exports=async({window,release})=>{
     if(Math.abs(audioRect.width-readoutRect.width)>1||Math.abs(audioRect.left-readoutRect.left)>1)throw Error('Audio button and readout widths do not align.');
     if(document.getElementById('bottomSweepDuration'))throw Error('Sweep duration is still visible.');
     const stageTop=document.getElementById('stage').getBoundingClientRect().top;for(const id of ['targetLeftStatus','targetMeasurementPanel'])if(Math.abs(document.getElementById(id).getBoundingClientRect().top-stageTop)>1)throw Error('Side panel does not align with graph: '+id);
+    const speed=document.getElementById('displaySpeedSelect');for(const [value,interval] of [['slow',220],['fast',70],['normal',120]]){speed.value=value;speed.dispatchEvent(new Event('change'));if(wf3d.intervalMs!==interval||document.querySelector('[data-analysis-speed].on').dataset.analysisSpeed!==value)throw Error('Display speed did not update shared settings');}
+    const toolbar=document.getElementById('displayToolbar').getBoundingClientRect(),canvasRect=document.getElementById('cv').getBoundingClientRect();if(toolbar.bottom>canvasRect.top||document.getElementById('displayResolutionBar').getBoundingClientRect().right>document.getElementById('displaySpeedControl').getBoundingClientRect().left)throw Error('Display controls overlap');
     const lower=document.getElementById('studioBottom');
     if(!lower.contains(document.getElementById('v5TraceList'))||!lower.contains(document.getElementById('tlsGenToggle')))throw Error('Lower workspace controls not moved.');
     const lowerRect=lower.getBoundingClientRect(),graphRect=document.getElementById('stage').getBoundingClientRect();

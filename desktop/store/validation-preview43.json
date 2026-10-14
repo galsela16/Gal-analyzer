@@ -1,0 +1,19 @@
+{
+  "version": "6.0.0-preview.43",
+  "date": "2026-10-14",
+  "changes": [
+    "On-screen Slow/Normal/Fast speed selector beside display resolution",
+    "Reuse existing shared response presets and preference persistence",
+    "Separate display controls from canvas content; keep controls visible in Overview"
+  ],
+  "checks": {
+    "speedPresetSynchronization": true,
+    "waterfallIntervalsMs": [
+      220,
+      120,
+      70
+    ],
+    "displayControlsNoOverlap": true,
+    "knownVerifiedTfDelayMs": 5.000034039266355
+  }
+}
