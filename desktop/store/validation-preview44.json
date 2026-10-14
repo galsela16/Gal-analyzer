@@ -1,0 +1,17 @@
+{
+  "version": "6.0.0-preview.44",
+  "date": "2026-10-14",
+  "changes": [
+    "Stack speaker alignment header above full-width speaker list",
+    "Place each speaker name and Measure button on the first row with result and relative alignment below",
+    "Retain existing measurement handlers and source selection"
+  ],
+  "checks": {
+    "speakerCounts": [
+      2,
+      4,
+      6
+    ],
+    "measureButtonNotClipped": true
+  }
+}

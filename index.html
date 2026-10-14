@@ -3352,7 +3352,16 @@ body #tfPanel #tfPhaseTools[data-view="coherence"] .tfPhaseActions{display:none!
  body.overview-mode #stage #overviewGrid{inset:104px 8px 8px!important}
  body.sun-mode #displaySpeedSelect{background:#fff;color:#274552;border-color:#a8beca}
 }
-</style></head>
+</style><style>@media(min-width:1000px){
+body #stage #dlyPanel.floatingMeasurementDock .dlyAlignment{display:flex!important;flex-direction:column!important;gap:10px!important;width:100%;min-width:0}
+body #dlyPanel .dlyAlignmentHead{width:100%;min-width:0}
+body #dlyPanel #dlySpk{display:flex!important;flex-direction:column!important;width:100%!important;min-width:0;max-height:none!important;overflow:visible!important}
+body #dlyPanel .dlySpeakerRow{display:grid!important;grid-template-columns:22px minmax(0,1fr) 80px!important;grid-template-areas:"anchor name measure" ". time time" ". delta delta";width:100%;min-width:0;box-sizing:border-box;gap:5px 7px;padding:8px!important}
+body #dlyPanel .dlyAnchor{grid-area:anchor}body #dlyPanel .posName{grid-area:name;width:100%;min-width:0}
+body #dlyPanel .dlyMeasOne{grid-area:measure;min-width:0!important;width:100%;min-height:30px!important}
+body #dlyPanel .dlyTime{grid-area:time;white-space:normal!important;overflow-wrap:anywhere}
+body #dlyPanel .dlyDelta{grid-area:delta;text-align:left!important;white-space:normal}
+}</style></head>
 <body>
   <div id="sigTint"></div>
   <header class="uiRefreshed">

@@ -211,7 +211,7 @@ module.exports=async({window,release})=>{
   if(require('electron').nativeTheme.themeSource!=='light')throw Error('Native window did not switch to the day theme.');
   await saveUi('ui-day.jpg');
   await evaluate(`v5OpenTf();`);await wait(300);await saveUi('ui-tf-day.jpg');
-  await evaluate(`v54SetAnalysisView('rta');document.querySelector('#v5ModeTabs [data-v5mode="delay"]').click();`);await wait(300);await saveUi('ui-delay-day.jpg');
+  await evaluate(`v54SetAnalysisView('rta');document.querySelector('#v5ModeTabs [data-v5mode="delay"]').click();`);await wait(300);await evaluate(`for(const count of [2,4,6]){setDlyCount(count);const panel=document.getElementById('dlyPanel').getBoundingClientRect();for(const row of document.querySelectorAll('#dlySpk .dlySpeakerRow')){const button=row.querySelector('.dlyMeasOne'),r=button.getBoundingClientRect(),name=row.querySelector('.posName').getBoundingClientRect();if(r.width<50||r.left<panel.left||r.right>panel.right||name.right>r.left)throw Error('Speaker Measure button clipped or overlapped');}if(document.getElementById('dlyPanel').scrollWidth>document.getElementById('dlyPanel').clientWidth+1)throw Error('Speaker panel overflows');}setDlyCount(4);`);await saveUi('ui-delay-day.jpg');
   await evaluate(`closeModals();v54SetAnalysisView('rta');`);await wait(350);
   await evaluate(`
     const before=document.getElementById('stage').getBoundingClientRect();
