@@ -1,4 +1,4 @@
-# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.46
+# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.47
 
 Desktop preview.15 prepares a separate Apple Silicon Mac App Store build path, adds an accessible offline privacy policy and the user's final sound icon, and reads channel names from any Core Audio driver rather than inferring them from EVO8. Native integration checks cover 1, 2, 4, 8, 16 and 32 channels. Apple signing, sandbox hardware acceptance and store submission remain pending membership. The shared web edition stays at V5.7.28. See [desktop documentation](desktop/README.md).
 
@@ -242,3 +242,7 @@ Numerical regression: `node desktop/test-sub-delay.cjs` (48 / 96 kHz, known dela
 Sub / Top measurements capture synchronized PCM into the existing recorder worker and align samples with the common TF Sync delay before the FFT. This preserves phase differences while avoiding chirp coherence loss from phase-only compensation. Crossover sweep spans half to twice the crossover frequency over six seconds, with the same source required for Top. Captures require sufficient coherent energized bins and independent windows; failed captures are not saved, old Top data is invalidated on Sub recapture, and changes to crossover require fresh captures.
 
 Validation: `node desktop/test-crossover-sweep.cjs`; renderer capture-state tests and a real recorder/worker test use isolated synthetic inputs. Field confirmation remains necessary.
+
+### preview.47 — M/R clarity
+
+MIC uses a translucent fill; REF remains an outline in full and Overview views. Cursor text has an explicit alignment and stays inside its box. Frequency and level readouts interpolate the plotted spectrum at the cursor position. Verified with day/night, full/compact and missing-reference cases (`node desktop/test-mr-presentation.cjs`).

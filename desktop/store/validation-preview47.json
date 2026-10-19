@@ -1,0 +1,20 @@
+{
+  "version": "6.0.0-preview.47",
+  "date": "2026-10-19",
+  "changes": [
+    "Fix inherited text alignment causing cursor labels outside tooltip",
+    "Interpolate frequency and levels at the plotted cursor position",
+    "Fill MIC only; keep REF outline in full and Overview M/R views"
+  ],
+  "checks": {
+    "presentationCases": 24,
+    "dayAndNight": true,
+    "fullAndCompact": true,
+    "missingReference": true,
+    "cursorTextBounds": true,
+    "isolatedRendererRegression": true
+  },
+  "limitations": [
+    "Presentation changes only; audio acquisition and measurement calculations unchanged"
+  ]
+}

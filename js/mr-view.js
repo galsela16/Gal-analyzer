@@ -7,6 +7,7 @@ window.GalMr={render(c,W,H,{cursorX=null,compact=false}={}){
  const upperY=db=>split-(Math.max(floorDb,Math.min(ceilDb,db))-floorDb)/(ceilDb-floorDb)*(split-top);
  const text=sunMode?'#456373':'#9bb6c5',grid=sunMode?'#cbdce5':'#183846',mic=sunMode?'#0087b1':'#18daf4',ref=sunMode?'#b57300':'#ffb744';
  const hasRef=refChannel>=0&&!!analyserRef;
+ c.save();c.textBaseline='alphabetic';
  c.clearRect(0,0,W,H);c.fillStyle=sunMode?'#f8fafc':'#04141e';c.fillRect(0,0,W,H);c.font=(compact?'10':'11')+'px Arial';c.textAlign='left';
  c.fillStyle=mic;c.fillText('MIC '+(measChannel+1),left,16);c.fillStyle=ref;c.fillText(hasRef?'REF '+(refChannel+1):'REF not assigned',left+(compact?65:95),16);
  if(!compact){c.fillStyle=text;c.fillText('1/'+curBpo+' octave · dBFS',left,32);}
@@ -17,15 +18,23 @@ window.GalMr={render(c,W,H,{cursorX=null,compact=false}={}){
  if(!compact){for(let db=Math.ceil(floorDb/5)*5;db<=ceilDb;db+=5){if(db%10===0)continue;const py=upperY(db);c.save();c.globalAlpha=.45;c.strokeStyle=grid;c.beginPath();c.moveTo(left,py);c.lineTo(right,py);c.stroke();c.restore();}}
  for(let db=Math.ceil(floorDb/step)*step;db<=ceilDb;db+=step){const py=upperY(db);c.strokeStyle=grid;c.beginPath();c.moveTo(left,py);c.lineTo(right,py);c.stroke();c.fillStyle=text;c.fillText(db+'',left-8,py+3);}
  const line=(values,color,y,dash=[])=>{c.save();c.setLineDash(dash);c.beginPath();c.rect(left,top,width,bottom-top);c.clip();c.beginPath();let pen=false;values.forEach((v,b)=>{if(!Number.isFinite(v)){pen=false;return;}const px=x(values.length===ISO.length?ISO[b]:lo*Math.pow(hi/lo,b/Math.max(1,values.length-1))),py=y(v);pen?c.lineTo(px,py):c.moveTo(px,py);pen=true;});c.strokeStyle=color;c.lineWidth=compact?1.5:2;c.lineJoin='round';c.stroke();c.restore();};
+ // Fill only MIC; keep REF and stored traces as unobscured outlines.
+ c.save();c.beginPath();c.rect(left,top,width,bottom-top);c.clip();
+ const fill=c.createLinearGradient(0,top,0,bottom);fill.addColorStop(0,sunMode?'rgba(0,135,177,.48)':'rgba(24,218,244,.60)');fill.addColorStop(1,sunMode?'rgba(0,135,177,.12)':'rgba(0,139,214,.24)');c.fillStyle=fill;
+ let start=null,last=null;c.beginPath();
+ const closeFill=()=>{if(start!==null){c.lineTo(last,bottom);c.closePath();start=null;}};
+ rtaVisualDb.forEach((value,b)=>{if(!Number.isFinite(value)){closeFill();return;}const px=x(ISO[b]),py=upperY(value);if(start===null){start=px;c.moveTo(px,bottom);c.lineTo(px,py);}else c.lineTo(px,py);last=px;});closeFill();c.fill();c.restore();
  line(rtaVisualDb,mic,upperY);if(hasRef)line(rtaRefVisualDb,ref,upperY);
  if(!compact&&typeof tfTraces!=='undefined')for(const t of tfTraces){if(t.visible===false||t.type==='tf'||!t.values)continue;line(t.values.map(v=>floorDb+v*(ceilDb-floorDb)),t.color,upperY,[5,4]);}
  if(!compact&&typeof tfTraces!=='undefined'){const visible=tfTraces.filter(t=>t.visible!==false&&t.type!=='tf'&&t.values);visible.slice(0,Math.max(1,Math.floor((width-150)/110))).forEach((t,i)=>{c.textAlign='left';c.fillStyle=t.color;c.fillText(t.name,left+150+i*110,32,100)});}
  if(!hasRef){c.textAlign='left';c.fillStyle=text;c.fillText('Assign REF in I/O to compare inputs',left,top+18);}
- if(cursorX!==null&&cursorX>=left&&cursorX<=right){const frequency=lo*Math.pow(hi/lo,(cursorX-left)/width);let band=0;for(let b=1;b<BANDS;b++)if(Math.abs(Math.log(ISO[b]/frequency))<Math.abs(Math.log(ISO[band]/frequency)))band=b;
+ if(cursorX!==null&&cursorX>=left&&cursorX<=right){const frequency=lo*Math.pow(hi/lo,(cursorX-left)/width);const atCursor=values=>{let b=0;while(b<BANDS-2&&ISO[b+1]<frequency)b++;const t=Math.max(0,Math.min(1,Math.log(frequency/ISO[b])/Math.log(ISO[b+1]/ISO[b])));const value=values[b]+(values[b+1]-values[b])*t;return Number.isFinite(value)?value.toFixed(1)+' dBFS':'—';};
   c.save();c.setLineDash([3,4]);c.strokeStyle=text;c.beginPath();c.moveTo(cursorX,top);c.lineTo(cursorX,bottom);c.stroke();c.restore();
-  const values=[(ISO[band]>=1000?(ISO[band]/1000).toFixed(2)+' kHz':ISO[band].toFixed(1)+' Hz'),'MIC '+rtaVisualDb[band].toFixed(1)+' dBFS'];
-  if(hasRef)values.push('REF '+rtaRefVisualDb[band].toFixed(1)+' dBFS');
-  const tw=Math.max(...values.map(v=>c.measureText(v).width))+20,tx=Math.min(right-tw,Math.max(left,cursorX+10)),ty=top+8;
-  c.fillStyle=sunMode?'#ffffff':'#0d2936';c.fillRect(tx,ty,tw,values.length*16+12);c.strokeStyle=mic;c.strokeRect(tx,ty,tw,values.length*16+12);c.fillStyle=text;values.forEach((v,i)=>c.fillText(v,tx+10,ty+18+i*16));
+  const values=[(frequency>=1000?(frequency/1000).toFixed(2)+' kHz':frequency.toFixed(1)+' Hz'),'MIC '+atCursor(rtaVisualDb)];
+  if(hasRef)values.push('REF '+atCursor(rtaRefVisualDb));
+  c.save();c.textAlign='left';c.textBaseline='alphabetic';
+  const tw=Math.min(width,Math.max(...values.map(v=>c.measureText(v).width))+20),tx=Math.min(right-tw,Math.max(left,cursorX+10)),ty=top+8;
+  c.fillStyle=sunMode?'#ffffff':'#0d2936';c.fillRect(tx,ty,tw,values.length*16+12);c.strokeStyle=mic;c.strokeRect(tx,ty,tw,values.length*16+12);c.fillStyle=text;values.forEach((v,i)=>c.fillText(v,tx+10,ty+18+i*16,tw-20));c.restore();
  }
+ c.restore();
 }};

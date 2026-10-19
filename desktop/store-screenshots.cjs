@@ -178,7 +178,9 @@ module.exports=async({window,release})=>{
     GalMr.render(c,1000,650,{cursorX:500});if(!colors.includes('#18daf4')||!colors.includes('#ffb744')||colors.includes('#62e3ad')||texts.some(v=>v.startsWith('Δ ')))throw Error('M/R input curves missing or removed difference remains');
     const previousRef=refChannel;try{refChannel=-1;colors.length=0;texts.length=0;GalMr.render(c,1000,650);if(colors.includes('#ffb744')||colors.includes('#62e3ad')||!texts.includes('Assign REF in I/O to compare inputs'))throw Error('M/R fabricated a missing reference');}finally{refChannel=previousRef}
   `);
-  await capture('02-input-comparison.jpg','M/R','Full-height MIC and REF spectra with a shared frequency cursor.');
+  await evaluate(`cursorX=cv.clientWidth*.45;`);await wait(150);
+  await capture('02-input-comparison.jpg','M/R','Filled MIC spectrum and reference outline with an aligned shared frequency cursor.');
+  await evaluate(`cursorX=null;`);
   await evaluate(`v54SetAnalysisView('spec');`);
   await wait(10500);
   await capture('03-waterfall.jpg','Waterfall','Frequency history from the live synthetic input.');
