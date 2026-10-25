@@ -3315,14 +3315,15 @@ async function startInput(deviceId){
     // Keep the capture graph rendering between measurements, without playback.
     inputKeepAlive=audioCtx.createGain();inputKeepAlive.gain.value=0;
     source.connect(inputKeepAlive);inputKeepAlive.connect(audioCtx.destination);
+    if(stream.native&&stream.info.outputReference){measChannel=0;refChannel=1;referenceExplicitlyNone=false;}
     measChannel = Math.max(0, Math.min(measChannel, receivedChannels - 1));
     if(receivedChannels < 2 || refChannel >= receivedChannels) refChannel = -1;
     if(receivedChannels>1 && refChannel<0 && !referenceExplicitlyNone)refChannel=measChannel===0?1:0;
     if(refChannel === measChannel) refChannel = receivedChannels > 1 ? (measChannel === 0 ? 1 : 0) : -1;
     v52RefDbfs = -120; v52RefPeakDbfs = -120;
     document.body.classList.toggle('reference-unassigned', refChannel < 0);
-    document.getElementById('dlyL1').textContent='Input '+(measChannel+1)+' · MIC';
-    document.getElementById('dlyL2').textContent=refChannel < 0 ? 'REF · Not assigned' : 'Input '+(refChannel+1)+' · REF';
+    document.getElementById('dlyL1').textContent=(stream?.info?.outputReference?stream.info.labels[0]:'Input '+(measChannel+1))+' · MIC';
+    document.getElementById('dlyL2').textContent=refChannel < 0 ? 'REF · Not assigned' : stream?.info?.outputReference?stream.info.labels[1]:'Input '+(refChannel+1)+' · REF';
     for(const [id,selected] of [['v52MeasSelect',measChannel],['v52RefSelect',refChannel]]){
       const select=document.getElementById(id);if(!select)continue;
       select.replaceChildren();

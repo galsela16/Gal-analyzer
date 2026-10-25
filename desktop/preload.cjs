@@ -3,6 +3,7 @@ contextBridge.exposeInMainWorld('galNativeHost',{
  setInterfaceMotion:value=>{if(['full','system','reduced'].includes(value))ipcRenderer.send('gal:menu:motion',value)},
  setDayMode:value=>{if(typeof value==='boolean')ipcRenderer.send('gal:menu:day-mode',value)},
  setTargetVisible:value=>{if(typeof value==='boolean')ipcRenderer.send('gal:menu:target',value)},
+ outputs:()=>ipcRenderer.invoke('gal:native:outputs'),
  list:()=>ipcRenderer.invoke('gal:native:list'),
  start:options=>ipcRenderer.invoke('gal:native:start',options),
  stop:()=>ipcRenderer.invoke('gal:native:stop'),

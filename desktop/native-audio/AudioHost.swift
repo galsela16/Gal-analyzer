@@ -25,14 +25,14 @@ func defaultInput() -> AudioDeviceID {
     _ = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &value)
     return value
 }
-func devices() -> [Device] {
+func devices(scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeInput) -> [Device] {
     var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDevices, mScope: kAudioObjectPropertyScopeGlobal, mElement: 0)
     var size: UInt32 = 0
     guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size) == noErr else { return [] }
     var ids = [UInt32](repeating: 0, count: Int(size)/MemoryLayout<UInt32>.size)
     guard ids.withUnsafeMutableBytes({ AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, $0.baseAddress!) }) == noErr else { return [] }
     return ids.compactMap { id in
-        var config = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreamConfiguration, mScope: kAudioObjectPropertyScopeInput, mElement: 0)
+        var config = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyStreamConfiguration, mScope: scope, mElement: 0)
         var bytes: UInt32 = 0
         guard AudioObjectGetPropertyDataSize(id, &config, 0, nil, &bytes) == noErr, bytes > 0 else { return nil }
         let memory = UnsafeMutableRawPointer.allocate(byteCount: Int(bytes), alignment: MemoryLayout<AudioBufferList>.alignment)
@@ -45,10 +45,10 @@ func devices() -> [Device] {
         _ = AudioObjectGetPropertyData(id,&rateAddress,0,nil,&rateSize,&rate)
         let labels = (0..<channels).map { channel -> String in
             // Ask the driver for channel labels; never infer routing from a brand/model.
-            if let label = stringProperty(id, kAudioObjectPropertyElementName, element:UInt32(channel+1), scope:kAudioObjectPropertyScopeInput)?.trimmingCharacters(in:.whitespacesAndNewlines), !label.isEmpty {
+            if let label = stringProperty(id, kAudioObjectPropertyElementName, element:UInt32(channel+1), scope:scope)?.trimmingCharacters(in:.whitespacesAndNewlines), !label.isEmpty {
                 return String(label.prefix(96))
             }
-            return "Input \(channel + 1)"
+            return "\(scope == kAudioObjectPropertyScopeInput ? "Input" : "Out") \(channel + 1)"
         }
         return Device(id:id,uid:uid,name:name,channels:channels,labels:labels,sampleRate:rate,isDefault:id==defaultInput())
     }
@@ -76,6 +76,7 @@ final class Capture {
     var storage: [UnsafeMutablePointer<Float>] = []
     var maximumFrames: UInt32 = 4096
     let device: Device
+    var channelMap: [Int32]?
     let targetRate: Double
     var nativeRate = 0.0
     private let worker = DispatchQueue(label:"com.galanalyzer.audio.transport",qos:.userInteractive)
@@ -102,13 +103,16 @@ final class Capture {
         var hardware=AudioStreamBasicDescription(), bytes=UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         try check(AudioUnitGetProperty(unit!,kAudioUnitProperty_StreamFormat,kAudioUnitScope_Input,1,&hardware,&bytes),"Read input format")
         nativeRate=hardware.mSampleRate
-        guard Int(hardware.mChannelsPerFrame)==device.channels, nativeRate >= 40000, nativeRate <= 192000 else { throw HostError(text:"The interface format does not expose all \(device.channels) channels at 44.1–192 kHz.") }
+        guard (channelMap != nil || Int(hardware.mChannelsPerFrame)==device.channels), nativeRate >= 40000, nativeRate <= 192000 else { throw HostError(text:"The interface format does not expose all \(device.channels) channels at 44.1–192 kHz.") }
         guard let layout=AVAudioChannelLayout(layoutTag:kAudioChannelLayoutTag_DiscreteInOrder | UInt32(device.channels)) else { throw HostError(text:"Invalid channel layout.") }
         let format=AVAudioFormat(commonFormat:.pcmFormatFloat32,sampleRate:nativeRate,interleaved:false,channelLayout:layout)
         let output=AVAudioFormat(commonFormat:.pcmFormatFloat32,sampleRate:targetRate,interleaved:false,channelLayout:layout)
         nativeFormat=format;outputFormat=output
         var stream=format.streamDescription.pointee
         try set(kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output,1,&stream)
+        if var map=channelMap {
+            try map.withUnsafeMutableBytes { try check(AudioUnitSetProperty(unit!,kAudioOutputUnitProperty_ChannelMap,kAudioUnitScope_Output,1,$0.baseAddress!,UInt32($0.count)),"Select MIC and output reference channels") }
+        }
         bytes=UInt32(MemoryLayout<UInt32>.size)
         _ = AudioUnitGetProperty(unit!,kAudioUnitProperty_MaximumFramesPerSlice,kAudioUnitScope_Global,0,&maximumFrames,&bytes)
         maximumFrames=max(maximumFrames,4096)
@@ -186,7 +190,69 @@ final class Capture {
     }
     deinit { stop() }
 }
+// Process taps are deliberately non-mutating: never mute or replace playback.
+@available(macOS 14.2, *)
+final class OutputReference {
+    var tap: AudioObjectID = 0
+    var aggregate: AudioObjectID = 0
+    var device: Device!
+    var map: [Int32] = []
+    init(input: Device, outputUID: String, outputChannel: Int, micChannel: Int) throws {
+        do {
+            guard micChannel>=0 && micChannel<input.channels,
+                  let output=devices(scope:kAudioObjectPropertyScopeOutput).first(where:{$0.uid==outputUID}),
+                  outputChannel>=0 && outputChannel<output.channels else { throw HostError(text:"Selected MIC or output channel is unavailable.") }
+            // Use a single hardware clock for phase measurements. Cross-device
+            // taps require separate drift validation and are not silently mixed.
+            guard input.uid == output.uid else { throw HostError(text:"Output REF currently requires the same audio interface as MIC. Select the input and output of the same device.") }
+            var address=AudioObjectPropertyAddress(mSelector:kAudioDevicePropertyStreams,mScope:kAudioObjectPropertyScopeOutput,mElement:0)
+            var bytes: UInt32=0
+            try check(AudioObjectGetPropertyDataSize(output.id,&address,0,nil,&bytes),"Read output streams")
+            var streams=[AudioStreamID](repeating:0,count:Int(bytes)/4)
+            try streams.withUnsafeMutableBytes { try check(AudioObjectGetPropertyData(output.id,&address,0,nil,&bytes,$0.baseAddress!),"Read output streams") }
+            var base=0,streamIndex:Int?,channelInStream=0,streamChannels=0
+            for (index,id) in streams.enumerated() {
+                var a=AudioObjectPropertyAddress(mSelector:kAudioStreamPropertyVirtualFormat,mScope:kAudioObjectPropertyScopeGlobal,mElement:0)
+                var format=AudioStreamBasicDescription(),size=UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+                try check(AudioObjectGetPropertyData(id,&a,0,nil,&size,&format),"Read output stream format")
+                let count=Int(format.mChannelsPerFrame)
+                if outputChannel>=base && outputChannel<base+count {streamIndex=index;channelInStream=outputChannel-base;streamChannels=count;break}
+                base+=count
+            }
+            guard let index=streamIndex else { throw HostError(text:"Output stream not found.") }
+            let description=CATapDescription()
+            description.name="GAL Output Reference"
+            description.isPrivate=true;description.isExclusive=true;description.processes=[]
+            description.isMixdown=false;description.isMono=false;description.muteBehavior = .unmuted
+            description.deviceUID=output.uid;description.stream=UInt(index)
+            try check(AudioHardwareCreateProcessTap(description,&tap),"Capture output (allow System Audio Recording in Privacy & Security)")
+            var format=AudioStreamBasicDescription(),size=UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+            var a=AudioObjectPropertyAddress(mSelector:kAudioTapPropertyFormat,mScope:kAudioObjectPropertyScopeGlobal,mElement:0)
+            try check(AudioObjectGetPropertyData(tap,&a,0,nil,&size,&format),"Read output tap format")
+            guard Int(format.mChannelsPerFrame)==streamChannels else {throw HostError(text:"Output tap changed channel layout; restart audio.")}
+            let uid="com.galanalyzer.outputref."+UUID().uuidString
+            let config:[String:Any]=[
+                kAudioAggregateDeviceNameKey:"GAL MIC + Output REF",kAudioAggregateDeviceUIDKey:uid,
+                kAudioAggregateDeviceIsPrivateKey:true,kAudioAggregateDeviceMainSubDeviceKey:input.uid,kAudioAggregateDeviceIsStackedKey:true,
+                kAudioAggregateDeviceSubDeviceListKey:[[kAudioSubDeviceUIDKey:input.uid]],
+                kAudioAggregateDeviceTapListKey:[[kAudioSubTapUIDKey:description.uuid.uuidString,kAudioSubTapDriftCompensationKey:false]],
+                kAudioAggregateDeviceTapAutoStartKey:false]
+            try check(AudioHardwareCreateAggregateDevice(config as CFDictionary,&aggregate),"Create synchronized output reference")
+            guard let actual=devices().first(where:{$0.id==aggregate}),actual.channels==input.channels+streamChannels else {throw HostError(text:"The combined MIC/output channel layout is unavailable. Output REF was not started.")}
+            map=[Int32(micChannel),Int32(input.channels+channelInStream)]
+            device=Device(id:aggregate,uid:uid,name:input.name+" · output REF",channels:2,labels:[input.labels[micChannel],"Out \(outputChannel+1) · REF"],sampleRate:actual.sampleRate,isDefault:false)
+        } catch { close();throw error }
+    }
+    func close(){if aggregate != 0 {AudioHardwareDestroyAggregateDevice(aggregate);aggregate=0};if tap != 0 {AudioHardwareDestroyProcessTap(tap);tap=0}}
+    deinit{close()}
+}
 let arguments=CommandLine.arguments
+if arguments.contains("--outputs") {
+    let supported:Bool
+    if #available(macOS 14.2, *) {supported=true} else {supported=false}
+    let result:[String:Any]=["supported":supported,"devices":try JSONSerialization.jsonObject(with:JSONEncoder().encode(devices(scope:kAudioObjectPropertyScopeOutput)))]
+    FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject:result));exit(0)
+}
 if arguments.contains("--list") {
     let data=try JSONEncoder().encode(devices());FileHandle.standardOutput.write(data);exit(0)
 }
@@ -195,7 +261,7 @@ let requestedUID=arguments.count>2 ? arguments[2] : ""
 let targetRate=arguments.count>3 ? Double(arguments[3]) ?? 0 : 48000
 if !targetRate.isFinite || targetRate<40000 || targetRate>192000 { event(["type":"error","message":"Invalid analysis sample rate."]);exit(1) }
 if test {
-    let channels=requestedUID.hasPrefix("channels-") ? Int(requestedUID.dropFirst(9)) ?? 0 : 6
+    let channels=arguments.count>4 ? 2 : requestedUID.hasPrefix("channels-") ? Int(requestedUID.dropFirst(9)) ?? 0 : 6
     guard channels>=1, channels<=32 else { event(["type":"error","message":"Invalid synthetic channel count."]);exit(1) }
     event(["type":"ready","channels":channels,"labels":(1...channels).map { "Test input \($0)" },"sampleRate":targetRate,"nativeSampleRate":targetRate,"uid":"synthetic","name":"Native transport test"])
     var sequence:UInt32=0, frame=0
@@ -212,7 +278,7 @@ if test {
                 let value=(Float(random)/Float(UInt32.max)*2-1)*0.2
                 let delayed=history[historyIndex];history[historyIndex]=value;historyIndex=(historyIndex+1)%delay
                 samples[i*channels]=delayed*0.7;samples[i*channels+1]=value
-                samples[i*channels+2]=delayed*0.5;samples[i*channels+3]=value*0.8
+                if channels>=4 {samples[i*channels+2]=delayed*0.5;samples[i*channels+3]=value*0.8}
             }
         }
         packet(samples,channels:channels,rate:targetRate,sequence:sequence);sequence &+= 1;frame+=frames
@@ -222,13 +288,20 @@ if test {
 do {
     let all=devices()
     guard let selected=requestedUID.isEmpty ? all.first(where:{$0.isDefault}) : all.first(where:{$0.uid==requestedUID}) else { throw HostError(text:"Selected audio interface is not connected. Refresh inputs.") }
-    let capture=Capture(device:selected,rate:targetRate)
+    var captureDevice=selected,map:[Int32]?,outputReference:AnyObject?
+    if arguments.count>4 {
+        guard #available(macOS 14.2, *) else {throw HostError(text:"Output reference requires macOS 14.2 or later.")}
+        guard arguments.count==7,let channel=Int(arguments[5]),let mic=Int(arguments[6]) else {throw HostError(text:"Invalid output reference configuration.")}
+        let reference=try OutputReference(input:selected,outputUID:arguments[4],outputChannel:channel,micChannel:mic)
+        outputReference=reference;captureDevice=reference.device;map=reference.map
+    }
+    let capture=Capture(device:captureDevice,rate:targetRate);capture.channelMap=map
     try capture.start()
     signal(SIGTERM,SIG_IGN)
     let shutdown=DispatchSource.makeSignalSource(signal:SIGTERM,queue:.main)
-    shutdown.setEventHandler { capture.stop();exit(0) };shutdown.resume()
+    shutdown.setEventHandler { withExtendedLifetime(outputReference){capture.stop()};outputReference=nil;exit(0) };shutdown.resume()
     FileHandle.standardInput.readabilityHandler={ handle in
-        if handle.availableData.isEmpty { DispatchQueue.main.async { capture.stop();exit(0) } }
+        if handle.availableData.isEmpty { DispatchQueue.main.async { withExtendedLifetime(outputReference){capture.stop()};outputReference=nil;exit(0) } }
     }
     dispatchMain()
 } catch { event(["type":"error","message":error.localizedDescription]);exit(1) }

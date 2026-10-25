@@ -9,7 +9,7 @@ window.GalMr={render(c,W,H,{cursorX=null,compact=false}={}){
  const hasRef=refChannel>=0&&!!analyserRef;
  c.save();c.textBaseline='alphabetic';
  c.clearRect(0,0,W,H);c.fillStyle=sunMode?'#f8fafc':'#04141e';c.fillRect(0,0,W,H);c.font=(compact?'10':'11')+'px Arial';c.textAlign='left';
- c.fillStyle=mic;c.fillText('MIC '+(measChannel+1),left,16);c.fillStyle=ref;c.fillText(hasRef?'REF '+(refChannel+1):'REF not assigned',left+(compact?65:95),16);
+ c.fillStyle=mic;c.fillText(typeof stream!=='undefined'&&stream?.info?.outputReference?stream.info.labels[0]:'MIC '+(measChannel+1),left,16);c.fillStyle=ref;c.fillText(hasRef?(typeof stream!=='undefined'&&stream?.info?.outputReference?stream.info.labels[1]:'REF '+(refChannel+1)):'REF not assigned',left+(compact?65:95),16);
  if(!compact){c.fillStyle=text;c.fillText('1/'+curBpo+' octave · dBFS',left,32);}
  const ticks=(compact?[20,100,1000,10000,20000]:[20,31.5,50,100,200,500,1000,2000,5000,10000,20000]).filter(f=>f>=lo&&f<=hi);
  c.strokeStyle=grid;c.lineWidth=1;

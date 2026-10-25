@@ -35,6 +35,7 @@ app.whenReady().then(async () => {
   nativeTheme.themeSource = 'dark';
   const trusted=event=>{if(event.sender!==window?.webContents||!local(event.senderFrame?.url||''))throw Error('Unauthorized audio request.');};
   audioHost=new NativeHost({app,testing,send:(channel,value)=>{if(window&&!window.isDestroyed())window.webContents.send(channel,value)}});
+  ipcMain.handle('gal:native:outputs',async event=>{trusted(event);return audioHost.outputs();});
   ipcMain.handle('gal:native:list',async event=>{trusted(event);return audioHost.list();});
   ipcMain.handle('gal:native:start',async(event,options)=>{
     trusted(event);

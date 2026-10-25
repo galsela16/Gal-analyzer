@@ -36,6 +36,11 @@ module.exports=async({window,release})=>{
   `);
 
   console.log("Sub / Top capture:",JSON.stringify(await require("./test-subtop-capture.cjs")({window})));
+  await evaluate(`
+    const ref=document.getElementById('v52RefSelect');await new Promise(r=>setTimeout(r,250));
+    if(!ref.querySelector('[value="__computer_output__"]')||!document.getElementById('outputReferenceOpen'))throw Error('Output REF entry missing');
+    document.getElementById('outputReferenceOpen').click();await new Promise(r=>setTimeout(r,500));if(!document.getElementById('outputReferenceDialog').open)throw Error('Output REF settings did not open');document.getElementById('outputRefClose').click();
+  `);
   console.log("Key Commands:",JSON.stringify(await require("./test-keycommands.cjs")({window})));
   const menu=require('electron').Menu.getApplicationMenu();
   if(!menu.getMenuItemById('target-curve'))throw Error('Native target menu missing.');

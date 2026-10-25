@@ -1,0 +1,33 @@
+{
+  "version": "6.0.0-preview.48",
+  "date": "2026-10-25",
+  "feature": "Computer output as reference (hardware validation pending)",
+  "checks": {
+    "nativeCompilation": true,
+    "nativeRingAndWorklet": true,
+    "recorderChannelOrder": true,
+    "outputReferenceSyntheticPair": {
+      "mic": "Input 8",
+      "reference": "Out 32",
+      "knownDelayMs": 5,
+      "meanSampleError": 1.6422255075197466e-09
+    },
+    "outputSettingsUI": true,
+    "existingTF5msRegression": true,
+    "actualHardwareOutputTapValidated": false
+  },
+  "constraints": [
+    "macOS 14.2+ and System Audio Recording permission",
+    "MIC and output must belong to the same duplex interface",
+    "Captures Mac-to-device audio, not console-internal buses",
+    "Private aggregate uses physical interface as clock; rerun TF Sync after changes"
+  ],
+  "remainingValidation": [
+    "Actual DN32-LIVE output-stream layout and selected-channel isolation",
+    "System Audio Recording grant/denial in packaged app",
+    "Field delay and phase repeatability"
+  ],
+  "sources": [
+    "https://developer.apple.com/documentation/CoreAudio/capturing-system-audio-with-core-audio-taps"
+  ]
+}

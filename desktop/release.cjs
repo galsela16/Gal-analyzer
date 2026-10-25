@@ -15,7 +15,7 @@ function options(platform, output) {
     extraResource:[path.join(__dirname,'build/native-audio/gal-audio-host')],
     ignore:[/^\/build($|\/)/, /^\/tools($|\/)/, /^\/web-test/, /^\/mas($|\/)/,
       /^\/store($|\/)/, /^\/\.env/, /package-lock\.json/, /README\.md/, /\.(?:provisionprofile|mobileprovision|p12|pem|key|csr|cer)$/],
-    extendInfo:{LSMinimumSystemVersion:'13.0',NSMicrophoneUsageDescription:'GAL Analyzer uses your selected microphone or audio interface for local measurements. Audio stays on this Mac.'}
+    extendInfo:{NSAudioCaptureUsageDescription:'Capture a selected computer output locally as the measurement reference. Audio stays on this Mac.',LSMinimumSystemVersion:'13.0',NSMicrophoneUsageDescription:'GAL Analyzer uses your selected microphone or audio interface for local measurements. Audio stays on this Mac.'}
   };
 }
 module.exports = {version, appVersion, buildVersion, bundleId, options};

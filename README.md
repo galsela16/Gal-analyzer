@@ -1,4 +1,4 @@
-# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.47
+# GAL Analyzer V5.7.28 — Desktop 6.0.0-preview.48
 
 Desktop preview.15 prepares a separate Apple Silicon Mac App Store build path, adds an accessible offline privacy policy and the user's final sound icon, and reads channel names from any Core Audio driver rather than inferring them from EVO8. Native integration checks cover 1, 2, 4, 8, 16 and 32 channels. Apple signing, sandbox hardware acceptance and store submission remain pending membership. The shared web edition stays at V5.7.28. See [desktop documentation](desktop/README.md).
 
@@ -246,3 +246,9 @@ Validation: `node desktop/test-crossover-sweep.cjs`; renderer capture-state test
 ### preview.47 — M/R clarity
 
 MIC uses a translucent fill; REF remains an outline in full and Overview views. Cursor text has an explicit alignment and stays inside its box. Frequency and level readouts interpolate the plotted spectrum at the cursor position. Verified with day/night, full/compact and missing-reference cases (`node desktop/test-mr-presentation.cjs`).
+
+### preview.48 — Computer output reference (hardware validation pending)
+
+Desktop REF offers Computer output and Output REF settings on macOS 14.2+. Core Audio process taps capture an unmuted, non-mixdown output stream; a private aggregate and channel map select the physical MIC plus output channel into one two-channel capture. MIC and output must share the same interface/clock. No console routing, system-default device, fader or playback changes are made. Re-run TF Sync after changing the reference. The signal is Mac-to-device playback, not an internal console matrix. System Audio Recording permission is required.
+
+Native compilation, device enumeration, synthetic paired-channel transport and isolated UI regressions are tested. Actual device tap layout, permission handling and field phase repeatability remain to be validated with the connected DN32-LIVE.

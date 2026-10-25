@@ -28,7 +28,7 @@ window.GalNativeInput=(()=>{
   };
   current.unend=host.onEnded(event=>{if(!current.id||event.id===current.id)finish(event.message)});
   try{
-   const info=await host.start({uid,sampleRate:context.sampleRate});current.id=info.id;
+   const info=await host.start({uid,sampleRate:context.sampleRate,outputRef:window.GalOutputReference?.configuration(uid)||undefined});current.id=info.id;
    if(current.stopped)throw Error('Native capture was cancelled.');
    const node=new AudioWorkletNode(context,'gal-native-input',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[info.channels],channelCount:info.channels,channelCountMode:'explicit',channelInterpretation:'discrete',processorOptions:{channels:info.channels}});
    current.node=node;node.port.onmessage=event=>{

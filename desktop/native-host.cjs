@@ -3,17 +3,22 @@ const {promisify}=require('node:util');const path=require('node:path');const {ra
 class NativeHost {
  constructor({app,send,testing}){this.file=app.isPackaged?path.join(process.resourcesPath,'gal-audio-host'):path.join(__dirname,'build/native-audio/gal-audio-host');this.send=send;this.testing=testing;this.capture=null;}
  async list(){const {stdout}=await promisify(execFile)(this.file,['--list'],{timeout:5000,maxBuffer:1024*1024});return JSON.parse(stdout);}
+ async outputs(){const {stdout}=await promisify(execFile)(this.file,['--outputs'],{timeout:5000,maxBuffer:1024*1024});return JSON.parse(stdout);}
  async stop(){
   const capture=this.capture;this.capture=null;if(!capture)return;
   capture.stopping=true;clearInterval(capture.watchdog);capture.child.kill('SIGTERM');
   await Promise.race([new Promise(resolve=>capture.child.once('close',resolve)),new Promise(resolve=>setTimeout(()=>{capture.child.kill('SIGKILL');resolve();},700))]);
  }
- async start({uid,sampleRate}){
+ async start({uid,sampleRate,outputRef}){
   if(typeof uid!=='string'||uid.length>512||!Number.isFinite(sampleRate)||sampleRate<40000||sampleRate>192000)throw Error('Invalid native capture configuration.');
+  if(outputRef){
+   if(typeof outputRef.uid!=='string'||outputRef.uid.length>512||!Number.isInteger(outputRef.channel)||outputRef.channel<0||!Number.isInteger(outputRef.mic)||outputRef.mic<0)throw Error('Invalid output reference configuration.');
+   if(!this.testing){const outputs=await this.outputs(),inputs=await this.list();if(!outputs.supported)throw Error('Output reference needs macOS 14.2 or later.');const input=inputs.find(d=>d.uid===uid),output=outputs.devices.find(d=>d.uid===outputRef.uid);if(!input||!output||outputRef.uid!==uid||outputRef.channel>=output.channels||outputRef.mic>=input.channels)throw Error('Choose a MIC and output on the same connected audio interface.');}
+  }
   await this.stop();
   if(!this.testing && uid && !(await this.list()).some(d=>d.uid===uid))throw Error('The selected audio interface is disconnected. Refresh inputs.');
   const id=randomUUID();
-  const child=spawn(this.file,[this.testing?'--test-stream':'--capture',uid,String(sampleRate)],{stdio:['pipe','pipe','pipe']});
+  const child=spawn(this.file,[this.testing?'--test-stream':'--capture',uid,String(sampleRate),...(outputRef?[outputRef.uid,String(outputRef.channel),String(outputRef.mic)]:[])],{stdio:['pipe','pipe','pipe']});
   const capture={child,id,stopping:false,lastPacket:Date.now(),watchdog:null};this.capture=capture;
   return new Promise((resolve,reject)=>{
    let ready=null,buffer=Buffer.alloc(0),stderr='',sequence=-1,settled=false;
@@ -31,7 +36,7 @@ class NativeHost {
      if(event.type==='error')fail(event.message);
      if(event.type==='ready'){
       if(event.channels<1||event.channels>32||event.sampleRate!==sampleRate)return fail('Invalid native input format.');
-      ready=event;settled=true;resolve({...event,id});
+      ready=event;if(outputRef){if(event.channels!==2)return fail('Output reference pair has an invalid layout.');event.labels=['Input '+(outputRef.mic+1),'Out '+(outputRef.channel+1)+' · REF'];}settled=true;resolve({...event,id,outputReference:!!outputRef});
      }
     }
    });
@@ -50,7 +55,7 @@ class NativeHost {
     }
    });
    child.on('close',(code)=>{clearInterval(capture.watchdog);if(!capture.stopping)fail(`Native audio input stopped (${code}). Refresh inputs and start again.`);});
-   capture.watchdog=setInterval(()=>{if(Date.now()-capture.lastPacket> (ready?3000:12000))fail('Native audio input stopped responding. Restart audio.');},500);
+   capture.watchdog=setInterval(()=>{if(Date.now()-capture.lastPacket> (ready?3000:(outputRef?60000:12000)))fail('Native audio input stopped responding. Restart audio.');},500);
   });
  }
 }
